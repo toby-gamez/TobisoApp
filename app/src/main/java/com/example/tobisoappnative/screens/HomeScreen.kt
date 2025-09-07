@@ -30,6 +30,11 @@ import androidx.navigation.NavController
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.example.tobisoappnative.PointsManager
+import kotlinx.coroutines.delay
 
 data class Subject(
     val name: String,
@@ -103,6 +108,7 @@ fun HomeScreen(navController: NavController) {
         Subject("Přírodopis", Icons.Default.Eco, SubjectColorType.OUTLINE, "Lidské tělo"),
         Subject("Zeměpis", Icons.Default.Public, SubjectColorType.SURFACE_VARIANT, "Vše o povrchu, obyvatelstvu, hospodářství a ochraně přírody ČR"),
     )
+    val context = LocalContext.current
     val columnCount = getColumnCount()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyGridState()
@@ -135,7 +141,13 @@ fun HomeScreen(navController: NavController) {
             },
             scrollBehavior = scrollBehavior
         )
-
+        Button(
+            onClick = {
+                PointsManager.addPoints(context, 10)
+            }
+        ) {
+            Text("Přidat body")
+        }
         LazyVerticalGrid(
             state = gridState,
             columns = GridCells.Fixed(columnCount),

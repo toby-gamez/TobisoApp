@@ -43,8 +43,8 @@ class NotificationWorker(
         val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(if (isCritical) "POZOR! Streak nebyl prodloužen" else "Nezapomeňte na streak!")
-            .setContentText(if (isCritical) "Pokud dnes neotevřete aplikaci, řada bude přerušena!" else "Dnes jste ještě neprodloužili řadu. Otevřete aplikaci do 20:00.")
+            .setContentTitle(if (isCritical) "JEŠTĚ SES NEUČIL" else "Kámo, je 5 a ty ses neučil")
+            .setContentText(if (isCritical) "NECHOVEJ SE JAKO FREGMATIK A BEŽ SE VZDĚLÁVAT!" else "Chápu, že není večer, ale ted jsi nejčilejší, tak se do toho pust.")
             .setPriority(if (isCritical) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
@@ -67,7 +67,6 @@ class NotificationWorker(
             }
         }
     }
-
     private fun createNotificationChannel(channelId: String, isCritical: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = if (isCritical) "Tobiso App Critical" else "Tobiso App Channel"
