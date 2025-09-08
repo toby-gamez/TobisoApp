@@ -41,7 +41,7 @@ fun BottomBar(navController: NavHostController, searchRequestFocus: MutableState
             }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.MoreVert, contentDescription = "Více") },
+            icon = { Icon(Icons.Default.Menu, contentDescription = "Více") },
             label = { Text("Více", style = MaterialTheme.typography.labelSmall) },
             selected = currentDestination == "more",
             onClick = { navController.navigate("more") }
