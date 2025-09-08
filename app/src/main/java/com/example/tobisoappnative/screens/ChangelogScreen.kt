@@ -29,7 +29,8 @@ fun ChangelogScreen(navController: NavController) {
     val version1_7 = listOf(
         "odstraněn problém se status barem",
         "přidána řada",
-        "přidány notifikace pro učení"
+        "přidány notifikace pro učení",
+        "přidány body pro otázky (ještě nejsou hotové)"
     )
     val version1_6 = listOf(
         "přidán počet slov a délka čtení pro článek",

@@ -1,12 +1,13 @@
 package com.example.tobisoappnative.screens
 
 import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Whatshot
@@ -20,11 +21,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.tobisoappnative.cancelStreakNotifications
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
 
+// Nová datová třída pro přehledné vracení obou hodnot
+data class StreakInfo(val currentStreak: Int, val maxStreak: Int)
+
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StreakScreen(
@@ -32,23 +38,24 @@ fun StreakScreen(
     viewModel: MainViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    // Stav pro aktuální měsíc a rok
     val today = remember { Calendar.getInstance() }
     var calendarMonth by remember { mutableIntStateOf(today.get(Calendar.MONTH)) }
     var calendarYear by remember { mutableIntStateOf(today.get(Calendar.YEAR)) }
 
-    // Přidá dnešní den do streaku při každém otevření obrazovky
+    // --- OPRAVA 3: Znovu jsem zapnul přidávání dnešního dne ---
     LaunchedEffect(Unit) {
         addTodayToStreak(context)
     }
 
-    // Použití remember s key pro refresh při změně měsíce/roku
     val streakDays by remember(calendarMonth, calendarYear) {
         mutableStateOf(getStreakDays(context))
     }
     val currentDateString = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(today.time)
-    val currentStreak = remember(streakDays) { getCurrentStreak(streakDays) }
-    val maxStreak = remember(streakDays) { getMaxStreak(streakDays) }
+
+    // --- NOVÝ A EFEKTIVNÍ VÝPOČET ---
+    val (currentStreak, maxStreak) = remember(streakDays) {
+        calculateStreaks(streakDays)
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -58,7 +65,7 @@ fun StreakScreen(
             title = { Text("Řada") },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Filled.ArrowUpward, contentDescription = "Zpět")
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )
@@ -67,7 +74,6 @@ fun StreakScreen(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // --- Zobrazení maximálního a aktuálního streaku s ikonou ohně ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -127,7 +133,6 @@ fun StreakScreen(
                 }
             }
 
-            // Navigace měsíce
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = {
                     if (calendarMonth == 0) {
@@ -169,6 +174,97 @@ fun StreakScreen(
     }
 }
 
+/**
+ * Nová, optimalizovaná funkce pro výpočet aktuální a maximální série.
+ * Používá java.time.LocalDate pro výrazně vyšší výkon.
+ */
+@RequiresApi(Build.VERSION_CODES.O)
+fun calculateStreaks(streakDays: Set<String>): StreakInfo {
+    if (streakDays.isEmpty()) {
+        return StreakInfo(0, 0)
+    }
+
+    val sortedDates = streakDays.map { LocalDate.parse(it) }.sorted()
+
+    // Pokud je v seznamu jen jeden den, série je 1.
+    if (sortedDates.size == 1) {
+        return StreakInfo(1, 1)
+    }
+
+    var maxStreak = 1
+    var runningStreak = 1
+
+    for (i in 1 until sortedDates.size) {
+        if (sortedDates[i].minusDays(1) == sortedDates[i - 1]) {
+            runningStreak++
+        } else {
+            runningStreak = 1
+        }
+        if (runningStreak > maxStreak) {
+            maxStreak = runningStreak
+        }
+    }
+
+    var currentStreak = 0
+    val today = LocalDate.now()
+    val lastRecordedDay = sortedDates.last()
+
+    if (lastRecordedDay == today || lastRecordedDay == today.minusDays(1)) {
+        var expectedDate = lastRecordedDay
+        for (i in sortedDates.indices.reversed()) {
+            if (sortedDates[i] == expectedDate) {
+                currentStreak++
+                expectedDate = expectedDate.minusDays(1)
+            } else {
+                break
+            }
+        }
+    }
+
+    return StreakInfo(currentStreak = currentStreak, maxStreak = maxStreak)
+}
+
+// --- ZMĚNA: Napojení na reálné úložiště telefonu ---
+@RequiresApi(Build.VERSION_CODES.O)
+fun addTodayToStreak(context: Context) {
+    // 1. Otevřeme si soubor v paměti telefonu (pokud neexistuje, vytvoří se).
+    val sharedPreferences = context.getSharedPreferences("StreakData", Context.MODE_PRIVATE)
+
+    // 2. Načteme si stávající dny (pokud žádné nejsou, vezmeme prázdný seznam).
+    val existingDays = sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
+
+    // 3. Vytvoříme si kopii, do které můžeme přidávat (původní seznam je jen pro čtení).
+    val newDays = existingDays.toMutableSet()
+
+    // 4. Přidáme dnešní datum.
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val today = LocalDate.now().format(formatter)
+    newDays.add(today)
+
+    // 5. Uložíme nový, rozšířený seznam zpět do paměti.
+    sharedPreferences.edit().putStringSet("streak_days", newDays).apply()
+    println("Today ($today) was added to streak. Total days: ${newDays.size}")
+}
+
+
+// --- ZMĚNA: Načítání z reálného úložiště telefonu ---
+@RequiresApi(Build.VERSION_CODES.O)
+fun getStreakDays(context: Context): Set<String> {
+    val sharedPreferences = context.getSharedPreferences("StreakData", Context.MODE_PRIVATE)
+    // Jednoduše načteme a vrátíme uložená data. Pokud žádná nejsou, vrátí se prázdný seznam.
+    return sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
+}
+
+fun denDnyDni(count: Int): String {
+    return when {
+        count == 1 -> "den"
+        count in 2..4 -> "dny"
+        else -> "dní"
+    }
+}
+
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CalendarStreak(
     streakDays: Set<String>,
@@ -211,23 +307,22 @@ fun CalendarStreak(
                 for (day in week) {
                     val isActive = day.fullDate != null && streakDays.contains(day.fullDate)
                     val isToday = day.fullDate == todayString
-                    val isCurrentMonth = day.isCurrentMonth
 
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1f)
-                            .padding(2.dp)
-                            .then(
-                                if (isToday) Modifier else Modifier
-                            ),
+                            .padding(2.dp),
                         contentAlignment = Alignment.Center
                     ) {
+                        // --- OPRAVA 1: Kompletně předělaná logika zobrazení dne ---
                         if (isToday) {
+                            val bgColor = if (isActive) MaterialTheme.colorScheme.primary else Color.Transparent
+                            val textColor = if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
                             Surface(
-                                shape = MaterialTheme.shapes.medium,
-                                color = MaterialTheme.colorScheme.primary,
-                                tonalElevation = 2.dp,
+                                shape = CircleShape,
+                                color = bgColor,
+                                border = if (!isActive) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -235,29 +330,34 @@ fun CalendarStreak(
                                         text = day.dayNumber.toString(),
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = textColor
                                         )
                                     )
                                 }
                             }
-                        } else {
+                        } else if (isActive) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(
-                                        color = when {
-                                            isActive -> MaterialTheme.colorScheme.secondary
-                                            isCurrentMonth -> MaterialTheme.colorScheme.secondaryContainer
-                                            else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                                        },
-                                        shape = CircleShape
-                                    ),
+                                    .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = day.dayNumber.toString(),
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        color = if (isCurrentMonth) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                )
+                            }
+                        } else if (day.isCurrentMonth) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = day.dayNumber.toString(),
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )
                                 )
                             }
@@ -265,62 +365,45 @@ fun CalendarStreak(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
 
 data class CalendarDay(val dayNumber: Int, val isCurrentMonth: Boolean, val fullDate: String?)
 
+@RequiresApi(Build.VERSION_CODES.O)
 fun getMonthDaysGrid(month: Int, year: Int): List<CalendarDay> {
-    val calendar = Calendar.getInstance()
-    calendar.set(Calendar.YEAR, year)
-    calendar.set(Calendar.MONTH, month)
-    calendar.set(Calendar.DAY_OF_MONTH, 1)
+    val firstDayOfMonth = LocalDate.of(year, month + 1, 1)
+    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value // 1 = pondělí, 7 = neděle
 
-    val firstDayOfWeek = (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7 // 0=Po, 6=Ne
-    val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-    // Předchozí měsíc
-    val prevMonth = if (month == 0) 11 else month - 1
-    val prevYear = if (month == 0) year - 1 else year
-    val prevCalendar = Calendar.getInstance()
-    prevCalendar.set(Calendar.YEAR, prevYear)
-    prevCalendar.set(Calendar.MONTH, prevMonth)
-    val daysInPrevMonth = prevCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-    // Začátek gridu
     val days = mutableListOf<CalendarDay>()
 
     // Dny z předchozího měsíce
-    for (i in 0 until firstDayOfWeek) {
-        val dayNum = daysInPrevMonth - firstDayOfWeek + i + 1
-        val date = getDateString(prevYear, prevMonth, dayNum)
-        days.add(CalendarDay(dayNum, false, date))
+    val daysFromPrevMonth = firstDayOfWeek - 1
+    val prevMonth = firstDayOfMonth.minusMonths(1)
+    val daysInPrevMonth = prevMonth.lengthOfMonth()
+    for (i in 0 until daysFromPrevMonth) {
+        val dayNum = daysInPrevMonth - daysFromPrevMonth + i + 1
+        days.add(CalendarDay(dayNum, false, null))
     }
 
     // Aktuální měsíc
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val daysInMonth = firstDayOfMonth.lengthOfMonth()
     for (i in 1..daysInMonth) {
-        val date = getDateString(year, month, i)
+        val date = LocalDate.of(year, month + 1, i).format(formatter)
         days.add(CalendarDay(i, true, date))
     }
 
-    // Další měsíc
-    val nextMonth = if (month == 11) 0 else month + 1
-    val nextYear = if (month == 11) year + 1 else year
+    // Dny z dalšího měsíce, abychom zaplnili mřížku na 42 dní (6 řádků)
     var nextDay = 1
-    while (days.size % 7 != 0) {
-        val date = getDateString(nextYear, nextMonth, nextDay)
-        days.add(CalendarDay(nextDay, false, date))
+    while (days.size < 42) {
+        days.add(CalendarDay(nextDay, false, null))
         nextDay++
     }
-
     return days
 }
 
-fun getDateString(year: Int, month: Int, day: Int): String {
-    return String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, day)
-}
 
 fun monthYearString(month: Int, year: Int): String {
     val months = listOf(
@@ -330,91 +413,4 @@ fun monthYearString(month: Int, year: Int): String {
     return "${months[month]} $year"
 }
 
-fun getCurrentStreak(streakDays: Set<String>): Int {
-    if (streakDays.isEmpty()) return 0
 
-    val sortedDays = streakDays.sortedDescending()
-    val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-    val calendar = Calendar.getInstance()
-
-    var currentStreak = 0
-    var checkDate = today
-
-    while (sortedDays.contains(checkDate)) {
-        currentStreak++
-        calendar.time = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(checkDate) ?: break
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        checkDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)
-    }
-
-    return currentStreak
-}
-
-fun getMaxStreak(streakDays: Set<String>): Int {
-    if (streakDays.isEmpty()) return 0
-
-    val sortedDays = streakDays.sorted()
-    var maxStreak = 1
-    var currentStreak = 1
-
-    val calendar = Calendar.getInstance()
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-
-    for (i in 1 until sortedDays.size) {
-        val prevDate = dateFormat.parse(sortedDays[i - 1])
-        val currentDate = dateFormat.parse(sortedDays[i])
-
-        if (prevDate != null && currentDate != null) {
-            calendar.time = prevDate
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-
-            if (calendar.time.equals(currentDate)) {
-                currentStreak++
-                maxStreak = maxOf(maxStreak, currentStreak)
-            } else {
-                currentStreak = 1
-            }
-        }
-    }
-
-    return maxStreak
-}
-
-fun getLast30Days(): List<String> {
-    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val calendar = Calendar.getInstance()
-    return (0 until 30).map { i ->
-        val date = sdf.format(calendar.time)
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        date
-    }.reversed()
-}
-
-fun getStreakDays(context: Context): Set<String> {
-    val prefs = context.getSharedPreferences("streak_prefs", Context.MODE_PRIVATE)
-    return prefs.getStringSet("days", emptySet()) ?: emptySet()
-}
-
-fun addTodayToStreak(context: Context) {
-    val prefs = context.getSharedPreferences("streak_prefs", Context.MODE_PRIVATE)
-    val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-    val existingDays = prefs.getStringSet("days", emptySet()) ?: emptySet()
-
-    if (!existingDays.contains(today)) {
-        val days = existingDays.toMutableSet()
-        days.add(today)
-        prefs.edit().putStringSet("days", days).apply()
-        cancelStreakNotifications(context)
-    }
-}
-
-// --- Pomocná funkce pro české skloňování slova "den" ---
-fun denDnyDni(count: Int): String {
-    val mod10 = count % 10
-    val mod100 = count % 100
-    return when {
-        count == 1 -> "den"
-        (mod10 in 2..4) && !(mod100 in 12..14) -> "dny"
-        else -> "dní"
-    }
-}

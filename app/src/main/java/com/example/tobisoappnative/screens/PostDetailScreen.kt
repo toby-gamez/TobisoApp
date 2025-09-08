@@ -101,7 +101,7 @@ fun PostDetailScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 LargeTopAppBar(
-                    title = { Text(postDetail?.title ?: "Detail příspěvku") },
+                    title = { Text(postDetail?.title ?: "Detail článku") },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -166,7 +166,7 @@ fun PostDetailScreen(
                             contentAlignment = androidx.compose.ui.Alignment.Center
                         ) {
                             Text(
-                                "Chyba při načítání příspěvku: ${postDetailError}",
+                                "Chyba při načítání článku: ${postDetailError}",
                                 color = MaterialTheme.colorScheme.error
                             )
                         }

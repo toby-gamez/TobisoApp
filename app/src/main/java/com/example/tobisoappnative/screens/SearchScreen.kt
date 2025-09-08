@@ -1,6 +1,7 @@
 package com.example.tobisoappnative.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +23,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.navigation.NavController
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.ui.text.font.FontWeight
 import com.example.tobisoappnative.PointsManager
+import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +46,7 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
     var error by remember { mutableStateOf<String?>(null) }
     var debouncedSearchText by remember { mutableStateOf("") }
     var showTotalOverlay by remember { mutableStateOf(false) }
+    val totalPoints by PointsManager.totalPoints.collectAsState()
 
     // Funce pro zvýraznění textu
     @Composable
@@ -128,127 +130,136 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
         it.name.contains(debouncedSearchText, ignoreCase = true)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-    ) {
-        LargeTopAppBar(
-            title = { Text("Vyhledávání", style = MaterialTheme.typography.titleLarge) },
-            actions = {
-                // Kulaté tlačítko s body vlevo od ohýnku
-                val tertiaryColor = MaterialTheme.colorScheme.tertiary
-                val points = remember { mutableStateOf(PointsManager.getPoints()) }
-                // Aktualizace bodů při změně
-                LaunchedEffect(Unit) {
-                    PointsManager.totalPoints.collect { total ->
-                        points.value = total
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(40.dp)
-                        .background(
-                            color = tertiaryColor.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(50)
-                        )
-                        .clickable { showTotalOverlay = true },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = points.value.toString(),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                IconButton(onClick = { navController.navigate("streak") }) {
-                    Icon(
-                        imageVector = Icons.Default.Whatshot,
-                        contentDescription = "Streak",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            },
-            scrollBehavior = scrollBehavior,
-        )
-
+    // ✅ Celý obsah obrazovky je nyní v jednom hlavním Boxu.
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
-            SearchBar(
-                query = searchText,
-                onQueryChange = { searchText = it },
-                onSearch = { isSearchActive = false },
-                active = isSearchActive,
-                onActiveChange = { isSearchActive = it },
-                placeholder = { Text("Vyhledat kategorii nebo obsah článku...") },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Výsledky hledání realtime
-                when {
-                    isLoading -> CircularProgressIndicator()
-                    error != null && error.orEmpty().isNotBlank() -> Text(error.orEmpty(), color = MaterialTheme.colorScheme.error)
-                    filteredPosts.isEmpty() && filteredCategories.isEmpty() && searchText.isNotBlank() -> Text("Nenalezeno žádné výsledky.")
-                    else -> Column(
+            LargeTopAppBar(
+                title = { Text("Vyhledávání", style = MaterialTheme.typography.titleLarge) },
+                actions = {
+                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+                    val points = remember { mutableStateOf(PointsManager.getPoints()) }
+
+                    LaunchedEffect(Unit) {
+                        PointsManager.totalPoints.collect { total ->
+                            points.value = total
+                        }
+                    }
+                    Box(
                         modifier = Modifier
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .background(
+                                color = tertiaryColor.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(50)
+                            )
+                            .clickable { showTotalOverlay = true },
+                        contentAlignment = Alignment.Center
                     ) {
-                        // Výsledky kategorií
-                        if (filteredCategories.isNotEmpty()) {
-                            Text("Kategorie:", style = MaterialTheme.typography.titleSmall)
-                            filteredCategories.forEach { category ->
+                        Text(
+                            text = points.value.toString(),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    IconButton(onClick = { navController.navigate("streak") }) {
+                        Icon(
+                            imageVector = Icons.Default.Whatshot,
+                            contentDescription = "Streak",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                SearchBar(
+                    query = searchText,
+                    onQueryChange = { searchText = it },
+                    onSearch = { isSearchActive = false },
+                    active = isSearchActive,
+                    onActiveChange = { isSearchActive = it },
+                    placeholder = { Text("Vyhledat kategorii nebo obsah článku...") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Výsledky hledání realtime
+                    when {
+                        isLoading -> CircularProgressIndicator()
+                        error != null && error.orEmpty().isNotBlank() -> Text(error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                        filteredPosts.isEmpty() && filteredCategories.isEmpty() && searchText.isNotBlank() -> Text("Nenalezeno žádné výsledky.")
+                        else -> Column(
+                            modifier = Modifier
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Výsledky kategorií
+                            if (filteredCategories.isNotEmpty()) {
+                                Text("Kategorie:", style = MaterialTheme.typography.titleSmall)
+                                filteredCategories.forEach { category ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                navController.navigate("categoryList/${category.name}")
+                                            }
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            Text(
+                                                highlightText(category.name, searchText),
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                            // Výsledky postů
+                            if (filteredPosts.isNotEmpty()) {
+                                Text("Články:", style = MaterialTheme.typography.titleSmall)
+                            }
+                            filteredPosts.forEach { post ->
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            navController.navigate("categoryList/${category.name}")
+                                            navController.navigate("postDetail/${post.id}")
                                         }
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
                                         Text(
-                                            highlightText(category.name, searchText),
-                                            style = MaterialTheme.typography.bodyLarge
+                                            highlightText(post.title, searchText),
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            getSnippetWithHighlight(post.content, searchText),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 3
                                         )
                                     }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-                        // Výsledky postů
-                        if (filteredPosts.isNotEmpty()) {
-                            Text("Články:", style = MaterialTheme.typography.titleSmall)
-                        }
-                        filteredPosts.forEach { post ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        navController.navigate("postDetail/${post.id}")
-                                    }
-                            ) {
-                                Column(modifier = Modifier.padding(8.dp)) {
-                                    Text(
-                                        highlightText(post.title, searchText),
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        getSnippetWithHighlight(post.content, searchText),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 3
-                                    )
                                 }
                             }
                         }
                     }
                 }
+            }
+        }
+        // ✅ Overlay se teď zobrazí na nejvyšší úrovni, tedy přes všechno.
+        if (showTotalOverlay) {
+            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+            LaunchedEffect(showTotalOverlay) {
+                delay(2200)
+                showTotalOverlay = false
             }
         }
     }

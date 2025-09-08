@@ -64,7 +64,7 @@ fun FavoritesScreen(
             Tab(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
-                text = { Text("Příspěvky") }
+                text = { Text("Články") }
             )
         }
         // Stav pro dialog potvrzení mazání
@@ -77,7 +77,7 @@ fun FavoritesScreen(
                     Text("Smazat všechny útržky")
                 }
                 1 -> Button(onClick = { showDeleteDialog = true; deleteType = 1 }, enabled = favoritePosts.isNotEmpty()) {
-                    Text("Smazat všechny příspěvky")
+                    Text("Smazat všechny články")
                 }
             }
         }
@@ -86,7 +86,7 @@ fun FavoritesScreen(
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
                 title = { Text("Opravdu chcete smazat vše?") },
-                text = { Text(if (deleteType == 0) "Tímto smažete všechny uložené útržky." else "Tímto smažete všechny oblíbené příspěvky.") },
+                text = { Text(if (deleteType == 0) "Tímto smažete všechny uložené útržky." else "Tímto smažete všechny oblíbené články.") },
                 confirmButton = {
                     TextButton(onClick = {
                         if (deleteType == 0) viewModel.clearSnippets() else viewModel.clearFavoritePosts()
@@ -173,7 +173,7 @@ fun FavoritesScreen(
             1 -> {
                 if (favoritePosts.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                        Text("Nemáte žádné oblíbené příspěvky.", style = MaterialTheme.typography.bodyLarge)
+                        Text("Nemáte žádné oblíbené články.", style = MaterialTheme.typography.bodyLarge)
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
