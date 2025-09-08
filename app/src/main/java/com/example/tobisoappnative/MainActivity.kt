@@ -63,6 +63,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import java.util.concurrent.TimeUnit
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
+import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import androidx.compose.runtime.rememberCoroutineScope
 
 class MainActivity : ComponentActivity() {
@@ -74,364 +75,384 @@ class MainActivity : ComponentActivity() {
             MyApp()
         }
     }
-        @OptIn(ExperimentalMaterial3Api::class)
-        @Composable
-        fun MyApp() {
-            val context = androidx.compose.ui.platform.LocalContext.current
-            val isConnected = remember { mutableStateOf(checkInternetConnection(context)) }
-            val mainViewModel: MainViewModel = viewModel()
-            val categories by mainViewModel.categories.collectAsState()
-            val categoryError by mainViewModel.categoryError.collectAsState()
-            val lastAddedPoints by PointsManager.lastAddedPoints.collectAsState()
-            var showOverlay by remember { mutableStateOf(false) }
-            var overlayPoints by remember { mutableStateOf(0) }
-            val coroutineScope = rememberCoroutineScope()
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun MyApp() {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val isConnected = remember { mutableStateOf(checkInternetConnection(context)) }
+        val mainViewModel: MainViewModel = viewModel()
+        val categories by mainViewModel.categories.collectAsState()
+        val categoryError by mainViewModel.categoryError.collectAsState()
+        val lastAddedPoints by PointsManager.lastAddedPoints.collectAsState()
+        var showOverlay by remember { mutableStateOf(false) }
+        var overlayPoints by remember { mutableStateOf(0) }
+        var showTotalOverlay by remember { mutableStateOf(false) }
+        val coroutineScope = rememberCoroutineScope()
 
-            // periodická kontrola připojení
-            LaunchedEffect(context) {
-                while (true) {
-                    isConnected.value = checkInternetConnection(context)
-                    delay(2000)
-                }
-            }
-
-            // callback pro ruční obnovu
-            val onRetry = {
+        // periodická kontrola připojení
+        LaunchedEffect(context) {
+            while (true) {
                 isConnected.value = checkInternetConnection(context)
+                delay(2000)
             }
+        }
 
-            // timeout stav
-            val loadingTimeout = remember { mutableStateOf(false) }
-            LaunchedEffect(isConnected.value) {
-                if (isConnected.value) {
-                    loadingTimeout.value = false
-                } else {
-                    loadingTimeout.value = false
-                    delay(30000)
-                    if (!isConnected.value && categories.isEmpty() && categoryError == null) {
-                        loadingTimeout.value = true
-                    }
+        // callback pro ruční obnovu
+        val onRetry = {
+            isConnected.value = checkInternetConnection(context)
+        }
+
+        // timeout stav
+        val loadingTimeout = remember { mutableStateOf(false) }
+        LaunchedEffect(isConnected.value) {
+            if (isConnected.value) {
+                loadingTimeout.value = false
+            } else {
+                loadingTimeout.value = false
+                delay(30000)
+                if (!isConnected.value && categories.isEmpty() && categoryError == null) {
+                    loadingTimeout.value = true
                 }
             }
+        }
 
-            // načtení kategorií při startu
-            LaunchedEffect(Unit) {
-                mainViewModel.loadCategories()
+        // načtení kategorií při startu
+        LaunchedEffect(Unit) {
+            mainViewModel.loadCategories()
+        }
+
+        // Inicializace bodů při startu aplikace
+        LaunchedEffect(context) {
+            PointsManager.init(context)
+        }
+        val totalPoints by PointsManager.totalPoints.collectAsState()
+
+        // Funkce pro zobrazení pouze celkového počtu bodů
+        fun showTotalPointsOverlay() {
+            showTotalOverlay = true
+        }
+
+        // LaunchedEffect pro první overlay (body s přičítáním)
+        LaunchedEffect(lastAddedPoints) {
+            if (lastAddedPoints != 0) {
+                overlayPoints = lastAddedPoints
+                showOverlay = true
+                delay(2500)
+                showOverlay = false
+                PointsManager.resetLastAddedPoints()
+            }
+        }
+
+        // LaunchedEffect pro druhý overlay (celkový počet bodů)
+        LaunchedEffect(showTotalOverlay) {
+            if (showTotalOverlay) {
+                delay(2500)
+                showTotalOverlay = false
+            }
+        }
+
+        TobisoAppNativeTheme {
+            // Nyní můžeme bezpečně přistoupit k MaterialTheme uvnitř TobisoAppNativeTheme
+            val systemUiController = rememberSystemUiController()
+            val surfaceColor = MaterialTheme.colorScheme.surface
+
+            // nastavení status baru na surface
+            SideEffect {
+                systemUiController.setStatusBarColor(
+                    color = surfaceColor,
+                    darkIcons = surfaceColor.luminance() > 0.5f
+                )
             }
 
-            // Inicializace bodů při startu aplikace
-            LaunchedEffect(context) {
-                PointsManager.init(context)
-            }
-            val totalPoints by PointsManager.totalPoints.collectAsState()
-
-            LaunchedEffect(lastAddedPoints) {
-                if (lastAddedPoints != 0) {
-                    overlayPoints = lastAddedPoints
-                    showOverlay = true
-                    delay(2500) // Změnil jsem z 1500 na 2500
-                    showOverlay = false
-                    PointsManager.resetLastAddedPoints()
-                }
-            }
-
-            TobisoAppNativeTheme {
-                // Nyní můžeme bezpečně přistoupit k MaterialTheme uvnitř TobisoAppNativeTheme
-                val systemUiController = rememberSystemUiController()
-                val surfaceColor = MaterialTheme.colorScheme.surface
-
-                // nastavení status baru na surface
-                SideEffect {
-                    systemUiController.setStatusBarColor(
-                        color = surfaceColor,
-                        darkIcons = surfaceColor.luminance() > 0.5f
-                    )
-                }
-
-                // Surface se surface barvou zajistí správné vykreslení pod status bar
-                Surface(color = MaterialTheme.colorScheme.surface) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        val searchRequestFocus = remember { mutableStateOf(false) }
-                        if (!isConnected.value) {
-                            NoInternetScreen(onRetry = onRetry)
-                        } else if (categories.isEmpty() && categoryError == null) {
-                            LoadingToast(timeout = loadingTimeout.value)
-                        } else {
-                            val navController = rememberNavController()
-                            val navBackStackEntry by navController.currentBackStackEntryAsState()
-                            val route = navBackStackEntry?.destination?.route
-                            Scaffold(
-                                bottomBar = {
-                                    AnimatedVisibility(
-                                        visible = route == null ||
-                                                !(route.startsWith("postDetail") ||
-                                                        route.startsWith("about") ||
-                                                        route.startsWith("feedback") ||
-                                                        route.startsWith("changelog") ||
-                                                        route.startsWith("videoPlayer") ||
-                                                        route.startsWith("streak")),
-                                        enter = slideInVertically(initialOffsetY = { it }),
-                                        exit = slideOutVertically(targetOffsetY = { it })
-                                    ) {
-                                        BottomBar(navController, searchRequestFocus)
+            // Surface se surface barvou zajistí správné vykreslení pod status bar
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    val searchRequestFocus = remember { mutableStateOf(false) }
+                    if (!isConnected.value) {
+                        NoInternetScreen(onRetry = onRetry)
+                    } else if (categories.isEmpty() && categoryError == null) {
+                        LoadingToast(timeout = loadingTimeout.value)
+                    } else {
+                        val navController = rememberNavController()
+                        val navBackStackEntry by navController.currentBackStackEntryAsState()
+                        val route = navBackStackEntry?.destination?.route
+                        Scaffold(
+                            bottomBar = {
+                                AnimatedVisibility(
+                                    visible = (route == null ||
+                                            !(route.startsWith("postDetail") ||
+                                                    route.startsWith("about") ||
+                                                    route.startsWith("feedback") ||
+                                                    route.startsWith("changelog") ||
+                                                    route.startsWith("videoPlayer") ||
+                                                    route.startsWith("streak"))
+                                    ) && !showTotalOverlay,
+                                    exit = slideOutVertically(targetOffsetY = { it })
+                                ) {
+                                    BottomBar(navController, searchRequestFocus)
+                                }
+                            }
+                        ) { paddingValues ->
+                            NavHost(
+                                navController = navController,
+                                startDestination = "home",
+                                modifier = Modifier.padding(paddingValues)
+                            ) {
+                                composable("home") {
+                                    HomeScreen(navController = navController)
+                                }
+                                composable("search") {
+                                    SearchScreen(
+                                        navController = navController,
+                                        searchRequestFocus = searchRequestFocus
+                                    )
+                                }
+                                composable("more") {
+                                    MoreScreen(navController = navController)
+                                }
+                                composable(
+                                    "feedback",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) {
+                                    FeedbackScreen(navController = navController)
+                                }
+                                composable(
+                                    "changelog",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) {
+                                    ChangelogScreen(navController = navController)
+                                }
+                                composable(
+                                    "about",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) {
+                                    AboutScreen(navController = navController)
+                                }
+                                composable(
+                                    "favorites",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) {
+                                    FavoritesScreen(navController = navController)
+                                }
+                                composable("categoryList/{categoryName}") { backStackEntry ->
+                                    val categoryName =
+                                        backStackEntry.arguments?.getString("categoryName") ?: ""
+                                    CategoryListScreen(
+                                        parentCategoryName = categoryName,
+                                        navController = navController
+                                    )
+                                }
+                                composable(
+                                    "postDetail/{postId}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val postId =
+                                        backStackEntry.arguments?.getString("postId")?.toIntOrNull()
+                                    if (postId != null) {
+                                        com.example.tobisoappnative.screens.PostDetailScreen(
+                                            postId = postId,
+                                            navController = navController
+                                        )
+                                    } else {
+                                        Text(
+                                            "Chybný postId",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
                                     }
                                 }
-                            ) { paddingValues ->
-                                NavHost(
-                                    navController = navController,
-                                    startDestination = "home",
-                                    modifier = Modifier.padding(paddingValues)
+                                composable(
+                                    "videoPlayer/{videoUrl}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val videoUrl =
+                                        backStackEntry.arguments?.getString("videoUrl") ?: ""
+                                    com.example.tobisoappnative.screens.VideoPlayerScreen(
+                                        videoUrl = videoUrl,
+                                        navController = navController
+                                    )
+                                }
+                                composable(
+                                    "streak",
+                                    enterTransition = {
+                                        slideInVertically(
+                                            initialOffsetY = { -it }, // Přichází z vrchu (záporná hodnota)
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutVertically(
+                                            targetOffsetY = { -it }, // Odchází nahoru (záporná hodnota)
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInVertically(
+                                            initialOffsetY = { -it }, // Při návratu přichází z vrchu
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutVertically(
+                                            targetOffsetY = { -it }, // Při návratu odchází nahoru
+                                            animationSpec = tween(400)
+                                        )
+                                    }
                                 ) {
-                                    composable("home") {
-                                        HomeScreen(navController = navController)
-                                    }
-                                    composable("search") {
-                                        SearchScreen(
-                                            navController = navController,
-                                            searchRequestFocus = searchRequestFocus
-                                        )
-                                    }
-                                    composable("more") {
-                                        MoreScreen(navController = navController)
-                                    }
-                                    composable(
-                                        "feedback",
-                                        enterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        }
-                                    ) {
-                                        FeedbackScreen(navController = navController)
-                                    }
-                                    composable(
-                                        "changelog",
-                                        enterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        }
-                                    ) {
-                                        ChangelogScreen(navController = navController)
-                                    }
-                                    composable(
-                                        "about",
-                                        enterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        }
-                                    ) {
-                                        AboutScreen(navController = navController)
-                                    }
-                                    composable(
-                                        "favorites",
-                                        enterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        }
-                                    ) {
-                                        FavoritesScreen(navController = navController)
-                                    }
-                                    composable("categoryList/{categoryName}") { backStackEntry ->
-                                        val categoryName =
-                                            backStackEntry.arguments?.getString("categoryName") ?: ""
-                                        CategoryListScreen(
-                                            parentCategoryName = categoryName,
-                                            navController = navController
-                                        )
-                                    }
-                                    composable(
-                                        "postDetail/{postId}",
-                                        enterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        }
-                                    ) { backStackEntry ->
-                                        val postId =
-                                            backStackEntry.arguments?.getString("postId")?.toIntOrNull()
-                                        if (postId != null) {
-                                            com.example.tobisoappnative.screens.PostDetailScreen(
-                                                postId = postId,
-                                                navController = navController
-                                            )
-                                        } else {
-                                            Text(
-                                                "Chybný postId",
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    }
-                                    composable(
-                                        "videoPlayer/{videoUrl}",
-                                        enterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            slideInHorizontally(
-                                                initialOffsetX = { -it },
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            slideOutHorizontally(
-                                                targetOffsetX = { it },
-                                                animationSpec = tween(400)
-                                            )
-                                        }
-                                    ) { backStackEntry ->
-                                        val videoUrl =
-                                            backStackEntry.arguments?.getString("videoUrl") ?: ""
-                                        com.example.tobisoappnative.screens.VideoPlayerScreen(
-                                            videoUrl = videoUrl,
-                                            navController = navController
-                                        )
-                                    }
-                                    composable(
-                                        "streak",
-                                        enterTransition = {
-                                            slideInVertically(
-                                                initialOffsetY = { -it }, // Přichází z vrchu (záporná hodnota)
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            slideOutVertically(
-                                                targetOffsetY = { -it }, // Odchází nahoru (záporná hodnota)
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            slideInVertically(
-                                                initialOffsetY = { -it }, // Při návratu přichází z vrchu
-                                                animationSpec = tween(400)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            slideOutVertically(
-                                                targetOffsetY = { -it }, // Při návratu odchází nahoru
-                                                animationSpec = tween(400)
-                                            )
-                                        }
-                                    ) {
-                                        com.example.tobisoappnative.screens.StreakScreen(navController = navController)
-                                    }
+                                    com.example.tobisoappnative.screens.StreakScreen(navController = navController)
                                 }
                             }
                         }
-                        if (showOverlay) {
-                            FullScreenPointsOverlay(points = overlayPoints, totalPoints = totalPoints)
-                        }
+                    }
+
+                    // OVERLAYS NA SPRÁVNÉM MÍSTĚ - PŘES CELOU OBRAZOVKU
+                    if (showOverlay) {
+                        FullScreenPointsOverlay(points = overlayPoints, totalPoints = totalPoints)
+                    }
+                    if (showTotalOverlay) {
+                        FullScreenTotalPointsOverlay(totalPoints = totalPoints)
                     }
                 }
             }
         }
+    }
 
         @Composable
         fun LoadingToast(timeout: Boolean) {
@@ -481,4 +502,3 @@ class MainActivity : ComponentActivity() {
             return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         }
     }
-

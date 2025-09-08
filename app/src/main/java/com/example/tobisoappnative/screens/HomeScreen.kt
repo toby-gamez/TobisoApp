@@ -2,6 +2,8 @@ package com.example.tobisoappnative.screens
 
 import com.example.tobisoappnative.R
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -33,8 +35,10 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import com.example.tobisoappnative.PointsManager
 import kotlinx.coroutines.delay
+import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 
 data class Subject(
     val name: String,
@@ -115,6 +119,8 @@ fun HomeScreen(navController: NavController) {
     val viewModel: MainViewModel = viewModel()
     val categories by viewModel.categories.collectAsState()
     LaunchedEffect(Unit) { viewModel.loadCategories() }
+    val totalPoints by PointsManager.totalPoints.collectAsState()
+    var showTotalOverlay by remember { mutableStateOf(false) }
 
     // ✅ Odstraněn Scaffold - padding se aplikuje z MainActivity
     Column(
@@ -122,32 +128,68 @@ fun HomeScreen(navController: NavController) {
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) {
-        LargeTopAppBar(
-            title = {
-                Image(
-                    painter = painterResource(id = logoRes),
-                    contentDescription = "Logo",
-                    modifier = Modifier.size(150.dp)
-                )
-            },
-            actions = {
-                IconButton(onClick = { navController.navigate("streak") }) {
-                    Icon(
-                        imageVector = Icons.Default.Whatshot,
-                        contentDescription = "Streak",
-                        tint = MaterialTheme.colorScheme.primary
+        Box(modifier = Modifier.fillMaxWidth()) {
+            LargeTopAppBar(
+                title = {
+                    Image(
+                        painter = painterResource(id = logoRes),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(150.dp)
                     )
+                },
+                actions = {
+                    // Kulaté tlačítko s body vlevo od ohýnku
+                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+                    val points = remember { mutableStateOf(PointsManager.getPoints()) }
+                    // Aktualizace bodů při změně
+                    LaunchedEffect(Unit) {
+                        PointsManager.totalPoints.collect { total ->
+                            points.value = total
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .background(
+                                color = tertiaryColor.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(50)
+                            )
+                            .clickable { showTotalOverlay = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = points.value.toString(),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    IconButton(onClick = { navController.navigate("streak") }) {
+                        Icon(
+                            imageVector = Icons.Default.Whatshot,
+                            contentDescription = "Streak",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
+            )
+            if (showTotalOverlay) {
+                FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+                LaunchedEffect(showTotalOverlay) {
+                    kotlinx.coroutines.delay(2200)
+                    showTotalOverlay = false
                 }
-            },
-            scrollBehavior = scrollBehavior
-        )
-        Button(
-            onClick = {
-                PointsManager.addPoints(context, 10)
             }
-        ) {
-            Text("Přidat body")
         }
+        // Button(
+        //            onClick = {
+        //                PointsManager.addPoints(context, 10)
+        //            }
+        //        ) {
+        //            Text("Přidat body")
+        //        }
         LazyVerticalGrid(
             state = gridState,
             columns = GridCells.Fixed(columnCount),

@@ -94,7 +94,7 @@ fun FullScreenPointsOverlay(points: Int, totalPoints: Int) {
                 .scale(circleScale)
                 .border(
                     width = 40.dp,
-                    color = tertiaryColor.copy(alpha = 0.3f),
+                    color = tertiaryColor.copy(alpha = 0.1f),
                     shape = CircleShape
                 )
                 .background(
@@ -127,5 +127,82 @@ fun FullScreenPointsOverlay(points: Int, totalPoints: Int) {
                 modifier = Modifier.alpha(secondaryAlpha)
             )
         }
+    }
+}
+
+@Composable
+fun FullScreenTotalPointsOverlay(totalPoints: Int) {
+    // Stejná animace a vzhled jako FullScreenPointsOverlay, ale pouze číslo bodů
+    var startAnimations by remember { mutableStateOf(false) }
+    var startFadeOut by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        startAnimations = true
+        delay(1800)
+        startFadeOut = true
+    }
+
+    val alpha by animateFloatAsState(
+        targetValue = when {
+            startFadeOut -> 0f
+            startAnimations -> 1f
+            else -> 0f
+        },
+        animationSpec = if (startFadeOut) {
+            tween(durationMillis = 400, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        },
+        label = "alpha"
+    )
+
+    val textScale by animateFloatAsState(
+        targetValue = if (startAnimations && !startFadeOut) 1f else 0.5f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "textScale"
+    )
+
+    val circleScale by animateFloatAsState(
+        targetValue = if (startAnimations && !startFadeOut) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 600,
+            easing = FastOutSlowInEasing
+        ),
+        label = "circleScale"
+    )
+
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(alpha)
+            .background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(400.dp)
+                .scale(circleScale)
+                .border(
+                    width = 40.dp,
+                    color = tertiaryColor.copy(alpha = 0.1f),
+                    shape = CircleShape
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = CircleShape
+                )
+        )
+        Text(
+            text = totalPoints.toString(),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 56.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.scale(textScale)
+        )
     }
 }

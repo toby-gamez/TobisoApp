@@ -1,5 +1,6 @@
 package com.example.tobisoappnative.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,9 +26,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.ui.text.font.FontWeight
+import com.example.tobisoappnative.PointsManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +44,7 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var debouncedSearchText by remember { mutableStateOf("") }
+    var showTotalOverlay by remember { mutableStateOf(false) }
 
     // Funce pro zvýraznění textu
     @Composable
@@ -131,6 +136,33 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
         LargeTopAppBar(
             title = { Text("Vyhledávání", style = MaterialTheme.typography.titleLarge) },
             actions = {
+                // Kulaté tlačítko s body vlevo od ohýnku
+                val tertiaryColor = MaterialTheme.colorScheme.tertiary
+                val points = remember { mutableStateOf(PointsManager.getPoints()) }
+                // Aktualizace bodů při změně
+                LaunchedEffect(Unit) {
+                    PointsManager.totalPoints.collect { total ->
+                        points.value = total
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(40.dp)
+                        .background(
+                            color = tertiaryColor.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(50)
+                        )
+                        .clickable { showTotalOverlay = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = points.value.toString(),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 IconButton(onClick = { navController.navigate("streak") }) {
                     Icon(
                         imageVector = Icons.Default.Whatshot,

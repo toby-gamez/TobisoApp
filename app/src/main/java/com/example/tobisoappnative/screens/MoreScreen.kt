@@ -1,5 +1,6 @@
 package com.example.tobisoappnative.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -18,11 +19,17 @@ import com.example.tobisoappnative.model.Post
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
+import com.example.tobisoappnative.PointsManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +39,8 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
     val postsState = viewModel.posts.collectAsState()
     val categories: List<Category> = categoriesState.value
     val posts: List<Post> = postsState.value
+    val totalPoints by PointsManager.totalPoints.collectAsState()
+    var showTotalOverlay by remember { mutableStateOf(false) }
 
     // ID kategorie "Other" je 42
     val otherCategoryId: Int = 42
@@ -50,6 +59,33 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
         LargeTopAppBar(
             title = { Text("Více", style = MaterialTheme.typography.titleLarge) },
             actions = {
+                // Kulaté tlačítko s body vlevo od ohýnku
+                val tertiaryColor = MaterialTheme.colorScheme.tertiary
+                val points = remember { mutableStateOf(PointsManager.getPoints()) }
+                // Aktualizace bodů při změně
+                LaunchedEffect(Unit) {
+                    PointsManager.totalPoints.collect { total ->
+                        points.value = total
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(40.dp)
+                        .background(
+                            color = tertiaryColor.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(50)
+                        )
+                        .clickable { showTotalOverlay = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = points.value.toString(),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 IconButton(onClick = { navController.navigate("streak") }) {
                     Icon(
                         imageVector = Icons.Default.Whatshot,
