@@ -40,6 +40,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -68,6 +69,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 
 class MainActivity : ComponentActivity() {
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -75,6 +77,7 @@ class MainActivity : ComponentActivity() {
             MyApp()
         }
     }
+    @RequiresApi(Build.VERSION_CODES.O)
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyApp() {
@@ -185,7 +188,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("feedback") ||
                                                     route.startsWith("changelog") ||
                                                     route.startsWith("videoPlayer") ||
-                                                    route.startsWith("streak"))
+                                                    route.startsWith("streak") ||
+                                                    route.startsWith("favorites"))
                                     ) && !showTotalOverlay,
                                     exit = slideOutVertically(targetOffsetY = { it })
                                 ) {

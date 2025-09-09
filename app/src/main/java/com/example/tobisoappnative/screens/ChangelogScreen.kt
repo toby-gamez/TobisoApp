@@ -30,7 +30,8 @@ fun ChangelogScreen(navController: NavController) {
         "odstraněn problém se status barem",
         "přidána řada",
         "přidány notifikace pro učení",
-        "přidány body pro otázky (ještě nejsou hotové)"
+        "přidány body pro otázky (ještě nejsou hotové)",
+        "opraveny chyby v landscape módu",
     )
     val version1_6 = listOf(
         "přidán počet slov a délka čtení pro článek",
@@ -112,6 +113,12 @@ fun ChangelogScreen(navController: NavController) {
                         }
                 }
             )
+            Text("Verze 1.7", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
+            version1_7.forEach { item ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
+                    Text("• $item", style = typography.bodyLarge)
+                }
+            }
             Text("Verze 1.6", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
             version1_6.forEach { item ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {

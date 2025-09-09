@@ -4,9 +4,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.viewmodel.MainViewModel
@@ -49,6 +54,10 @@ fun CategoryListScreen(
         parentCategory?.id?.let { viewModel.loadPosts(it) }
     }
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val columns = if (isLandscape) 3 else 1
+
     // ✅ Odstraněn Scaffold - padding se aplikuje z MainActivity
     Column(
         modifier = Modifier.fillMaxSize()
@@ -89,15 +98,18 @@ fun CategoryListScreen(
                 }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columns),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredCategories) { category ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp)
-                            .clickable { parentCategoryNameState = category.name }
+                            .clickable { parentCategoryNameState = category.name },
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Folder, contentDescription = "Kategorie", modifier = Modifier.size(32.dp))
@@ -111,7 +123,7 @@ fun CategoryListScreen(
                 } ?: emptyList()
                 // Zobrazení postů ke kategorii
                 if (filteredCategories.isEmpty() && filteredPosts.isEmpty()) {
-                    item {
+                    item(span = { GridItemSpan(columns) }) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             if (postError != null) {
                                 Text(
@@ -136,7 +148,6 @@ fun CategoryListScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(8.dp)
                                 .clickable { navController.navigate("postDetail/${post.id}") },
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {

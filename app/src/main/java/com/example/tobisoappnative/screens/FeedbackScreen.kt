@@ -1,6 +1,7 @@
 package com.example.tobisoappnative.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +16,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import androidx.navigation.NavController
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.remember
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,9 +69,11 @@ fun FeedbackScreen(navController: NavController) {
             }
         )
 
+        // Přidán scroll pomocí verticalScroll a rememberScrollState
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -137,4 +143,10 @@ fun FeedbackScreen(navController: NavController) {
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FeedbackScreenPreview() {
+    // FeedbackScreen(navController = rememberNavController()) // Uncomment when NavController is available
 }

@@ -1,22 +1,25 @@
 package com.example.tobisoappnative.screens
 
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,6 +42,9 @@ fun StreakScreen(
     viewModel: MainViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     val today = remember { Calendar.getInstance() }
     var calendarMonth by remember { mutableIntStateOf(today.get(Calendar.MONTH)) }
     var calendarYear by remember { mutableIntStateOf(today.get(Calendar.YEAR)) }
@@ -59,119 +65,214 @@ fun StreakScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier.fillMaxSize()
     ) {
         LargeTopAppBar(
             title = { Text("Řada") },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowUpward, contentDescription = "Zpět")
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )
 
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        if (isLandscape) {
+            // Landscape layout - rozdělení na levo a pravo
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                // Levá strana - Summary
+                Column(
+                    modifier = Modifier
+                        .weight(0.4f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Whatshot,
-                            contentDescription = "Řada",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Aktuální řada",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        Text(
-                            text = "$currentStreak ${denDnyDni(currentStreak)}",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    StreakSummaryCards(currentStreak, maxStreak)
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                // Pravá strana - Kalendář
+                Column(
+                    modifier = Modifier
+                        .weight(0.6f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Whatshot,
-                            contentDescription = "Max Streak",
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                        Text(
-                            text = "Nejdelší řada",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        Text(
-                            text = "$maxStreak ${denDnyDni(maxStreak)}",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    CalendarSection(
+                        streakDays = streakDays,
+                        calendarMonth = calendarMonth,
+                        calendarYear = calendarYear,
+                        currentDateString = currentDateString,
+                        onMonthChange = { month, year ->
+                            calendarMonth = month
+                            calendarYear = year
+                        }
+                    )
                 }
             }
+        } else {
+            // Portrait layout - vertikální uspořádání se scrollem
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                StreakSummaryCards(currentStreak, maxStreak)
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = {
-                    if (calendarMonth == 0) {
-                        calendarMonth = 11
-                        calendarYear -= 1
-                    } else {
-                        calendarMonth -= 1
+                Spacer(modifier = Modifier.height(24.dp))
+
+                CalendarSection(
+                    streakDays = streakDays,
+                    calendarMonth = calendarMonth,
+                    calendarYear = calendarYear,
+                    currentDateString = currentDateString,
+                    onMonthChange = { month, year ->
+                        calendarMonth = month
+                        calendarYear = year
                     }
-                }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Předchozí měsíc")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = monthYearString(calendarMonth, calendarYear),
-                    style = MaterialTheme.typography.titleMedium
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = {
-                    if (calendarMonth == 11) {
-                        calendarMonth = 0
-                        calendarYear += 1
-                    } else {
-                        calendarMonth += 1
-                    }
-                }) {
-                    Icon(Icons.Default.ArrowForward, contentDescription = "Další měsíc")
+            }
+        }
+    }
+}
+
+@Composable
+fun StreakSummaryCards(currentStreak: Int, maxStreak: Int) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    Icons.Default.Whatshot,
+                    contentDescription = "Řada",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Aktuální řada",
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Text(
+                    text = "$currentStreak ${denDnyDni(currentStreak)}",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    Icons.Default.Whatshot,
+                    contentDescription = "Max Streak",
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Nejdelší řada",
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Text(
+                    text = "$maxStreak ${denDnyDni(maxStreak)}",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun CalendarSection(
+    streakDays: Set<String>,
+    calendarMonth: Int,
+    calendarYear: Int,
+    currentDateString: String,
+    onMonthChange: (Int, Int) -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Navigace měsíce
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            IconButton(onClick = {
+                val newMonth: Int
+                val newYear: Int
+                if (calendarMonth == 0) {
+                    newMonth = 11
+                    newYear = calendarYear - 1
+                } else {
+                    newMonth = calendarMonth - 1
+                    newYear = calendarYear
                 }
+                onMonthChange(newMonth, newYear)
+            }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Předchozí měsíc")
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            CalendarStreak(
-                streakDays = streakDays,
-                month = calendarMonth,
-                year = calendarYear,
-                todayString = currentDateString
+            Text(
+                text = monthYearString(calendarMonth, calendarYear),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold
             )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            IconButton(onClick = {
+                val newMonth: Int
+                val newYear: Int
+                if (calendarMonth == 11) {
+                    newMonth = 0
+                    newYear = calendarYear + 1
+                } else {
+                    newMonth = calendarMonth + 1
+                    newYear = calendarYear
+                }
+                onMonthChange(newMonth, newYear)
+            }) {
+                Icon(Icons.Default.ArrowForward, contentDescription = "Další měsíc")
+            }
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        CalendarStreak(
+            streakDays = streakDays,
+            month = calendarMonth,
+            year = calendarYear,
+            todayString = currentDateString
+        )
     }
 }
 
@@ -276,34 +377,36 @@ fun CalendarStreak(
     val days = getMonthDaysGrid(month, year)
     val weekDays = listOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
-    ) {
-        weekDays.forEach { weekDay ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = weekDay,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                    maxLines = 1
-                )
+    Column {
+        // Záhlaví týdne
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            weekDays.forEach { weekDay ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = weekDay,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
-    }
 
-    Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-    Column {
+        // Kalendářová mřížka
         for (week in days.chunked(7)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 for (day in week) {
                     val isActive = day.fullDate != null && streakDays.contains(day.fullDate)
@@ -366,6 +469,7 @@ fun CalendarStreak(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
@@ -413,5 +517,3 @@ fun monthYearString(month: Int, year: Int): String {
     )
     return "${months[month]} $year"
 }
-
-
