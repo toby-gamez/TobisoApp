@@ -182,14 +182,15 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
                         }
                     }
                 }
-                if (showTotalOverlay) {
-                    FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-                    LaunchedEffect(showTotalOverlay) {
-                        delay(2200)
-                        showTotalOverlay = false
-                    }
-                }
             }
         )
+        // Overlay na nejvyšší úrovni, stejně jako v SearchScreen
+        if (showTotalOverlay) {
+            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+            LaunchedEffect(showTotalOverlay) {
+                delay(2200)
+                showTotalOverlay = false
+            }
+        }
     }
 }
