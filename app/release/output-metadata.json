@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.example.tobisoappnative",
+  "applicationId": "com.tobiso.tobisoapp",
   "variantName": "release",
   "elements": [
     {
@@ -12,7 +12,7 @@
       "filters": [],
       "attributes": [],
       "versionCode": 1,
-      "versionName": "1.5",
+      "versionName": "1.7",
       "outputFile": "app-release.apk"
     }
   ],

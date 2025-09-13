@@ -66,6 +66,9 @@ import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import androidx.compose.runtime.rememberCoroutineScope
+import android.app.AlarmManager
+import com.example.tobisoappnative.screens.StreakScreen
+import java.util.*
 
 class MainActivity : ComponentActivity() {
 
@@ -76,7 +79,39 @@ class MainActivity : ComponentActivity() {
         setContent {
             MyApp()
         }
+        // Naplánování notifikací při startu aplikace
+        scheduleNotification(this, 17, 0, false) // běžná notifikace v 17:00
+        scheduleNotification(this, 22, 0, true)  // kritická notifikace ve 22:00
     }
+
+    fun scheduleNotification(context: Context, hour: Int, minute: Int, isCritical: Boolean) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("hour", hour)
+            putExtra("critical", isCritical)
+        }
+        val requestCode = if (isCritical) 2001 else 2000
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            if (before(Calendar.getInstance())) {
+                add(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+        alarmManager.setRepeating(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
+            pendingIntent
+        )
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -190,8 +225,21 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("videoPlayer") ||
                                                     route.startsWith("streak") ||
                                                     route.startsWith("favorites"))
-                                    ) && !showTotalOverlay,
-                                    exit = slideOutVertically(targetOffsetY = { it })
+                                            ),
+                                    enter = slideInVertically(
+                                        initialOffsetY = { it }, // přichází zdola
+                                        animationSpec = tween(
+                                            durationMillis = 250,
+                                            delayMillis = 100 // mírné zpoždění pro hladší přechod
+                                        )
+                                    ),
+                                    exit = slideOutVertically(
+                                        targetOffsetY = { it }, // odchází dolů
+                                        animationSpec = tween(
+                                            durationMillis = 200,
+                                            delayMillis = 0 // okamžité schování
+                                        )
+                                    )
                                 ) {
                                     BottomBar(navController, searchRequestFocus)
                                 }
@@ -417,92 +465,84 @@ class MainActivity : ComponentActivity() {
                                     "streak",
                                     enterTransition = {
                                         slideInVertically(
-                                            initialOffsetY = { -it }, // Přichází z vrchu (záporná hodnota)
+                                            initialOffsetY = { -it }, // přichází z hora
                                             animationSpec = tween(400)
                                         )
                                     },
                                     exitTransition = {
                                         slideOutVertically(
-                                            targetOffsetY = { -it }, // Odchází nahoru (záporná hodnota)
+                                            targetOffsetY = { -it }, // odchází nahoru
                                             animationSpec = tween(400)
                                         )
                                     },
                                     popEnterTransition = {
                                         slideInVertically(
-                                            initialOffsetY = { -it }, // Při návratu přichází z vrchu
+                                            initialOffsetY = { -it }, // při návratu přichází z hora
                                             animationSpec = tween(400)
                                         )
                                     },
                                     popExitTransition = {
                                         slideOutVertically(
-                                            targetOffsetY = { -it }, // Při návratu odchází nahoru
+                                            targetOffsetY = { -it }, // při návratu odchází nahoru
                                             animationSpec = tween(400)
                                         )
                                     }
                                 ) {
-                                    com.example.tobisoappnative.screens.StreakScreen(navController = navController)
+                                    StreakScreen(navController = navController)
                                 }
                             }
                         }
                     }
-
-                    // OVERLAYS NA SPRÁVNÉM MÍSTĚ - PŘES CELOU OBRAZOVKU
-                    if (showOverlay) {
-                        FullScreenPointsOverlay(points = overlayPoints, totalPoints = totalPoints)
-                    }
-                    if (showTotalOverlay) {
-                        FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-                    }
                 }
             }
         }
     }
 
-        @Composable
-        fun LoadingToast(timeout: Boolean) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface),
-                contentAlignment = Alignment.Center
+    @Composable
+    fun LoadingToast(timeout: Boolean) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    if (timeout) {
-                        Text(
-                            text = "Načítání trvá příliš dlouho...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Zkontrolujte připojení k internetu",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Načítání...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                if (timeout) {
+                    Text(
+                        text = "Načítání trvá příliš dlouho...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Zkontrolujte připojení k internetu",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Načítání...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }
-
-        fun checkInternetConnection(context: Context): Boolean {
-            val connectivityManager =
-                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val network = connectivityManager.activeNetwork ?: return false
-            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-            return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        }
     }
+
+    fun checkInternetConnection(context: Context): Boolean {
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+}
