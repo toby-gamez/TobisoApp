@@ -42,149 +42,161 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            topBar = {
-                LargeTopAppBar(
-                    title = { Text("Více", style = MaterialTheme.typography.titleLarge) },
-                    actions = {
-                        val tertiaryColor = MaterialTheme.colorScheme.tertiary
-                        val points = remember { mutableStateOf(PointsManager.getPoints()) }
-                        LaunchedEffect(Unit) {
-                            PointsManager.totalPoints.collect { total ->
-                                points.value = total
-                            }
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+        ) {
+            LargeTopAppBar(
+                title = { Text("Více", style = MaterialTheme.typography.titleLarge) },
+                actions = {
+                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+                    val points = remember { mutableStateOf(PointsManager.getPoints()) }
+                    LaunchedEffect(Unit) {
+                        PointsManager.totalPoints.collect { total ->
+                            points.value = total
                         }
-                        Box(
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .size(40.dp)
-                                .background(
-                                    color = tertiaryColor.copy(alpha = 0.1f),
-                                    shape = RoundedCornerShape(50)
-                                )
-                                .clickable { showTotalOverlay = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = points.value.toString(),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .background(
+                                color = tertiaryColor.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(50)
                             )
-                        }
-                        IconButton(onClick = { navController.navigate("streak") }) {
-                            Icon(
-                                imageVector = Icons.Default.Whatshot,
-                                contentDescription = "Streak",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    },
-                    scrollBehavior = scrollBehavior
-                )
-            },
-            content = { innerPadding ->
-                val configuration = LocalConfiguration.current
-                val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-                val gridColumns = if (isLandscape) 3 else 1
-                val cardModifier = Modifier
-                    .padding(8.dp)
-                val cardShape = RoundedCornerShape(16.dp)
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(gridColumns),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentPadding = PaddingValues(8.dp)
-                ) {
-                    item(span = { GridItemSpan(1) }) {
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("feedback") }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text("Zpětná vazba", style = MaterialTheme.typography.titleMedium)
-                                Text("Napište nám, co byste chtěli změnit nebo vylepšit.", style = MaterialTheme.typography.bodySmall)
-                            }
+                            .clickable { showTotalOverlay = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = points.value.toString(),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    IconButton(onClick = { navController.navigate("streak") }) {
+                        Icon(
+                            imageVector = Icons.Default.Whatshot,
+                            contentDescription = "Streak",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
+            )
+
+            val configuration = LocalConfiguration.current
+            val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+            val gridColumns = if (isLandscape) 3 else 1
+            val cardModifier = Modifier
+                .padding(8.dp)
+            val cardShape = RoundedCornerShape(16.dp)
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp)
+            ) {
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { navController.navigate("feedback") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Zpětná vazba", style = MaterialTheme.typography.titleMedium)
+                            Text("Napište nám, co byste chtěli změnit nebo vylepšit.", style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                    item(span = { GridItemSpan(1) }) {
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("about") }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text("O aplikaci", style = MaterialTheme.typography.titleMedium)
-                                Text("Všechno o aplikaci", style = MaterialTheme.typography.bodySmall)
-                            }
+                }
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { navController.navigate("about") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("O aplikaci", style = MaterialTheme.typography.titleMedium)
+                            Text("Všechno o aplikaci", style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                    item(span = { GridItemSpan(1) }) {
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("changelog") }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text("Deník změn", style = MaterialTheme.typography.titleMedium)
-                                Text("Všechno důležité, co bylo změněno", style = MaterialTheme.typography.bodySmall)
-                            }
+                }
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { navController.navigate("changelog") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Deník změn", style = MaterialTheme.typography.titleMedium)
+                            Text("Všechno důležité, co bylo změněno", style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                    item(span = { GridItemSpan(1) }) {
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("favorites") }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text("Oblíbené", style = MaterialTheme.typography.titleMedium)
-                                Text("Tvé uložené útržky a články, které nevyuživáš. :(", style = MaterialTheme.typography.bodySmall)
-                            }
+                }
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { navController.navigate("favorites") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Oblíbené", style = MaterialTheme.typography.titleMedium)
+                            Text("Tvé uložené útržky a články, které nevyuživáš. :(", style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                    items(filteredPosts) { post ->
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("postDetail/${post.id}") }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text(text = post.title, style = MaterialTheme.typography.titleMedium)
-                                val updated = post.updatedAt
-                                val formatted = updated?.let {
-                                    try {
-                                        val formatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale.forLanguageTag("cs-CZ"))
-                                        formatter.format(it)
-                                    } catch (_: Exception) {
-                                        ""
-                                    }
-                                } ?: ""
-                                if (formatted.isNotBlank()) {
-                                    Text(text = "Upraveno: $formatted", style = MaterialTheme.typography.bodySmall)
+                }
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { navController.navigate("updater") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Aktualizátor", style = MaterialTheme.typography.titleMedium)
+                            Text("Aktualizuj si aplikaci, ať ti nic neunikne!", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+                items(filteredPosts) { post ->
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { navController.navigate("postDetail/${post.id}") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(text = post.title, style = MaterialTheme.typography.titleMedium)
+                            val updated = post.updatedAt
+                            val formatted = updated?.let {
+                                try {
+                                    val formatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale.forLanguageTag("cs-CZ"))
+                                    formatter.format(it)
+                                } catch (_: Exception) {
+                                    ""
                                 }
+                            } ?: ""
+                            if (formatted.isNotBlank()) {
+                                Text(text = "Upraveno: $formatted", style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
                 }
             }
-        )
-        // Overlay na nejvyšší úrovni, stejně jako v SearchScreen
+        }
+
+        // Overlay na nejvyšší úrovni
         if (showTotalOverlay) {
             FullScreenTotalPointsOverlay(totalPoints = totalPoints)
             LaunchedEffect(showTotalOverlay) {

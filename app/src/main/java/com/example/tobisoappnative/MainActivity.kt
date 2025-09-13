@@ -57,6 +57,7 @@ import com.example.tobisoappnative.screens.AboutScreen
 import com.example.tobisoappnative.screens.ChangelogScreen
 import com.example.tobisoappnative.screens.FavoritesScreen
 import com.example.tobisoappnative.screens.NoInternetScreen
+import com.example.tobisoappnative.screens.UpdaterScreen
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
 import androidx.work.*
@@ -82,6 +83,15 @@ class MainActivity : ComponentActivity() {
         // Naplánování notifikací při startu aplikace
         scheduleNotification(this, 17, 0, false) // běžná notifikace v 17:00
         scheduleNotification(this, 22, 0, true)  // kritická notifikace ve 22:00
+
+        // Denní kontrola aktualizace
+        val updateCheckRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(1, TimeUnit.DAYS)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "update_check_work",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            updateCheckRequest
+        )
     }
 
     fun scheduleNotification(context: Context, hour: Int, minute: Int, isCritical: Boolean) {
@@ -224,7 +234,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("changelog") ||
                                                     route.startsWith("videoPlayer") ||
                                                     route.startsWith("streak") ||
-                                                    route.startsWith("favorites"))
+                                                    route.startsWith("favorites") ||
+                                                    route.startsWith("updater"))
                                             ),
                                     enter = slideInVertically(
                                         initialOffsetY = { it }, // přichází zdola
@@ -319,6 +330,35 @@ class MainActivity : ComponentActivity() {
                                     }
                                 ) {
                                     ChangelogScreen(navController = navController)
+                                }
+                                composable(
+                                    "updater",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) {
+                                    UpdaterScreen(navController = navController)
                                 }
                                 composable(
                                     "about",

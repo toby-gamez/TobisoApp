@@ -26,10 +26,20 @@ import androidx.navigation.NavController
 import com.example.tobisoappnative.R
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(navController: NavController) {
+    val context = LocalContext.current
+    val packageInfo = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    val currentVersion = packageInfo?.versionName ?: "?"
     val libraries = listOf(
         "androidx.core:core-ktx:1.12.0",
         "androidx.lifecycle:lifecycle-runtime-ktx:2.7.0",
@@ -92,7 +102,7 @@ fun AboutScreen(navController: NavController) {
                 modifier = Modifier.size(120.dp)
             )
             Text("Autor: Taneq (Tobias)", style = MaterialTheme.typography.bodyMedium)
-            Text("v1.7", style = MaterialTheme.typography.bodyMedium)
+            Text("v$currentVersion", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(24.dp))
             Divider(
                 color = Color.Gray,

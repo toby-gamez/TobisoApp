@@ -29,7 +29,8 @@ fun ChangelogScreen(navController: NavController) {
     val version1_8 = listOf(
         "opravena ikona tak, aby podporovala dynamic i Nothing ikony",
         "přidána podpora pro posílání notifikací",
-        "oprava animací obrazovek a navigace"
+        "oprava animací obrazovek a navigace",
+        "přidán aktualizátor"
     )
     val version1_7 = listOf(
         "odstraněn problém se status barem",
