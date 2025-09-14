@@ -235,7 +235,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("videoPlayer") ||
                                                     route.startsWith("streak") ||
                                                     route.startsWith("favorites") ||
-                                                    route.startsWith("updater"))
+                                                    route.startsWith("updater") ||
+                                                    route.startsWith("questions"))
                                             ),
                                     enter = slideInVertically(
                                         initialOffsetY = { it }, // přichází zdola
@@ -529,6 +530,46 @@ class MainActivity : ComponentActivity() {
                                     }
                                 ) {
                                     StreakScreen(navController = navController)
+                                }
+                                composable(
+                                    "questions/{postId}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val postId = backStackEntry.arguments?.getString("postId")?.toIntOrNull()
+                                    if (postId != null) {
+                                        com.example.tobisoappnative.screens.QuestionsScreen(
+                                            postId = postId,
+                                            navController = navController
+                                        )
+                                    } else {
+                                        Text(
+                                            "Chybný postId",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
                                 }
                             }
                         }

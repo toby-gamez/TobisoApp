@@ -16,4 +16,7 @@ interface ApiService {
 
     @GET("posts/{id}")
     suspend fun getPost(@Path("id") id: Int): Post
+
+    @GET("Questions/post/{postId}")
+    suspend fun getQuestionsByPostId(@Path("postId") postId: Int): List<Question>
 }

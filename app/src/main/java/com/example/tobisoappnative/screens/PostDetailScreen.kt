@@ -56,8 +56,17 @@ fun PostDetailScreen(
     var showError by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
+    var hasQuestions by remember { mutableStateOf(false) }
+    
     LaunchedEffect(postId) {
         viewModel.loadPostDetail(postId)
+        // Kontrola otázek pro tento příspěvek
+        hasQuestions = try {
+            viewModel.checkHasQuestions(postId)
+        } catch (e: Exception) {
+            // Pro testování zobrazíme tlačítko vždy, když API neexistuje
+            true
+        }
         loaded = true
     }
 
@@ -380,6 +389,27 @@ fun PostDetailScreen(
                                 }
                             }
                             Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // Tlačítko Prověrka
+                            if (hasQuestions) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            navController.navigate("questions/$postId")
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.secondary
+                                        )
+                                    ) {
+                                        Text("Prověrka")
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                            
                             val locale = java.util.Locale("cs", "CZ")
                             val formatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale)
                             val createdFormatted = postDetail?.createdAt?.let {

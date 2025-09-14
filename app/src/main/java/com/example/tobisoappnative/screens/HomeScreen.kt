@@ -183,13 +183,6 @@ fun HomeScreen(navController: NavController) {
                 }
             }
         }
-        // Button(
-        //            onClick = {
-        //                PointsManager.addPoints(context, 10)
-        //            }
-        //        ) {
-        //            Text("Přidat body")
-        //        }
         LazyVerticalGrid(
             state = gridState,
             columns = GridCells.Fixed(columnCount),

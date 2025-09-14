@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post
+import com.example.tobisoappnative.model.Question
 import com.example.tobisoappnative.model.Snippet
 import com.google.gson.Gson
 import java.io.File
@@ -38,6 +39,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val postDetail: StateFlow<Post?> = _postDetail
     private val _postDetailError = MutableStateFlow<String?>(null)
     val postDetailError: StateFlow<String?> = _postDetailError
+
+    // Questions state
+    private val _questions = MutableStateFlow<List<Question>>(emptyList())
+    val questions: StateFlow<List<Question>> = _questions
+    private val _questionsError = MutableStateFlow<String?>(null)
+    val questionsError: StateFlow<String?> = _questionsError
+    private val _questionsLoading = MutableStateFlow(false)
+    val questionsLoading: StateFlow<Boolean> = _questionsLoading
 
     private val dataStore = application.dataStore
     private val FAVORITE_POSTS_KEY = stringSetPreferencesKey("favorite_posts_json")
@@ -209,5 +218,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             _favoritePosts.value = emptyList()
         }
+    }
+
+    fun loadQuestions(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _questionsLoading.value = true
+            try {
+                val questions = ApiClient.apiService.getQuestionsByPostId(postId)
+                _questions.value = questions
+                _questionsError.value = null
+                println("DEBUG: Loaded ${questions.size} questions for post $postId")
+                questions.forEachIndexed { index, question ->
+                    println("DEBUG: Question $index - text: ${question.questionText}, answers: ${question.answers.size}, correctAnswer: ${question.correctAnswer}")
+                    question.answers.forEachIndexed { answerIndex, answer ->
+                        println("DEBUG:   Answer $answerIndex: ${answer.answerText} (correct: ${answer.correct})")
+                    }
+                }
+            } catch (e: Throwable) {
+                _questions.value = emptyList()
+                _questionsError.value = "Chyba při načítání otázek: ${e.message}"
+                println("DEBUG: Error loading questions: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                _questionsLoading.value = false
+            }
+        }
+    }
+
+    suspend fun checkHasQuestions(postId: Int): Boolean {
+        return try {
+            val questions = ApiClient.apiService.getQuestionsByPostId(postId)
+            questions.isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun clearQuestions() {
+        _questions.value = emptyList()
+        _questionsError.value = null
+        _questionsLoading.value = false
     }
 }
