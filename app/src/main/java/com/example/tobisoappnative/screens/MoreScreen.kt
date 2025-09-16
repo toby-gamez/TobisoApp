@@ -25,6 +25,42 @@ import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import kotlinx.coroutines.delay
+import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.ui.platform.LocalContext
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+// Helper funkce pro získání aktuální řady
+@RequiresApi(Build.VERSION_CODES.O)
+fun getCurrentStreakMore(context: Context): Int {
+    val sharedPreferences = context.getSharedPreferences("StreakData", Context.MODE_PRIVATE)
+    val streakDays = sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
+    
+    if (streakDays.isEmpty()) return 0
+    
+    val sortedDates = streakDays.map { LocalDate.parse(it) }.sorted()
+    if (sortedDates.size == 1) return 1
+    
+    var currentStreak = 0
+    val today = LocalDate.now()
+    val lastRecordedDay = sortedDates.last()
+    
+    if (lastRecordedDay == today || lastRecordedDay == today.minusDays(1)) {
+        var expectedDate = lastRecordedDay
+        for (i in sortedDates.indices.reversed()) {
+            if (sortedDates[i] == expectedDate) {
+                currentStreak++
+                expectedDate = expectedDate.minusDays(1)
+            } else {
+                break
+            }
+        }
+    }
+    
+    return currentStreak
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,11 +111,35 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    IconButton(onClick = { navController.navigate("streak") }) {
+                    
+                    // Streak button s počtem dní
+                    val context = LocalContext.current
+                    val currentStreak = remember { mutableStateOf(0) }
+                    
+                    LaunchedEffect(Unit) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            currentStreak.value = getCurrentStreakMore(context)
+                        }
+                    }
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { navController.navigate("streak") }
+                    ) {
+                        if (currentStreak.value > 0) {
+                            Text(
+                                text = currentStreak.value.toString(),
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                        }
                         Icon(
                             imageVector = Icons.Default.Whatshot,
                             contentDescription = "Streak",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 },

@@ -50,11 +50,6 @@ fun StreakScreen(
     var calendarMonth by remember { mutableIntStateOf(today.get(Calendar.MONTH)) }
     var calendarYear by remember { mutableIntStateOf(today.get(Calendar.YEAR)) }
 
-    // --- OPRAVA 3: Znovu jsem zapnul přidávání dnešního dne ---
-    LaunchedEffect(Unit) {
-        addTodayToStreak(context)
-    }
-
     val streakDays by remember(calendarMonth, calendarYear) {
         mutableStateOf(getStreakDays(context))
     }
@@ -336,15 +331,23 @@ fun addTodayToStreak(context: Context) {
     // 2. Načteme si stávající dny (pokud žádné nejsou, vezmeme prázdný seznam).
     val existingDays = sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
 
-    // 3. Vytvoříme si kopii, do které můžeme přidávat (původní seznam je jen pro čtení).
-    val newDays = existingDays.toMutableSet()
-
-    // 4. Přidáme dnešní datum.
+    // 3. Vytvoříme dnešní datum
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     val today = LocalDate.now().format(formatter)
+
+    // 4. Zkontrolujeme, jestli už dnešní den není přidán
+    if (existingDays.contains(today)) {
+        println("Today ($today) is already in streak. Total days: ${existingDays.size}")
+        return
+    }
+
+    // 5. Vytvoříme si kopii, do které můžeme přidávat (původní seznam je jen pro čtení).
+    val newDays = existingDays.toMutableSet()
+
+    // 6. Přidáme dnešní datum.
     newDays.add(today)
 
-    // 5. Uložíme nový, rozšířený seznam zpět do paměti.
+    // 7. Uložíme nový, rozšířený seznam zpět do paměti.
     sharedPreferences.edit().putStringSet("streak_days", newDays).apply()
     println("Today ($today) was added to streak. Total days: ${newDays.size}")
 }

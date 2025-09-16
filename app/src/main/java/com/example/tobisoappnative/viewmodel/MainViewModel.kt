@@ -9,6 +9,7 @@ import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.Question
 import com.example.tobisoappnative.model.Snippet
+import com.example.tobisoappnative.model.Explanation
 import com.google.gson.Gson
 import java.io.File
 import kotlinx.coroutines.Dispatchers

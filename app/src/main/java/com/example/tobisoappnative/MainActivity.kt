@@ -69,6 +69,7 @@ import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import androidx.compose.runtime.rememberCoroutineScope
 import android.app.AlarmManager
 import com.example.tobisoappnative.screens.StreakScreen
+import com.example.tobisoappnative.screens.addTodayToStreak
 import java.util.*
 
 class MainActivity : ComponentActivity() {
@@ -77,12 +78,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Zaznamenat otevření aplikace
+        recordAppOpen()
+        
+        // Přidat dnešní den do řady (pokud už tam není)
+        addTodayToStreak(this)
+        
         setContent {
             MyApp()
         }
         // Naplánování notifikací při startu aplikace
         scheduleNotification(this, 17, 0, false) // běžná notifikace v 17:00
-        scheduleNotification(this, 22, 0, true)  // kritická notifikace ve 22:00
+        scheduleNotification(this, 20, 0, true)  // kritická notifikace ve 20:00
 
         // Denní kontrola aktualizace
         val updateCheckRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(1, TimeUnit.DAYS)
@@ -625,5 +633,11 @@ class MainActivity : ComponentActivity() {
         val network = connectivityManager.activeNetwork ?: return false
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+    
+    private fun recordAppOpen() {
+        val prefs = getSharedPreferences("app_usage_prefs", Context.MODE_PRIVATE)
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+        prefs.edit().putString("last_opened_date", today).apply()
     }
 }

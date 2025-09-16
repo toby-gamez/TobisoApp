@@ -26,10 +26,15 @@ class NotificationWorker(
         val hour = inputData.getInt("hour", 17)
         val isCritical = inputData.getBoolean("critical", false)
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val streakDays = getStreakDays(context)
-        if (!streakDays.contains(today)) {
+        
+        // Kontrola, zda byla aplikace dnes otevřena
+        val wasAppOpenedToday = checkIfAppWasOpenedToday(context, today)
+        
+        // Pošli notifikaci pouze pokud aplikace NEBYLA dnes otevřena
+        if (!wasAppOpenedToday) {
             showNotification(hour, isCritical)
         }
+        
         return Result.success()
     }
 
@@ -84,9 +89,15 @@ class NotificationWorker(
             notificationManager.createNotificationChannel(channel)
         }
     }
+    
+    private fun checkIfAppWasOpenedToday(context: Context, today: String): Boolean {
+        val prefs = context.getSharedPreferences("app_usage_prefs", Context.MODE_PRIVATE)
+        val lastOpenedDate = prefs.getString("last_opened_date", "")
+        return lastOpenedDate == today
+    }
 }
 
-// Pomocná funkce pro získání streaku (převzato z kódu StreakScreen)
+// Pomocná funkce pro získání streaku (převzato z kódu StreakScreen) - již se nepoužívá
 fun getStreakDays(context: Context): Set<String> {
     val prefs = context.getSharedPreferences("streak_prefs", Context.MODE_PRIVATE)
     return prefs.getStringSet("days", emptySet()) ?: emptySet()
