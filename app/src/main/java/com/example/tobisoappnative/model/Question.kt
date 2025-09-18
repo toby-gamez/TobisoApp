@@ -14,4 +14,10 @@ data class Question(
     
     // Helper property pro získání vysvětlení jako jednoho textu
     val explanation: String? get() = explanations.firstOrNull()?.text
+    
+    // Helper property pro rozpoznání textových otázek
+    val isTextQuestion: Boolean get() = answers.size == 1 && answers.first().correct == 1
+    
+    // Helper property pro získání správné textové odpovědi
+    val correctTextAnswer: String? get() = if (isTextQuestion) answers.first().answerText else null
 }

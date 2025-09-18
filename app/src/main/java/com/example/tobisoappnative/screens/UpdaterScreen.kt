@@ -47,7 +47,7 @@ fun UpdaterScreen(navController: NavController) {
     }
 
     fun openDownloadPage(version: String) {
-        val downloadUrl = "https://github.com/toby-gamez/TobisoAppNative/releases/tag/v$version"
+        val downloadUrl = "https://github.com/toby-gamez/TobisoAppNative/releases/download/v$version/tobiso.apk"
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl))
         context.startActivity(intent)
     }

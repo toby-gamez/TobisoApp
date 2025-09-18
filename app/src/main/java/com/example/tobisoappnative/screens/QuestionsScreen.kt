@@ -50,6 +50,7 @@ fun QuestionsScreen(
     // Kvíz stav
     var currentQuestionIndex by remember { mutableStateOf(0) }
     var selectedAnswers by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
+    var textAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var showResults by remember { mutableStateOf(false) }
     var quizStarted by remember { mutableStateOf(false) }
     var pointsAwarded by remember { mutableStateOf(false) }
@@ -76,10 +77,18 @@ fun QuestionsScreen(
         questions[currentQuestionIndex]
     } else null
     
-    val correctAnswersCount = selectedAnswers.count { (questionIndex, selectedAnswer) ->
-        if (questionIndex < questions.size && questionIndex >= 0) {
-            val question = questions.getOrNull(questionIndex)
-            question?.correctAnswer == selectedAnswer
+    val correctAnswersCount = questions.indices.count { index ->
+        if (index < questions.size && index >= 0) {
+            val question = questions[index]
+            if (question.isTextQuestion) {
+                // Pro textové otázky porovnáváme text case-insensitive
+                val userText = textAnswers[index]?.trim() ?: ""
+                val correctText = question.correctTextAnswer?.trim() ?: ""
+                userText.equals(correctText, ignoreCase = true)
+            } else {
+                // Pro výběrové otázky porovnáváme index
+                selectedAnswers[index] == question.correctAnswer
+            }
         } else false
     }
     
@@ -139,6 +148,7 @@ fun QuestionsScreen(
                                 // Restartovat kvíz
                                 currentQuestionIndex = 0
                                 selectedAnswers = emptyMap()
+                                textAnswers = emptyMap()
                                 showResults = false
                                 quizStarted = false
                                 pointsAwarded = false // Reset pro další pokus
@@ -260,11 +270,17 @@ fun QuestionsScreen(
                             
                             // Detailní výsledky pro každou otázku
                             questions.forEachIndexed { index, question ->
-                                val selectedAnswer = selectedAnswers[index]
-                                val isCorrect = selectedAnswer != null && 
-                                    selectedAnswer >= 0 && 
-                                    selectedAnswer < question.options.size &&
-                                    selectedAnswer == question.correctAnswer
+                                val isCorrect = if (question.isTextQuestion) {
+                                    val userText = textAnswers[index]?.trim() ?: ""
+                                    val correctText = question.correctTextAnswer?.trim() ?: ""
+                                    userText.equals(correctText, ignoreCase = true)
+                                } else {
+                                    val selectedAnswer = selectedAnswers[index]
+                                    selectedAnswer != null && 
+                                        selectedAnswer >= 0 && 
+                                        selectedAnswer < question.options.size &&
+                                        selectedAnswer == question.correctAnswer
+                                }
                                 
                                 Card(
                                     modifier = Modifier
@@ -303,20 +319,42 @@ fun QuestionsScreen(
                                         
                                         Spacer(modifier = Modifier.height(8.dp))
                                         
-                                        if (selectedAnswer != null && selectedAnswer >= 0 && selectedAnswer < question.options.size) {
+                                        if (question.isTextQuestion) {
+                                            // Zobrazení textových odpovědí
+                                            val userText = textAnswers[index] ?: ""
+                                            val correctText = question.correctTextAnswer ?: ""
+                                            
                                             Text(
-                                                "Vaše odpověď: ${question.options[selectedAnswer]}",
+                                                "Vaše odpověď: $userText",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
                                             )
-                                        }
-                                        
-                                        if (!isCorrect && question.correctAnswer >= 0 && question.correctAnswer < question.options.size) {
-                                            Text(
-                                                "Správná odpověď: ${question.options[question.correctAnswer]}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = Color(0xFF4CAF50)
-                                            )
+                                            
+                                            if (!isCorrect) {
+                                                Text(
+                                                    "Správná odpověď: $correctText",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = Color(0xFF4CAF50)
+                                                )
+                                            }
+                                        } else {
+                                            // Zobrazení výběrových odpovědí
+                                            val selectedAnswer = selectedAnswers[index]
+                                            if (selectedAnswer != null && selectedAnswer >= 0 && selectedAnswer < question.options.size) {
+                                                Text(
+                                                    "Vaše odpověď: ${question.options[selectedAnswer]}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
+                                                )
+                                            }
+                                            
+                                            if (!isCorrect && question.correctAnswer >= 0 && question.correctAnswer < question.options.size) {
+                                                Text(
+                                                    "Správná odpověď: ${question.options[question.correctAnswer]}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = Color(0xFF4CAF50)
+                                                )
+                                            }
                                         }
                                         
                                         // Zobrazení vysvětlení u špatných odpovědí
@@ -389,7 +427,14 @@ fun QuestionsScreen(
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text("Počet otázek: $totalQuestions")
-                                    Text("Typ: Výběr z možností")
+                                    val hasTextQuestions = questions.any { it.isTextQuestion }
+                                    val hasMultipleChoice = questions.any { !it.isTextQuestion }
+                                    val questionTypes = when {
+                                        hasTextQuestions && hasMultipleChoice -> "Výběr z možností + textové odpovědi"
+                                        hasTextQuestions -> "Textové odpovědi" 
+                                        else -> "Výběr z možností"
+                                    }
+                                    Text("Typ: $questionTypes")
                                     Text("Výsledky se zobrazí na konci")
                                 }
                             }
@@ -440,47 +485,63 @@ fun QuestionsScreen(
                                 
                                 Spacer(modifier = Modifier.height(24.dp))
                                 
-                                // Možnosti odpovědí
-                                Column(
-                                    modifier = Modifier.selectableGroup()
-                                ) {
-                                    question.options.forEachIndexed { index, option ->
-                                        val isSelected = selectedAnswers[currentQuestionIndex] == index
-                                        
-                                        Card(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 4.dp)
-                                                .selectable(
-                                                    selected = isSelected,
-                                                    onClick = {
-                                                        selectedAnswers = selectedAnswers.toMutableMap().apply {
-                                                            put(currentQuestionIndex, index)
-                                                        }
-                                                    },
-                                                    role = Role.RadioButton
-                                                ),
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = if (isSelected) {
-                                                    MaterialTheme.colorScheme.primaryContainer
-                                                } else {
-                                                    MaterialTheme.colorScheme.surface
-                                                }
-                                            )
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(16.dp),
-                                                verticalAlignment = Alignment.CenterVertically
+                                // Možnosti odpovědí nebo textové pole
+                                if (question.isTextQuestion) {
+                                    // Textové pole pro textové otázky
+                                    OutlinedTextField(
+                                        value = textAnswers[currentQuestionIndex] ?: "",
+                                        onValueChange = { newText ->
+                                            textAnswers = textAnswers.toMutableMap().apply {
+                                                put(currentQuestionIndex, newText)
+                                            }
+                                        },
+                                        label = { Text("Zadejte vaši odpověď...") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true
+                                    )
+                                } else {
+                                    // Výběr z možností pro běžné otázky
+                                    Column(
+                                        modifier = Modifier.selectableGroup()
+                                    ) {
+                                        question.options.forEachIndexed { index, option ->
+                                            val isSelected = selectedAnswers[currentQuestionIndex] == index
+                                            
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp)
+                                                    .selectable(
+                                                        selected = isSelected,
+                                                        onClick = {
+                                                            selectedAnswers = selectedAnswers.toMutableMap().apply {
+                                                                put(currentQuestionIndex, index)
+                                                            }
+                                                        },
+                                                        role = Role.RadioButton
+                                                    ),
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = if (isSelected) {
+                                                        MaterialTheme.colorScheme.primaryContainer
+                                                    } else {
+                                                        MaterialTheme.colorScheme.surface
+                                                    }
+                                                )
                                             ) {
-                                                RadioButton(
-                                                    selected = isSelected,
-                                                    onClick = null
-                                                )
-                                                Spacer(modifier = Modifier.width(12.dp))
-                                                Text(
-                                                    option,
-                                                    style = MaterialTheme.typography.bodyLarge
-                                                )
+                                                Row(
+                                                    modifier = Modifier.padding(16.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    RadioButton(
+                                                        selected = isSelected,
+                                                        onClick = null
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Text(
+                                                        option,
+                                                        style = MaterialTheme.typography.bodyLarge
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -503,7 +564,12 @@ fun QuestionsScreen(
                                         Spacer(modifier = Modifier.width(1.dp))
                                     }
                                     
-                                    val hasAnswered = selectedAnswers.containsKey(currentQuestionIndex)
+                                    val hasAnswered = if (currentQuestion.isTextQuestion) {
+                                        textAnswers[currentQuestionIndex]?.isNotBlank() == true
+                                    } else {
+                                        selectedAnswers.containsKey(currentQuestionIndex)
+                                    }
+                                    
                                     if (currentQuestionIndex < totalQuestions - 1) {
                                         Button(
                                             onClick = { currentQuestionIndex++ },
@@ -512,9 +578,17 @@ fun QuestionsScreen(
                                             Text("Další")
                                         }
                                     } else {
+                                        val allAnswered = questions.indices.all { index ->
+                                            val question = questions[index]
+                                            if (question.isTextQuestion) {
+                                                textAnswers[index]?.isNotBlank() == true
+                                            } else {
+                                                selectedAnswers.containsKey(index)
+                                            }
+                                        }
                                         Button(
                                             onClick = { showResults = true },
-                                            enabled = hasAnswered && selectedAnswers.size == totalQuestions
+                                            enabled = hasAnswered && allAnswered
                                         ) {
                                             Text("Ukončit prověrku")
                                         }
