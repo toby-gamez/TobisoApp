@@ -28,6 +28,7 @@ import androidx.compose.ui.text.withStyle
 fun ChangelogScreen(navController: NavController) {
     val version2_0 = listOf(
         "přesunuto tlačítko na mazání z oblíbených",
+        "přídán kalendář pro události"
     )
     val version1_9_2 = listOf(
         "přidána podpora pro textové odpovídání otázek",

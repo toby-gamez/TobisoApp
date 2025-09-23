@@ -93,6 +93,10 @@ class MainActivity : ComponentActivity() {
         // Naplánování notifikací při startu aplikace
         scheduleNotification(this, 17, 0, false) // běžná notifikace v 17:00
         scheduleNotification(this, 20, 0, true)  // kritická notifikace ve 20:00
+        
+        // Nové notifikace pro události
+        scheduleEventNotification(this, 18, 0, "tomorrow_events") // notifikace v 18:00 pro zítřejší události
+        scheduleEventNotification(this, 6, 30, "today_events")     // notifikace v 6:30 pro dnešní události
 
         // Denní kontrola aktualizace
         val updateCheckRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(1, TimeUnit.DAYS)
@@ -132,6 +136,39 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    fun scheduleEventNotification(context: Context, hour: Int, minute: Int, notificationType: String) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, EventNotificationReceiver::class.java).apply {
+            putExtra("hour", hour)
+            putExtra("minute", minute)
+            putExtra("notification_type", notificationType)
+        }
+        val requestCode = when (notificationType) {
+            "tomorrow_events" -> 3000
+            "today_events" -> 3001
+            else -> 3999
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            if (before(Calendar.getInstance())) {
+                add(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+        alarmManager.setRepeating(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
+            pendingIntent
+        )
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -146,6 +183,9 @@ class MainActivity : ComponentActivity() {
         var overlayPoints by remember { mutableStateOf(0) }
         var showTotalOverlay by remember { mutableStateOf(false) }
         val coroutineScope = rememberCoroutineScope()
+
+        // Kontrola, zda byla aplikace otevřena z notifikace
+        val navigateTo = intent?.getStringExtra("navigate_to")
 
         // periodická kontrola připojení
         LaunchedEffect(context) {
@@ -270,7 +310,7 @@ class MainActivity : ComponentActivity() {
                         ) { paddingValues ->
                             NavHost(
                                 navController = navController,
-                                startDestination = "home",
+                                startDestination = if (navigateTo == "calendar") "calendar" else "home",
                                 modifier = Modifier.padding(paddingValues)
                             ) {
                                 composable("home") {

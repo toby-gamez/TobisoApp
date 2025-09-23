@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,8 +30,45 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.viewmodel.CalendarViewModel
+import com.example.tobisoappnative.PointsManager
+import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
+import kotlinx.coroutines.delay
+import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.*
+
+// Helper funkce pro získání aktuální řady
+@RequiresApi(Build.VERSION_CODES.O)
+fun getCurrentStreakCalendar(context: Context): Int {
+    val sharedPreferences = context.getSharedPreferences("StreakData", Context.MODE_PRIVATE)
+    val streakDays = sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
+    
+    if (streakDays.isEmpty()) return 0
+    
+    val sortedDates = streakDays.map { LocalDate.parse(it) }.sorted()
+    if (sortedDates.size == 1) return 1
+    
+    var currentStreak = 0
+    val today = LocalDate.now()
+    val lastRecordedDay = sortedDates.last()
+    
+    if (lastRecordedDay == today || lastRecordedDay == today.minusDays(1)) {
+        var expectedDate = lastRecordedDay
+        for (i in sortedDates.indices.reversed()) {
+            if (sortedDates[i] == expectedDate) {
+                currentStreak++
+                expectedDate = expectedDate.minusDays(1)
+            } else {
+                break
+            }
+        }
+    }
+    
+    return currentStreak
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,84 +91,175 @@ fun CalendarScreen(
         mutableStateOf(initialYear ?: Calendar.getInstance().get(Calendar.YEAR)) 
     }
     var showDateDetail by remember { mutableStateOf(false) }
+    
+    // States pro TopAppBar
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    var showTotalOverlay by remember { mutableStateOf(false) }
+    val totalPoints by PointsManager.totalPoints.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(currentMonth, currentYear) {
         viewModel.loadEventsForMonth(currentYear, currentMonth)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Header s navigací měsíců
-        CalendarHeader(
-            currentMonth = currentMonth,
-            currentYear = currentYear,
-            onPreviousMonth = {
-                if (currentMonth == 0) {
-                    currentMonth = 11
-                    currentYear--
-                } else {
-                    currentMonth--
-                }
-            },
-            onNextMonth = {
-                if (currentMonth == 11) {
-                    currentMonth = 0
-                    currentYear++
-                } else {
-                    currentMonth++
-                }
-            }
-        )
+    // Hlavní Box pro celou obrazovku
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+        ) {
+            // LargeTopAppBar s akcemi
+            LargeTopAppBar(
+                title = { Text("Kalendář", style = MaterialTheme.typography.titleLarge) },
+                actions = {
+                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+                    val points = remember { mutableStateOf(PointsManager.getPoints()) }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                    LaunchedEffect(Unit) {
+                        PointsManager.totalPoints.collect { total ->
+                            points.value = total
+                        }
+                    }
+                    
+                    // Body button
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .background(
+                                color = tertiaryColor.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(50)
+                            )
+                            .clickable { showTotalOverlay = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = points.value.toString(),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    // Streak button s počtem dní
+                    val currentStreak = remember { mutableStateOf(0) }
+                    
+                    LaunchedEffect(Unit) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            currentStreak.value = getCurrentStreakCalendar(context)
+                        }
+                    }
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { navController?.navigate("streak") }
+                    ) {
+                        if (currentStreak.value > 0) {
+                            Text(
+                                text = currentStreak.value.toString(),
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Whatshot,
+                            contentDescription = "Streak",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+            )
+            
+            // Obsah kalendáře
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
-                CircularProgressIndicator()
-            }
-        } else if (error != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-            ) {
-                Text(
-                    text = error ?: "Neznámá chyba",
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onErrorContainer
+                // Header s navigací měsíců
+                CalendarHeader(
+                    currentMonth = currentMonth,
+                    currentYear = currentYear,
+                    onPreviousMonth = {
+                        if (currentMonth == 0) {
+                            currentMonth = 11
+                            currentYear--
+                        } else {
+                            currentMonth--
+                        }
+                    },
+                    onNextMonth = {
+                        if (currentMonth == 11) {
+                            currentMonth = 0
+                            currentYear++
+                        } else {
+                            currentMonth++
+                        }
+                    }
                 )
-            }
-        } else {
-            // Kalendářní mřížka
-            CalendarGrid(
-                currentMonth = currentMonth,
-                currentYear = currentYear,
-                events = events,
-                viewModel = viewModel,
-                onDateClick = { date ->
-                    viewModel.selectDate(date)
-                    showDateDetail = true
-                }
-            )
-        }
 
-        // Detail vybraného dne
-        if (showDateDetail && selectedDate != null) {
-            Spacer(modifier = Modifier.height(16.dp))
-            DateDetailCard(
-                date = selectedDate!!,
-                events = selectedDateEvents,
-                navController = navController,
-                onClose = {
-                    showDateDetail = false
-                    viewModel.clearSelectedDate()
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else if (error != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Text(
+                            text = error ?: "Neznámá chyba",
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                } else {
+                    // Kalendářní mřížka
+                    CalendarGrid(
+                        currentMonth = currentMonth,
+                        currentYear = currentYear,
+                        events = events,
+                        viewModel = viewModel,
+                        onDateClick = { date ->
+                            viewModel.selectDate(date)
+                            showDateDetail = true
+                        }
+                    )
                 }
-            )
+
+                // Detail vybraného dne
+                if (showDateDetail && selectedDate != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    DateDetailCard(
+                        date = selectedDate!!,
+                        events = selectedDateEvents,
+                        navController = navController,
+                        onClose = {
+                            showDateDetail = false
+                            viewModel.clearSelectedDate()
+                        }
+                    )
+                }
+            }
+        }
+        
+        // Overlay pro celkové body
+        if (showTotalOverlay) {
+            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+            LaunchedEffect(showTotalOverlay) {
+                delay(2200)
+                showTotalOverlay = false
+            }
         }
     }
 }
@@ -354,7 +484,7 @@ fun DateDetailCard(
     navController: NavHostController? = null,
     onClose: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("EEEE, d. MMMM yyyy", Locale("cs", "CZ"))
+    val dateFormat = SimpleDateFormat("EEEE, d. MMMM yyyy", Locale.forLanguageTag("cs-CZ"))
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     Card(
