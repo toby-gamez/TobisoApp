@@ -26,6 +26,9 @@ import androidx.compose.ui.text.withStyle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangelogScreen(navController: NavController) {
+    val version2_0 = listOf(
+        "přesunuto tlačítko na mazání z oblíbených",
+    )
     val version1_9_2 = listOf(
         "přidána podpora pro textové odpovídání otázek",
         "lepší přepojení na apk soubor v Aktualizátoru"

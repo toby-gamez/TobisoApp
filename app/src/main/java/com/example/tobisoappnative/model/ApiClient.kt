@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import com.google.gson.stream.JsonToken
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,13 +56,40 @@ object ApiClient {
     val apiService: ApiService by lazy {
         val gsonBuilder = GsonBuilder()
         gsonBuilder.registerTypeAdapter(Date::class.java, object : TypeAdapter<Date>() {
-            private val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", Locale.getDefault())
+            private val format1 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", Locale.getDefault())
+            private val format2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            private val format3 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault())
+            
             override fun write(out: JsonWriter, value: Date?) {
-                if (value == null) out.nullValue() else out.value(format.format(value))
+                if (value == null) {
+                    out.nullValue()
+                } else {
+                    out.value(format2.format(value))
+                }
             }
+            
             override fun read(reader: JsonReader): Date? {
+                if (reader.peek() == JsonToken.NULL) {
+                    reader.nextNull()
+                    return null
+                }
+                
                 val str = reader.nextString()
-                return try { format.parse(str) } catch (e: Exception) { null }
+                return try { 
+                    format1.parse(str) 
+                } catch (e: Exception) { 
+                    try {
+                        format3.parse(str)
+                    } catch (e: Exception) {
+                        try {
+                            format2.parse(str)
+                        } catch (e: Exception) { 
+                            // Pokud se nepodaří parsovat datum, vrátíme null místo chyby
+                            android.util.Log.w("ApiClient", "Failed to parse date: $str")
+                            null 
+                        }
+                    }
+                }
             }
         })
         val gson = gsonBuilder.create()

@@ -49,6 +49,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.tobisoappnative.ui.theme.TobisoAppNativeTheme
 import com.example.tobisoappnative.screens.HomeScreen
 import com.example.tobisoappnative.screens.SearchScreen
+import com.example.tobisoappnative.screens.CalendarScreen
+import com.example.tobisoappnative.screens.EventDetailScreen
 import com.example.tobisoappnative.screens.MoreScreen
 import com.example.tobisoappnative.navigation.BottomBar
 import com.example.tobisoappnative.screens.CategoryListScreen
@@ -244,7 +246,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("streak") ||
                                                     route.startsWith("favorites") ||
                                                     route.startsWith("updater") ||
-                                                    route.startsWith("questions"))
+                                                    route.startsWith("questions") ||
+                                                    route.startsWith("eventDetail"))
                                             ),
                                     enter = slideInVertically(
                                         initialOffsetY = { it }, // přichází zdola
@@ -277,6 +280,18 @@ class MainActivity : ComponentActivity() {
                                     SearchScreen(
                                         navController = navController,
                                         searchRequestFocus = searchRequestFocus
+                                    )
+                                }
+                                composable("calendar") {
+                                    CalendarScreen(navController = navController)
+                                }
+                                composable("calendar/{year}/{month}") { backStackEntry ->
+                                    val year = backStackEntry.arguments?.getString("year")?.toIntOrNull()
+                                    val month = backStackEntry.arguments?.getString("month")?.toIntOrNull()
+                                    CalendarScreen(
+                                        navController = navController,
+                                        initialYear = year,
+                                        initialMonth = month
                                     )
                                 }
                                 composable("more") {
@@ -575,6 +590,46 @@ class MainActivity : ComponentActivity() {
                                     } else {
                                         Text(
                                             "Chybný postId",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                composable(
+                                    "eventDetail/{eventId}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val eventId = backStackEntry.arguments?.getString("eventId")?.toIntOrNull()
+                                    if (eventId != null) {
+                                        EventDetailScreen(
+                                            eventId = eventId,
+                                            navController = navController
+                                        )
+                                    } else {
+                                        Text(
+                                            "Chybné ID události",
                                             color = MaterialTheme.colorScheme.error
                                         )
                                     }

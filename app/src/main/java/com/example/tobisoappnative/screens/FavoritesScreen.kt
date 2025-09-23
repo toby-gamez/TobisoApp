@@ -40,6 +40,10 @@ fun FavoritesScreen(
 
 
 
+    // Stav pro dialog potvrzení mazání
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleteType by remember { mutableStateOf(0) } // 0 = snippets, 1 = posts
+
     Column(modifier = Modifier.fillMaxSize()) {
         LargeTopAppBar(
             title = { Text("Oblíbené") },
@@ -49,6 +53,30 @@ fun FavoritesScreen(
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                }
+            },
+            actions = {
+                when (selectedTab) {
+                    0 -> {
+                        if (snippets.isNotEmpty()) {
+                            IconButton(onClick = { 
+                                showDeleteDialog = true
+                                deleteType = 0 
+                            }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Smazat všechny útržky")
+                            }
+                        }
+                    }
+                    1 -> {
+                        if (favoritePosts.isNotEmpty()) {
+                            IconButton(onClick = { 
+                                showDeleteDialog = true
+                                deleteType = 1 
+                            }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Smazat všechny články")
+                            }
+                        }
+                    }
                 }
             }
         )
@@ -67,20 +95,7 @@ fun FavoritesScreen(
                 text = { Text("Články") }
             )
         }
-        // Stav pro dialog potvrzení mazání
-        var showDeleteDialog by remember { mutableStateOf(false) }
-        var deleteType by remember { mutableStateOf(0) } // 0 = snippets, 1 = posts
-        // Tlačítko pro smazání obsahu tabulky
-        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
-            when (selectedTab) {
-                0 -> Button(onClick = { showDeleteDialog = true; deleteType = 0 }, enabled = snippets.isNotEmpty()) {
-                    Text("Smazat všechny útržky")
-                }
-                1 -> Button(onClick = { showDeleteDialog = true; deleteType = 1 }, enabled = favoritePosts.isNotEmpty()) {
-                    Text("Smazat všechny články")
-                }
-            }
-        }
+        
         // Dialog potvrzení
         if (showDeleteDialog) {
             AlertDialog(

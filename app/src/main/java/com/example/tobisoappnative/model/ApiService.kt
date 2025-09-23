@@ -19,4 +19,20 @@ interface ApiService {
 
     @GET("Questions/post/{postId}")
     suspend fun getQuestionsByPostId(@Path("postId") postId: Int): List<Question>
+
+    // Event endpoints
+    @GET("Events")
+    suspend fun getEvents(): List<Event>
+
+    @GET("Events/{id}")
+    suspend fun getEvent(@Path("id") id: Int): Event
+
+    @GET("Events/range")
+    suspend fun getEventsInRange(
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): List<Event>
+
+    @GET("Events/search")
+    suspend fun searchEvents(@Query("query") query: String): List<Event>
 }

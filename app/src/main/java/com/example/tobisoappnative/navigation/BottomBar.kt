@@ -25,8 +25,7 @@ fun BottomBar(navController: NavHostController, searchRequestFocus: MutableState
             icon = { Icon(Icons.Default.Home, contentDescription = "Zobrazení všech předmětů") },
             label = { Text("Předměty", style = MaterialTheme.typography.labelSmall) },
             selected = currentDestination == "home",
-            onClick = { navController.navigate("home") },
-
+            onClick = { navController.navigate("home") }
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.Search, contentDescription = "Vyhledávání kategorií, článků a obsahu") },
@@ -39,6 +38,12 @@ fun BottomBar(navController: NavHostController, searchRequestFocus: MutableState
                     navController.navigate("search")
                 }
             }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.CalendarToday, contentDescription = "Kalendář s událostmi") },
+            label = { Text("Kalendář", style = MaterialTheme.typography.labelSmall) },
+            selected = currentDestination == "calendar",
+            onClick = { navController.navigate("calendar") }
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.Menu, contentDescription = "Více") },
