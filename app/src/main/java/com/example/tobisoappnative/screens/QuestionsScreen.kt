@@ -56,6 +56,7 @@ fun QuestionsScreen(
     var pointsAwarded by remember { mutableStateOf(false) }
     var showPointsOverlay by remember { mutableStateOf(false) }
     var awardedPoints by remember { mutableStateOf(0) }
+    var shuffledQuestions by remember { mutableStateOf<List<Int>>(emptyList()) }
     
     val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()
@@ -73,13 +74,14 @@ fun QuestionsScreen(
         }
     }
     
-    val currentQuestion = if (questions.isNotEmpty() && currentQuestionIndex < questions.size && currentQuestionIndex >= 0) {
-        questions[currentQuestionIndex]
+    val currentQuestion = if (questions.isNotEmpty() && currentQuestionIndex < shuffledQuestions.size && currentQuestionIndex >= 0 && shuffledQuestions.isNotEmpty()) {
+        questions[shuffledQuestions[currentQuestionIndex]]
     } else null
     
-    val correctAnswersCount = questions.indices.count { index ->
-        if (index < questions.size && index >= 0) {
-            val question = questions[index]
+    val correctAnswersCount = shuffledQuestions.indices.count { index ->
+        if (index < shuffledQuestions.size && index >= 0 && shuffledQuestions[index] < questions.size) {
+            val originalQuestionIndex = shuffledQuestions[index]
+            val question = questions[originalQuestionIndex]
             if (question.isTextQuestion) {
                 // Pro textové otázky porovnáváme text case-insensitive
                 val userText = textAnswers[index]?.trim() ?: ""
@@ -92,7 +94,7 @@ fun QuestionsScreen(
         } else false
     }
     
-    val totalQuestions = questions.size
+    val totalQuestions = shuffledQuestions.size
     val scorePercentage = if (totalQuestions > 0) {
         (correctAnswersCount * 100) / totalQuestions
     } else 0
@@ -145,15 +147,16 @@ fun QuestionsScreen(
                     actions = {
                         if (showResults) {
                             IconButton(onClick = { 
-                                // Restartovat kvíz
-                                currentQuestionIndex = 0
-                                selectedAnswers = emptyMap()
-                                textAnswers = emptyMap()
-                                showResults = false
-                                quizStarted = false
-                                pointsAwarded = false // Reset pro další pokus
-                                showPointsOverlay = false
-                                awardedPoints = 0
+                            // Restartovat kvíz
+                            currentQuestionIndex = 0
+                            selectedAnswers = emptyMap()
+                            textAnswers = emptyMap()
+                            showResults = false
+                            quizStarted = false
+                            pointsAwarded = false // Reset pro další pokus
+                            showPointsOverlay = false
+                            awardedPoints = 0
+                            shuffledQuestions = questions.indices.shuffled() // Znovu zamíchat otázky
                             }) {
                                 Icon(
                                     imageVector = Icons.Filled.Refresh,
@@ -269,13 +272,14 @@ fun QuestionsScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                             
                             // Detailní výsledky pro každou otázku
-                            questions.forEachIndexed { index, question ->
+                            shuffledQuestions.forEachIndexed { displayIndex, originalQuestionIndex ->
+                                val question = questions[originalQuestionIndex]
                                 val isCorrect = if (question.isTextQuestion) {
-                                    val userText = textAnswers[index]?.trim() ?: ""
+                                    val userText = textAnswers[displayIndex]?.trim() ?: ""
                                     val correctText = question.correctTextAnswer?.trim() ?: ""
                                     userText.equals(correctText, ignoreCase = true)
                                 } else {
-                                    val selectedAnswer = selectedAnswers[index]
+                                    val selectedAnswer = selectedAnswers[displayIndex]
                                     selectedAnswer != null && 
                                         selectedAnswer >= 0 && 
                                         selectedAnswer < question.options.size &&
@@ -305,7 +309,7 @@ fun QuestionsScreen(
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
-                                                "Otázka ${index + 1}",
+                                                "Otázka ${displayIndex + 1}",
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -321,7 +325,7 @@ fun QuestionsScreen(
                                         
                                         if (question.isTextQuestion) {
                                             // Zobrazení textových odpovědí
-                                            val userText = textAnswers[index] ?: ""
+                                            val userText = textAnswers[displayIndex] ?: ""
                                             val correctText = question.correctTextAnswer ?: ""
                                             
                                             Text(
@@ -339,7 +343,7 @@ fun QuestionsScreen(
                                             }
                                         } else {
                                             // Zobrazení výběrových odpovědí
-                                            val selectedAnswer = selectedAnswers[index]
+                                            val selectedAnswer = selectedAnswers[displayIndex]
                                             if (selectedAnswer != null && selectedAnswer >= 0 && selectedAnswer < question.options.size) {
                                                 Text(
                                                     "Vaše odpověď: ${question.options[selectedAnswer]}",
@@ -426,7 +430,7 @@ fun QuestionsScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
-                                    Text("Počet otázek: $totalQuestions")
+                                    Text("Počet otázek: ${questions.size}")
                                     val hasTextQuestions = questions.any { it.isTextQuestion }
                                     val hasMultipleChoice = questions.any { !it.isTextQuestion }
                                     val questionTypes = when {
@@ -442,7 +446,10 @@ fun QuestionsScreen(
                             Spacer(modifier = Modifier.height(32.dp))
                             
                             Button(
-                                onClick = { quizStarted = true },
+                                onClick = { 
+                                    quizStarted = true
+                                    shuffledQuestions = questions.indices.shuffled() // Zamíchat otázky při startu
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Vyzkoušet se")
@@ -578,8 +585,9 @@ fun QuestionsScreen(
                                             Text("Další")
                                         }
                                     } else {
-                                        val allAnswered = questions.indices.all { index ->
-                                            val question = questions[index]
+                                        val allAnswered = shuffledQuestions.indices.all { index ->
+                                            val originalQuestionIndex = shuffledQuestions[index]
+                                            val question = questions[originalQuestionIndex]
                                             if (question.isTextQuestion) {
                                                 textAnswers[index]?.isNotBlank() == true
                                             } else {
