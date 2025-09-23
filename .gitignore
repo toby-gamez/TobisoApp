@@ -13,3 +13,27 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Build artefakty - všechny build složky
+**/build/
+build/
+app/build/
+app/build/**
+
+# Keystore files - DŮLEŽITÉ PRO BEZPEČNOST!
+*.jks
+*.keystore
+keystore.properties
+app/keystore.properties
+release-keystore.jks
+
+# R8/ProGuard mapping files
+mapping.txt
+proguard-mapping.txt
+**/mapping.txt
+**/proguard-mapping.txt
+
+# Kotlin compilation artefakty
+**/*.class
+*.class
+.kotlin_module
