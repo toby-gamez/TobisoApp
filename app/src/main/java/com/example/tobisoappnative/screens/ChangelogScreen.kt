@@ -27,7 +27,7 @@ import androidx.compose.ui.text.withStyle
 @Composable
 fun ChangelogScreen(navController: NavController) {
     val version2_0_1 = listOf (
-        "oprava api a offline režimu, konfliktů atd."
+        "oprava celého připojení k api, nastavavení kalendáře a událostí"
     )
     val version2_0 = listOf(
         "přesunuto tlačítko na mazání z oblíbených",
@@ -144,6 +144,12 @@ fun ChangelogScreen(navController: NavController) {
                         }
                 }
             )
+            Text("Verze 2.0.1", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
+            version2_0_1.forEach { item ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
+                    Text("• $item", style = typography.bodyLarge)
+                }
+            }
             Text("Verze 2.0", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
             version2_0.forEach { item ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
