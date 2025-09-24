@@ -22,7 +22,10 @@ import java.net.URL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UpdaterScreen(navController: NavController) {
+fun UpdaterScreen(
+    navController: NavController,
+    mainViewModel: com.example.tobisoappnative.viewmodel.MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
     val context = LocalContext.current
     val packageInfo = remember {
         try {
@@ -35,14 +38,17 @@ fun UpdaterScreen(navController: NavController) {
     var latestVersion by remember { mutableStateOf<String?>(null) }
     var isUpToDate by remember { mutableStateOf<Boolean?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    val isOfflineMode by mainViewModel.isOffline.collectAsState()
 
     LaunchedEffect(Unit) {
-        try {
-            val version = fetchLatestVersionFromGithub()
-            latestVersion = version
-            isUpToDate = version == currentVersion
-        } catch (e: Exception) {
-            error = "Chyba při kontrole verze: ${e.localizedMessage}"
+        if (!isOfflineMode) {
+            try {
+                val version = fetchLatestVersionFromGithub()
+                latestVersion = version
+                isUpToDate = version == currentVersion
+            } catch (e: Exception) {
+                error = "Chyba při kontrole verze: ${e.localizedMessage}"
+            }
         }
     }
 
@@ -70,7 +76,23 @@ fun UpdaterScreen(navController: NavController) {
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            if (error != null) {
+            if (isOfflineMode) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "Vaše verze: $currentVersion", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Jste v offline režimu.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Aktualizátor je funkční pouze v online režimu.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else if (error != null) {
                 Text(text = error!!, color = Color.Red)
             } else if (latestVersion == null) {
                 CircularProgressIndicator()
