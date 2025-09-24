@@ -173,8 +173,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         isFirstLoad = false
                     }
                 } catch (e: Exception) {
-                    // Online failed - zkus offline data
-                    loadOfflineData()
+                    // Znovu zkontroluj připojení - možná se mezitím ztratilo
+                    val stillOnline = NetworkUtils.isOnline(getApplication())
+                    if (stillOnline) {
+                        // Online ale API nefunguje - zobraz chybu API, ne offline režim
+                        _categories.value = emptyList()
+                        _posts.value = emptyList()
+                        _categoryError.value = "Chyba serveru: ${e.message}"
+                        _postError.value = "Chyba serveru: ${e.message}"
+                        _isOffline.value = false // Zůstáváme online!
+                        showToast("Problém s připojením k serveru. Zkuste to později.")
+                    } else {
+                        // Mezitím se skutečně ztratilo připojení
+                        loadOfflineData()
+                    }
                 }
             } else {
                 // Offline - načti z cache
@@ -200,9 +212,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             _categories.value = emptyList()
             _posts.value = emptyList()
-            _categoryError.value = "Chyba připojení - žádná offline data"
-            _postError.value = "Chyba připojení - žádná offline data"
+            _categoryError.value = "Žádná offline data k dispozici"
+            _postError.value = "Žádná offline data k dispozici"
             _isOffline.value = true
+            showToast("Žádná offline data - připojte se k internetu")
         }
     }
     
@@ -261,8 +274,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _postError.value = null
                 }
             } catch (e: Throwable) {
-                _posts.value = emptyList()
-                _postError.value = e.message ?: e.toString()
+                // Znovu zkontroluj připojení při chybě
+                val isOnline = NetworkUtils.isOnline(getApplication())
+                if (isOnline) {
+                    // Online ale API nefunguje
+                    _posts.value = emptyList()
+                    _postError.value = "Chyba serveru: ${e.message}"
+                    showToast("Problém s připojením k serveru")
+                } else {
+                    // Skutečně offline - zkus cached data
+                    val posts = if (categoryId != null) {
+                        offlineDataManager.getCachedPostsByCategory(categoryId) ?: emptyList()
+                    } else {
+                        offlineDataManager.getCachedPosts() ?: emptyList()
+                    }
+                    if (posts.isNotEmpty()) {
+                        _posts.value = posts
+                        _postError.value = null
+                        _isOffline.value = true
+                        showToast("Přepnuto na offline režim")
+                    } else {
+                        _posts.value = emptyList()
+                        _postError.value = "Žádná offline data"
+                    }
+                }
             }
         }
     }
@@ -287,17 +322,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     println("DEBUG: Loaded online post detail - Post ID: $postId")
                 }
             } catch (e: Throwable) {
-                // Při chybě zkusíme offline data jako fallback
-                val post = offlineDataManager.getCachedPost(postId)
-                if (post != null) {
-                    _postDetail.value = post
-                    _postDetailError.value = null
-                    _isOffline.value = true
-                    println("DEBUG: API failed, using cached post detail - Post ID: $postId")
-                } else {
+                // Znovu zkontroluj připojení při chybě
+                val isOnline = NetworkUtils.isOnline(getApplication())
+                if (isOnline) {
+                    // Online ale API nefunguje
                     _postDetail.value = null
-                    _postDetailError.value = e.message ?: e.toString()
-                    println("DEBUG: Failed to load post detail - Post ID: $postId, Error: ${e.message}")
+                    _postDetailError.value = "Chyba serveru: ${e.message}"
+                    showToast("Problém s připojením k serveru")
+                } else {
+                    // Skutečně offline - zkus cached data jako fallback
+                    val post = offlineDataManager.getCachedPost(postId)
+                    if (post != null) {
+                        _postDetail.value = post
+                        _postDetailError.value = null
+                        _isOffline.value = true
+                        showToast("Přepnuto na offline režim")
+                        println("DEBUG: API failed, using cached post detail - Post ID: $postId")
+                    } else {
+                        _postDetail.value = null
+                        _postDetailError.value = "Post nebyl nalezen ani v offline datech"
+                        println("DEBUG: Failed to load post detail - Post ID: $postId, Error: ${e.message}")
+                    }
                 }
             }
         }
