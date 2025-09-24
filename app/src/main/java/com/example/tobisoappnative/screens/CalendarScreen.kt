@@ -42,6 +42,13 @@ import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.*
 
+// Enum pro filtrování událostí
+enum class EventFilter(val displayName: String) {
+    ALL("Vše"),
+    LOCAL("Místní"),
+    REMOTE("Vzdálené")
+}
+
 // Helper funkce pro získání aktuální řady
 @RequiresApi(Build.VERSION_CODES.O)
 fun getCurrentStreakCalendar(context: Context): Int {
@@ -109,6 +116,10 @@ fun CalendarScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var eventToDelete by remember { mutableStateOf<Event?>(null) }
     var isDeleting by remember { mutableStateOf(false) }
+    
+    // State pro filtrování událostí
+    var currentFilter by remember { mutableStateOf(EventFilter.ALL) }
+    var showFilterDropdown by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentMonth, currentYear) {
         viewModel.loadEventsForMonth(currentYear, currentMonth)
@@ -125,6 +136,60 @@ fun CalendarScreen(
             LargeTopAppBar(
                 title = { Text("Kalendář", style = MaterialTheme.typography.titleLarge) },
                 actions = {
+                    // Filter dropdown - přesunut doleva
+                    Box {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { showFilterDropdown = true }
+                        ) {
+                            Icon(
+                                Icons.Default.FilterList,
+                                contentDescription = "Filtrovat události",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = currentFilter.displayName,
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showFilterDropdown,
+                            onDismissRequest = { showFilterDropdown = false }
+                        ) {
+                            EventFilter.values().forEach { filter ->
+                                DropdownMenuItem(
+                                    text = { 
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(filter.displayName)
+                                            if (filter == currentFilter) {
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = "Vybráno",
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        currentFilter = filter
+                                        showFilterDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
                     val tertiaryColor = MaterialTheme.colorScheme.tertiary
                     val points = remember { mutableStateOf(PointsManager.getPoints()) }
 
@@ -241,6 +306,7 @@ fun CalendarScreen(
                         currentMonth = currentMonth,
                         currentYear = currentYear,
                         viewModel = viewModel,
+                        eventFilter = currentFilter,
                         onDateClick = { date ->
                             viewModel.selectDate(date)
                             showDateDetail = true
@@ -256,9 +322,19 @@ fun CalendarScreen(
                 // Detail vybraného dne
                 if (showDateDetail && selectedDate != null) {
                     Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Filtruj události podle aktuálního filtru
+                    val filteredEvents = selectedDateEvents.filter { event ->
+                        when (currentFilter) {
+                            EventFilter.ALL -> true
+                            EventFilter.LOCAL -> event.isLocalSafe()
+                            EventFilter.REMOTE -> !event.isLocalSafe()
+                        }
+                    }
+                    
                     DateDetailCard(
                         date = selectedDate!!,
-                        events = selectedDateEvents,
+                        events = filteredEvents,
                         navController = navController,
                         onClose = {
                             showDateDetail = false
@@ -444,6 +520,7 @@ fun CalendarGrid(
     currentMonth: Int,
     currentYear: Int,
     viewModel: CalendarViewModel = viewModel(),
+    eventFilter: EventFilter = EventFilter.ALL,
     onDateClick: (Date) -> Unit,
     onDateLongClick: (Date) -> Unit = {}
 ) {
@@ -498,7 +575,16 @@ fun CalendarGrid(
                     dayCalendar.set(currentYear, currentMonth, dayNumber)
                     val dayDate = dayCalendar.time
                     
-                    val dayEvents = viewModel.getEventsForDay(currentYear, currentMonth, dayNumber)
+                    val allDayEvents = viewModel.getEventsForDay(currentYear, currentMonth, dayNumber)
+                    
+                    // Filtruj události podle aktuálního filtru
+                    val dayEvents = allDayEvents.filter { event ->
+                        when (eventFilter) {
+                            EventFilter.ALL -> true
+                            EventFilter.LOCAL -> event.isLocalSafe()
+                            EventFilter.REMOTE -> !event.isLocalSafe()
+                        }
+                    }
                     
                     // Zkontroluj, jestli je tento den vybraný
                     val isSelected = selectedDate?.let { selected ->
