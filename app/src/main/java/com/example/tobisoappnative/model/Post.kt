@@ -1,13 +1,11 @@
 package com.example.tobisoappnative.model
 
-import java.util.Date
-
 data class Post(
     val id: Int,
     val title: String,
     val content: String,
     val filePath: String,
-    val createdAt: Date?,
-    val updatedAt: Date?,
+    val createdAt: String?,
+    val updatedAt: String?,
     val categoryId: Int?,
 )

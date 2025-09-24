@@ -204,12 +204,14 @@ fun FavoritesScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(text = post.title, style = MaterialTheme.typography.titleMedium)
                                         val updated = post.updatedAt
-                                        val formatted = updated?.let {
+                                        val formatted = updated?.let { dateString ->
                                             try {
-                                                val formatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale.forLanguageTag("cs-CZ"))
-                                                formatter.format(it)
+                                                val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", java.util.Locale.forLanguageTag("cs-CZ"))
+                                                val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale.forLanguageTag("cs-CZ"))
+                                                val date = inputFormatter.parse(dateString)
+                                                date?.let { outputFormatter.format(it) } ?: dateString
                                             } catch (_: Exception) {
-                                                ""
+                                                dateString
                                             }
                                         } ?: ""
                                         if (formatted.isNotBlank()) {

@@ -1,13 +1,6 @@
 package com.example.tobisoappnative.model
 
 import com.google.gson.GsonBuilder
-import com.google.gson.TypeAdapter
-import com.google.gson.stream.JsonReader
-import com.google.gson.stream.JsonWriter
-import com.google.gson.stream.JsonToken
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -22,7 +15,7 @@ object ApiClient {
     private const val USERNAME = "admin"
     private const val PASSWORD = "secret123"
 
-    // Trust all certificates (pouze pro vývoj!)
+    // Trust all certificates (pouze pro vývoj!) - Android 15 compatible
     private fun getUnsafeOkHttpClient(): OkHttpClient {
         val credential = Credentials.basic(USERNAME, PASSWORD)
         return try {
@@ -31,15 +24,30 @@ object ApiClient {
                 override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
                 override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
             })
-            val sslContext = SSLContext.getInstance("TLS")
+            
+            // Pro Android 15 - použij TLSv1.3 pokud je dostupný, jinak TLSv1.2
+            val sslContext = try {
+                SSLContext.getInstance("TLSv1.3")
+            } catch (e: Exception) {
+                SSLContext.getInstance("TLSv1.2")
+            }
             sslContext.init(null, trustAllCerts, java.security.SecureRandom())
             val trustManager = trustAllCerts[0] as X509TrustManager
+            
             val builder = OkHttpClient.Builder()
             builder.sslSocketFactory(sslContext.socketFactory, trustManager)
             builder.hostnameVerifier { _, _ -> true }
+            
+            // Pro Android 15 - prodluž timeouts a zakáž HTTP/2
+            builder.connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            builder.readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            builder.writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            builder.protocols(listOf(okhttp3.Protocol.HTTP_1_1))
+            
             builder.addInterceptor { chain ->
                 val request: Request = chain.request().newBuilder()
                     .addHeader("Authorization", credential)
+                    .addHeader("User-Agent", "TobisoApp-Android") // Pro Android 15
                     .build()
                 val response = chain.proceed(request)
                 if (!response.isSuccessful) {
@@ -49,50 +57,26 @@ object ApiClient {
             }
             builder.build()
         } catch (e: Exception) {
-            OkHttpClient.Builder().build()
+            android.util.Log.e("ApiClient", "Failed to create unsafe client: ${e.message}")
+            // Fallback na základní OkHttpClient
+            OkHttpClient.Builder()
+                .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .addInterceptor { chain ->
+                    val request: Request = chain.request().newBuilder()
+                        .addHeader("Authorization", credential)
+                        .build()
+                    chain.proceed(request)
+                }
+                .build()
         }
     }
 
     val apiService: ApiService by lazy {
-        val gsonBuilder = GsonBuilder()
-        gsonBuilder.registerTypeAdapter(Date::class.java, object : TypeAdapter<Date>() {
-            private val format1 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", Locale.getDefault())
-            private val format2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-            private val format3 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault())
-            
-            override fun write(out: JsonWriter, value: Date?) {
-                if (value == null) {
-                    out.nullValue()
-                } else {
-                    out.value(format2.format(value))
-                }
-            }
-            
-            override fun read(reader: JsonReader): Date? {
-                if (reader.peek() == JsonToken.NULL) {
-                    reader.nextNull()
-                    return null
-                }
-                
-                val str = reader.nextString()
-                return try { 
-                    format1.parse(str) 
-                } catch (e: Exception) { 
-                    try {
-                        format3.parse(str)
-                    } catch (e: Exception) {
-                        try {
-                            format2.parse(str)
-                        } catch (e: Exception) { 
-                            // Pokud se nepodaří parsovat datum, vrátíme null místo chyby
-                            android.util.Log.w("ApiClient", "Failed to parse date: $str")
-                            null 
-                        }
-                    }
-                }
-            }
-        })
-        val gson = gsonBuilder.create()
+        // Základní Gson bez custom TypeAdapter pro Android 15 kompatibilitu
+        val gson = GsonBuilder()
+            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+            .create()
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(getUnsafeOkHttpClient())
@@ -101,3 +85,5 @@ object ApiClient {
             .create(ApiService::class.java)
     }
 }
+
+

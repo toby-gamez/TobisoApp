@@ -426,19 +426,22 @@ fun PostDetailScreen(
                             }
                             
                             val locale = java.util.Locale("cs", "CZ")
-                            val formatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale)
-                            val createdFormatted = postDetail?.createdAt?.let {
+                            val inputFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale)
+                            val outputFormatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale)
+                            val createdFormatted = postDetail?.createdAt?.let { dateString ->
                                 try {
-                                    formatter.format(it)
+                                    val date = inputFormatter.parse(dateString)
+                                    date?.let { outputFormatter.format(it) } ?: ""
                                 } catch (e: Exception) {
-                                    ""
+                                    dateString // fallback to raw string
                                 }
                             } ?: ""
-                            val updatedFormatted = postDetail?.updatedAt?.let {
+                            val updatedFormatted = postDetail?.updatedAt?.let { dateString ->
                                 try {
-                                    formatter.format(it)
+                                    val date = inputFormatter.parse(dateString)
+                                    date?.let { outputFormatter.format(it) } ?: ""
                                 } catch (e: Exception) {
-                                    ""
+                                    dateString // fallback to raw string
                                 }
                             } ?: ""
                             Text(

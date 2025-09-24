@@ -160,12 +160,14 @@ fun CategoryListScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(text = post.title, style = MaterialTheme.typography.titleMedium)
                                     val updated = post.updatedAt
-                                    val formatted = updated?.let {
+                                    val formatted = updated?.let { dateString ->
                                         try {
-                                            val formatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale("cs", "CZ"))
-                                            formatter.format(it)
+                                            val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", java.util.Locale("cs", "CZ"))
+                                            val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale("cs", "CZ"))
+                                            val date = inputFormatter.parse(dateString)
+                                            date?.let { outputFormatter.format(it) } ?: dateString
                                         } catch (e: Exception) {
-                                            ""
+                                            dateString
                                         }
                                     } ?: ""
                                     if (formatted.isNotBlank()) {

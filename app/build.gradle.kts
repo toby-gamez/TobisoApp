@@ -9,36 +9,53 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.tobisoappnative"
+        applicationId = "com.tobiso.tobisoapp"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.4"
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Dodatečné zabezpečení
+            isDebuggable = false
+            isJniDebuggable = false
+        }
+        debug {
+            isDebuggable = true
+            isMinifyEnabled = false
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "1.8"
     }
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.3" // použij aktuální verzi
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+    lint {
+        disable += listOf("AutoboxingStateCreation", "MutableCollectionMutableState")
+        abortOnError = false
     }
 }
 
@@ -59,6 +76,27 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.5")
     implementation("androidx.compose.material3:material3:1.1.2")
     implementation("androidx.activity:activity:1.6.0-alpha05")
+    
+    // API dependencies
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlin-coroutines-adapter:0.9.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("com.halilibo.compose-richtext:richtext-ui-material3:1.0.0-alpha03")
+    implementation("com.halilibo.compose-richtext:richtext-commonmark:1.0.0-alpha03")
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.32.0")
+    implementation("com.google.android.gms:play-services-oss-licenses:17.0.1")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.8.1")
+    implementation("androidx.media3:media3-exoplayer:1.8.0")
+    implementation("androidx.media3:media3-ui:1.8.0")
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.33.2-alpha")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation(libs.androidx.compose.foundation)
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
