@@ -61,10 +61,13 @@ fun QuestionsScreen(
     val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()
     
-    // Načtení dat při startu
-    LaunchedEffect(postId) {
+    // Načtení dat při startu (pouze v online režimu)
+    val isOffline by viewModel.isOffline.collectAsState()
+    LaunchedEffect(postId, isOffline) {
         viewModel.loadPostDetail(postId)
-        viewModel.loadQuestions(postId)
+        if (!isOffline) {
+            viewModel.loadQuestions(postId)
+        }
     }
     
     // Vyčištění stavu při opuštění obrazovky

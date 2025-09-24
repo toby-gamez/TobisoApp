@@ -31,7 +31,8 @@ fun ChangelogScreen(navController: NavController) {
         "přídán kalendář pro události",
         "přidána ochrana proti krádeži a padělání",
         "přidáno náhodné uspořádání otázek",
-        "přidána podpora pro vytvoření svého vlastního kalendáře"
+        "přidána podpora pro vytvoření svého vlastního kalendáře",
+        "přidán plný offline režim",
     )
     val version1_9_2 = listOf(
         "přidána podpora pro textové odpovídání otázek",

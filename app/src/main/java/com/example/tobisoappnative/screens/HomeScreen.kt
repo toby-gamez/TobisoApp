@@ -1,6 +1,7 @@
 package com.example.tobisoappnative.screens
 
 import com.example.tobisoappnative.R
+import com.example.tobisoappnative.components.ToastHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -153,6 +154,7 @@ fun HomeScreen(navController: NavController) {
     val gridState = rememberLazyGridState()
     val viewModel: MainViewModel = viewModel()
     val categories by viewModel.categories.collectAsState()
+    val toastMessage by viewModel.toastMessage.collectAsState()
     LaunchedEffect(Unit) { viewModel.loadCategories() }
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
@@ -269,6 +271,12 @@ fun HomeScreen(navController: NavController) {
             }
         }
     }
+    
+    // Toast handler pro zobrazení zpráv
+    ToastHandler(
+        toastMessage = toastMessage,
+        onClearToast = { viewModel.clearToast() }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

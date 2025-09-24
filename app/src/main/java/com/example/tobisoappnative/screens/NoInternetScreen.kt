@@ -12,9 +12,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.WifiOff
 
 @Composable
-fun NoInternetScreen(onRetry: () -> Unit) {
+fun NoInternetScreen(
+    onRetry: () -> Unit,
+    onOfflineMode: (() -> Unit)? = null
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -23,7 +27,7 @@ fun NoInternetScreen(onRetry: () -> Unit) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Icons.Default.CloudOff,
+                imageVector = Icons.Default.WifiOff,
                 contentDescription = "Bez internetu",
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(96.dp)
@@ -38,7 +42,7 @@ fun NoInternetScreen(onRetry: () -> Unit) {
             Text(
                 text = "Zkontrolujte své připojení a zkuste to znovu.",
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onBackground // lepší čitelnost
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(32.dp))
             Button(
@@ -49,6 +53,25 @@ fun NoInternetScreen(onRetry: () -> Unit) {
                 )
             ) {
                 Text("Obnovit")
+            }
+            
+            // Tlačítko pro offline režim (pokud je callback poskytnut)  
+            onOfflineMode?.let { offlineCallback ->
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedButton(
+                    onClick = offlineCallback,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudOff,
+                        contentDescription = "Offline režim",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Offline režim")
+                }
             }
         }
     }

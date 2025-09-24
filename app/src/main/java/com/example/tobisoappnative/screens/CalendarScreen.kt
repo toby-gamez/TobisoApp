@@ -85,13 +85,15 @@ fun CalendarScreen(
     navController: NavHostController? = null,
     viewModel: CalendarViewModel = viewModel(),
     initialYear: Int? = null,
-    initialMonth: Int? = null
+    initialMonth: Int? = null,
+    mainViewModel: com.example.tobisoappnative.viewmodel.MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val events by viewModel.events.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val selectedDateEvents by viewModel.selectedDateEvents.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val isOfflineMode by mainViewModel.isOffline.collectAsState()
 
     var currentMonth by remember { 
         mutableStateOf(initialMonth ?: Calendar.getInstance().get(Calendar.MONTH)) 
@@ -279,7 +281,6 @@ fun CalendarScreen(
                         }
                     }
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (isLoading) {
@@ -354,6 +355,12 @@ fun CalendarScreen(
                             }
                         }
                     )
+                }
+                if (isOfflineMode) {
+                    Text("Zobrazují se zde pouze místní události, jsi totiž v offline režimu.")
+                }
+                else {
+                    Text("Kalendář dnů, kdy je ve škole volno.")
                 }
             }
         }

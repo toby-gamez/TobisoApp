@@ -178,6 +178,8 @@ class MainActivity : ComponentActivity() {
         val mainViewModel: MainViewModel = viewModel()
         val categories by mainViewModel.categories.collectAsState()
         val categoryError by mainViewModel.categoryError.collectAsState()
+        val isOffline by mainViewModel.isOffline.collectAsState()
+        val hasUserDismissedNoInternet by mainViewModel.hasUserDismissedNoInternet.collectAsState()
         val lastAddedPoints by PointsManager.lastAddedPoints.collectAsState()
         var showOverlay by remember { mutableStateOf(false) }
         var overlayPoints by remember { mutableStateOf(0) }
@@ -198,6 +200,9 @@ class MainActivity : ComponentActivity() {
         // callback pro ruční obnovu
         val onRetry = {
             isConnected.value = checkInternetConnection(context)
+            if (isConnected.value) {
+                mainViewModel.resetNoInternetDismiss()
+            }
         }
 
         // timeout stav
@@ -266,9 +271,15 @@ class MainActivity : ComponentActivity() {
             Surface(color = MaterialTheme.colorScheme.surface) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     val searchRequestFocus = remember { mutableStateOf(false) }
-                    if (!isConnected.value) {
-                        NoInternetScreen(onRetry = onRetry)
-                    } else if (categories.isEmpty() && categoryError == null) {
+                    if (!isConnected.value && !hasUserDismissedNoInternet) {
+                        NoInternetScreen(
+                            onRetry = onRetry,
+                            onOfflineMode = { 
+                                mainViewModel.enableOfflineMode()
+                                mainViewModel.confirmOfflineModeTransition()
+                            }
+                        )
+                    } else if (categories.isEmpty() && categoryError == null && !isOffline) {
                         LoadingToast(timeout = loadingTimeout.value)
                     } else {
                         val navController = rememberNavController()
@@ -319,7 +330,8 @@ class MainActivity : ComponentActivity() {
                                 composable("search") {
                                     SearchScreen(
                                         navController = navController,
-                                        searchRequestFocus = searchRequestFocus
+                                        searchRequestFocus = searchRequestFocus,
+                                        viewModel = mainViewModel
                                     )
                                 }
                                 composable("calendar") {

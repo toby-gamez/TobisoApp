@@ -126,15 +126,10 @@ fun FavoritesScreen(
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(snippets) { snippet ->
-                            val postTitleState = produceState<String?>(initialValue = null, snippet.postId) {
+                            val postTitleState = produceState<String?>(initialValue = null, snippet.postId, posts) {
                                 if (snippet.postId != 0) {
-                                    value = try {
-                                        withContext(Dispatchers.IO) {
-                                            ApiClient.apiService.getPost(snippet.postId).title
-                                        }
-                                    } catch (e: Exception) {
-                                        null
-                                    }
+                                    // Najdeme post v cached datech z ViewModelu
+                                    value = posts.find { it.id == snippet.postId }?.title
                                 } else {
                                     value = null
                                 }

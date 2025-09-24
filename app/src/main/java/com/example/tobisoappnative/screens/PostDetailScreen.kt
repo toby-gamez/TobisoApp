@@ -50,24 +50,39 @@ fun PostDetailScreen(
     val postDetail by viewModel.postDetail.collectAsState()
     val postDetailError by viewModel.postDetailError.collectAsState()
     val favoritePosts by viewModel.favoritePosts.collectAsState()
+    val posts by viewModel.posts.collectAsState()
+    val isOffline by viewModel.isOffline.collectAsState()
     var isRefreshing by remember { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
     val coroutineScope = rememberCoroutineScope()
-    var showError by remember { mutableStateOf(false) }
-    var errorText by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
     var hasQuestions by remember { mutableStateOf(false) }
     
     LaunchedEffect(postId) {
+        // Načteme detail (ViewModel má logiku pro offline i online režim)
         viewModel.loadPostDetail(postId)
-        // Kontrola otázek pro tento příspěvek
-        hasQuestions = try {
-            viewModel.checkHasQuestions(postId)
-        } catch (e: Exception) {
-            // Pro testování zobrazíme tlačítko vždy, když API neexistuje
-            true
-        }
         loaded = true
+    }
+    
+    // Separate effect pro kontrolu otázek a posts - reaguje na změny offline stavu
+    LaunchedEffect(isOffline, posts.isEmpty()) {
+        // Načteme všechny posts pro vyhledávání odkazů (pouze pokud není offline nebo jsou prázdné)
+        if (posts.isEmpty() && !isOffline) {
+            viewModel.loadPosts()
+        }
+        
+        // Kontrola otázek pro tento příspěvek
+        hasQuestions = if (!isOffline) {
+            try {
+                viewModel.checkHasQuestions(postId)
+            } catch (e: Exception) {
+                println("DEBUG: Error checking questions: ${e.message}")
+                false
+            }
+        } else {
+            // V offline režimu nejsou otázky dostupné
+            false
+        }
     }
 
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
@@ -99,9 +114,14 @@ fun PostDetailScreen(
         SwipeRefresh(
             state = swipeRefreshState,
             onRefresh = {
-                isRefreshing = true
-                coroutineScope.launch {
-                    viewModel.loadPostDetail(postId)
+                if (!isOffline) {
+                    isRefreshing = true
+                    coroutineScope.launch {
+                        viewModel.loadPostDetail(postId)
+                        isRefreshing = false
+                    }
+                } else {
+                    // V offline režimu jen resetujeme refresh state
                     isRefreshing = false
                 }
             }
@@ -130,24 +150,26 @@ fun PostDetailScreen(
                                 tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        // SHARE BUTTON - druhé vpravo
-                        IconButton(onClick = {
-                            postDetail?.id?.let { id ->
-                                val url = "https://www.tobiso.com/post/$id"
-                                val sendIntent = android.content.Intent().apply {
-                                    action = android.content.Intent.ACTION_SEND
-                                    putExtra(android.content.Intent.EXTRA_TEXT, url)
-                                    type = "text/plain"
+                        // SHARE BUTTON - druhé vpravo (pouze v online režimu)
+                        if (!isOffline) {
+                            IconButton(onClick = {
+                                postDetail?.id?.let { id ->
+                                    val url = "https://www.tobiso.com/post/$id"
+                                    val sendIntent = android.content.Intent().apply {
+                                        action = android.content.Intent.ACTION_SEND
+                                        putExtra(android.content.Intent.EXTRA_TEXT, url)
+                                        type = "text/plain"
+                                    }
+                                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                                    context.startActivity(shareIntent)
                                 }
-                                val shareIntent = android.content.Intent.createChooser(sendIntent, null)
-                                context.startActivity(shareIntent)
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Share,
+                                    contentDescription = "Sdílet odkaz",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Filled.Share,
-                                contentDescription = "Sdílet odkaz",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
                         }
                     }
                 )
@@ -199,12 +221,20 @@ fun PostDetailScreen(
                         ) {
                             Spacer(modifier = Modifier.height(8.dp))
                             postDetail?.content?.let { content ->
-                                // Nejprve nahradíme obrázky
+                                // Nejprve nahradíme nebo odstraníme obrázky 
                                 val imageRegex = Regex("!\\[(.*?)]\\((images/[^)]+)\\)")
-                                var processedContent = content.replace(imageRegex) {
-                                    val alt = it.groupValues[1]
-                                    val path = it.groupValues[2]
-                                    "![${alt}](https://tobiso.com/${path})"
+                                var processedContent = if (!isOffline) {
+                                    content.replace(imageRegex) {
+                                        val alt = it.groupValues[1]
+                                        val path = it.groupValues[2]
+                                        "![${alt}](https://tobiso.com/${path})"
+                                    }
+                                } else {
+                                    // V offline režimu úplně odstraníme obrázky a nahradíme jen textem
+                                    content.replace(imageRegex) {
+                                        val alt = it.groupValues[1]
+                                        "\n\n**[Obrázek: $alt - nedostupný v offline režimu]**\n\n"
+                                    }
                                 }
 
                                 // Najdeme zvýrazněné bloky ...text...
@@ -274,70 +304,44 @@ fun PostDetailScreen(
                                                     val match = typeAndMatch.second as MatchResult
                                                     val linkText = match.groupValues[1]
                                                     var url = match.groupValues[2]
-                                                    var fileName = url
-                                                    if (fileName.endsWith(".html")) fileName =
-                                                        fileName.removeSuffix(".html") + ".md"
-                                                    fileName = fileName.replace(prefixRegex, "")
-                                                    if (!fileName.startsWith("/")) fileName =
-                                                        "/$fileName"
-                                                    // Pokud url obsahuje "files", přidej předponu
-                                                    if (url.startsWith("files") || url.contains("/files/")) {
-                                                        url =
-                                                            "https://tobiso.com/" + url.removePrefix(
-                                                                "/"
-                                                            )
-                                                    }
+                                                    var filePath = url
+                                                    if (filePath.endsWith(".html")) filePath =
+                                                        filePath.removeSuffix(".html") + ".md"
+                                                    filePath = filePath.replace(prefixRegex, "")
+                                                    if (!filePath.startsWith("/")) filePath =
+                                                        "/$filePath"
+                                                    
                                                     ClickableText(
                                                         text = AnnotatedString(linkText),
                                                         style = MaterialTheme.typography.bodyMedium.copy(
                                                             color = MaterialTheme.colorScheme.primary
                                                         ),
                                                         onClick = {
-                                                            coroutineScope.launch {
-                                                                try {
-                                                                    val postsApi =
-                                                                        ApiClient.apiService.getPosts()
-                                                                    val post =
-                                                                        postsApi.find { it.filePath == fileName }
-                                                                    if (post != null) {
-                                                                        navController.navigate("postDetail/${post.id}")
-                                                                        showError = false
+                                                            // Hledáme post podle filePath (funguje offline i online)
+                                                            val post = posts.find { it.filePath == filePath }
+                                                            if (post != null) {
+                                                                navController.navigate("postDetail/${post.id}")
+                                                            } else if (!isOffline) {
+                                                                // Pouze v online režimu zkusíme otevřít externí odkazy
+                                                                if (url.contains("http") || url.startsWith("files") || url.contains("/files/")) {
+                                                                    val fullUrl = if (url.startsWith("http")) {
+                                                                        url
                                                                     } else {
-                                                                        // Otevřít v prohlížeči, pokud url obsahuje http nebo začíná na https://tobiso.com/files
-                                                                        if (url.contains("http") || url.startsWith(
-                                                                                "https://tobiso.com/files"
-                                                                            )
-                                                                        ) {
-                                                                            val intent =
-                                                                                android.content.Intent(
-                                                                                    android.content.Intent.ACTION_VIEW,
-                                                                                    android.net.Uri.parse(
-                                                                                        url
-                                                                                    )
-                                                                                )
-                                                                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                                            try {
-                                                                                navController.context.startActivity(
-                                                                                    intent
-                                                                                )
-                                                                                showError = false
-                                                                            } catch (e: Exception) {
-                                                                                errorText =
-                                                                                    "Nelze otevřít odkaz: ${e.message}"
-                                                                                showError = true
-                                                                            }
-                                                                        } else {
-                                                                            errorText =
-                                                                                "Soubor '$fileName' nebyl nalezen."
-                                                                            showError = true
-                                                                        }
+                                                                        "https://tobiso.com/" + url.removePrefix("/")
                                                                     }
-                                                                } catch (e: Exception) {
-                                                                    errorText =
-                                                                        "Chyba při načítání postů: ${e.message}"
-                                                                    showError = true
+                                                                    val intent = android.content.Intent(
+                                                                        android.content.Intent.ACTION_VIEW,
+                                                                        android.net.Uri.parse(fullUrl)
+                                                                    )
+                                                                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                                    try {
+                                                                        navController.context.startActivity(intent)
+                                                                    } catch (e: Exception) {
+                                                                        // Tiše ignorujeme chyby
+                                                                    }
                                                                 }
                                                             }
+                                                            // V offline režimu nebo při nenalezení souboru neděláme nic
                                                         }
                                                     )
                                                 }
@@ -345,30 +349,41 @@ fun PostDetailScreen(
                                                 "video" -> {
                                                     val match = typeAndMatch.second as MatchResult
                                                     val videoSrc = match.groupValues[1]
-                                                    val videoUrl =
-                                                        if (videoSrc.startsWith("http")) videoSrc else "https://tobiso.com/$videoSrc"
-                                                    OutlinedButton(
-                                                        onClick = {
-                                                            navController.navigate(
-                                                                "videoPlayer/${
-                                                                    Uri.encode(
-                                                                        videoUrl
-                                                                    )
-                                                                }"
-                                                            )
-                                                        },
-                                                        modifier = Modifier.padding(vertical = 8.dp)
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.PlayArrow,
-                                                            contentDescription = "Přehrát video",
-                                                            tint = MaterialTheme.colorScheme.primary
-                                                        )
-                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                    
+                                                    if (isOffline) {
+                                                        // V offline režimu zobrazíme pouze text
                                                         Text(
-                                                            "Video",
-                                                            color = MaterialTheme.colorScheme.primary
+                                                            text = "*[Video nedostupné v offline režimu]*",
+                                                            modifier = Modifier.padding(vertical = 8.dp),
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
+                                                    } else {
+                                                        val videoUrl =
+                                                            if (videoSrc.startsWith("http")) videoSrc else "https://tobiso.com/$videoSrc"
+                                                        OutlinedButton(
+                                                            onClick = {
+                                                                navController.navigate(
+                                                                    "videoPlayer/${
+                                                                        Uri.encode(
+                                                                            videoUrl
+                                                                        )
+                                                                    }"
+                                                                )
+                                                            },
+                                                            modifier = Modifier.padding(vertical = 8.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.PlayArrow,
+                                                                contentDescription = "Přehrát video",
+                                                                tint = MaterialTheme.colorScheme.primary
+                                                            )
+                                                            Spacer(modifier = Modifier.width(8.dp))
+                                                            Text(
+                                                                "Video",
+                                                                color = MaterialTheme.colorScheme.primary
+                                                            )
+                                                        }
                                                     }
                                                     // Nastavíme lastIndex na konec celého video bloku včetně closing tagu
                                                     lastIndex = end
@@ -442,27 +457,6 @@ fun PostDetailScreen(
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
-                    }
-                }
-            }
-            // Snackbar zůstává mimo SwipeRefresh
-            if (showError) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = androidx.compose.ui.Alignment.BottomCenter
-                ) {
-                    Snackbar(
-                        action = {
-                            TextButton(onClick = { showError = false }) {
-                                Text(
-                                    "Zavřít",
-                                    textAlign = TextAlign.Start
-                                )
-                            }
-                        },
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Text(errorText, textAlign = TextAlign.Start)
                     }
                 }
             }

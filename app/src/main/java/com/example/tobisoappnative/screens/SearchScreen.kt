@@ -15,6 +15,8 @@ import kotlinx.coroutines.withContext
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Category
+import com.example.tobisoappnative.viewmodel.MainViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
@@ -72,14 +74,16 @@ fun getCurrentStreakSearch(context: Context): Int {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(navController: NavController, searchRequestFocus: androidx.compose.runtime.MutableState<Boolean>) {
+fun SearchScreen(navController: NavController, searchRequestFocus: androidx.compose.runtime.MutableState<Boolean>, viewModel: MainViewModel = viewModel()) {
     var searchText by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    var posts by remember { mutableStateOf(listOf<Post>()) }
-    var categories by remember { mutableStateOf(listOf<Category>()) }
+    // Používáme data z ViewModelu místo lokálního stavu
+    val posts by viewModel.posts.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val postError by viewModel.postError.collectAsState()
+    val categoryError by viewModel.categoryError.collectAsState()
     var isLoading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
     var debouncedSearchText by remember { mutableStateOf("") }
     var showTotalOverlay by remember { mutableStateOf(false) }
     val totalPoints by PointsManager.totalPoints.collectAsState()
@@ -129,25 +133,16 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
         return highlightText(snippet, query)
     }
 
-    // Načítání postů pouze jednou při spuštění přes ApiClient
+    // Načítání dat z ViewModelu (funguje i v offline režimu)
     LaunchedEffect(Unit) {
-        isLoading = true
-        error = null
-        try {
-            val loadedPosts = withContext(Dispatchers.IO) { ApiClient.apiService.getPosts() }
-            posts = loadedPosts
-        } catch (e: Exception) {
-            error = "Chyba: ${e.message ?: "Neznámá chyba"}"
+        if (posts.isEmpty()) {
+            isLoading = true
+            viewModel.loadPosts()
+        }
+        if (categories.isEmpty()) {
+            viewModel.loadCategories()
         }
         isLoading = false
-    }
-
-    // Načítání kategorií při spuštění
-    LaunchedEffect(Unit) {
-        try {
-            val loadedCategories = withContext(Dispatchers.IO) { ApiClient.apiService.getCategories() }
-            categories = loadedCategories
-        } catch (_: Exception) {}
     }
 
     // Debounce pro vyhledávání
@@ -255,7 +250,7 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
                     // Výsledky hledání realtime
                     when {
                         isLoading -> CircularProgressIndicator()
-                        error != null && error.orEmpty().isNotBlank() -> Text(error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                        postError != null && postError.orEmpty().isNotBlank() -> Text(postError.orEmpty(), color = MaterialTheme.colorScheme.error)
                         filteredPosts.isEmpty() && filteredCategories.isEmpty() && searchText.isNotBlank() -> Text("Nenalezeno žádné výsledky.")
                         else -> Column(
                             modifier = Modifier

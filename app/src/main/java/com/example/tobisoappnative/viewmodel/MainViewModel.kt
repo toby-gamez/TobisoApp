@@ -10,6 +10,8 @@ import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.Question
 import com.example.tobisoappnative.model.Snippet
 import com.example.tobisoappnative.model.Explanation
+import com.example.tobisoappnative.model.OfflineDataManager
+import com.example.tobisoappnative.utils.NetworkUtils
 import com.google.gson.Gson
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +51,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _questionsLoading = MutableStateFlow(false)
     val questionsLoading: StateFlow<Boolean> = _questionsLoading
 
+    // Toast systém
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage
+    
+    // Offline režim
+    private val _isOffline = MutableStateFlow(false)
+    val isOffline: StateFlow<Boolean> = _isOffline
+    
+    // Stav pro ruční opuštění "No Internet" obrazovky
+    private val _hasUserDismissedNoInternet = MutableStateFlow(false)
+    val hasUserDismissedNoInternet: StateFlow<Boolean> = _hasUserDismissedNoInternet
+    
+    // Flag pro sledování prvního načtení
+    private var isFirstLoad = true
+    
+    private val offlineDataManager = OfflineDataManager(application)
     private val dataStore = application.dataStore
     private val FAVORITE_POSTS_KEY = stringSetPreferencesKey("favorite_posts_json")
     private val gson = Gson()
@@ -61,6 +79,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val SNIPPETS_FILE_NAME = "snippets.json"
 
     init {
+        // Inicializace offline stavu na začátku
+        viewModelScope.launch(Dispatchers.IO) {
+            val isOnline = NetworkUtils.isOnline(getApplication())
+            _isOffline.value = !isOnline
+            println("DEBUG: App initialized - Online: $isOnline, Offline: ${!isOnline}")
+        }
+        
         viewModelScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { prefs ->
@@ -114,25 +139,127 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Toast funkce
+    fun showToast(message: String) {
+        _toastMessage.value = message
+    }
+    
+    fun clearToast() {
+        _toastMessage.value = null
+    }
+
     fun loadCategories() {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val categories = ApiClient.apiService.getCategories()
-                _categories.value = categories
-                _categoryError.value = null
-            } catch (e: Exception) {
-                _categories.value = emptyList()
-                _categoryError.value = e.message ?: e.toString()
+            val isOnline = NetworkUtils.isOnline(getApplication())
+            
+            if (isOnline) {
+                try {
+                    // Online - načti z API a ulož offline
+                    val categories = ApiClient.apiService.getCategories()
+                    val posts = ApiClient.apiService.getPosts()
+                    
+                    // Ulož do offline cache
+                    offlineDataManager.saveCategoriesAndPosts(categories, posts)
+                    
+                    _categories.value = categories
+                    _posts.value = posts
+                    _categoryError.value = null
+                    _postError.value = null
+                    _isOffline.value = false
+                    
+                    // Zobraz toast pouze při prvním úspěšném načtení online
+                    if (isFirstLoad) {
+                        showToast("Obsah pro offline režim byl aktualizován")
+                        isFirstLoad = false
+                    }
+                } catch (e: Exception) {
+                    // Online failed - zkus offline data
+                    loadOfflineData()
+                }
+            } else {
+                // Offline - načti z cache
+                loadOfflineData()
             }
+        }
+    }
+    
+    /**
+     * Načítání dat z offline cache
+     */
+    private suspend fun loadOfflineData() {
+        val cachedCategories = offlineDataManager.getCachedCategories()
+        val cachedPosts = offlineDataManager.getCachedPosts()
+        
+        if (cachedCategories != null && cachedPosts != null) {
+            _categories.value = cachedCategories
+            _posts.value = cachedPosts
+            _categoryError.value = null
+            _postError.value = null
+            _isOffline.value = true
+            println("DEBUG: Loaded offline data - Categories: ${cachedCategories.size}, Posts: ${cachedPosts.size}")
+        } else {
+            _categories.value = emptyList()
+            _posts.value = emptyList()
+            _categoryError.value = "Chyba připojení - žádná offline data"
+            _postError.value = "Chyba připojení - žádná offline data"
+            _isOffline.value = true
+        }
+    }
+    
+    /**
+     * Spustí offline režim ručně
+     */
+    fun enableOfflineMode() {
+        viewModelScope.launch(Dispatchers.IO) {
+            loadOfflineData()
+        }
+    }
+    
+    /**
+     * Potvrdí přechod do offline režimu a skryje NoInternetScreen
+     */
+    fun confirmOfflineModeTransition() {
+        _hasUserDismissedNoInternet.value = true
+    }
+    
+    /**
+     * Resetuje stav dismissu (např. při obnovení připojení)
+     */
+    fun resetNoInternetDismiss() {
+        _hasUserDismissedNoInternet.value = false
+    }
+    
+    /**
+     * Aktualizuje network stav
+     */
+    fun refreshNetworkState() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val isOnline = NetworkUtils.isOnline(getApplication())
+            val wasOffline = _isOffline.value
+            _isOffline.value = !isOnline
+            println("DEBUG: Network state refreshed - Online: $isOnline, Was offline: $wasOffline, Now offline: ${!isOnline}")
         }
     }
 
     fun loadPosts(categoryId: Int? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val posts = ApiClient.apiService.getPosts(categoryId)
-                _posts.value = posts
-                _postError.value = null
+                // V offline režimu používáme cached data
+                if (_isOffline.value) {
+                    val posts = if (categoryId != null) {
+                        offlineDataManager.getCachedPostsByCategory(categoryId) ?: emptyList()
+                    } else {
+                        offlineDataManager.getCachedPosts() ?: emptyList()
+                    }
+                    _posts.value = posts
+                    _postError.value = null
+                    println("DEBUG: Loaded offline posts - Category: $categoryId, Posts: ${posts.size}")
+                } else {
+                    // Online režim - načítáme z API
+                    val posts = ApiClient.apiService.getPosts(categoryId)
+                    _posts.value = posts
+                    _postError.value = null
+                }
             } catch (e: Throwable) {
                 _posts.value = emptyList()
                 _postError.value = e.message ?: e.toString()
@@ -143,12 +270,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun loadPostDetail(postId: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val post = ApiClient.apiService.getPost(postId)
-                _postDetail.value = post
-                _postDetailError.value = null
+                // Nejprve zkontrolujeme aktuální network stav
+                refreshNetworkState()
+                
+                // V offline režimu používáme cached data
+                if (_isOffline.value) {
+                    val post = offlineDataManager.getCachedPost(postId)
+                    _postDetail.value = post
+                    _postDetailError.value = if (post == null) "Post nebyl nalezen v offline datech" else null
+                    println("DEBUG: Loaded offline post detail - Post ID: $postId, Found: ${post != null}")
+                } else {
+                    // Online režim - načítáme z API
+                    val post = ApiClient.apiService.getPost(postId)
+                    _postDetail.value = post
+                    _postDetailError.value = null
+                    println("DEBUG: Loaded online post detail - Post ID: $postId")
+                }
             } catch (e: Throwable) {
-                _postDetail.value = null
-                _postDetailError.value = e.message ?: e.toString()
+                // Při chybě zkusíme offline data jako fallback
+                val post = offlineDataManager.getCachedPost(postId)
+                if (post != null) {
+                    _postDetail.value = post
+                    _postDetailError.value = null
+                    _isOffline.value = true
+                    println("DEBUG: API failed, using cached post detail - Post ID: $postId")
+                } else {
+                    _postDetail.value = null
+                    _postDetailError.value = e.message ?: e.toString()
+                    println("DEBUG: Failed to load post detail - Post ID: $postId, Error: ${e.message}")
+                }
             }
         }
     }
@@ -225,6 +375,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             _questionsLoading.value = true
             try {
+                // V offline režimu nemáme otázky k dispozici
+                if (_isOffline.value) {
+                    _questions.value = emptyList()
+                    _questionsError.value = "Otázky nejsou dostupné v offline režimu"
+                    println("DEBUG: Questions not available in offline mode")
+                    _questionsLoading.value = false
+                    return@launch
+                }
+                
                 val questions = ApiClient.apiService.getQuestionsByPostId(postId)
                 _questions.value = questions
                 _questionsError.value = null
@@ -248,9 +407,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun checkHasQuestions(postId: Int): Boolean {
         return try {
+            // Nejprve zkontrolujeme aktuální network stav
+            refreshNetworkState()
+            
+            // V offline režimu nemáme otázky k dispozici
+            if (_isOffline.value) {
+                println("DEBUG: Offline mode - no questions available for post $postId")
+                return false
+            }
+            
+            // Online režim - zkontrolujeme API
             val questions = ApiClient.apiService.getQuestionsByPostId(postId)
-            questions.isNotEmpty()
+            val hasQuestions = questions.isNotEmpty()
+            println("DEBUG: Checked questions for post $postId - Has questions: $hasQuestions")
+            hasQuestions
         } catch (e: Exception) {
+            println("DEBUG: Error checking questions for post $postId: ${e.message}")
             false
         }
     }
