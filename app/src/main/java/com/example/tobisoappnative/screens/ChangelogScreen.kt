@@ -30,7 +30,8 @@ fun ChangelogScreen(navController: NavController) {
         "přesunuto tlačítko na mazání z oblíbených",
         "přídán kalendář pro události",
         "přidána ochrana proti krádeži a padělání",
-        "přidáno náhodné uspořádání otázek"
+        "přidáno náhodné uspořádání otázek",
+        "přidána podpora pro vytvoření svého vlastního kalendáře"
     )
     val version1_9_2 = listOf(
         "přidána podpora pro textové odpovídání otázek",

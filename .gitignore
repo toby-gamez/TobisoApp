@@ -13,6 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+.vscode/
+.idea/
+*.log
 
 # Build artefakty - všechny build složky
 **/build/

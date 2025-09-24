@@ -20,7 +20,9 @@ data class Event(
     @SerializedName("recurrencePattern")
     val recurrencePattern: String?,
     @SerializedName("recurrenceEndDate")
-    val recurrenceEndDate: Date?
+    val recurrenceEndDate: Date?,
+    @SerializedName("isLocal")
+    val isLocal: Boolean? = null
 ) {
     // Pomocné funkce pro bezpečný přístup k datům
     fun getTitleSafe(): String = title ?: "Bez názvu"
@@ -29,6 +31,7 @@ data class Event(
     fun getEndDateSafe(): Date = endDate ?: getStartDateSafe()  // Pokud je endDate null, použij startDate
     fun isAllDaySafe(): Boolean = isAllDay ?: false
     fun isRecurringSafe(): Boolean = isRecurring ?: false
+    fun isLocalSafe(): Boolean = isLocal ?: false
     
     // Překlad recurrence pattern do češtiny
     fun getRecurrencePatternCzech(): String {

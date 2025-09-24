@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Event
+import com.example.tobisoappnative.model.LocalEventManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     val error: StateFlow<String?> = _error
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+    private val context = application.applicationContext
 
     // Centralizovaná funkce pro kontrolu, jestli event zasahuje do konkrétního dne
     private fun doesEventOverlapDay(event: Event, year: Int, month: Int, day: Int): Boolean {
@@ -99,6 +101,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
                 calendar.set(year, month, 1, 0, 0, 0)
                 calendar.set(Calendar.MILLISECOND, 0)
                 val startDate = dateFormat.format(calendar.time)
+                val startDateObj = calendar.time
                 
                 // Konec měsíce
                 calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
@@ -106,18 +109,38 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
                 calendar.set(Calendar.MINUTE, 59)
                 calendar.set(Calendar.SECOND, 59)
                 val endDate = dateFormat.format(calendar.time)
+                val endDateObj = calendar.time
                 
                 android.util.Log.d("CalendarViewModel", "Loading events from $startDate to $endDate")
-                val events = ApiClient.apiService.getEventsInRange(startDate, endDate)
-                android.util.Log.d("CalendarViewModel", "Loaded ${events.size} events")
                 
-                // Filtruj eventy s nevalidními daty - endDate může být null pro jednodenní události
-                val validEvents = events.filter { event ->
+                // Načti API eventy
+                val apiEvents = try {
+                    ApiClient.apiService.getEventsInRange(startDate, endDate)
+                } catch (e: Exception) {
+                    android.util.Log.e("CalendarViewModel", "Error loading API events", e)
+                    emptyList()
+                }
+                
+                // Načti místní eventy
+                val localEvents = try {
+                    LocalEventManager.expandRecurringEvents(context, startDateObj, endDateObj)
+                } catch (e: Exception) {
+                    android.util.Log.e("CalendarViewModel", "Error loading local events", e)
+                    emptyList()
+                }
+                
+                android.util.Log.d("CalendarViewModel", "Loaded ${apiEvents.size} API events and ${localEvents.size} local events")
+                
+                // Filtruj API eventy s nevalidními daty - endDate může být null pro jednodenní události
+                val validApiEvents = apiEvents.filter { event ->
                     event.startDate != null  // Jen startDate je povinné
                 }
                 
-                android.util.Log.d("CalendarViewModel", "Valid events: ${validEvents.size}")
-                _events.value = validEvents
+                // Kombinuj všechny eventy
+                val allEvents = validApiEvents + localEvents
+                
+                android.util.Log.d("CalendarViewModel", "Total valid events: ${allEvents.size}")
+                _events.value = allEvents
                 
             } catch (e: Exception) {
                 android.util.Log.e("CalendarViewModel", "Error loading events", e)
@@ -179,10 +202,98 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     fun loadEventDetail(eventId: Int, onResult: (Event?) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val event = ApiClient.apiService.getEvent(eventId)
+                // Zkus nejdřív najít mezi místními eventy (negativní ID)
+                val event = if (eventId < 0) {
+                    LocalEventManager.getLocalEvent(context, eventId)
+                } else {
+                    // API event
+                    try {
+                        ApiClient.apiService.getEvent(eventId)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
                 onResult(event)
             } catch (e: Exception) {
                 onResult(null)
+            }
+        }
+    }
+    
+    // Metody pro práci s místními eventy
+    fun addLocalEvent(event: Event, onResult: (Event?) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val newEvent = LocalEventManager.addLocalEvent(context, event)
+                onResult(newEvent)
+                
+                if (newEvent != null) {
+                    // Okamžitě přidej event do seznamu
+                    val currentEvents = _events.value.toMutableList()
+                    currentEvents.add(newEvent)
+                    _events.value = currentEvents
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("CalendarViewModel", "Error adding local event", e)
+                onResult(null)
+            }
+        }
+    }
+    
+    fun updateLocalEvent(event: Event, onResult: (Event?) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val updatedEvent = LocalEventManager.updateLocalEvent(context, event)
+                onResult(updatedEvent)
+                
+                if (updatedEvent != null) {
+                    // Okamžitě aktualizuj event v seznamu
+                    val currentEvents = _events.value.toMutableList()
+                    val index = currentEvents.indexOfFirst { it.id == updatedEvent.id }
+                    if (index >= 0) {
+                        currentEvents[index] = updatedEvent
+                        _events.value = currentEvents
+                    }
+                    
+                    // Aktualizuj také vybraný den pokud obsahoval upravovaný event
+                    val selectedEvents = _selectedDateEvents.value.toMutableList()
+                    val selectedIndex = selectedEvents.indexOfFirst { it.id == updatedEvent.id }
+                    if (selectedIndex >= 0) {
+                        selectedEvents[selectedIndex] = updatedEvent
+                        _selectedDateEvents.value = selectedEvents
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("CalendarViewModel", "Error updating local event", e)
+                onResult(null)
+            }
+        }
+    }
+    
+    fun deleteLocalEvent(eventId: Int, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                android.util.Log.d("CalendarViewModel", "Attempting to delete local event with ID: $eventId")
+                val deleted = LocalEventManager.deleteLocalEvent(context, eventId)
+                android.util.Log.d("CalendarViewModel", "Delete operation result: $deleted")
+                
+                onResult(deleted)
+                if (deleted) {
+                    // Okamžitě odstraň event ze seznamu
+                    val currentEvents = _events.value.toMutableList()
+                    val removedFromMain = currentEvents.removeAll { it.id == eventId }
+                    android.util.Log.d("CalendarViewModel", "Removed from main events: $removedFromMain")
+                    _events.value = currentEvents
+                    
+                    // Aktualizuj také vybraný den pokud obsahoval smazaný event
+                    val selectedEvents = _selectedDateEvents.value.toMutableList()
+                    val removedFromSelected = selectedEvents.removeAll { it.id == eventId }
+                    android.util.Log.d("CalendarViewModel", "Removed from selected events: $removedFromSelected")
+                    _selectedDateEvents.value = selectedEvents
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("CalendarViewModel", "Error deleting local event", e)
+                onResult(false)
             }
         }
     }

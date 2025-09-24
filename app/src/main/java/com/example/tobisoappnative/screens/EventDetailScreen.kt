@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.viewmodel.CalendarViewModel
+import com.example.tobisoappnative.components.AddEditEventDialog
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -33,6 +34,12 @@ fun EventDetailScreen(
     var event by remember { mutableStateOf<Event?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    
+    // Stavy pro editaci a mazání
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
+    var shouldNavigateBack by remember { mutableStateOf(false) }
 
     LaunchedEffect(eventId) {
         viewModel.loadEventDetail(eventId) { result ->
@@ -43,6 +50,13 @@ fun EventDetailScreen(
             }
         }
     }
+    
+    // LaunchedEffect pro navigaci zpět po smazání
+    LaunchedEffect(shouldNavigateBack) {
+        if (shouldNavigateBack) {
+            navController.popBackStack()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -50,24 +64,41 @@ fun EventDetailScreen(
                 title = { Text("Detail události") },
                 navigationIcon = {
                     IconButton(onClick = { 
-                        // Pokud máme načtenou událost, naviguj na měsíc této události
-                        event?.let { currentEvent ->
-                            val eventCalendar = Calendar.getInstance().apply { 
-                                time = currentEvent.getStartDateSafe() 
-                            }
-                            val eventYear = eventCalendar.get(Calendar.YEAR)
-                            val eventMonth = eventCalendar.get(Calendar.MONTH)
-                            
-                            // Naviguj zpět na kalendář s konkrétním měsícem
-                            navController.navigate("calendar/$eventYear/$eventMonth") {
-                                popUpTo("calendar") { inclusive = true }
-                            }
-                        } ?: run {
-                            // Pokud není událost načtená, použij standardní navigaci
-                            navController.navigateUp()
-                        }
+                        // Jednoduchá navigace zpět na předchozí obrazovku
+                        navController.popBackStack()
                     }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Zpět")
+                    }
+                },
+                actions = {
+                    // Tlačítka pro editaci a mazání pouze u místních eventů
+                    event?.let { currentEvent ->
+                        if (currentEvent.isLocalSafe()) {
+                            // Tlačítko pro editaci
+                            IconButton(
+                                onClick = { showEditDialog = true }
+                            ) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Upravit událost",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            
+                            // Tlačítko pro mazání
+                            IconButton(
+                                onClick = { 
+                                    android.util.Log.d("EventDetailScreen", "Delete button clicked, showing dialog")
+                                    showDeleteDialog = true 
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Smazat událost",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
                     }
                 }
             )
@@ -105,6 +136,78 @@ fun EventDetailScreen(
                 }
             }
         }
+    }
+    
+    // Dialog pro editaci události
+    event?.let { currentEvent ->
+        if (currentEvent.isLocalSafe()) {
+            AddEditEventDialog(
+                isVisible = showEditDialog,
+                onDismiss = { showEditDialog = false },
+                onSave = { updatedEvent ->
+                    viewModel.updateLocalEvent(updatedEvent) { result ->
+                        if (result != null) {
+                            event = result
+                            showEditDialog = false
+                            // Refresh eventi pro aktualizaci kalendáře
+                            val eventCalendar = Calendar.getInstance().apply { 
+                                time = result.getStartDateSafe() 
+                            }
+                            viewModel.loadEventsForMonth(
+                                eventCalendar.get(Calendar.YEAR),
+                                eventCalendar.get(Calendar.MONTH)
+                            )
+                        }
+                    }
+                },
+                initialEvent = currentEvent
+            )
+        }
+    }
+    
+    // Dialog pro potvrzení smazání
+    if (showDeleteDialog) {
+        android.util.Log.d("EventDetailScreen", "Showing delete dialog")
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Smazat událost") },
+            text = { Text("Opravdu chcete smazat tuto událost? Tato akce je nevratná.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        isDeleting = true
+                        viewModel.deleteLocalEvent(eventId) { success ->
+                            android.util.Log.d("EventDetailScreen", "Delete result: $success for eventId: $eventId")
+                            if (success) {
+                                showDeleteDialog = false
+                                shouldNavigateBack = true
+                            } else {
+                                android.util.Log.e("EventDetailScreen", "Failed to delete event $eventId")
+                                isDeleting = false
+                            }
+                        }
+                    },
+                    enabled = !isDeleting
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Smazat")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false },
+                    enabled = !isDeleting
+                ) {
+                    Text("Zrušit")
+                }
+            }
+        )
     }
 }
 
@@ -373,6 +476,34 @@ fun EventDetailContent(event: Event) {
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Zdroj:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (event.isLocalSafe()) Icons.Default.Smartphone else Icons.Default.Cloud,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (event.isLocalSafe()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (event.isLocalSafe()) "Místní událost" else "Vzdálená událost",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = if (event.isLocalSafe()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         }

@@ -3,6 +3,7 @@ package com.example.tobisoappnative.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -32,6 +33,7 @@ import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.viewmodel.CalendarViewModel
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
+import com.example.tobisoappnative.components.AddEditEventDialog
 import kotlinx.coroutines.delay
 import android.content.Context
 import android.os.Build
@@ -97,6 +99,16 @@ fun CalendarScreen(
     var showTotalOverlay by remember { mutableStateOf(false) }
     val totalPoints by PointsManager.totalPoints.collectAsState()
     val context = LocalContext.current
+
+    // Stavy pro dialog přidání/úpravy eventu
+    var showAddEventDialog by remember { mutableStateOf(false) }
+    var editingEvent by remember { mutableStateOf<Event?>(null) }
+    var selectedDateForNewEvent by remember { mutableStateOf<Date?>(null) }
+    
+    // Stavy pro dialog smazání
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var eventToDelete by remember { mutableStateOf<Event?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentMonth, currentYear) {
         viewModel.loadEventsForMonth(currentYear, currentMonth)
@@ -228,11 +240,15 @@ fun CalendarScreen(
                     CalendarGrid(
                         currentMonth = currentMonth,
                         currentYear = currentYear,
-                        events = events,
                         viewModel = viewModel,
                         onDateClick = { date ->
                             viewModel.selectDate(date)
                             showDateDetail = true
+                        },
+                        onDateLongClick = { date ->
+                            selectedDateForNewEvent = date
+                            editingEvent = null
+                            showAddEventDialog = true
                         }
                     )
                 }
@@ -247,10 +263,42 @@ fun CalendarScreen(
                         onClose = {
                             showDateDetail = false
                             viewModel.clearSelectedDate()
+                        },
+                        onEditEvent = { event ->
+                            editingEvent = event
+                            selectedDateForNewEvent = null
+                            showAddEventDialog = true
+                        },
+                        onDeleteEvent = { eventId ->
+                            // Najdi event pro zobrazení v dialogu
+                            val event = selectedDateEvents.find { it.id == eventId }
+                            if (event != null) {
+                                eventToDelete = event
+                                showDeleteDialog = true
+                            }
                         }
                     )
                 }
             }
+        }
+        
+        // Floating Action Button
+        FloatingActionButton(
+            onClick = { 
+                editingEvent = null
+                selectedDateForNewEvent = Calendar.getInstance().time
+                showAddEventDialog = true 
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Přidat událost",
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
         }
         
         // Overlay pro celkové body
@@ -261,6 +309,100 @@ fun CalendarScreen(
                 showTotalOverlay = false
             }
         }
+    }
+    
+    // Dialog pro přidání/úpravu eventu
+    AddEditEventDialog(
+        isVisible = showAddEventDialog,
+        onDismiss = { 
+            showAddEventDialog = false
+            editingEvent = null
+            selectedDateForNewEvent = null
+        },
+        onSave = { event ->
+            if (editingEvent != null) {
+                // Úprava existujícího eventu
+                viewModel.updateLocalEvent(event) { result ->
+                    if (result != null) {
+                        showAddEventDialog = false
+                        editingEvent = null
+                        // Refresh celého měsíce pro aktualizaci kalendáře
+                        viewModel.loadEventsForMonth(currentYear, currentMonth)
+                        // Aktualizuj vybraný den pokud je některý vybraný
+                        selectedDate?.let { date ->
+                            viewModel.selectDate(date)
+                        }
+                    }
+                }
+            } else {
+                // Přidání nového eventu
+                viewModel.addLocalEvent(event) { result ->
+                    if (result != null) {
+                        showAddEventDialog = false
+                        selectedDateForNewEvent = null
+                        // Refresh celého měsíce pro aktualizaci kalendáře
+                        viewModel.loadEventsForMonth(currentYear, currentMonth)
+                    }
+                }
+            }
+        },
+        initialEvent = editingEvent,
+        initialDate = selectedDateForNewEvent
+    )
+    
+    // Dialog pro potvrzení smazání
+    if (showDeleteDialog && eventToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { 
+                showDeleteDialog = false
+                eventToDelete = null
+            },
+            title = { Text("Smazat událost") },
+            text = { 
+                Text("Opravdu chcete smazat událost \"${eventToDelete!!.getTitleSafe()}\"? Tato akce je nevratná.") 
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        isDeleting = true
+                        viewModel.deleteLocalEvent(eventToDelete!!.id) { success ->
+                            isDeleting = false
+                            if (success) {
+                                showDeleteDialog = false
+                                eventToDelete = null
+                                // Refresh celého měsíce pro aktualizaci kalendáře
+                                viewModel.loadEventsForMonth(currentYear, currentMonth)
+                                // Aktualizuj seznam eventů pro vybraný den
+                                selectedDate?.let { date ->
+                                    viewModel.selectDate(date)
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isDeleting
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Smazat")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { 
+                        showDeleteDialog = false
+                        eventToDelete = null
+                    },
+                    enabled = !isDeleting
+                ) {
+                    Text("Zrušit")
+                }
+            }
+        )
     }
 }
 
@@ -301,9 +443,9 @@ fun CalendarHeader(
 fun CalendarGrid(
     currentMonth: Int,
     currentYear: Int,
-    events: List<Event>,
     viewModel: CalendarViewModel = viewModel(),
-    onDateClick: (Date) -> Unit
+    onDateClick: (Date) -> Unit,
+    onDateLongClick: (Date) -> Unit = {}
 ) {
     val selectedDate by viewModel.selectedDate.collectAsState()
     val dayNames = arrayOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
@@ -380,7 +522,8 @@ fun CalendarGrid(
                         eventCount = dayEvents.size,
                         isToday = isToday(dayDate),
                         isSelected = isSelected,
-                        onClick = { onDateClick(dayDate) }
+                        onClick = { onDateClick(dayDate) },
+                        onLongClick = { onDateLongClick(dayDate) }
                     )
                 } else {
                     // Prázdná buňka
@@ -402,7 +545,8 @@ fun CalendarDay(
     eventCount: Int,
     isToday: Boolean,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -422,7 +566,10 @@ fun CalendarDay(
                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                 shape = RoundedCornerShape(8.dp)
             )
-            .clickable { onClick() },
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -482,7 +629,9 @@ fun DateDetailCard(
     date: Date,
     events: List<Event>,
     navController: NavHostController? = null,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onEditEvent: (Event) -> Unit = {},
+    onDeleteEvent: (Int) -> Unit = {}
 ) {
     val dateFormat = SimpleDateFormat("EEEE, d. MMMM yyyy", Locale.forLanguageTag("cs-CZ"))
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -539,7 +688,9 @@ fun DateDetailCard(
                             timeFormat = timeFormat,
                             onClick = {
                                 navController?.navigate("eventDetail/${event.id}")
-                            }
+                            },
+                            onEdit = if (event.isLocalSafe()) { { onEditEvent(event) } } else null,
+                            onDelete = if (event.isLocalSafe()) { { onDeleteEvent(event.id) } } else null
                         )
                         
                         if (event != events.last()) {
@@ -556,7 +707,9 @@ fun DateDetailCard(
 fun EventItem(
     event: Event,
     timeFormat: SimpleDateFormat,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -701,6 +854,43 @@ fun EventItem(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    }
+                }
+                
+                // Akční tlačítka pro místní eventy
+                if (onEdit != null || onDelete != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (onEdit != null) {
+                            IconButton(
+                                onClick = onEdit,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Upravit",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        
+                        if (onDelete != null) {
+                            IconButton(
+                                onClick = onDelete,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Smazat",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
                 }
