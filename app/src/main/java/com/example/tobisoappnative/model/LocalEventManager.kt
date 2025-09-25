@@ -3,7 +3,6 @@ package com.example.tobisoappnative.model
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -39,8 +38,9 @@ object LocalEventManager {
                 return@withContext emptyList()
             }
             
-            val type = object : TypeToken<List<Event>>() {}.type
-            val events: List<Event> = gson.fromJson(json, type) ?: emptyList()
+            // Použití Array místo TypeToken pro Android 15 kompatibilitu
+            val eventsArray = gson.fromJson(json, Array<Event>::class.java)
+            val events: List<Event> = eventsArray?.toList() ?: emptyList()
             
             // Ujistíme se, že všechny místní eventy mají isLocal = true
             return@withContext events.map { event ->

@@ -152,11 +152,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             val isOnline = NetworkUtils.isOnline(getApplication())
             
-            if (isOnline) {
+                if (isOnline) {
                 try {
                     // Online - načti z API a ulož offline
-                    val categories = ApiClient.apiService.getCategories()
-                    val posts = ApiClient.apiService.getPosts()
+                    val categoriesArray = ApiClient.apiService.getCategories()
+                    val postsArray = ApiClient.apiService.getPosts()
+                    
+                    // Konvertuj na List
+                    val categories = categoriesArray.toList()
+                    val posts = postsArray.toList()
                     
                     // Ulož do offline cache
                     offlineDataManager.saveCategoriesAndPosts(categories, posts)
@@ -269,8 +273,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     println("DEBUG: Loaded offline posts - Category: $categoryId, Posts: ${posts.size}")
                 } else {
                     // Online režim - načítáme z API
-                    val posts = ApiClient.apiService.getPosts(categoryId)
-                    _posts.value = posts
+                    val postsArray = ApiClient.apiService.getPosts(categoryId)
+                    _posts.value = postsArray.toList()
                     _postError.value = null
                 }
             } catch (e: Throwable) {
@@ -429,7 +433,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
                 
-                val questions = ApiClient.apiService.getQuestionsByPostId(postId)
+                val questionsArray = ApiClient.apiService.getQuestionsByPostId(postId)
+                val questions = questionsArray.toList()
                 _questions.value = questions
                 _questionsError.value = null
                 println("DEBUG: Loaded ${questions.size} questions for post $postId")
@@ -462,8 +467,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             
             // Online režim - zkontrolujeme API
-            val questions = ApiClient.apiService.getQuestionsByPostId(postId)
-            val hasQuestions = questions.isNotEmpty()
+            val questionsArray = ApiClient.apiService.getQuestionsByPostId(postId)
+            val hasQuestions = questionsArray.isNotEmpty()
             println("DEBUG: Checked questions for post $postId - Has questions: $hasQuestions")
             hasQuestions
         } catch (e: Exception) {

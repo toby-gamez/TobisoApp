@@ -3,7 +3,7 @@ package com.example.tobisoappnative.model
 import android.content.Context
 import android.content.SharedPreferences
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -27,7 +27,7 @@ class OfflineDataManager(private val context: Context) {
      */
     suspend fun saveCategoriesAndPosts(categories: List<Category>, posts: List<Post>) = withContext(Dispatchers.IO) {
         val currentTime = System.currentTimeMillis()
-        val formatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", Locale("cs", "CZ"))
+        val formatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", Locale.Builder().setLanguage("cs").setRegion("CZ").build())
         val formattedTime = formatter.format(Date(currentTime))
         
         prefs.edit().apply {
@@ -48,10 +48,12 @@ class OfflineDataManager(private val context: Context) {
         val json = prefs.getString(KEY_CATEGORIES, null)
         return@withContext if (json != null) {
             try {
-                val type = object : TypeToken<List<Category>>() {}.type
-                gson.fromJson<List<Category>>(json, type)
+                // Použití Array místo TypeToken pro Android 15 kompatibilitu
+                val categoriesArray = gson.fromJson(json, Array<Category>::class.java)
+                categoriesArray?.toList()
             } catch (e: Exception) {
                 println("DEBUG: Error loading cached categories: ${e.message}")
+                e.printStackTrace()
                 null
             }
         } else {
@@ -66,10 +68,12 @@ class OfflineDataManager(private val context: Context) {
         val json = prefs.getString(KEY_POSTS, null)
         return@withContext if (json != null) {
             try {
-                val type = object : TypeToken<List<Post>>() {}.type
-                gson.fromJson<List<Post>>(json, type)
+                // Použití Array místo TypeToken pro Android 15 kompatibilitu
+                val postsArray = gson.fromJson(json, Array<Post>::class.java)
+                postsArray?.toList()
             } catch (e: Exception) {
                 println("DEBUG: Error loading cached posts: ${e.message}")
+                e.printStackTrace()
                 null
             }
         } else {

@@ -115,7 +115,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
                 
                 // Načti API eventy
                 val apiEvents = try {
-                    ApiClient.apiService.getEventsInRange(startDate, endDate)
+                    ApiClient.apiService.getEventsInRange(startDate, endDate).toList()
                 } catch (e: Exception) {
                     android.util.Log.e("CalendarViewModel", "Error loading API events", e)
                     emptyList()

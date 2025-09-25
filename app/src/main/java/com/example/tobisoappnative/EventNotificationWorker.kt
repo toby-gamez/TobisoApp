@@ -169,7 +169,8 @@ class EventNotificationWorker(
         val endDate = dateFormat.format(calendar.time)
         
         return try {
-            val allEvents = ApiClient.apiService.getEventsInRange(startDate, endDate)
+            val allEventsArray = ApiClient.apiService.getEventsInRange(startDate, endDate)
+            val allEvents = allEventsArray.toList()
             
             // Filtruj události, které se skutečně překrývají s daným dnem
             allEvents.filter { event ->

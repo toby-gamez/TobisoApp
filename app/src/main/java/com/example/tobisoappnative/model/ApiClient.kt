@@ -76,6 +76,8 @@ object ApiClient {
         // Základní Gson bez custom TypeAdapter pro Android 15 kompatibilitu
         val gson = GsonBuilder()
             .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+            .serializeNulls() // Explicitně zacházej s null hodnotami
+            .setLenient() // Více tolerantní parsing pro problematické API
             .create()
         Retrofit.Builder()
             .baseUrl(BASE_URL)

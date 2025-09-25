@@ -6,23 +6,23 @@ import retrofit2.http.Query
 
 interface ApiService {
     @GET("categories")
-    suspend fun getCategories(): List<Category>
+    suspend fun getCategories(): Array<Category>
 
     @GET("posts")
-    suspend fun getPosts(@Query("categoryId") categoryId: Int? = null): List<Post>
+    suspend fun getPosts(@Query("categoryId") categoryId: Int? = null): Array<Post>
 
     @GET("posts/links")
-    suspend fun getPostLinks(): List<PostLink>
+    suspend fun getPostLinks(): Array<PostLink>
 
     @GET("posts/{id}")
     suspend fun getPost(@Path("id") id: Int): Post
 
     @GET("Questions/post/{postId}")
-    suspend fun getQuestionsByPostId(@Path("postId") postId: Int): List<Question>
+    suspend fun getQuestionsByPostId(@Path("postId") postId: Int): Array<Question>
 
     // Event endpoints
     @GET("Events")
-    suspend fun getEvents(): List<Event>
+    suspend fun getEvents(): Array<Event>
 
     @GET("Events/{id}")
     suspend fun getEvent(@Path("id") id: Int): Event
@@ -31,8 +31,8 @@ interface ApiService {
     suspend fun getEventsInRange(
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String
-    ): List<Event>
+    ): Array<Event>
 
     @GET("Events/search")
-    suspend fun searchEvents(@Query("query") query: String): List<Event>
+    suspend fun searchEvents(@Query("query") query: String): Array<Event>
 }
