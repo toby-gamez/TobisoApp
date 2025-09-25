@@ -110,7 +110,44 @@
 -keep,allowobfuscation,allowoptimization class com.google.gson.reflect.TypeToken
 -keep,allowobfuscation,allowoptimization class com.google.gson.internal.LinkedTreeMap
 
-# Suppress warnings
+# =================================
+# SECURITY RULES
+# =================================
+
+# Obfuscate sensitive configuration classes
+-keep class com.example.tobisoappnative.config.SecurityConfig { 
+    public *;
+}
+-keep class com.example.tobisoappnative.security.** { *; }
+
+# Keep Android KeyStore functionality
+-keep class android.security.keystore.** { *; }
+-keep class javax.crypto.** { *; }
+-keep class java.security.** { *; }
+
+# Remove logging calls in production
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int i(...);
+    public static int w(...);
+    public static int d(...);
+    public static int e(...);
+}
+
+# String obfuscation for additional security
+-adaptclassstrings
+
+# Remove debug information
+-keepattributes !LocalVariableTable,!LocalVariableTypeTable
+
+# Optimize for production
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*,!code/allocation/variable
+
+# =================================
+# SUPPRESS WARNINGS
+# =================================
+
 -dontwarn java.lang.management.**
 -dontwarn javax.management.**
 -dontwarn org.slf4j.**

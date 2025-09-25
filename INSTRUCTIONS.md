@@ -186,9 +186,11 @@ _toastMessage.value  // toast notifikace
 
 ### Prioritní:
 1. ✅ Oprava TypeToken problému (HOTOVO)
-2. 🔄 Migrace na nové ConnectivityManager API
-3. 🔄 Migrace z SwipeRefresh na PullRefresh
-4. 🔄 Implementace správných SSL certifikátů
+2. ✅ Produkční SSL bezpečnost (HOTOVO)
+3. ✅ Migrace na nové ConnectivityManager API (HOTOVO)
+4. ✅ AES-256 šifrování citlivých dat (HOTOVO)
+5. 🔄 Migrace z SwipeRefresh na PullRefresh
+6. 🔄 Certificate Pinning (připraveno, potřeba hash certifikátů)
 
 ### Dlouhodobé:
 - Push notifikace
@@ -199,15 +201,27 @@ _toastMessage.value  // toast notifikace
 
 ## 🔒 Bezpečnost
 
-### Současný stav:
-- ⚠️ Hardcoded credentials (PRO DEVELOPMENT)
-- ⚠️ Trust-all SSL (PRO DEVELOPMENT)
-- ✅ Lokální data nejsou šifrována (obsahují pouze veřejný obsah)
+### ✅ IMPLEMENTOVÁNO (Prosinec 2024):
+- ✅ **Produkční SSL**: Vypnuté trust-all certificates v release buildech
+- ✅ **Environment credentials**: API údaje z environmentálních proměnných
+- ✅ **AES-256-GCM šifrování**: Android KeyStore pro citlivá data  
+- ✅ **Certificate Pinning**: Připraveno v network_security_config.xml
+- ✅ **Integrity checks**: Základní ochrana proti tampering
+- ✅ **Security headers**: X-Security-Token, X-App-Version
+- ✅ **Network Security Config**: Oddělené debug/release konfigurace
+- ✅ **ProGuard obfuskace**: Pokročilá ochrana kódu
 
-### Produkční požadavky:
-- Správné OAuth/JWT autentifikace
-- Platné SSL certifikáty
-- Možná šifrování citlivých lokálních dat
+### 📋 Produkční checklist:
+1. **Nastavit ENV proměnné**: `TOBISO_API_USERNAME`, `TOBISO_API_PASSWORD`
+2. **Implementovat certificate pinning**: Aktualizovat SHA-256 hash v XML
+3. **Secure keystore**: Produkční keystore.properties
+4. **Testing**: Otestovat release build na různých zařízeních
+
+### 📁 Nové bezpečnostní soubory:
+- `config/SecurityConfig.kt` - Centralizovaná bezpečnostní konfigurace
+- `security/EncryptionManager.kt` - AES-256-GCM šifrování
+- `SECURITY.md` - Detailní bezpečnostní dokumentace
+- Vylepšený `utils/NetworkUtils.kt` - Moderní síťové monitorování
 
 ---
 

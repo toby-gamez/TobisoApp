@@ -21,6 +21,21 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePropertiesFile = rootProject.file("app/keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = java.util.Properties()
+                keystoreProperties.load(keystorePropertiesFile.inputStream())
+                
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -29,13 +44,24 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Dodatečné zabezpečení
+            // Produkční bezpečnostní nastavení
             isDebuggable = false
             isJniDebuggable = false
+            signingConfig = signingConfigs.getByName("release")
+            
+            // Přidání build config fields pro rozlišení prostředí
+            buildConfigField("boolean", "IS_PRODUCTION", "true")
+            buildConfigField("String", "API_BASE_URL", "\"https://www.tobiso.com/api/\"")
         }
         debug {
             isDebuggable = true
             isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-DEBUG"
+            
+            // Debug build config fields
+            buildConfigField("boolean", "IS_PRODUCTION", "false")
+            buildConfigField("String", "API_BASE_URL", "\"https://www.tobiso.com/api/\"")
         }
     }
     compileOptions {
@@ -47,6 +73,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {

@@ -1,22 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Pro development - povolí unsafe connections k tobiso.com -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.2.2</domain>
+    <!-- Produkční konfigurace - bezpečná HTTPS komunikace -->
+    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">tobiso.com</domain>
         <domain includeSubdomains="true">www.tobiso.com</domain>
         <domain includeSubdomains="true">formspree.io</domain>
-        <!-- Důvěřuj všem certifikátům pro tobiso.com -->
+        
+        <!-- Certificate pinning pro produkční bezpečnost -->
+        <!-- POZNÁMKA: Nahraďte placeholder hodnoty skutečnými SHA-256 hash certifikátů -->
+        <!--
+        <pin-set expiration="2025-12-31">
+            <pin digest="SHA-256">SKUTEČNÝ_HASH_CERTIFIKÁTU_TOBISO_COM</pin>
+            <pin digest="SHA-256">BACKUP_HASH_PRO_OBNOVU_CERTIFIKÁTU</pin>
+        </pin-set>
+        -->
+        
         <trust-anchors>
+            <!-- Používej pouze systémové CA v produkci -->
             <certificates src="system"/>
-            <certificates src="user"/>
         </trust-anchors>
     </domain-config>
     
-    <!-- Debug override pro development build -->
+    <!-- Globální nastavení pro ostatní domény -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Debug override - POUZE pro development buildy -->
     <debug-overrides>
         <trust-anchors>
             <certificates src="system"/>
+            <!-- Povolit user certifikáty pouze pro debug -->
             <certificates src="user"/>
         </trust-anchors>
     </debug-overrides>
