@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,12 +23,27 @@ import android.util.Log
 import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
 import android.net.Uri
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import android.content.res.Configuration
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
     val context = LocalContext.current
+    val activity = context as Activity
+    val view = LocalView.current
+    val configuration = LocalConfiguration.current
+    var isFullscreen by remember { mutableStateOf(false) }
+    var originalOrientation by remember { mutableStateOf<Int?>(null) }
+    
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val decodedVideoUrl = Uri.decode(videoUrl)
     
     // Ujisti se, že URL je HTTPS pro bezpečnost
@@ -57,6 +74,56 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
         }
         return
     }
+    // Funkce pro přepínání fullscreen režimu
+    fun toggleFullscreen() {
+        val window = activity.window
+        val windowInsetsController = WindowCompat.getInsetsController(window, view)
+        
+        if (!isFullscreen) {
+            // Vstup do fullscreen režimu
+            isFullscreen = true
+            
+            // Uložit původní orientaci pouze při prvním vstupu do fullscreen
+            if (originalOrientation == null) {
+                originalOrientation = activity.requestedOrientation
+            }
+            
+            // Pokud nejsme v landscape, přepni na landscape
+            if (configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
+                activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            }
+            
+            // Skrytí system bars pomocí moderního API
+            windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+            windowInsetsController.systemBarsBehavior = 
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            // Výstup z fullscreen režimu
+            isFullscreen = false
+            
+            // Zobrazení system bars
+            windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+            
+            // Obnovení původní orientace nebo výchozí portrait
+            activity.requestedOrientation = originalOrientation ?: ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            originalOrientation = null
+        }
+    }
+    
+    // Obnovení orientace při opuštění obrazovky
+    DisposableEffect(Unit) {
+        onDispose {
+            if (isFullscreen) {
+                val window = activity.window
+                val windowInsetsController = WindowCompat.getInsetsController(window, view)
+                windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+                
+                // Obnovení původní orientace nebo výchozí portrait
+                activity.requestedOrientation = originalOrientation ?: ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+        }
+    }
+
     var playerErrors by remember { mutableStateOf<List<String>>(emptyList()) }
     val exoPlayer = remember {
         Log.d("VideoPlayer", "Přehrávám video z URL: $secureVideoUrl")
@@ -108,52 +175,96 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
             }
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(exoPlayer) {
         onDispose {
             exoPlayer.release()
         }
     }
 
-    Scaffold(
-        topBar = {
-            LargeTopAppBar(
-                title = { Text("Přehrávač videa") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Spacer(modifier = Modifier.height(16.dp))
+    if (isFullscreen) {
+        // Fullscreen režim - pouze video přehrávač
+        Box(modifier = Modifier.fillMaxSize()) {
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
                         player = exoPlayer
+                        useController = true
+                        setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
+                modifier = Modifier.fillMaxSize()
             )
             
-            if (playerErrors.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                playerErrors.forEach { err ->
-                    Text(
-                        text = "Chyba videa: $err",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
+            // Tlačítko pro výstup z fullscreen v rohu
+            IconButton(
+                onClick = { toggleFullscreen() },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    Icons.Default.FullscreenExit,
+                    contentDescription = "Ukončit fullscreen",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    } else {
+        // Normální režim se Scaffold
+        Scaffold(
+            topBar = {
+                LargeTopAppBar(
+                    title = { Text("Přehrávač videa") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { toggleFullscreen() }) {
+                            Icon(Icons.Default.Fullscreen, contentDescription = "Fullscreen")
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+                AndroidView(
+                    factory = { ctx ->
+                        PlayerView(ctx).apply {
+                            player = exoPlayer
+                            useController = true
+                            setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(
+                            if (isLandscape) {
+                                // V landscape režimu větší video i bez fullscreen
+                                (configuration.screenHeightDp * 0.6).dp
+                            } else {
+                                240.dp
+                            }
+                        )
+                )
+                
+                if (playerErrors.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    playerErrors.forEach { err ->
+                        Text(
+                            text = "Chyba videa: $err",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
                 }
             }
         }

@@ -65,12 +65,16 @@ fun AboutScreen(navController: NavController) {
         "androidx.media3:media3-ui:1.8.0",
         "com.google.accompanist:accompanist-swiperefresh:0.33.2-alpha",
         "androidx.datastore:datastore-preferences:1.0.0",
+        "com.google.accompanist:accompanist-systemuicontroller:0.32.0",
+        "androidx.work:work-runtime-ktx:2.9.0",
+        "implementation libs.androidx.compose.foundation",
 
         "junit:junit:4.13.2",
         "androidx.test.ext:junit:1.1.5",
         "androidx.test.espresso:espresso-core:3.5.1",
         "androidx.compose.ui:ui-test-junit4",
         "androidx.compose.ui:ui-tooling",
+        "androidx.compose:compose-bom:2023.10.01",
         "androidx.compose.ui:ui-test-manifest",
     )
     val isDark = isSystemInDarkTheme()
@@ -110,11 +114,11 @@ fun AboutScreen(navController: NavController) {
                 modifier = Modifier.padding(vertical = 8.dp)
             )
             Text(
-                text = "Stručné informace",
+                text = "Popis aplikace",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            Text("Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 8. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků. Další budou pokračovat!", style = MaterialTheme.typography.bodyMedium)
+            Text("Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 9. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků, offline režim, bodový systém pro otázky, řada otevření aplikace a kalendář událostí, kdy není škola + vaše události. Další budou pokračovat!", style = MaterialTheme.typography.bodyMedium)
             Divider(
                 color = Color.Gray,
                 thickness = 1.dp,

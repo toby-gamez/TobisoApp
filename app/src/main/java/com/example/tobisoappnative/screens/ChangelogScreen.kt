@@ -27,7 +27,9 @@ import androidx.compose.ui.text.withStyle
 @Composable
 fun ChangelogScreen(navController: NavController) {
     val version2_0_3 = listOf(
-        "oprava načítání videí a obrázků"
+        "oprava načítání videí a obrázků",
+        "přidána podpora pro landscape a fullscreen dívání videa",
+        "aktualizována stránka O aplikaci"
     )
     val version2_0_2 = listOf(
         "oprava ochrany, aby neodpojovala api připojení",
