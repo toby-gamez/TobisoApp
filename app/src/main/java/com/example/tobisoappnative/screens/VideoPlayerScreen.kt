@@ -28,6 +28,16 @@ import android.net.Uri
 fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
     val context = LocalContext.current
     val decodedVideoUrl = Uri.decode(videoUrl)
+    
+    // Ujisti se, že URL je HTTPS pro bezpečnost
+    val secureVideoUrl = when {
+        decodedVideoUrl.startsWith("http://") -> decodedVideoUrl.replace("http://", "https://")
+        decodedVideoUrl.startsWith("https://") -> decodedVideoUrl
+        decodedVideoUrl.startsWith("//") -> "https:$decodedVideoUrl"
+        decodedVideoUrl.startsWith("/") -> "https://www.tobiso.com$decodedVideoUrl"
+        else -> "https://www.tobiso.com/$decodedVideoUrl"
+    }
+    
     if (videoUrl.isBlank()) {
         Scaffold(
             topBar = {
@@ -49,13 +59,20 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
     }
     var playerErrors by remember { mutableStateOf<List<String>>(emptyList()) }
     val exoPlayer = remember {
-        Log.d("VideoPlayer", "Přehrávám video z URL: $decodedVideoUrl")
+        Log.d("VideoPlayer", "Přehrávám video z URL: $secureVideoUrl")
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
-            .setUserAgent("Mozilla/5.0 (Android)")
-            .setDefaultRequestProperties(mapOf("Referer" to "https://tobiso.com/"))
+            .setUserAgent("TobisoApp-Android/2.0.1")
+            .setConnectTimeoutMs(30000)
+            .setReadTimeoutMs(30000)
+            .setDefaultRequestProperties(mapOf(
+                "Accept" to "video/*,*/*;q=0.1",
+                "Accept-Encoding" to "identity",
+                "Connection" to "keep-alive",
+                "User-Agent" to "TobisoApp-Android/2.0.1"
+            ))
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
-        val mediaItem = MediaItem.fromUri(decodedVideoUrl.toUri())
+        val mediaItem = MediaItem.fromUri(secureVideoUrl.toUri())
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(
                 androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory)
@@ -126,13 +143,15 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                     .fillMaxWidth()
                     .height(240.dp)
             )
+            
             if (playerErrors.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 playerErrors.forEach { err ->
                     Text(
                         text = "Chyba videa: $err",
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                 }

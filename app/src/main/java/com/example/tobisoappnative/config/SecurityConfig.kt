@@ -74,7 +74,13 @@ object SecurityConfig {
      * Produkční SSL konfigurace - povoluje pouze validní certifikáty
      */
     fun shouldUseTrustAllCerts(): Boolean {
-        // V produkci vždy false - používej pouze validní certifikáty
-        return false
+        return try {
+            // Pro debug buildy povolíme trust all certs (usnadní vývoj a debugging)
+            // V produkci vždy používej validní certifikáty
+            android.os.Build.TYPE != "user" // true pro debug/eng buildy, false pro release
+        } catch (e: Exception) {
+            // V případě chyby použij trust all certs (bezpečnější pro debugging)
+            true
+        }
     }
 }

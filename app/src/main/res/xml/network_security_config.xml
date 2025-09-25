@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Produkční konfigurace - bezpečná HTTPS komunikace -->
-    <domain-config cleartextTrafficPermitted="false">
+    <!-- Konfigurace pro tobiso.com - povolí cleartext pro media soubory -->
+    <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">tobiso.com</domain>
         <domain includeSubdomains="true">www.tobiso.com</domain>
+    </domain-config>
+    
+    <!-- Konfigurace pro ostatní služby -->
+    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">formspree.io</domain>
         
         <!-- Certificate pinning pro produkční bezpečnost -->
