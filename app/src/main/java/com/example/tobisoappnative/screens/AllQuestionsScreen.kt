@@ -255,23 +255,17 @@ fun AllQuestionsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Filled.WifiOff,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                "Otázky nejsou dostupné v offline režimu",
-                                style = MaterialTheme.typography.headlineSmall,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.error
+                                text = "Jste v offline režimu.",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { navController.popBackStack() }) {
-                                Text("Zpět")
-                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Procvičování je funkční pouze v online režimu.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                 }
@@ -528,7 +522,7 @@ private fun CategoryFilterItem(
             )
             
             Text(
-                "($questionCount)",
+                "$questionCount",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -621,7 +615,7 @@ private fun PostFilterItem(
         )
         
         Text(
-            "($questionCount)",
+            "$questionCount",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

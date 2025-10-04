@@ -26,8 +26,9 @@ import androidx.compose.ui.text.withStyle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangelogScreen(navController: NavController) {
-    val version2_0_4 = listOf(
-        "přidány související články"
+    val version2_1 = listOf(
+        "přidány související články",
+        "přidáno procvičování a seznam otázek a předělán design prověrek"
     )
     val version2_0_3 = listOf(
         "oprava načítání videí a obrázků",
@@ -156,6 +157,12 @@ fun ChangelogScreen(navController: NavController) {
                         }
                 }
             )
+            Text("Verze 2.1", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
+            version2_1.forEach { item ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
+                    Text("• $item", style = typography.bodyLarge)
+                }
+            }
             Text("Verze 2.0.3", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
             version2_0_3.forEach { item ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {

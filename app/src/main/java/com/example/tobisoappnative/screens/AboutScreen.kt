@@ -118,7 +118,7 @@ fun AboutScreen(navController: NavController) {
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            Text("Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 9. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků, offline režim, bodový systém pro otázky, řada otevření aplikace a kalendář událostí, kdy není škola + vaše události. Další budou pokračovat!", style = MaterialTheme.typography.bodyMedium)
+            Text("Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 9. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků, offline režim, bodový systém pro otázky, řada otevření aplikace, procvičování a kalendář událostí, kdy není škola + vaše události. Další budou pokračovat!", style = MaterialTheme.typography.bodyMedium)
             Divider(
                 color = Color.Gray,
                 thickness = 1.dp,
