@@ -26,6 +26,9 @@ import androidx.compose.ui.text.withStyle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangelogScreen(navController: NavController) {
+    val version2_0_4 = listOf(
+        "přidány související články"
+    )
     val version2_0_3 = listOf(
         "oprava načítání videí a obrázků",
         "přidána podpora pro landscape a fullscreen dívání videa",
