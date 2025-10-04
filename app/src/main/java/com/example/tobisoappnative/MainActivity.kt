@@ -298,6 +298,7 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("favorites") ||
                                                     route.startsWith("updater") ||
                                                     route.startsWith("questions") ||
+                                                    route.startsWith("mixedQuiz") ||
                                                     route.startsWith("eventDetail"))
                                             ),
                                     enter = slideInVertically(
@@ -645,6 +646,44 @@ class MainActivity : ComponentActivity() {
                                             color = MaterialTheme.colorScheme.error
                                         )
                                     }
+                                }
+                                composable("allQuestions") {
+                                    com.example.tobisoappnative.screens.AllQuestionsScreen(
+                                        navController = navController
+                                    )
+                                }
+                                composable(
+                                    "mixedQuiz/{questionIds}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val questionIds = backStackEntry.arguments?.getString("questionIds") ?: ""
+                                    com.example.tobisoappnative.screens.MixedQuizScreen(
+                                        questionIds = questionIds,
+                                        navController = navController
+                                    )
                                 }
                                 composable(
                                     "eventDetail/{eventId}",

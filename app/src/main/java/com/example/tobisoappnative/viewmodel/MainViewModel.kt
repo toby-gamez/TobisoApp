@@ -52,6 +52,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _questionsLoading = MutableStateFlow(false)
     val questionsLoading: StateFlow<Boolean> = _questionsLoading
 
+    // All Questions state
+    private val _allQuestions = MutableStateFlow<List<Question>>(emptyList())
+    val allQuestions: StateFlow<List<Question>> = _allQuestions
+    private val _allQuestionsError = MutableStateFlow<String?>(null)
+    val allQuestionsError: StateFlow<String?> = _allQuestionsError
+    private val _allQuestionsLoading = MutableStateFlow(false)
+    val allQuestionsLoading: StateFlow<Boolean> = _allQuestionsLoading
+
+    // Filtered Questions state
+    private val _filteredQuestions = MutableStateFlow<List<Question>>(emptyList())
+    val filteredQuestions: StateFlow<List<Question>> = _filteredQuestions
+    private val _selectedCategoryId = MutableStateFlow<Int?>(null)
+    val selectedCategoryId: StateFlow<Int?> = _selectedCategoryId
+    private val _selectedPostId = MutableStateFlow<Int?>(null)
+    val selectedPostId: StateFlow<Int?> = _selectedPostId
+
+    // Questions Posts mapping
+    private val _questionsPosts = MutableStateFlow<List<Post>>(emptyList())
+    val questionsPosts: StateFlow<List<Post>> = _questionsPosts
+
     // Related posts state
     private val _relatedPosts = MutableStateFlow<List<RelatedPost>>(emptyList())
     val relatedPosts: StateFlow<List<RelatedPost>> = _relatedPosts
@@ -527,5 +547,109 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearRelatedPosts() {
         _relatedPosts.value = emptyList()
         _relatedPostsError.value = null
+    }
+
+    fun loadAllQuestions() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _allQuestionsLoading.value = true
+            try {
+                // V offline režimu nemáme otázky k dispozici
+                if (_isOffline.value) {
+                    _allQuestions.value = emptyList()
+                    _allQuestionsError.value = "Otázky nejsou dostupné v offline režimu"
+                    println("DEBUG: All questions not available in offline mode")
+                    _allQuestionsLoading.value = false
+                    return@launch
+                }
+                
+                // Načteme otázky a posty paralelně
+                val questionsArray = ApiClient.apiService.getAllQuestions()
+                val postsArray = ApiClient.apiService.getPosts()
+                
+                val questions = questionsArray.toList()
+                val posts = postsArray.toList()
+                
+                _allQuestions.value = questions
+                _questionsPosts.value = posts
+                _allQuestionsError.value = null
+                
+                // Aplikuj aktuální filtr
+                applyQuestionsFilter()
+                
+                println("DEBUG: Loaded all questions - Count: ${questions.size}, Posts: ${posts.size}")
+            } catch (e: Exception) {
+                _allQuestions.value = emptyList()
+                _questionsPosts.value = emptyList()
+                _allQuestionsError.value = "Chyba při načítání otázek: ${e.message}"
+                println("DEBUG: Error loading all questions: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                _allQuestionsLoading.value = false
+            }
+        }
+    }
+
+    fun setQuestionsFilter(categoryId: Int? = null, postId: Int? = null) {
+        _selectedCategoryId.value = categoryId
+        _selectedPostId.value = postId
+        applyQuestionsFilter()
+    }
+
+    fun clearQuestionsFilter() {
+        _selectedCategoryId.value = null
+        _selectedPostId.value = null
+        applyQuestionsFilter()
+    }
+
+    private fun applyQuestionsFilter() {
+        val allQuestions = _allQuestions.value
+        val posts = _questionsPosts.value
+        val categories = _categories.value
+        val selectedCategoryId = _selectedCategoryId.value
+        val selectedPostId = _selectedPostId.value
+
+        val filtered = when {
+            // Filtr podle konkrétního článku
+            selectedPostId != null -> {
+                allQuestions.filter { it.postId == selectedPostId }
+            }
+            // Filtr podle kategorie
+            selectedCategoryId != null -> {
+                // Získej všechny podkategorie
+                val relevantCategoryIds = getAllSubcategoryIds(selectedCategoryId, categories)
+                // Najdi posty v těchto kategoriích
+                val relevantPostIds = posts
+                    .filter { post -> post.categoryId in relevantCategoryIds }
+                    .map { it.id }
+                    .toSet()
+                // Filtruj otázky podle postů
+                allQuestions.filter { it.postId in relevantPostIds }
+            }
+            // Žádný filtr
+            else -> allQuestions
+        }
+
+        _filteredQuestions.value = filtered
+    }
+
+    private fun getAllSubcategoryIds(categoryId: Int, categories: List<Category>): Set<Int> {
+        val result = mutableSetOf(categoryId)
+        val subcategories = categories.filter { it.parentId == categoryId }
+        
+        for (subcategory in subcategories) {
+            result.addAll(getAllSubcategoryIds(subcategory.id, categories))
+        }
+        
+        return result
+    }
+
+    fun clearAllQuestions() {
+        _allQuestions.value = emptyList()
+        _filteredQuestions.value = emptyList()
+        _questionsPosts.value = emptyList()
+        _allQuestionsError.value = null
+        _allQuestionsLoading.value = false
+        _selectedCategoryId.value = null
+        _selectedPostId.value = null
     }
 }

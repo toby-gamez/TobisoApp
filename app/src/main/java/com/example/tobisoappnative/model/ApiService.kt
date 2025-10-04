@@ -20,6 +20,12 @@ interface ApiService {
     @GET("Questions/post/{postId}")
     suspend fun getQuestionsByPostId(@Path("postId") postId: Int): Array<Question>
 
+    @GET("Questions")
+    suspend fun getAllQuestions(): Array<Question>
+
+    @GET("posts/links")
+    suspend fun getPostsForQuestions(): Array<Post>
+
     @GET("RelatedPosts/by-post/{postId}")
     suspend fun getRelatedPostsByPostId(@Path("postId") postId: Int): Array<RelatedPost>
 

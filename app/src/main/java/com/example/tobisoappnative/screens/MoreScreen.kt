@@ -214,6 +214,7 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
                         }
                     }
                 }
+
                 item(span = { GridItemSpan(1) }) {
                     Card(
                         modifier = cardModifier,
