@@ -52,6 +52,9 @@ fun PostDetailScreen(
     val favoritePosts by viewModel.favoritePosts.collectAsState()
     val posts by viewModel.posts.collectAsState()
     val isOffline by viewModel.isOffline.collectAsState()
+    val relatedPosts by viewModel.relatedPosts.collectAsState()
+    val relatedPostsError by viewModel.relatedPostsError.collectAsState()
+    val relatedPostsLoading by viewModel.relatedPostsLoading.collectAsState()
     var isRefreshing by remember { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
     val coroutineScope = rememberCoroutineScope()
@@ -61,6 +64,10 @@ fun PostDetailScreen(
     LaunchedEffect(postId) {
         // Načteme detail (ViewModel má logiku pro offline i online režim)
         viewModel.loadPostDetail(postId)
+        // Načteme související články (pouze v online režimu)
+        if (!isOffline) {
+            viewModel.loadRelatedPosts(postId)
+        }
         loaded = true
     }
     
@@ -118,6 +125,7 @@ fun PostDetailScreen(
                     isRefreshing = true
                     coroutineScope.launch {
                         viewModel.loadPostDetail(postId)
+                        viewModel.loadRelatedPosts(postId)
                         isRefreshing = false
                     }
                 } else {
@@ -420,6 +428,60 @@ fun PostDetailScreen(
                                         )
                                     ) {
                                         Text("Prověrka")
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                            
+                            // Související články
+                            if (!isOffline && relatedPosts.isNotEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = MaterialTheme.shapes.medium
+                                        )
+                                        .padding(12.dp)
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "Související články",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        )
+                                        
+                                        relatedPosts.forEach { relatedPost ->
+                                            val relatedPostData = posts.find { it.id == relatedPost.relatedPostId }
+                                            if (relatedPostData != null) {
+                                                Card(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 4.dp),
+                                                    onClick = {
+                                                        navController.navigate("postDetail/${relatedPost.relatedPostId}")
+                                                    }
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier.padding(12.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = relatedPostData.title,
+                                                            style = MaterialTheme.typography.titleSmall,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(
+                                                            text = relatedPost.text,
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))

@@ -8,6 +8,7 @@ import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.Question
+import com.example.tobisoappnative.model.RelatedPost
 import com.example.tobisoappnative.model.Snippet
 import com.example.tobisoappnative.model.Explanation
 import com.example.tobisoappnative.model.OfflineDataManager
@@ -50,6 +51,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val questionsError: StateFlow<String?> = _questionsError
     private val _questionsLoading = MutableStateFlow(false)
     val questionsLoading: StateFlow<Boolean> = _questionsLoading
+
+    // Related posts state
+    private val _relatedPosts = MutableStateFlow<List<RelatedPost>>(emptyList())
+    val relatedPosts: StateFlow<List<RelatedPost>> = _relatedPosts
+    private val _relatedPostsError = MutableStateFlow<String?>(null)
+    val relatedPostsError: StateFlow<String?> = _relatedPostsError
+    private val _relatedPostsLoading = MutableStateFlow(false)
+    val relatedPostsLoading: StateFlow<Boolean> = _relatedPostsLoading
 
     // Toast systém
     private val _toastMessage = MutableStateFlow<String?>(null)
@@ -481,5 +490,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _questions.value = emptyList()
         _questionsError.value = null
         _questionsLoading.value = false
+    }
+
+    fun loadRelatedPosts(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _relatedPostsLoading.value = true
+            _relatedPostsError.value = null
+            try {
+                // Nejprve zkontrolujeme aktuální network stav
+                refreshNetworkState()
+                
+                // V offline režimu nemáme související články k dispozici
+                if (_isOffline.value) {
+                    _relatedPosts.value = emptyList()
+                    _relatedPostsError.value = null
+                    println("DEBUG: Offline mode - no related posts available for post $postId")
+                    return@launch
+                }
+                
+                // Online režim - načítáme z API
+                val relatedPostsArray = ApiClient.apiService.getRelatedPostsByPostId(postId)
+                _relatedPosts.value = relatedPostsArray.toList()
+                _relatedPostsError.value = null
+                println("DEBUG: Loaded related posts for post $postId - Count: ${relatedPostsArray.size}")
+            } catch (e: Exception) {
+                _relatedPosts.value = emptyList()
+                _relatedPostsError.value = "Chyba při načítání souvisejících článků: ${e.message}"
+                println("DEBUG: Error loading related posts for post $postId: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                _relatedPostsLoading.value = false
+            }
+        }
+    }
+
+    fun clearRelatedPosts() {
+        _relatedPosts.value = emptyList()
+        _relatedPostsError.value = null
     }
 }
