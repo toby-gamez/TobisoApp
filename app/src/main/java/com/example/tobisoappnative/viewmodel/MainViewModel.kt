@@ -35,9 +35,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _categoryError = MutableStateFlow<String?>(null)
     val categoryError: StateFlow<String?> = _categoryError
+    
+    private val _categoryLoading = MutableStateFlow(false)
+    val categoryLoading: StateFlow<Boolean> = _categoryLoading
 
     private val _postError = MutableStateFlow<String?>(null)
     val postError: StateFlow<String?> = _postError
+    
+    private val _postLoading = MutableStateFlow(false)
+    val postLoading: StateFlow<Boolean> = _postLoading
 
     private val _postDetail = MutableStateFlow<Post?>(null)
     val postDetail: StateFlow<Post?> = _postDetail
@@ -179,6 +185,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadCategories() {
         viewModelScope.launch(Dispatchers.IO) {
+            _categoryLoading.value = true
             val isOnline = NetworkUtils.isOnline(getApplication())
             
                 if (isOnline) {
@@ -238,6 +245,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // Offline - načti z cache
                 loadOfflineData()
             }
+            _categoryLoading.value = false
         }
     }
     
@@ -302,6 +310,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadPosts(categoryId: Int? = null) {
         viewModelScope.launch(Dispatchers.IO) {
+            _postLoading.value = true
             try {
                 // V offline režimu používáme cached data
                 if (_isOffline.value) {
@@ -345,6 +354,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            _postLoading.value = false
         }
     }
 

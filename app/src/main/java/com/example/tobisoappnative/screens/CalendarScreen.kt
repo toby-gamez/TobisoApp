@@ -288,7 +288,11 @@ fun CalendarScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Načítání událostí...")
+                        }
                     }
                 } else if (error != null) {
                     Card(

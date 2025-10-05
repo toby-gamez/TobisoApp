@@ -15,6 +15,7 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Event
+import com.example.tobisoappnative.model.LocalEventManager
 import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.util.*
@@ -49,7 +50,11 @@ class EventNotificationWorker(
                     add(Calendar.DAY_OF_MONTH, 1)
                 }
                 
+                android.util.Log.d("EventNotificationWorker", "=== TOMORROW NOTIFICATION CHECK ===")
+                android.util.Log.d("EventNotificationWorker", "Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(tomorrow.time)}")
+                
                 val events = getEventsForDate(tomorrow.time)
+                android.util.Log.d("EventNotificationWorker", "Found ${events.size} events for tomorrow")
                 
                 if (events.isNotEmpty()) {
                     // Máš volno - jsou naplánované události (prázdniny/víkend)
@@ -89,7 +94,11 @@ class EventNotificationWorker(
         runBlocking {
             try {
                 val today = Calendar.getInstance().time
+                android.util.Log.d("EventNotificationWorker", "=== TODAY NOTIFICATION CHECK ===")
+                android.util.Log.d("EventNotificationWorker", "Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(today)}")
+                
                 val events = getEventsForDate(today)
+                android.util.Log.d("EventNotificationWorker", "Found ${events.size} events for today")
                 
                 if (events.isNotEmpty()) {
                     // Máš volno - jsou naplánované události (prázdniny/víkend)
@@ -178,7 +187,10 @@ class EventNotificationWorker(
             }
         } catch (e: Exception) {
             android.util.Log.e("EventNotificationWorker", "Error fetching events for date $date", e)
-            emptyList()
+            android.util.Log.w("EventNotificationWorker", "API failed, trying fallback logic...")
+            
+            // FALLBACK: Zkus použít lokální data nebo základní víkendovou logiku
+            return getFallbackEventsForDate(date)
         }
     }
 
@@ -261,6 +273,93 @@ class EventNotificationWorker(
             } catch (_: SecurityException) {
                 // Oprávnění nebylo uděleno, notifikace nebude zobrazena
             }
+        }
+    }
+
+    /**
+     * Fallback logika když API není dostupné (background worker problém)
+     */
+    private suspend fun getFallbackEventsForDate(date: Date): List<Event> {
+        android.util.Log.d("EventNotificationWorker", "Using fallback logic for date: $date")
+        
+        try {
+            // 1. Zkus nejdřív lokální události (místně uložené)
+            val localEvents = LocalEventManager.expandRecurringEvents(
+                context, 
+                date, 
+                Date(date.time + 24 * 60 * 60 * 1000) // +1 den
+            )
+            
+            // Filtruj události pro konkrétní den
+            val relevantLocalEvents = localEvents.filter { event ->
+                doesEventOverlapDay(event, date)
+            }
+            
+            android.util.Log.d("EventNotificationWorker", "Found ${relevantLocalEvents.size} local events")
+            
+            if (relevantLocalEvents.isNotEmpty()) {
+                return relevantLocalEvents
+            }
+            
+            // 2. Pokud nejsou lokální události, použij základní víkendovou logiku
+            val calendar = Calendar.getInstance().apply { time = date }
+            val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+            
+            android.util.Log.d("EventNotificationWorker", "No local events, checking day of week: $dayOfWeek")
+            
+            // Pokud je víkend, vytvoř umělou událost "víkend"
+            if (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY) {
+                val dayName = if (dayOfWeek == Calendar.SATURDAY) "Sobota" else "Neděle"
+                android.util.Log.d("EventNotificationWorker", "Creating artificial weekend event for $dayName")
+                
+                // Vytvoř umělou událost pro víkend
+                val weekendEvent = Event(
+                    id = -999999, // Speciální ID pro fallback události
+                    title = "Víkend - $dayName",
+                    description = "Automaticky vytvořeno - není připojení k serveru",
+                    startDate = date,
+                    endDate = date,
+                    isAllDay = true,
+                    location = null,
+                    color = "#33d17a",
+                    isRecurring = false,
+                    recurrencePattern = null,
+                    recurrenceEndDate = null,
+                    isLocal = true
+                )
+                
+                return listOf(weekendEvent)
+            }
+            
+            android.util.Log.d("EventNotificationWorker", "Weekday and no local events - assuming school day")
+            return emptyList() // Všední den bez událostí = škola
+            
+        } catch (e: Exception) {
+            android.util.Log.e("EventNotificationWorker", "Error in fallback logic", e)
+            
+            // Poslední záchrana: základní víkendová logika bez lokálních dat
+            val calendar = Calendar.getInstance().apply { time = date }
+            val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+            
+            if (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY) {
+                android.util.Log.w("EventNotificationWorker", "Emergency fallback: assuming weekend is free day")
+                return listOf(Event(
+                    id = -999998,
+                    title = "Víkend",
+                    description = "Nouzové řešení - chyba při načítání dat",
+                    startDate = date,
+                    endDate = date,
+                    isAllDay = true,
+                    location = null,
+                    color = "#ff6b6b",
+                    isRecurring = false,
+                    recurrencePattern = null,
+                    recurrenceEndDate = null,
+                    isLocal = true
+                ))
+            }
+            
+            return emptyList()
         }
     }
 

@@ -68,6 +68,7 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val postsState = viewModel.posts.collectAsState()
     val posts: List<Post> = postsState.value
+    val postLoading by viewModel.postLoading.collectAsState()
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
     val otherCategoryId = 42
@@ -153,11 +154,23 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
                 .padding(8.dp)
             val cardShape = RoundedCornerShape(16.dp)
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(gridColumns),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp)
-            ) {
+            if (postLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Načítání dalšího obsahu...")
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(gridColumns),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(8.dp)
+                ) {
                 item(span = { GridItemSpan(1) }) {
                     Card(
                         modifier = cardModifier,
@@ -258,6 +271,7 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
                 }
             }
         }
+    }
 
         // Overlay na nejvyšší úrovni
         if (showTotalOverlay) {

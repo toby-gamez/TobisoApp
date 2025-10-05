@@ -35,8 +35,10 @@ fun CategoryListScreen(
 ) {
     val categories by viewModel.categories.collectAsState()
     val categoryError by viewModel.categoryError.collectAsState()
+    val categoryLoading by viewModel.categoryLoading.collectAsState()
     val posts by viewModel.posts.collectAsState()
     val postError by viewModel.postError.collectAsState()
+    val postLoading by viewModel.postLoading.collectAsState()
     val favoritePosts by viewModel.favoritePosts.collectAsState()
     LaunchedEffect(Unit) { viewModel.loadCategories() }
 
@@ -69,35 +71,50 @@ fun CategoryListScreen(
             )
         )
 
-        if (showConnectionError) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                    Text("Chyba připojení nebo žádné podkategorie dostupné.", color = MaterialTheme.colorScheme.error)
-                    if (categoryError != null) {
+        when {
+            categoryLoading || postLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Detail chyby:", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
-                        Text(categoryError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        Text("Načítání obsahu...")
                     }
                 }
             }
-        } else if (postError != null) {
-            // Zobrazení chybové hlášky na celé obrazovce při chybě načítání postů
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Chyba při načítání postů:",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = postError ?: "Neznámá chyba",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+            showConnectionError -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("Chyba připojení nebo žádné podkategorie dostupné.", color = MaterialTheme.colorScheme.error)
+                        if (categoryError != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Detail chyby:", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
+                            Text(categoryError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 }
             }
-        } else {
+            postError != null -> {
+                // Zobrazení chybové hlášky na celé obrazovce při chybě načítání postů
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Chyba při načítání postů:",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = postError ?: "Neznámá chyba",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+            else -> {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 modifier = Modifier.fillMaxSize(),
@@ -191,5 +208,6 @@ fun CategoryListScreen(
                 }
             }
         }
+    }
     }
 }

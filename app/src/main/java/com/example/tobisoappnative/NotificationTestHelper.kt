@@ -25,6 +25,7 @@ object NotificationTestHelper {
             .build()
             
         WorkManager.getInstance(context).enqueue(workRequest)
+        android.util.Log.d("NotificationTestHelper", "Enqueued today events notification test")
     }
     
     /**
@@ -42,5 +43,6 @@ object NotificationTestHelper {
             .build()
             
         WorkManager.getInstance(context).enqueue(workRequest)
+        android.util.Log.d("NotificationTestHelper", "Enqueued tomorrow events notification test")
     }
 }

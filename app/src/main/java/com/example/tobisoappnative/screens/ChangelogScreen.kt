@@ -67,11 +67,13 @@ fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
         VersionInfo("2.1", listOf(
             "přidány související články",
-            "přidáno procvičování a seznam otázek a předělán design prověrek",
+            "přidáno procvičování, seznam otázek a předělán design prověrek",
             "přidány otázky do offline režimu",
             "opraven restart všech odpovědí při změně rotace telefonu v otázkách",
             "přidány odměny za milníky v řadě",
-            "upraven Deník změn (design i funkčnost)"
+            "upraven Deník změn (design i funkčnost)",
+            "oprava notifikací u školy",
+            "při načítání dat přidány všude kolečka"
         )),
         VersionInfo("2.0.3", listOf(
             "oprava načítání videí a obrázků",

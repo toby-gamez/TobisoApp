@@ -154,11 +154,12 @@ fun HomeScreen(navController: NavController) {
     val gridState = rememberLazyGridState()
     val viewModel: MainViewModel = viewModel()
     val categories by viewModel.categories.collectAsState()
+    val categoryLoading by viewModel.categoryLoading.collectAsState()
     val toastMessage by viewModel.toastMessage.collectAsState()
     LaunchedEffect(Unit) { viewModel.loadCategories() }
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -243,30 +244,43 @@ fun HomeScreen(navController: NavController) {
                 }
             }
         }
-        LazyVerticalGrid(
-            state = gridState,
-            columns = GridCells.Fixed(columnCount),
-            contentPadding = PaddingValues(
-                start = 8.dp,
-                end = 8.dp,
-                top = 8.dp,
-                bottom = 8.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(subjects) { subject ->
-                SubjectCard(
-                    subject = subject,
-                    modifier = Modifier,
-                    onClick = {
-                        val category = categories.find { it.name == subject.name }
-                        category?.let {
-                            navController.navigate("categoryList/${it.name}")
+        if (categoryLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Načítání obsahu...")
+                }
+            }
+        } else {
+            LazyVerticalGrid(
+                state = gridState,
+                columns = GridCells.Fixed(columnCount),
+                contentPadding = PaddingValues(
+                    start = 8.dp,
+                    end = 8.dp,
+                    top = 8.dp,
+                    bottom = 8.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(subjects) { subject ->
+                    SubjectCard(
+                        subject = subject,
+                        modifier = Modifier,
+                        onClick = {
+                            val category = categories.find { it.name == subject.name }
+                            category?.let {
+                                navController.navigate("categoryList/${it.name}")
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
