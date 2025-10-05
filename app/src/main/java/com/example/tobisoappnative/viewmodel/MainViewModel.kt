@@ -191,8 +191,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val categories = categoriesArray.toList()
                     val posts = postsArray.toList()
                     
-                    // Ulož do offline cache
-                    offlineDataManager.saveCategoriesAndPosts(categories, posts)
+                    // Pokus se načíst i otázky pro offline cache
+                    try {
+                        val questionsArray = ApiClient.apiService.getAllQuestions()
+                        val questionsPostsArray = ApiClient.apiService.getPosts()
+                        val questions = questionsArray.toList()
+                        val questionsPosts = questionsPostsArray.toList()
+                        
+                        // Ulož vše do offline cache včetně otázek
+                        offlineDataManager.saveCategoriesPostsAndQuestions(categories, posts, questions, questionsPosts)
+                        println("DEBUG: Saved offline data with questions - Questions: ${questions.size}")
+                    } catch (e: Exception) {
+                        // Pokud se nepodaří načíst otázky, ulož alespoň kategorie a posty
+                        offlineDataManager.saveCategoriesAndPosts(categories, posts)
+                        println("DEBUG: Failed to load questions for offline cache: ${e.message}")
+                    }
                     
                     _categories.value = categories
                     _posts.value = posts
@@ -453,31 +466,52 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             _questionsLoading.value = true
             try {
-                // V offline režimu nemáme otázky k dispozici
-                if (_isOffline.value) {
-                    _questions.value = emptyList()
-                    _questionsError.value = "Otázky nejsou dostupné v offline režimu"
-                    println("DEBUG: Questions not available in offline mode")
-                    _questionsLoading.value = false
-                    return@launch
-                }
+                // Znovu zkontroluj připojení při načítání otázek
+                refreshNetworkState()
                 
-                val questionsArray = ApiClient.apiService.getQuestionsByPostId(postId)
-                val questions = questionsArray.toList()
-                _questions.value = questions
-                _questionsError.value = null
-                println("DEBUG: Loaded ${questions.size} questions for post $postId")
-                questions.forEachIndexed { index, question ->
-                    println("DEBUG: Question $index - text: ${question.questionText}, answers: ${question.answers.size}, correctAnswer: ${question.correctAnswer}")
-                    question.answers.forEachIndexed { answerIndex, answer ->
-                        println("DEBUG:   Answer $answerIndex: ${answer.answerText} (correct: ${answer.correct})")
+                // V offline režimu používáme cached data
+                if (_isOffline.value) {
+                    val questions = offlineDataManager.getCachedQuestionsByPostId(postId) ?: emptyList()
+                    _questions.value = questions
+                    _questionsError.value = if (questions.isEmpty()) "Otázky pro tento článek nejsou dostupné v offline režimu" else null
+                    println("DEBUG: Loaded offline questions - Post ID: $postId, Questions: ${questions.size}")
+                } else {
+                    // Online režim - načítáme z API
+                    val questionsArray = ApiClient.apiService.getQuestionsByPostId(postId)
+                    val questions = questionsArray.toList()
+                    _questions.value = questions
+                    _questionsError.value = null
+                    println("DEBUG: Loaded ${questions.size} questions for post $postId")
+                    questions.forEachIndexed { index, question ->
+                        println("DEBUG: Question $index - text: ${question.questionText}, answers: ${question.answers.size}, correctAnswer: ${question.correctAnswer}")
+                        question.answers.forEachIndexed { answerIndex, answer ->
+                            println("DEBUG:   Answer $answerIndex: ${answer.answerText} (correct: ${answer.correct})")
+                        }
                     }
                 }
             } catch (e: Throwable) {
-                _questions.value = emptyList()
-                _questionsError.value = "Chyba při načítání otázek: ${e.message}"
-                println("DEBUG: Error loading questions: ${e.message}")
-                e.printStackTrace()
+                // Znovu zkontroluj připojení při chybě
+                val isOnline = NetworkUtils.isOnline(getApplication())
+                if (isOnline) {
+                    // Online ale API nefunguje
+                    _questions.value = emptyList()
+                    _questionsError.value = "Chyba serveru: ${e.message}"
+                    showToast("Problém s připojením k serveru")
+                } else {
+                    // Skutečně offline - zkus cached data jako fallback
+                    val questions = offlineDataManager.getCachedQuestionsByPostId(postId) ?: emptyList()
+                    if (questions.isNotEmpty()) {
+                        _questions.value = questions
+                        _questionsError.value = null
+                        _isOffline.value = true
+                        showToast("Přepnuto na offline režim")
+                        println("DEBUG: API failed, using cached questions - Post ID: $postId, Questions: ${questions.size}")
+                    } else {
+                        _questions.value = emptyList()
+                        _questionsError.value = "Otázky nebyly nalezeny ani v offline datech"
+                        println("DEBUG: Failed to load questions - Post ID: $postId, Error: ${e.message}")
+                    }
+                }
             } finally {
                 _questionsLoading.value = false
             }
@@ -489,10 +523,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Nejprve zkontrolujeme aktuální network stav
             refreshNetworkState()
             
-            // V offline režimu nemáme otázky k dispozici
             if (_isOffline.value) {
-                println("DEBUG: Offline mode - no questions available for post $postId")
-                return false
+                // V offline režimu zkontrolujeme cached data
+                val questions = offlineDataManager.getCachedQuestionsByPostId(postId) ?: emptyList()
+                val hasQuestions = questions.isNotEmpty()
+                println("DEBUG: Offline mode - checked cached questions for post $postId - Has questions: $hasQuestions")
+                return hasQuestions
             }
             
             // Online režim - zkontrolujeme API
@@ -501,8 +537,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             println("DEBUG: Checked questions for post $postId - Has questions: $hasQuestions")
             hasQuestions
         } catch (e: Exception) {
-            println("DEBUG: Error checking questions for post $postId: ${e.message}")
-            false
+            // Při chybě zkusíme fallback na cached data
+            val questions = offlineDataManager.getCachedQuestionsByPostId(postId) ?: emptyList()
+            val hasQuestions = questions.isNotEmpty()
+            println("DEBUG: Error checking questions for post $postId: ${e.message}, fallback to cached: $hasQuestions")
+            hasQuestions
         }
     }
 
@@ -553,36 +592,73 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             _allQuestionsLoading.value = true
             try {
-                // V offline režimu nemáme otázky k dispozici
+                // Znovu zkontroluj připojení při načítání otázek
+                refreshNetworkState()
+                
+                // V offline režimu používáme cached data
                 if (_isOffline.value) {
-                    _allQuestions.value = emptyList()
-                    _allQuestionsError.value = "Otázky nejsou dostupné v offline režimu"
-                    println("DEBUG: All questions not available in offline mode")
-                    _allQuestionsLoading.value = false
-                    return@launch
+                    val questions = offlineDataManager.getCachedQuestions() ?: emptyList()
+                    val posts = offlineDataManager.getCachedQuestionsPosts() ?: emptyList()
+                    
+                    _allQuestions.value = questions
+                    _questionsPosts.value = posts
+                    _allQuestionsError.value = if (questions.isEmpty()) "Otázky nejsou dostupné v offline režimu" else null
+                    
+                    // Aplikuj aktuální filtr
+                    if (questions.isNotEmpty()) {
+                        applyQuestionsFilter()
+                    }
+                    
+                    println("DEBUG: Loaded offline all questions - Count: ${questions.size}, Posts: ${posts.size}")
+                } else {
+                    // Online režim - načítáme z API
+                    val questionsArray = ApiClient.apiService.getAllQuestions()
+                    val postsArray = ApiClient.apiService.getPosts()
+                    
+                    val questions = questionsArray.toList()
+                    val posts = postsArray.toList()
+                    
+                    _allQuestions.value = questions
+                    _questionsPosts.value = posts
+                    _allQuestionsError.value = null
+                    
+                    // Aplikuj aktuální filtr
+                    applyQuestionsFilter()
+                    
+                    println("DEBUG: Loaded all questions - Count: ${questions.size}, Posts: ${posts.size}")
                 }
-                
-                // Načteme otázky a posty paralelně
-                val questionsArray = ApiClient.apiService.getAllQuestions()
-                val postsArray = ApiClient.apiService.getPosts()
-                
-                val questions = questionsArray.toList()
-                val posts = postsArray.toList()
-                
-                _allQuestions.value = questions
-                _questionsPosts.value = posts
-                _allQuestionsError.value = null
-                
-                // Aplikuj aktuální filtr
-                applyQuestionsFilter()
-                
-                println("DEBUG: Loaded all questions - Count: ${questions.size}, Posts: ${posts.size}")
             } catch (e: Exception) {
-                _allQuestions.value = emptyList()
-                _questionsPosts.value = emptyList()
-                _allQuestionsError.value = "Chyba při načítání otázek: ${e.message}"
-                println("DEBUG: Error loading all questions: ${e.message}")
-                e.printStackTrace()
+                // Znovu zkontroluj připojení při chybě
+                val isOnline = NetworkUtils.isOnline(getApplication())
+                if (isOnline) {
+                    // Online ale API nefunguje
+                    _allQuestions.value = emptyList()
+                    _questionsPosts.value = emptyList()
+                    _allQuestionsError.value = "Chyba serveru: ${e.message}"
+                    showToast("Problém s připojením k serveru")
+                } else {
+                    // Skutečně offline - zkus cached data jako fallback
+                    val questions = offlineDataManager.getCachedQuestions() ?: emptyList()
+                    val posts = offlineDataManager.getCachedQuestionsPosts() ?: emptyList()
+                    
+                    if (questions.isNotEmpty()) {
+                        _allQuestions.value = questions
+                        _questionsPosts.value = posts
+                        _allQuestionsError.value = null
+                        _isOffline.value = true
+                        showToast("Přepnuto na offline režim")
+                        
+                        // Aplikuj aktuální filtr
+                        applyQuestionsFilter()
+                        
+                        println("DEBUG: API failed, using cached all questions - Questions: ${questions.size}, Posts: ${posts.size}")
+                    } else {
+                        _allQuestions.value = emptyList()
+                        _questionsPosts.value = emptyList()
+                        _allQuestionsError.value = "Otázky nebyly nalezeny ani v offline datech"
+                        println("DEBUG: Failed to load all questions - Error: ${e.message}")
+                    }
+                }
             } finally {
                 _allQuestionsLoading.value = false
             }

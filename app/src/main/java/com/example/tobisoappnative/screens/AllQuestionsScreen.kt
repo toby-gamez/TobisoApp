@@ -100,12 +100,10 @@ fun AllQuestionsScreen(
         }
     }
 
-    // Načtení dat při startu (pouze v online režimu)
+    // Načtení dat při startu (nyní funguje v online i offline režimu)
     LaunchedEffect(isOffline) {
-        if (!isOffline) {
-            viewModel.loadCategories() // Načteme i kategorie pro filtry
-            viewModel.loadAllQuestions()
-        }
+        viewModel.loadCategories() // Načteme kategorie pro filtry
+        viewModel.loadAllQuestions() // Načteme otázky (offline/online se řeší v ViewModelu)
     }
 
     // Vyčištění stavu při opuštění obrazovky
@@ -245,30 +243,13 @@ fun AllQuestionsScreen(
                         viewModel.loadAllQuestions()
                         isRefreshing = false
                     }
+                } else {
+                    // V offline režimu jen resetujeme refresh state
+                    isRefreshing = false
                 }
             }
         ) {
             when {
-                isOffline -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "Jste v offline režimu.",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Procvičování je funkční pouze v online režimu.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
 
                 allQuestionsError != null -> {
                     Box(

@@ -65,9 +65,9 @@ fun MixedQuizScreen(
     val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()
     
-    // Load questions if not available
+    // Load questions if not available (nyní funguje v online i offline režimu)
     LaunchedEffect(isOffline) {
-        if (!isOffline && allQuestions.isEmpty()) {
+        if (allQuestions.isEmpty()) {
             viewModel.loadAllQuestions()
         }
     }
@@ -93,9 +93,14 @@ fun MixedQuizScreen(
         SwipeRefresh(
             state = swipeRefreshState,
             onRefresh = {
-                isRefreshing = true
-                coroutineScope.launch {
-                    viewModel.loadAllQuestions()
+                if (!isOffline) {
+                    isRefreshing = true
+                    coroutineScope.launch {
+                        viewModel.loadAllQuestions()
+                        isRefreshing = false
+                    }
+                } else {
+                    // V offline režimu jen resetujeme refresh state
                     isRefreshing = false
                 }
             }

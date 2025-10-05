@@ -60,13 +60,11 @@ fun QuestionsScreen(
     val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()
     
-    // Načtení dat při startu (pouze v online režimu)
+    // Načtení dat při startu (nyní funguje v online i offline režimu)
     val isOffline by viewModel.isOffline.collectAsState()
     LaunchedEffect(postId, isOffline) {
         viewModel.loadPostDetail(postId)
-        if (!isOffline) {
-            viewModel.loadQuestions(postId)
-        }
+        viewModel.loadQuestions(postId)
     }
     
     // Vyčištění stavu při opuštění obrazovky
@@ -124,9 +122,14 @@ fun QuestionsScreen(
         SwipeRefresh(
             state = swipeRefreshState,
             onRefresh = {
-                isRefreshing = true
-                coroutineScope.launch {
-                    viewModel.loadQuestions(postId)
+                if (!isOffline) {
+                    isRefreshing = true
+                    coroutineScope.launch {
+                        viewModel.loadQuestions(postId)
+                        isRefreshing = false
+                    }
+                } else {
+                    // V offline režimu jen resetujeme refresh state
                     isRefreshing = false
                 }
             }

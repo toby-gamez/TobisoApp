@@ -78,16 +78,11 @@ fun PostDetailScreen(
             viewModel.loadPosts()
         }
         
-        // Kontrola otázek pro tento příspěvek
-        hasQuestions = if (!isOffline) {
-            try {
-                viewModel.checkHasQuestions(postId)
-            } catch (e: Exception) {
-                println("DEBUG: Error checking questions: ${e.message}")
-                false
-            }
-        } else {
-            // V offline režimu nejsou otázky dostupné
+        // Kontrola otázek pro tento příspěvek (nyní funguje v online i offline režimu)
+        hasQuestions = try {
+            viewModel.checkHasQuestions(postId)
+        } catch (e: Exception) {
+            println("DEBUG: Error checking questions: ${e.message}")
             false
         }
     }
