@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,20 +43,20 @@ fun QuestionsScreen(
     val questionsLoading by viewModel.questionsLoading.collectAsState()
     val postDetail by viewModel.postDetail.collectAsState()
     
-    var isRefreshing by remember { mutableStateOf(false) }
+    var isRefreshing by rememberSaveable { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
     val coroutineScope = rememberCoroutineScope()
     
-    // Kvíz stav
-    var currentQuestionIndex by remember { mutableStateOf(0) }
-    var selectedAnswers by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
-    var textAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
-    var showResults by remember { mutableStateOf(false) }
-    var quizStarted by remember { mutableStateOf(false) }
-    var pointsAwarded by remember { mutableStateOf(false) }
-    var showPointsOverlay by remember { mutableStateOf(false) }
-    var awardedPoints by remember { mutableStateOf(0) }
-    var shuffledQuestions by remember { mutableStateOf<List<Int>>(emptyList()) }
+    // Kvíz stav - using rememberSaveable to survive configuration changes
+    var currentQuestionIndex by rememberSaveable { mutableStateOf(0) }
+    var selectedAnswers by rememberSaveable { mutableStateOf<Map<Int, Int>>(emptyMap()) }
+    var textAnswers by rememberSaveable { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var showResults by rememberSaveable { mutableStateOf(false) }
+    var quizStarted by rememberSaveable { mutableStateOf(false) }
+    var pointsAwarded by rememberSaveable { mutableStateOf(false) }
+    var showPointsOverlay by rememberSaveable { mutableStateOf(false) }
+    var awardedPoints by rememberSaveable { mutableStateOf(0) }
+    var shuffledQuestions by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
     
     val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()

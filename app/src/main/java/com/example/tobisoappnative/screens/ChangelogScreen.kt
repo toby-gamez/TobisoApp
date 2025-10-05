@@ -29,7 +29,8 @@ fun ChangelogScreen(navController: NavController) {
     val version2_1 = listOf(
         "přidány související články",
         "přidáno procvičování a seznam otázek a předělán design prověrek",
-        "přidány otázky fo offline režimu"
+        "přidány otázky do offline režimu",
+        "opraven restart všech odpovědí při změně rotace telefonu v otázkách"
     )
     val version2_0_3 = listOf(
         "oprava načítání videí a obrázků",
