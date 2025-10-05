@@ -139,33 +139,6 @@ fun MixedQuizScreen(
                 )
 
                 when {
-                    isOffline -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    Icons.Filled.WifiOff,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(64.dp)
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    "Procvičování není dostupný v offline režimu",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(onClick = { navController.popBackStack() }) {
-                                    Text("Zpět")
-                                }
-                            }
-                        }
-                    }
-
                     allQuestionsError != null -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -188,7 +161,7 @@ fun MixedQuizScreen(
                         }
                     }
 
-                    allQuestionsLoading || mixedQuestions.isEmpty() -> {
+                    allQuestionsLoading -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -197,6 +170,41 @@ fun MixedQuizScreen(
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text("Načítání procvičování...")
+                            }
+                        }
+                    }
+
+                    mixedQuestions.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Filled.QuestionMark,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "Otázky pro procvičování nejsou k dispozici",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    textAlign = TextAlign.Center
+                                )
+                                if (isOffline) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        "V offline režimu jsou dostupné pouze dříve stažené otázky",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { navController.popBackStack() }) {
+                                    Text("Zpět")
+                                }
                             }
                         }
                     }
@@ -524,6 +532,35 @@ fun MixedQuizScreen(
                                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                                             )
                                         }
+                                    }
+                                }
+                            }
+                            
+                            // Offline mode indicator
+                            if (isOffline) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.WifiOff,
+                                            contentDescription = "Offline režim",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "Offline režim - používáte uložené otázky",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             }
