@@ -158,8 +158,7 @@ fun HomeScreen(navController: NavController) {
     LaunchedEffect(Unit) { viewModel.loadCategories() }
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
-
-    // ✅ Odstraněn Scaffold - padding se aplikuje z MainActivity
+    
     Column(
         modifier = Modifier
             .fillMaxSize()

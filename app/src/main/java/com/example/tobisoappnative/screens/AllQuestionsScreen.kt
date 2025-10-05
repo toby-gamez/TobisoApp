@@ -21,11 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
@@ -91,6 +93,7 @@ fun AllQuestionsScreen(
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     // Auto-hide filters on scroll
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -113,98 +116,115 @@ fun AllQuestionsScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-        LargeTopAppBar(
-            title = { 
-                Text(
-                    text = "Procvičování",
-                    maxLines = 1
-                )
-            },
-            actions = {
-                // Points button
-                val totalPoints by PointsManager.totalPoints.collectAsState()
-                val tertiaryColor = MaterialTheme.colorScheme.tertiary
-                
-                Box(
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(40.dp)
-                        .background(
-                            color = tertiaryColor.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(50)
-                        )
-                        .clickable { showTotalOverlay = true },
-                    contentAlignment = Alignment.Center
-                ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            LargeTopAppBar(
+                title = { 
+                    val collapsedFraction = scrollBehavior.state.collapsedFraction
+                    val fontSize = (36 - (16 * collapsedFraction)).sp
                     Text(
-                        text = totalPoints.toString(),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = "Procvičování",
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = fontSize),
+                        maxLines = 1
                     )
-                }
-                
-                // Streak button
-                val currentStreak = remember { mutableStateOf(0) }
-                
-                LaunchedEffect(Unit) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        currentStreak.value = getCurrentStreakAllQuestions(context)
-                    }
-                }
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .clickable { navController.navigate("streak") }
-                ) {
-                    if (currentStreak.value > 0) {
-                        Text(
-                            text = currentStreak.value.toString(),
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(end = 4.dp)
+                },
+                actions = {
+                    // Filter toggle button
+                    IconButton(onClick = { showFilters = !showFilters }) {
+                        Icon(
+                            Icons.Filled.FilterList, 
+                            contentDescription = "Filtry",
+                            tint = if (selectedCategoryId != null || selectedPostId != null) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
                         )
                     }
-                    Icon(
-                        imageVector = Icons.Default.Whatshot,
-                        contentDescription = "Streak",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                
-                // Filter toggle button
-                IconButton(onClick = { showFilters = !showFilters }) {
-                    Icon(
-                        Icons.Filled.FilterList, 
-                        contentDescription = "Filtry",
-                        tint = if (selectedCategoryId != null || selectedPostId != null) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
+                    
+                    if (!isOffline) {
+                        IconButton(onClick = { 
+                            coroutineScope.launch {
+                                isRefreshing = true
+                                viewModel.loadAllQuestions()
+                                isRefreshing = false
+                            }
+                        }) {
+                            Icon(Icons.Filled.Refresh, contentDescription = "Obnovit")
                         }
-                    )
-                }
-                
-                if (!isOffline) {
-                    IconButton(onClick = { 
-                        coroutineScope.launch {
-                            isRefreshing = true
-                            viewModel.loadAllQuestions()
-                            isRefreshing = false
-                        }
-                    }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Obnovit")
                     }
+                    // Points button
+                    val totalPoints by PointsManager.totalPoints.collectAsState()
+                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+                    
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .background(
+                                color = tertiaryColor.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(50)
+                            )
+                            .clickable { showTotalOverlay = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = totalPoints.toString(),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    // Streak button
+                    val currentStreak = remember { mutableStateOf(0) }
+                    
+                    LaunchedEffect(Unit) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            currentStreak.value = getCurrentStreakAllQuestions(context)
+                        }
+                    }
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clickable { navController.navigate("streak") }
+                    ) {
+                        if (currentStreak.value > 0) {
+                            Text(
+                                text = currentStreak.value.toString(),
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Whatshot,
+                            contentDescription = "Streak",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    
+                },
+                scrollBehavior = scrollBehavior
+            )
+            
+            if (showTotalOverlay) {
+                val totalPoints by PointsManager.totalPoints.collectAsState()
+                FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+                LaunchedEffect(showTotalOverlay) {
+                    kotlinx.coroutines.delay(2200)
+                    showTotalOverlay = false
                 }
-                
             }
-        )
+        }
 
         // Filter Panel
         if (showFilters) {
@@ -332,17 +352,6 @@ fun AllQuestionsScreen(
                         listState = listState
                     )
                 }
-            }
-        }
-        }
-        
-        // Show total points overlay
-        if (showTotalOverlay) {
-            val totalPoints by PointsManager.totalPoints.collectAsState()
-            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-            LaunchedEffect(showTotalOverlay) {
-                kotlinx.coroutines.delay(2200)
-                showTotalOverlay = false
             }
         }
     }

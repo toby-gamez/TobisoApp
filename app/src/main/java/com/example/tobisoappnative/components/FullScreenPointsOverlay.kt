@@ -131,6 +131,151 @@ fun FullScreenPointsOverlay(points: Int, totalPoints: Int) {
 }
 
 @Composable
+fun FullScreenMilestoneOverlay(points: Int, totalPoints: Int, milestoneDay: Int) {
+    // Stavy pro animace
+    var startAnimations by remember { mutableStateOf(false) }
+    var startFadeOut by remember { mutableStateOf(false) }
+
+    // Spuštění animací při zobrazení komponenty
+    LaunchedEffect(Unit) {
+        startAnimations = true
+        delay(2200) // Delší delay pro milník
+        startFadeOut = true
+    }
+
+    // Animace pro fade-in/out efekt celého overlay
+    val alpha by animateFloatAsState(
+        targetValue = when {
+            startFadeOut -> 0f
+            startAnimations -> 1f
+            else -> 0f
+        },
+        animationSpec = if (startFadeOut) {
+            tween(durationMillis = 400, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        },
+        label = "alpha"
+    )
+
+    // Animace pro scale efekt hlavního textu
+    val textScale by animateFloatAsState(
+        targetValue = if (startAnimations && !startFadeOut) 1f else 0.5f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "textScale"
+    )
+
+    // Animace pro sekundární text s delay
+    val secondaryAlpha by animateFloatAsState(
+        targetValue = if (startAnimations && !startFadeOut) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 400,
+            delayMillis = 300,
+            easing = FastOutSlowInEasing
+        ),
+        label = "secondaryAlpha"
+    )
+
+    // Animace pro kruhový efekt ze středu
+    val circleScale by animateFloatAsState(
+        targetValue = if (startAnimations && !startFadeOut) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 800,
+            easing = FastOutSlowInEasing
+        ),
+        label = "circleScale"
+    )
+
+    // Speciální barva pro milníky
+    val milestoneColor = MaterialTheme.colorScheme.primary
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(alpha)
+            .background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        // Speciální kruh pro milníky
+        Box(
+            modifier = Modifier
+                .size(450.dp)
+                .scale(circleScale)
+                .border(
+                    width = 50.dp,
+                    color = milestoneColor.copy(alpha = 0.15f),
+                    shape = CircleShape
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = CircleShape
+                )
+        )
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(32.dp)
+        ) {
+            // Emoji nebo ikona milníku
+            Text(
+                text = "🎉",
+                fontSize = 64.sp,
+                modifier = Modifier
+                    .scale(textScale)
+                    .alpha(secondaryAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Hlavní text milníku
+            Text(
+                text = "Milník dosažen!",
+                color = milestoneColor,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.scale(textScale)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Text s počtem dní
+            Text(
+                text = "$milestoneDay dní v řadě",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.alpha(secondaryAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Body získané za milník
+            Text(
+                text = "+$points bodů!",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.alpha(secondaryAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Celkový počet bodů
+            Text(
+                text = "Celkem: $totalPoints bodů",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.alpha(secondaryAlpha)
+            )
+        }
+    }
+}
+
+@Composable
 fun FullScreenTotalPointsOverlay(totalPoints: Int) {
     // Stejná animace a vzhled jako FullScreenPointsOverlay, ale pouze číslo bodů
     var startAnimations by remember { mutableStateOf(false) }

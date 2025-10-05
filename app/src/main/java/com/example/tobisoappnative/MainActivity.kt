@@ -68,10 +68,13 @@ import java.util.concurrent.TimeUnit
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
+import com.example.tobisoappnative.components.FullScreenMilestoneOverlay
 import androidx.compose.runtime.rememberCoroutineScope
 import android.app.AlarmManager
 import com.example.tobisoappnative.screens.StreakScreen
 import com.example.tobisoappnative.screens.addTodayToStreak
+import com.example.tobisoappnative.screens.getStreakDays
+import com.example.tobisoappnative.screens.calculateStreaks
 import java.util.*
 
 class MainActivity : ComponentActivity() {
@@ -86,6 +89,11 @@ class MainActivity : ComponentActivity() {
         
         // Přidat dnešní den do řady (pokud už tam není)
         addTodayToStreak(this)
+        
+        // DOČASNÉ: Vymazat dosažené milníky pro testování (odkomentujte pokud potřebujete)
+        // resetMilestones(this)
+        
+        // POZOR: Milníky se nyní kontrolují v MyApp() po inicializaci UI
         
         setContent {
             MyApp()
@@ -181,9 +189,12 @@ class MainActivity : ComponentActivity() {
         val isOffline by mainViewModel.isOffline.collectAsState()
         val hasUserDismissedNoInternet by mainViewModel.hasUserDismissedNoInternet.collectAsState()
         val lastAddedPoints by PointsManager.lastAddedPoints.collectAsState()
+        val lastMilestone by PointsManager.lastMilestone.collectAsState()
         var showOverlay by remember { mutableStateOf(false) }
         var overlayPoints by remember { mutableStateOf(0) }
         var showTotalOverlay by remember { mutableStateOf(false) }
+        var showMilestoneOverlay by remember { mutableStateOf(false) }
+        var milestoneDay by remember { mutableStateOf(0) }
         val coroutineScope = rememberCoroutineScope()
 
         // Kontrola, zda byla aplikace otevřena z notifikace
@@ -227,6 +238,8 @@ class MainActivity : ComponentActivity() {
         // Inicializace bodů při startu aplikace
         LaunchedEffect(context) {
             PointsManager.init(context)
+            // Kontrola milníků až po inicializaci PointsManager a UI
+            checkStreakMilestones(context)
         }
         val totalPoints by PointsManager.totalPoints.collectAsState()
 
@@ -235,9 +248,29 @@ class MainActivity : ComponentActivity() {
             showTotalOverlay = true
         }
 
-        // LaunchedEffect pro první overlay (body s přičítáním)
+        // LaunchedEffect pro milník overlay (priorita)
+        LaunchedEffect(lastMilestone) {
+            if (lastMilestone != null) {
+                println("=== MILESTONE OVERLAY DEBUG ===")
+                println("Milestone detected: $lastMilestone days")
+                println("Points to show: $lastAddedPoints")
+                println("Total points: $totalPoints")
+                
+                overlayPoints = lastAddedPoints
+                milestoneDay = lastMilestone!!
+                showMilestoneOverlay = true
+                delay(3000) // Delší zobrazení pro milník
+                showMilestoneOverlay = false
+                PointsManager.resetLastAddedPoints()
+                
+                println("Milestone overlay finished and reset")
+                println("=== END MILESTONE OVERLAY DEBUG ===")
+            }
+        }
+
+        // LaunchedEffect pro běžný overlay (body s přičítáním)
         LaunchedEffect(lastAddedPoints) {
-            if (lastAddedPoints != 0) {
+            if (lastAddedPoints != 0 && lastMilestone == null) {
                 overlayPoints = lastAddedPoints
                 showOverlay = true
                 delay(2500)
@@ -251,6 +284,14 @@ class MainActivity : ComponentActivity() {
             if (showTotalOverlay) {
                 delay(2500)
                 showTotalOverlay = false
+            }
+        }
+
+        // LaunchedEffect pro milník overlay
+        LaunchedEffect(showMilestoneOverlay) {
+            if (showMilestoneOverlay) {
+                delay(3000)
+                showMilestoneOverlay = false
             }
         }
 
@@ -728,6 +769,22 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    
+                    // Overlays pro body a milníky
+                    if (showMilestoneOverlay) {
+                        FullScreenMilestoneOverlay(
+                            points = overlayPoints,
+                            totalPoints = totalPoints,
+                            milestoneDay = milestoneDay
+                        )
+                    } else if (showOverlay) {
+                        FullScreenPointsOverlay(
+                            points = overlayPoints,
+                            totalPoints = totalPoints
+                        )
+                    } else if (showTotalOverlay) {
+                        FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+                    }
                 }
             }
         }
@@ -785,5 +842,99 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("app_usage_prefs", Context.MODE_PRIVATE)
         val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
         prefs.edit().putString("last_opened_date", today).apply()
+    }
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun checkStreakMilestones(context: Context) {
+        val streakDays = getStreakDays(context)
+        val streakInfo = calculateStreaks(streakDays)
+        val currentStreak = streakInfo.currentStreak
+        
+        println("=== STREAK MILESTONES DEBUG ===")
+        println("Current streak: $currentStreak days")
+        println("Total streak days: ${streakDays.size}")
+        
+        // Generování všech milníků dynamicky
+        val allMilestones = generateStreakMilestones(currentStreak)
+        
+        // SharedPreferences pro sledování dosažených milníků
+        val milestonesPrefs = context.getSharedPreferences("streak_milestones", Context.MODE_PRIVATE)
+        
+        // Debug: zobrazit všechny dosažené milníky
+        val achievedMilestones = milestonesPrefs.all.keys.filter { it.startsWith("milestone_") }
+        println("Already achieved milestones: $achievedMilestones")
+        
+        // Zkontrolovat každý milník
+        var newMilestonesFound = false
+        allMilestones.forEach { (days, points) ->
+            if (currentStreak >= days) {
+                val milestoneKey = "milestone_$days"
+                val isAlreadyAchieved = milestonesPrefs.getBoolean(milestoneKey, false)
+                
+                println("Checking milestone $days days: already achieved = $isAlreadyAchieved")
+                
+                if (!isAlreadyAchieved) {
+                    newMilestonesFound = true
+                    println("🎉 NEW MILESTONE ACHIEVED: $days days - awarding $points points")
+                    
+                    // Milník dosažen poprvé - přidat body s informací o milníku
+                    PointsManager.addPointsForMilestone(context, points, days)
+                    
+                    // Označit milník jako dosažený
+                    milestonesPrefs.edit().putBoolean(milestoneKey, true).apply()
+                    
+                    println("Points added and milestone marked as achieved")
+                } else {
+                    println("Milestone $days already achieved, skipping")
+                }
+            }
+        }
+        
+        if (!newMilestonesFound) {
+            println("No new milestones found for current streak: $currentStreak")
+        }
+        println("=== END STREAK MILESTONES DEBUG ===")
+    }
+    
+    private fun generateStreakMilestones(maxStreak: Int): Map<Int, Int> {
+        val milestones = mutableMapOf<Int, Int>()
+        
+        // Základní významné milníky
+        val specialMilestones = mapOf(
+            7 to 15,    // 1 týden
+            14 to 15,   // 2 týdny  
+            30 to 15,   // 1 měsíc
+            60 to 15,   // 2 měsíce
+            100 to 15,  // 100 dní
+            183 to 30,  // půl roku (6 měsíců)
+            365 to 50,  // 1 rok
+            548 to 30,  // 1.5 roku
+            730 to 100, // 2 roky
+            913 to 75,  // 2.5 roku
+            1095 to 150, // 3 roky
+            1460 to 200, // 4 roky
+            1826 to 250  // 5 let
+        )
+        
+        // Přidat speciální milníky
+        milestones.putAll(specialMilestones)
+        
+        // Každých 25 dní od 25 do nekonečna (kromě speciálních milníků)
+        var current = 25
+        while (current <= maxStreak + 100) { // +100 pro rezervu
+            if (!specialMilestones.containsKey(current)) {
+                milestones[current] = 15
+            }
+            current += 25
+        }
+        
+        return milestones.toSortedMap()
+    }
+    
+    // DOČASNÁ funkce pro resetování milníků při testování
+    private fun resetMilestones(context: Context) {
+        val milestonesPrefs = context.getSharedPreferences("streak_milestones", Context.MODE_PRIVATE)
+        milestonesPrefs.edit().clear().apply()
+        println("All milestones reset for testing")
     }
 }
