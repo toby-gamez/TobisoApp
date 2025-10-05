@@ -772,10 +772,8 @@ fun DateDetailCard(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 300.dp)
-                ) {
-                    items(events) { event ->
+                Column {
+                    events.forEach { event ->
                         EventItem(
                             event = event,
                             timeFormat = timeFormat,

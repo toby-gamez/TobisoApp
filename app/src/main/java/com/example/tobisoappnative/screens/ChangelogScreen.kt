@@ -30,7 +30,8 @@ fun ChangelogScreen(navController: NavController) {
         "přidány související články",
         "přidáno procvičování a seznam otázek a předělán design prověrek",
         "přidány otázky do offline režimu",
-        "opraven restart všech odpovědí při změně rotace telefonu v otázkách"
+        "opraven restart všech odpovědí při změně rotace telefonu v otázkách",
+        "přidány odměny za milníky v řadě"
     )
     val version2_0_3 = listOf(
         "oprava načítání videí a obrázků",
