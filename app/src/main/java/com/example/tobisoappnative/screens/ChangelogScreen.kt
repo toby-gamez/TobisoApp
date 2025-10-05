@@ -23,95 +23,136 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 
+data class VersionInfo(
+    val version: String,
+    val changes: List<String>
+)
+
+@Composable
+fun VersionSection(versionInfo: VersionInfo) {
+    Text(
+        text = "Verze ${versionInfo.version}",
+        style = typography.headlineSmall,
+        modifier = Modifier.padding(bottom = 8.dp, top = 16.dp)
+    )
+    
+    versionInfo.changes.forEach { item ->
+        BulletPoint(text = item)
+    }
+}
+
+@Composable
+fun BulletPoint(text: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+    ) {
+        Text(
+            "•",
+            style = typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(end = 8.dp, top = 2.dp)
+        )
+        Text(
+            text,
+            style = typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangelogScreen(navController: NavController) {
-    val version2_1 = listOf(
-        "přidány související články",
-        "přidáno procvičování a seznam otázek a předělán design prověrek",
-        "přidány otázky do offline režimu",
-        "opraven restart všech odpovědí při změně rotace telefonu v otázkách",
-        "přidány odměny za milníky v řadě"
-    )
-    val version2_0_3 = listOf(
-        "oprava načítání videí a obrázků",
-        "přidána podpora pro landscape a fullscreen dívání videa",
-        "aktualizována stránka O aplikaci"
-    )
-    val version2_0_2 = listOf(
-        "oprava ochrany, aby neodpojovala api připojení",
-        "lepší ochrana u citlivých údajů v aplikaci"
-    )
-    val version2_0_1 = listOf (
-        "oprava celého připojení k api, nastavavení kalendáře a událostí"
-    )
-    val version2_0 = listOf(
-        "přesunuto tlačítko na mazání z oblíbených",
-        "přídán kalendář pro události",
-        "přidána ochrana proti krádeži a padělání",
-        "přidáno náhodné uspořádání otázek",
-        "přidána podpora pro vytvoření svého vlastního kalendáře",
-        "přidán plný offline režim",
-    )
-    val version1_9_2 = listOf(
-        "přidána podpora pro textové odpovídání otázek",
-        "lepší přepojení na apk soubor v Aktualizátoru"
-    )
-    val version1_9_1 = listOf(
-        "přidána podpora pro vysvětlení u otázek",
-        "oprava notifikací (čas a výjimky)",
-        "oprava řady, aby se počítala správně",
-        "zjednodušení aktualizátoru a opraveny chyby 'null'"
-    )
-    val version1_9 = listOf(
-        "přidána podpora pro otázky",
-        "přidáno využití pro body"
-    )
-    val version1_8 = listOf(
-        "opravena ikona tak, aby podporovala dynamic i Nothing ikony",
-        "přidána podpora pro posílání notifikací",
-        "oprava animací obrazovek a navigace",
-        "přidán aktualizátor"
-    )
-    val version1_7 = listOf(
-        "odstraněn problém se status barem",
-        "přidána řada",
-        "přidány notifikace pro učení",
-        "přidány body pro otázky (ještě nejsou hotové)",
-        "opraveny chyby v landscape módu",
-    )
-    val version1_6 = listOf(
-        "přidán počet slov a délka čtení pro článek",
-        "přidáno gesto pro znovunačtení článku (swipe down)",
-        "přidány oblíbené posty a útržky",
-        "přidány možnosti v přispěvku pro uložení a sdílení",
-    )
-    val version1_5 = listOf(
-        "text se již dá vybírat a kopírovat (včetně intra a článků)",
-        "přidána podpora pro otevírání souborů",
-        "přidána podpora pro pouštění videí v přehrávači"
-    )
-    val version1_4 = listOf(
-        "opraveny tabulky",
-        "opraveny intra a linky, přidána podpora pro weblinky",
-        "opraveno číslo verze v android 'O aplikaci'",
-        "opraven tmavý režim v některých elementech a obrazovkách",
-        "upraveny popisy předmětů a vyhledávání",
-    )
-    val version1_3 = listOf(
-        "přidán deník změn",
-        "přidáno vyhledávání",
-        "přidána obrazovka o 'Bez internetu' a načítání",
-        "zfunkčněny odkazy ve článcích",
-        "zfunkčněny intra článků",
-    )
-    val version1_2 = listOf(
-        "přidán základ aplikace, nastavení všeho (list předmětů, navigace atd.)",
-        "přidáno načítání kategorií a postů i jejich obsahu, načítání obrázků",
-        "zabezpečené připojení s api",
-        "přidán readme",
-        "přidán lepší design",
-        "oprava layoutů",
+    val versions = listOf(
+        VersionInfo("2.1", listOf(
+            "přidány související články",
+            "přidáno procvičování a seznam otázek a předělán design prověrek",
+            "přidány otázky do offline režimu",
+            "opraven restart všech odpovědí při změně rotace telefonu v otázkách",
+            "přidány odměny za milníky v řadě",
+            "upraven Deník změn (design i funkčnost)"
+        )),
+        VersionInfo("2.0.3", listOf(
+            "oprava načítání videí a obrázků",
+            "přidána podpora pro landscape a fullscreen dívání videa",
+            "aktualizována stránka O aplikaci"
+        )),
+        VersionInfo("2.0.2", listOf(
+            "oprava ochrany, aby neodpojovala api připojení",
+            "lepší ochrana u citlivých údajů v aplikaci"
+        )),
+        VersionInfo("2.0.1", listOf(
+            "oprava celého připojení k api, nastavavení kalendáře a událostí"
+        )),
+        VersionInfo("2.0", listOf(
+            "přesunuto tlačítko na mazání z oblíbených",
+            "přídán kalendář pro události",
+            "přidána ochrana proti krádeži a padělání",
+            "přidáno náhodné uspořádání otázek",
+            "přidána podpora pro vytvoření svého vlastního kalendáře",
+            "přidán plný offline režim"
+        )),
+        VersionInfo("1.9.2", listOf(
+            "přidána podpora pro textové odpovídání otázek",
+            "lepší přepojení na apk soubor v Aktualizátoru"
+        )),
+        VersionInfo("1.9.1", listOf(
+            "přidána podpora pro vysvětlení u otázek",
+            "oprava notifikací (čas a výjimky)",
+            "oprava řady, aby se počítala správně",
+            "zjednodušení aktualizátoru a opraveny chyby 'null'"
+        )),
+        VersionInfo("1.9", listOf(
+            "přidána podpora pro otázky",
+            "přidáno využití pro body"
+        )),
+        VersionInfo("1.8", listOf(
+            "opravena ikona tak, aby podporovala dynamic i Nothing ikony",
+            "přidána podpora pro posílání notifikací",
+            "oprava animací obrazovek a navigace",
+            "přidán aktualizátor"
+        )),
+        VersionInfo("1.7", listOf(
+            "odstraněn problém se status barem",
+            "přidána řada",
+            "přidány notifikace pro učení",
+            "přidány body pro otázky (ještě nejsou hotové)",
+            "opraveny chyby v landscape módu"
+        )),
+        VersionInfo("1.6", listOf(
+            "přidán počet slov a délka čtení pro článek",
+            "přidáno gesto pro znovunačtení článku (swipe down)",
+            "přidány oblíbené posty a útržky",
+            "přidány možnosti v přispěvku pro uložení a sdílení"
+        )),
+        VersionInfo("1.5", listOf(
+            "text se již dá vybírat a kopírovat (včetně intra a článků)",
+            "přidána podpora pro otevírání souborů",
+            "přidána podpora pro pouštění videí v přehrávači"
+        )),
+        VersionInfo("1.4", listOf(
+            "opraveny tabulky",
+            "opraveny intra a linky, přidána podpora pro weblinky",
+            "opraveno číslo verze v android 'O aplikaci'",
+            "opraven tmavý režim v některých elementech a obrazovkách",
+            "upraveny popisy předmětů a vyhledávání"
+        )),
+        VersionInfo("1.3", listOf(
+            "přidán deník změn",
+            "přidáno vyhledávání",
+            "přidána obrazovka o 'Bez internetu' a načítání",
+            "zfunkčněny odkazy ve článcích",
+            "zfunkčněny intra článků"
+        )),
+        VersionInfo("1.2", listOf(
+            "přidán základ aplikace, nastavení všeho (list předmětů, navigace atd.)",
+            "přidáno načítání kategorií a postů i jejich obsahu, načítání obrázků",
+            "zabezpečené připojení s api",
+            "přidán readme",
+            "přidán lepší design",
+            "oprava layoutů"
+        ))
     )
 
     // ✅ Odstraněn Scaffold - padding se aplikuje z MainActivity
@@ -160,95 +201,9 @@ fun ChangelogScreen(navController: NavController) {
                         }
                 }
             )
-            Text("Verze 2.1", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version2_1.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 2.0.3", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version2_0_3.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 2.0.2", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version2_0_2.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 2.0.1", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version2_0_1.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 2.0", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version2_0.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.9.2", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_9_2.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.9.1", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_9_1.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.9", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_9.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.8", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_8.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.7", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_7.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.6", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_6.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.5", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_5.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.4", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_4.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.3", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_3.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
-            }
-            Text("Verze 1.2", style = typography.headlineSmall, modifier = Modifier.padding(bottom = 4.dp))
-            version1_2.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Text("• $item", style = typography.bodyLarge)
-                }
+            
+            versions.forEach { versionInfo ->
+                VersionSection(versionInfo = versionInfo)
             }
         }
     }
