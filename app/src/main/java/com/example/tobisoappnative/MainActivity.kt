@@ -51,7 +51,7 @@ import com.example.tobisoappnative.screens.HomeScreen
 import com.example.tobisoappnative.screens.SearchScreen
 import com.example.tobisoappnative.screens.CalendarScreen
 import com.example.tobisoappnative.screens.EventDetailScreen
-import com.example.tobisoappnative.screens.MoreScreen
+import com.example.tobisoappnative.screens.ProfileScreen
 import com.example.tobisoappnative.screens.BackpackScreen
 import com.example.tobisoappnative.BackpackManager
 import com.example.tobisoappnative.navigation.BottomBar
@@ -400,8 +400,8 @@ class MainActivity : ComponentActivity() {
                                         initialMonth = month
                                     )
                                 }
-                                composable("more") {
-                                    MoreScreen(navController = navController)
+                                composable("profile") {
+                                    ProfileScreen(navController = navController)
                                 }
                                 composable(
                                     "feedback",

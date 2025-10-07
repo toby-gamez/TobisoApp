@@ -182,18 +182,6 @@ fun HomeScreen(navController: NavController) {
                     )
                 },
                 actions = {
-                    // Vybavené zvířátko
-                    val equippedPet by BackpackManager.equippedPet.collectAsState()
-                    equippedPet?.petIcon?.let { petIcon ->
-                        Text(
-                            text = petIcon,
-                            fontSize = 24.sp,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .clickable { navController.navigate("backpack") }
-                        )
-                    }
-                    
                     // Zobrazení aktivního multiplikátoru
                     MultiplierIndicator()
                     
@@ -278,45 +266,7 @@ fun HomeScreen(navController: NavController) {
                 }
             }
         } else {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Vybavený citát
-                val equippedQuote by BackpackManager.equippedQuote.collectAsState()
-                equippedQuote?.quote?.let { quote ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .clickable { navController.navigate("backpack") },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FormatQuote,
-                                contentDescription = "Citát",
-                                tint = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "\"$quote\"",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-                
-                LazyVerticalGrid(
+            LazyVerticalGrid(
                     state = gridState,
                     columns = GridCells.Fixed(columnCount),
                     contentPadding = PaddingValues(
@@ -342,7 +292,6 @@ fun HomeScreen(navController: NavController) {
                         )
                     }
                 }
-            }
         }
     }
     

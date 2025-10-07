@@ -53,10 +53,10 @@ fun BottomBar(navController: NavHostController, searchRequestFocus: MutableState
             onClick = { navController.navigate("calendar") }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Menu, contentDescription = "Více") },
-            label = { Text("Více", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
-            selected = currentDestination == "more",
-            onClick = { navController.navigate("more") }
+            icon = { Icon(Icons.Default.Person, contentDescription = "Profil") },
+            label = { Text("Profil", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
+            selected = currentDestination == "profile",
+            onClick = { navController.navigate("profile") }
         )
     }
 }

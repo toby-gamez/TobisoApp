@@ -97,7 +97,7 @@ fun BackpackScreen(navController: NavController) {
                     modifier = Modifier.padding(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.WorkOff,
+                        imageVector = Icons.Filled.Backpack,
                         contentDescription = "Prázdná aktovka",
                         modifier = Modifier.size(80.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

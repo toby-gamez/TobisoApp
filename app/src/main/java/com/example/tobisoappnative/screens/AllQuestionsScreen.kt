@@ -147,18 +147,6 @@ fun AllQuestionsScreen(
                         )
                     }
                     
-                    if (!isOffline) {
-                        IconButton(onClick = { 
-                            coroutineScope.launch {
-                                isRefreshing = true
-                                viewModel.loadAllQuestions()
-                                isRefreshing = false
-                            }
-                        }) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "Obnovit")
-                        }
-                    }
-                    
                     // Zobrazení aktivního multiplikátoru
                     MultiplierIndicator()
                     

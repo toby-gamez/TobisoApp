@@ -107,7 +107,7 @@ fun ShopScreen(navController: NavController) {
                     onClick = { navController.navigate("backpack") }
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Work,
+                        imageVector = Icons.Filled.Backpack,
                         contentDescription = "Aktovka",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
