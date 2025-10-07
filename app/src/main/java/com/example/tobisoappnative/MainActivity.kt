@@ -66,12 +66,14 @@ import androidx.work.*
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import java.util.concurrent.TimeUnit
 import com.example.tobisoappnative.PointsManager
+import com.example.tobisoappnative.ShopManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.FullScreenMilestoneOverlay
 import androidx.compose.runtime.rememberCoroutineScope
 import android.app.AlarmManager
 import com.example.tobisoappnative.screens.StreakScreen
+import com.example.tobisoappnative.screens.ShopScreen
 import com.example.tobisoappnative.screens.addTodayToStreak
 import com.example.tobisoappnative.screens.getStreakDays
 import com.example.tobisoappnative.screens.calculateStreaks
@@ -235,9 +237,10 @@ class MainActivity : ComponentActivity() {
             mainViewModel.loadCategories()
         }
 
-        // Inicializace bodů při startu aplikace
+        // Inicializace bodů a obchodu při startu aplikace
         LaunchedEffect(context) {
             PointsManager.init(context)
+            ShopManager.init(context)
             // Kontrola milníků až po inicializaci PointsManager a UI
             checkStreakMilestones(context)
         }
@@ -340,7 +343,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("updater") ||
                                                     route.startsWith("questions") ||
                                                     route.startsWith("mixedQuiz") ||
-                                                    route.startsWith("eventDetail"))
+                                                    route.startsWith("eventDetail") ||
+                                                    route.startsWith("shop"))
                                             ),
                                     enter = slideInVertically(
                                         initialOffsetY = { it }, // přichází zdola
@@ -765,6 +769,35 @@ class MainActivity : ComponentActivity() {
                                             color = MaterialTheme.colorScheme.error
                                         )
                                     }
+                                }
+                                composable(
+                                    "shop",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) {
+                                    ShopScreen(navController = navController)
                                 }
                             }
                         }

@@ -192,32 +192,31 @@ fun CalendarScreen(
                     
                     Spacer(modifier = Modifier.width(16.dp))
                     
-                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-                    val points = remember { mutableStateOf(PointsManager.getPoints()) }
-
-                    LaunchedEffect(Unit) {
-                        PointsManager.totalPoints.collect { total ->
-                            points.value = total
-                        }
-                    }
-                    
-                    // Body button
-                    Box(
+                    // Zobrazení bodů s novým designem
+                    val totalPoints by PointsManager.totalPoints.collectAsState()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .padding(end = 8.dp)
-                            .size(40.dp)
                             .background(
-                                color = tertiaryColor.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(50)
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(20.dp)
                             )
-                            .clickable { showTotalOverlay = true },
-                        contentAlignment = Alignment.Center
+                            .clickable { showTotalOverlay = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Stars,
+                            contentDescription = "Body",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = points.value.toString(),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            text = totalPoints.toString(),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                     

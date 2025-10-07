@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Stars
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -77,8 +80,9 @@ fun FullScreenPointsOverlay(points: Int, totalPoints: Int) {
         label = "circleScale"
     )
 
-    // Terciární barvy pro kruh
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    // primaryContainer barvy pro kruh - stejné jako nový design
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = Modifier
@@ -94,7 +98,7 @@ fun FullScreenPointsOverlay(points: Int, totalPoints: Int) {
                 .scale(circleScale)
                 .border(
                     width = 40.dp,
-                    color = tertiaryColor.copy(alpha = 0.1f),
+                    color = primaryContainerColor.copy(alpha = 0.3f),
                     shape = CircleShape
                 )
                 .background(
@@ -118,14 +122,25 @@ fun FullScreenPointsOverlay(points: Int, totalPoints: Int) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Sekundární text s delayed animací
-            Text(
-                text = "Celkem: $totalPoints bodů",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Medium,
+            // Sekundární text s delayed animací a hvězdičkou
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.alpha(secondaryAlpha)
-            )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Stars,
+                    contentDescription = "Body",
+                    tint = primaryColor,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Celkem: $totalPoints bodů",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
@@ -189,8 +204,9 @@ fun FullScreenMilestoneOverlay(points: Int, totalPoints: Int, milestoneDay: Int)
         label = "circleScale"
     )
 
-    // Speciální barva pro milníky
+    // Speciální barva pro milníky - primaryContainer jako pozadí
     val milestoneColor = MaterialTheme.colorScheme.primary
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
 
     Box(
         modifier = Modifier
@@ -206,7 +222,7 @@ fun FullScreenMilestoneOverlay(points: Int, totalPoints: Int, milestoneDay: Int)
                 .scale(circleScale)
                 .border(
                     width = 50.dp,
-                    color = milestoneColor.copy(alpha = 0.15f),
+                    color = primaryContainerColor.copy(alpha = 0.4f),
                     shape = CircleShape
                 )
                 .background(
@@ -263,14 +279,25 @@ fun FullScreenMilestoneOverlay(points: Int, totalPoints: Int, milestoneDay: Int)
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Celkový počet bodů
-            Text(
-                text = "Celkem: $totalPoints bodů",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
+            // Celkový počet bodů s hvězdičkou
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.alpha(secondaryAlpha)
-            )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Stars,
+                    contentDescription = "Body",
+                    tint = milestoneColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Celkem: $totalPoints bodů",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
@@ -319,7 +346,8 @@ fun FullScreenTotalPointsOverlay(totalPoints: Int) {
         label = "circleScale"
     )
 
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = Modifier
@@ -334,7 +362,7 @@ fun FullScreenTotalPointsOverlay(totalPoints: Int) {
                 .scale(circleScale)
                 .border(
                     width = 40.dp,
-                    color = tertiaryColor.copy(alpha = 0.1f),
+                    color = primaryContainerColor.copy(alpha = 0.3f),
                     shape = CircleShape
                 )
                 .background(
@@ -342,12 +370,25 @@ fun FullScreenTotalPointsOverlay(totalPoints: Int) {
                     shape = CircleShape
                 )
         )
-        Text(
-            text = totalPoints.toString(),
-            color = MaterialTheme.colorScheme.onSurface,
-            fontSize = 56.sp,
-            fontWeight = FontWeight.Bold,
+        
+        // Číslo s hvězdičkou
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.scale(textScale)
-        )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Stars,
+                contentDescription = "Body",
+                tint = primaryColor,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = totalPoints.toString(),
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 56.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }

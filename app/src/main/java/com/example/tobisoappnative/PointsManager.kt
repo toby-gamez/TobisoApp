@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.StateFlow
 object PointsManager {
     private const val PREFS_NAME = "points_prefs"
     private const val KEY_POINTS = "points"
+    private const val KEY_MULTIPLIER = "active_multiplier"
+    private const val KEY_MULTIPLIER_END = "multiplier_end_time"
+    
     private var points: Int = 0
     private val _lastAddedPoints = MutableStateFlow(0)
     val lastAddedPoints: StateFlow<Int> = _lastAddedPoints
@@ -15,16 +18,27 @@ object PointsManager {
     val totalPoints: StateFlow<Int> = _totalPoints
     private val _lastMilestone = MutableStateFlow<Int?>(null)
     val lastMilestone: StateFlow<Int?> = _lastMilestone
+    private val _activeMultiplier = MutableStateFlow(1.0f)
+    val activeMultiplier: StateFlow<Float> = _activeMultiplier
 
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         points = prefs.getInt(KEY_POINTS, 0)
         _totalPoints.value = points
+        
+        // Kontrola aktivního multiplikátoru
+        checkActiveMultiplier(context)
     }
 
     fun addPoints(context: Context, amount: Int) {
-        points += amount
-        _lastAddedPoints.value = amount
+        // Kontrola aktivního multiplikátoru
+        checkActiveMultiplier(context)
+        
+        // Aplikace multiplikátoru
+        val multipliedAmount = (amount * _activeMultiplier.value).toInt()
+        
+        points += multipliedAmount
+        _lastAddedPoints.value = multipliedAmount
         _totalPoints.value = points
         savePoints(context)
     }
@@ -59,5 +73,68 @@ object PointsManager {
 
     fun getPoints(): Int {
         return points
+    }
+    
+    fun subtractPoints(context: Context, amount: Int): Boolean {
+        if (points < amount) {
+            return false // Nedostatek bodů
+        }
+        
+        points -= amount
+        _totalPoints.value = points
+        savePoints(context)
+        return true
+    }
+    
+    // Aktivace multiplikátoru bodů
+    fun activateMultiplier(context: Context, multiplier: Float, durationMinutes: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val endTime = System.currentTimeMillis() + (durationMinutes * 60 * 1000L)
+        
+        prefs.edit()
+            .putFloat(KEY_MULTIPLIER, multiplier)
+            .putLong(KEY_MULTIPLIER_END, endTime)
+            .apply()
+            
+        _activeMultiplier.value = multiplier
+    }
+    
+    // Kontrola, zda je multiplikátor stále aktivní
+    private fun checkActiveMultiplier(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val endTime = prefs.getLong(KEY_MULTIPLIER_END, 0)
+        val currentTime = System.currentTimeMillis()
+        
+        if (endTime > currentTime) {
+            // Multiplikátor je stále aktivní
+            val multiplier = prefs.getFloat(KEY_MULTIPLIER, 1.0f)
+            _activeMultiplier.value = multiplier
+        } else {
+            // Multiplikátor vypršel
+            _activeMultiplier.value = 1.0f
+            prefs.edit()
+                .remove(KEY_MULTIPLIER)
+                .remove(KEY_MULTIPLIER_END)
+                .apply()
+        }
+    }
+    
+    // Získání zbývajícího času multiplikátoru v minutách
+    fun getMultiplierTimeLeft(context: Context): Long {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val endTime = prefs.getLong(KEY_MULTIPLIER_END, 0)
+        val currentTime = System.currentTimeMillis()
+        
+        return if (endTime > currentTime) {
+            (endTime - currentTime) / (60 * 1000) // vrátí v minutách
+        } else {
+            0
+        }
+    }
+    
+    // Kontrola, zda je multiplikátor aktivní
+    fun isMultiplierActive(context: Context): Boolean {
+        checkActiveMultiplier(context)
+        return _activeMultiplier.value > 1.0f
     }
 }

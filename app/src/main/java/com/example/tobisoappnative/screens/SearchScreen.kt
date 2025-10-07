@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.filled.Stars
 import androidx.compose.ui.text.font.FontWeight
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
@@ -171,30 +173,31 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
             LargeTopAppBar(
                 title = { Text("Vyhledávání", style = MaterialTheme.typography.titleLarge) },
                 actions = {
-                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-                    val points = remember { mutableStateOf(PointsManager.getPoints()) }
-
-                    LaunchedEffect(Unit) {
-                        PointsManager.totalPoints.collect { total ->
-                            points.value = total
-                        }
-                    }
-                    Box(
+                    // Zobrazení bodů s novým designem
+                    val totalPoints by PointsManager.totalPoints.collectAsState()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(40.dp)
+                            .padding(end = 16.dp)
                             .background(
-                                color = tertiaryColor.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(50)
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(20.dp)
                             )
-                            .clickable { showTotalOverlay = true },
-                        contentAlignment = Alignment.Center
+                            .clickable { showTotalOverlay = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Stars,
+                            contentDescription = "Body",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = points.value.toString(),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            text = totalPoints.toString(),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                     

@@ -23,6 +23,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -175,31 +176,31 @@ fun HomeScreen(navController: NavController) {
                     )
                 },
                 actions = {
-                    // Kulaté tlačítko s body vlevo od ohýnku
-                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-                    val points = remember { mutableStateOf(PointsManager.getPoints()) }
-                    // Aktualizace bodů při změně
-                    LaunchedEffect(Unit) {
-                        PointsManager.totalPoints.collect { total ->
-                            points.value = total
-                        }
-                    }
-                    Box(
+                    // Zobrazení bodů s nowym designem
+                    val totalPoints by PointsManager.totalPoints.collectAsState()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(40.dp)
+                            .padding(end = 16.dp)
                             .background(
-                                color = tertiaryColor.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(50)
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(20.dp)
                             )
-                            .clickable { showTotalOverlay = true },
-                        contentAlignment = Alignment.Center
+                            .clickable { showTotalOverlay = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Stars,
+                            contentDescription = "Body",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = points.value.toString(),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            text = totalPoints.toString(),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                     

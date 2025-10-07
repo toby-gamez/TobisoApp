@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import com.example.tobisoappnative.model.Post
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -18,6 +19,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Stars
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -87,29 +90,31 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
             LargeTopAppBar(
                 title = { Text("Více", style = MaterialTheme.typography.titleLarge) },
                 actions = {
-                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-                    val points = remember { mutableStateOf(PointsManager.getPoints()) }
-                    LaunchedEffect(Unit) {
-                        PointsManager.totalPoints.collect { total ->
-                            points.value = total
-                        }
-                    }
-                    Box(
+                    // Zobrazení bodů s novým designem
+                    val totalPoints by PointsManager.totalPoints.collectAsState()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .padding(end = 8.dp)
-                            .size(40.dp)
                             .background(
-                                color = tertiaryColor.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(50)
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(20.dp)
                             )
-                            .clickable { showTotalOverlay = true },
-                        contentAlignment = Alignment.Center
+                            .clickable { showTotalOverlay = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Stars,
+                            contentDescription = "Body",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = points.value.toString(),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            text = totalPoints.toString(),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                     
@@ -171,6 +176,39 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(8.dp)
                 ) {
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        onClick = { navController.navigate("shop") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ShoppingCart,
+                                    contentDescription = "Obchod",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    "Obchod", 
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Text(
+                                "Utrať své body za streak freeze, citáty, ikony a zvířátka!", 
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
                 item(span = { GridItemSpan(1) }) {
                     Card(
                         modifier = cardModifier,
