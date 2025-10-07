@@ -7,16 +7,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -24,9 +27,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.ShopManager
+import com.example.tobisoappnative.StreakFreezeManager
 import com.example.tobisoappnative.data.ShopData
 import com.example.tobisoappnative.model.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,8 +41,8 @@ fun ShopScreen(navController: NavController) {
     val totalPoints by PointsManager.totalPoints.collectAsState()
     val purchasedItemIds by ShopManager.purchasedItems.collectAsState()
     val activeMultiplier by PointsManager.activeMultiplier.collectAsState()
+    val availableFreezes by StreakFreezeManager.availableFreezes.collectAsState()
     
-    var selectedCategory by remember { mutableStateOf(ShopCategory.STREAK) }
     var showPurchaseDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ShopItem?>(null) }
     var showSuccessMessage by remember { mutableStateOf(false) }
@@ -44,9 +50,45 @@ fun ShopScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf("") }
     var showUsePowerUpDialog by remember { mutableStateOf(false) }
     
-    // Inicializace ShopManageru
+    // Pro scroll k sekcím - trackování pozic nadpisů
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val headerPositions = remember { mutableMapOf<ShopCategory, Int>() }
+    
+    // Sledování aktivní kategorie na základě scroll pozice
+    val activeCategory by remember {
+        derivedStateOf {
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            if (visibleItems.isNotEmpty()) {
+                val firstVisibleKey = visibleItems.first().key as? String
+                when {
+                    firstVisibleKey?.contains("STREAK") == true -> ShopCategory.STREAK
+                    firstVisibleKey?.contains("PROFILE") == true -> ShopCategory.PROFILE
+                    firstVisibleKey?.contains("SUBJECTS") == true -> ShopCategory.SUBJECTS
+                    firstVisibleKey?.contains("POWER_UPS") == true -> ShopCategory.POWER_UPS
+                    firstVisibleKey?.contains("PETS") == true -> ShopCategory.PETS
+                    else -> {
+                        // Fallback - detekce podle itemů
+                        val firstIndex = visibleItems.first().index
+                        when {
+                            firstIndex <= 3 -> ShopCategory.STREAK
+                            firstIndex <= 7 -> ShopCategory.PROFILE
+                            firstIndex <= 11 -> ShopCategory.SUBJECTS
+                            firstIndex <= 15 -> ShopCategory.POWER_UPS
+                            else -> ShopCategory.PETS
+                        }
+                    }
+                }
+            } else {
+                ShopCategory.STREAK
+            }
+        }
+    }
+    
+    // Inicializace ShopManageru a StreakFreezeManageru
     LaunchedEffect(Unit) {
         ShopManager.init(context)
+        StreakFreezeManager.init(context)
     }
     
     Column(modifier = Modifier.fillMaxSize()) {
@@ -115,49 +157,131 @@ fun ShopScreen(navController: NavController) {
             }
         )
         
-        // Kategorie tabs
+        // Navigační kategorie (pouze pro scroll)
         LazyRow(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(ShopCategory.values().toList()) { category ->
-                CategoryChip(
+                CategoryNavigationChip(
                     category = category,
-                    isSelected = category == selectedCategory,
-                    onClick = { selectedCategory = category }
+                    isActive = category == activeCategory,
+                    onClick = {
+                        coroutineScope.launch {
+                            // Použij uložený index pozice pro danou kategorii
+                            val targetIndex = headerPositions[category]
+                            println("Scrolling to category: $category, targetIndex: $targetIndex")
+                            
+                            if (targetIndex != null) {
+                                try {
+                                    listState.animateScrollToItem(
+                                        index = targetIndex,
+                                        scrollOffset = 0 // Scroll přesně na začátek položky
+                                    )
+                                } catch (e: Exception) {
+                                    println("Error scrolling: $e")
+                                    // Fallback
+                                    listState.scrollToItem(targetIndex)
+                                }
+                            } else {
+                                println("No saved position, calculating...")
+                                // Dynamic calculation fallback
+                                val categories = ShopCategory.values()
+                                var calculatedIndex = 0
+                                for (cat in categories) {
+                                    if (cat == category) break
+                                    calculatedIndex++ // header
+                                    calculatedIndex += ShopData.getItemsByCategory(cat).size // items
+                                    if (cat != categories.last()) calculatedIndex++ // spacer
+                                }
+                                println("Calculated index: $calculatedIndex")
+                                listState.animateScrollToItem(calculatedIndex, scrollOffset = 0)
+                            }
+                        }
+                    }
                 )
             }
         }
         
-        // Obsah kategorie
+        // Obsah - všechny kategorie pod sebou s LazyColumn
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val categoryItems = ShopData.getItemsByCategory(selectedCategory)
+            var currentIndex = 0
             
-            items(categoryItems) { item ->
-                ShopItemCard(
-                    item = item,
-                    isPurchased = purchasedItemIds.contains(item.id),
-                    canAfford = totalPoints >= item.price,
-                    isOnCooldown = ShopManager.isOnCooldown(context, item.id),
-                    cooldownTimeLeft = ShopManager.getCooldownTimeLeft(context, item.id),
-                    onClick = {
-                        selectedItem = item
-                        if (purchasedItemIds.contains(item.id) && item.type == ShopItemType.POINTS_MULTIPLIER) {
-                            showUsePowerUpDialog = true
-                        } else {
-                            showPurchaseDialog = true
+            // Všechny kategorie pod sebou
+            ShopCategory.values().forEachIndexed { categoryIndex, category ->
+                    // Uloží pozici headeru pro navigaci
+                    headerPositions[category] = currentIndex
+                    println("Saved header position for $category at index: $currentIndex")                // Nadpis kategorie
+                item(key = "header_$category") {
+                    Text(
+                        text = category.displayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                }
+                currentIndex++
+                
+                // Položky kategorie
+                val categoryItems = ShopData.getItemsByCategory(category)
+                items(
+                    items = categoryItems,
+                    key = { item -> "item_${item.id}" }
+                ) { item ->
+                    ShopItemCard(
+                        item = item,
+                        isPurchased = when (item.type) {
+                            ShopItemType.STREAK_FREEZE -> !ShopManager.canPurchaseStreakFreeze()
+                            else -> purchasedItemIds.contains(item.id)
+                        },
+                        canAfford = totalPoints >= item.price,
+                        isOnCooldown = ShopManager.isOnCooldown(context, item.id),
+                        cooldownTimeLeft = ShopManager.getCooldownTimeLeft(context, item.id),
+                        onClick = {
+                            selectedItem = item
+                            when (item.type) {
+                                ShopItemType.POINTS_MULTIPLIER -> {
+                                    if (purchasedItemIds.contains(item.id)) {
+                                        showUsePowerUpDialog = true
+                                    } else {
+                                        showPurchaseDialog = true
+                                    }
+                                }
+                                ShopItemType.STREAK_FREEZE -> {
+                                    if (ShopManager.canPurchaseStreakFreeze()) {
+                                        showPurchaseDialog = true
+                                    } else {
+                                        // Už má maximum zmražení - možná zobraz info dialog
+                                        showPurchaseDialog = true
+                                    }
+                                }
+                                else -> {
+                                    showPurchaseDialog = true
+                                }
+                            }
                         }
+                    )
+                }
+                currentIndex += categoryItems.size
+                
+                // Mezera mezi kategoriemi (kromě poslední)
+                if (categoryIndex < ShopCategory.values().size - 1) {
+                    item(key = "spacer_$category") {
+                        Spacer(modifier = Modifier.height(32.dp))
                     }
-                )
+                    currentIndex++
+                }
             }
             
             // Spodní padding
-            item {
+            item(key = "bottom_spacer") {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -280,18 +404,18 @@ fun ShopScreen(navController: NavController) {
 }
 
 @Composable
-fun CategoryChip(
+fun CategoryNavigationChip(
     category: ShopCategory,
-    isSelected: Boolean,
+    isActive: Boolean,
     onClick: () -> Unit
 ) {
-    val containerColor = if (isSelected) {
+    val containerColor = if (isActive) {
         MaterialTheme.colorScheme.primary
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
     
-    val contentColor = if (isSelected) {
+    val contentColor = if (isActive) {
         MaterialTheme.colorScheme.onPrimary
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
@@ -306,10 +430,12 @@ fun CategoryChip(
             text = category.displayName,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             color = contentColor,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
         )
     }
 }
+
+
 
 @Composable
 fun ShopItemCard(
@@ -335,6 +461,57 @@ fun ShopItemCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+            // Pro zvířátka zobrazíme emoji ikonu nahoře
+            if (item.type == ShopItemType.PET && item.petIcon != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = item.petIcon,
+                        fontSize = 64.sp
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            
+            // Pro power-upy zobrazíme barevný text multiplikátoru
+            if (item.type == ShopItemType.POINTS_MULTIPLIER && item.powerUpIcon != null) {
+                val powerUpColor = when (item.multiplier) {
+                    1.5f -> Color(0xFF00BCD4) // Aqua
+                    2.0f -> Color(0xFFFFD700) // Zlatá
+                    3.0f -> Color(0xFF9C27B0) // Fialová
+                    else -> MaterialTheme.colorScheme.primary
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = item.powerUpIcon,
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = powerUpColor
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -411,6 +588,25 @@ fun ShopItemCard(
                                     )
                                 }
                             }
+                        } else if (item.type == ShopItemType.STREAK_FREEZE) {
+                            // Pro Zmražení řady zobraz počet dostupných
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = "Zmražení řady",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "${StreakFreezeManager.getAvailableFreezes()}/3",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         } else {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
@@ -431,30 +627,81 @@ fun ShopItemCard(
                             }
                         }
                     } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Stars,
-                                contentDescription = "Body",
-                                tint = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = item.price.toString(),
-                                color = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        
-                        if (!canAfford) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Nedostatek bodů",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                        // Pro Zmražení řady zobraz počet vlastněných místo ceny
+                        if (item.type == ShopItemType.STREAK_FREEZE) {
+                            Column(
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Shield,
+                                        contentDescription = "Zmražení řady",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "${StreakFreezeManager.getAvailableFreezes()}/3",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                
+                                // Zobraz cenu menším písmem pod počtem
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Stars,
+                                        contentDescription = "Body",
+                                        tint = if (canAfford) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        text = item.price.toString(),
+                                        color = if (canAfford) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                
+                                if (!canAfford) {
+                                    Text(
+                                        text = "Nedostatek bodů",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        } else {
+                            // Standardní zobrazení ceny pro ostatní itemy
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Stars,
+                                    contentDescription = "Body",
+                                    tint = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = item.price.toString(),
+                                    color = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            
+                            if (!canAfford) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Nedostatek bodů",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
                 }
@@ -474,13 +721,69 @@ fun PurchaseDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
+            val titleText = when {
+                item.type == ShopItemType.STREAK_FREEZE && isPurchased -> "Maximum dosaženo"
+                isPurchased -> "Již vlastníš"
+                else -> "Potvrdit nákup"
+            }
             Text(
-                text = if (isPurchased) "Již vlastníš" else "Potvrdit nákup",
+                text = titleText,
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Column {
+                // Pro zvířátka zobrazíme emoji ikonu
+                if (item.type == ShopItemType.PET && item.petIcon != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = item.petIcon,
+                            fontSize = 48.sp
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                
+                // Pro power-upy zobrazíme barevný text multiplikátoru
+                if (item.type == ShopItemType.POINTS_MULTIPLIER && item.powerUpIcon != null) {
+                    val powerUpColor = when (item.multiplier) {
+                        1.5f -> Color(0xFF00BCD4) // Aqua
+                        2.0f -> Color(0xFFFFD700) // Zlatá
+                        3.0f -> Color(0xFF9C27B0) // Fialová
+                        else -> MaterialTheme.colorScheme.primary
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = item.powerUpIcon,
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = powerUpColor
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.titleMedium,
@@ -490,6 +793,15 @@ fun PurchaseDialog(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(text = item.description)
+                
+                if (item.type == ShopItemType.STREAK_FREEZE) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Aktuálně vlastníš: ${StreakFreezeManager.getAvailableFreezes()}/3 Zmražení",
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
                 
                 if (item.quote != null) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -566,11 +878,23 @@ fun PurchaseDialog(
         },
         confirmButton = {
             if (!isPurchased) {
+                val canPurchase = if (item.type == ShopItemType.STREAK_FREEZE) {
+                    totalPoints >= item.price && ShopManager.canPurchaseStreakFreeze()
+                } else {
+                    totalPoints >= item.price
+                }
+                
                 Button(
                     onClick = onConfirm,
-                    enabled = totalPoints >= item.price
+                    enabled = canPurchase
                 ) {
-                    Text("Koupit")
+                    Text(
+                        if (item.type == ShopItemType.STREAK_FREEZE && !ShopManager.canPurchaseStreakFreeze()) {
+                            "Maximum dosaženo"
+                        } else {
+                            "Koupit"
+                        }
+                    )
                 }
             }
         },

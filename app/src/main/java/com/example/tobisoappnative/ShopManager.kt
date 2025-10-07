@@ -45,29 +45,51 @@ object ShopManager {
     
     // Nákup itemu
     fun purchaseItem(context: Context, item: ShopItem): Boolean {
-        // Kontrola, zda už není koupen
-        if (isItemPurchased(item.id)) {
-            return false
-        }
-        
         // Odečtení bodů přes PointsManager
         val success = PointsManager.subtractPoints(context, item.price)
         if (!success) {
             return false // Nedostatek bodů
         }
         
-        // Označení itemu jako koupeného
-        val currentItems = _purchasedItems.value.toMutableSet()
-        currentItems.add(item.id)
-        _purchasedItems.value = currentItems
-        savePurchasedItem(context, item.id)
-        
-        return true
+        // Speciální logika pro různé typy itemů
+        when (item.type) {
+            ShopItemType.STREAK_FREEZE -> {
+                // Pro Streak Freeze přidáme do StreakFreezeManager místo označení jako "koupen"
+                val freezeAdded = StreakFreezeManager.addStreakFreeze(context)
+                if (!freezeAdded) {
+                    // Pokud už má maximum freezes, vrátíme body
+                    PointsManager.addPoints(context, item.price)
+                    return false
+                }
+                return true
+            }
+            else -> {
+                // Kontrola, zda už není koupen (pouze pro ostatní typy)
+                if (isItemPurchased(item.id)) {
+                    // Vrátíme body, protože item už je koupen
+                    PointsManager.addPoints(context, item.price)
+                    return false
+                }
+                
+                // Označení itemu jako koupeného
+                val currentItems = _purchasedItems.value.toMutableSet()
+                currentItems.add(item.id)
+                _purchasedItems.value = currentItems
+                savePurchasedItem(context, item.id)
+                
+                return true
+            }
+        }
     }
     
     // Kontrola, zda je item již koupen
     fun isItemPurchased(itemId: Int): Boolean {
         return _purchasedItems.value.contains(itemId)
+    }
+    
+    // Speciální kontrola pro Streak Freeze - zda může koupit další
+    fun canPurchaseStreakFreeze(): Boolean {
+        return StreakFreezeManager.getAvailableFreezes() < 3
     }
     
     // Získání všech koupených itemů (pro budoucí funkcionalitu)

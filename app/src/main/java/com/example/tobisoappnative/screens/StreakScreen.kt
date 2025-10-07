@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,10 +24,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.StreakFreezeManager
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -58,6 +61,13 @@ fun StreakScreen(
     // --- NOVÝ A EFEKTIVNÍ VÝPOČET ---
     val (currentStreak, maxStreak) = remember(streakDays) {
         calculateStreaks(streakDays)
+    }
+    
+    // Inicializace a sledování Streak Freezes
+    val availableFreezes by StreakFreezeManager.availableFreezes.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        StreakFreezeManager.init(context)
     }
 
     Column(
@@ -110,6 +120,12 @@ fun StreakScreen(
                             calendarYear = year
                         }
                     )
+                    
+                    // Zobrazení Streak Freezes pokud nějaké má
+                    if (availableFreezes > 0) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        StreakFreezeCard(availableFreezes = availableFreezes)
+                    }
                 }
             }
         } else {
@@ -135,6 +151,12 @@ fun StreakScreen(
                         calendarYear = year
                     }
                 )
+                
+                // Zobrazení Streak Freezes pokud nějaké má
+                if (availableFreezes > 0) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    StreakFreezeCard(availableFreezes = availableFreezes)
+                }
             }
         }
     }
@@ -183,7 +205,7 @@ fun StreakSummaryCards(currentStreak: Int, maxStreak: Int) {
             ) {
                 Icon(
                     Icons.Default.Whatshot,
-                    contentDescription = "Max Streak",
+                    contentDescription = "Max Řada",
                     tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(32.dp)
                 )
@@ -520,4 +542,58 @@ fun monthYearString(month: Int, year: Int): String {
         "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"
     )
     return "${months[month]} $year"
+}
+
+@Composable
+fun StreakFreezeCard(availableFreezes: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Ikona vlevo přes celou výšku
+            Icon(
+                imageVector = Icons.Default.Shield,
+                contentDescription = "Zmražení řady",
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(48.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            // Text vedle ikony
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Zmražení řady",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = "Dostupné: $availableFreezes/3",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                
+                Spacer(modifier = Modifier.height(2.dp))
+                
+                Text(
+                    text = "Automaticky se použije při přerušení řady",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
 }

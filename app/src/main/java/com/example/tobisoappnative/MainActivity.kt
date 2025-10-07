@@ -92,6 +92,10 @@ class MainActivity : ComponentActivity() {
         // Přidat dnešní den do řady (pokud už tam není)
         addTodayToStreak(this)
         
+        // Inicializace StreakFreezeManager a kontrola automatického použití
+        StreakFreezeManager.init(this)
+        StreakFreezeManager.checkAndAutoUseFreeze(this)
+        
         // DOČASNÉ: Vymazat dosažené milníky pro testování (odkomentujte pokud potřebujete)
         // resetMilestones(this)
         

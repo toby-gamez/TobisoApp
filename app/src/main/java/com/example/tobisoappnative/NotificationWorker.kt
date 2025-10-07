@@ -75,7 +75,7 @@ class NotificationWorker(
     private fun createNotificationChannel(channelId: String, isCritical: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = if (isCritical) "Tobiso App Critical" else "Tobiso App Channel"
-            val descriptionText = if (isCritical) "Kritická upozornění na streak" else "Běžná upozornění na streak"
+            val descriptionText = if (isCritical) "Kritická upozornění na řadu" else "Běžná upozornění na řadu"
             val importance = if (isCritical) NotificationManager.IMPORTANCE_HIGH else NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(channelId, name, importance).apply {
                 description = descriptionText

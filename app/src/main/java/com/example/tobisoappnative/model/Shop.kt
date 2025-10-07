@@ -2,7 +2,7 @@ package com.example.tobisoappnative.model
 
 // Kategorie obchodu
 enum class ShopCategory(val displayName: String) {
-    STREAK("Streak"),
+    STREAK("Řada"),
     PROFILE("Profil"),
     SUBJECTS("Předměty"),
     POWER_UPS("Power-upy"),
@@ -27,11 +27,13 @@ data class ShopItem(
     val category: ShopCategory,
     val type: ShopItemType,
     val iconRes: Int? = null, // Pro ikony předmětů
-    val imageUrl: String? = null, // Pro zvířátka
+    val imageUrl: String? = null, // Pro zvířátka (URL obrázky)
+    val petIcon: String? = null, // Pro zvířátka (emoji ikony)
     val quote: String? = null, // Pro citáty
     val durationMinutes: Int? = null, // Pro power-upy v minutách
     val multiplier: Float? = null, // Pro power-upy (1.5x, 2x, 3x)
-    val cooldownMinutes: Int? = null // Cooldown mezi použitím power-upů
+    val cooldownMinutes: Int? = null, // Cooldown mezi použitím power-upů
+    val powerUpIcon: String? = null // Vizuální element pro power-upy
 )
 
 // Koupen item
