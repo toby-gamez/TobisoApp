@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Stars
 import androidx.compose.ui.text.font.FontWeight
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
+import com.example.tobisoappnative.components.MultiplierIndicator
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -173,6 +174,9 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
             LargeTopAppBar(
                 title = { Text("Vyhledávání", style = MaterialTheme.typography.titleLarge) },
                 actions = {
+                    // Zobrazení aktivního multiplikátoru
+                    MultiplierIndicator()
+                    
                     // Zobrazení bodů s novým designem
                     val totalPoints by PointsManager.totalPoints.collectAsState()
                     Row(

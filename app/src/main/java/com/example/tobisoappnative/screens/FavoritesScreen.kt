@@ -11,7 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.tobisoappnative.ui.theme.poppins
+import com.example.tobisoappnative.ui.theme.poppins_regular
 import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.components.MultiplierIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
@@ -56,6 +59,9 @@ fun FavoritesScreen(
                 }
             },
             actions = {
+                // Zobrazení aktivního multiplikátoru
+                MultiplierIndicator()
+                
                 when (selectedTab) {
                     0 -> {
                         if (snippets.isNotEmpty()) {

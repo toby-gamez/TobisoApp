@@ -38,9 +38,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import com.example.tobisoappnative.PointsManager
+import com.example.tobisoappnative.BackpackManager
 import kotlinx.coroutines.delay
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
+import com.example.tobisoappnative.components.MultiplierIndicator
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -157,7 +160,10 @@ fun HomeScreen(navController: NavController) {
     val categories by viewModel.categories.collectAsState()
     val categoryLoading by viewModel.categoryLoading.collectAsState()
     val toastMessage by viewModel.toastMessage.collectAsState()
-    LaunchedEffect(Unit) { viewModel.loadCategories() }
+    LaunchedEffect(Unit) { 
+        viewModel.loadCategories()
+        BackpackManager.init(context)
+    }
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
 
@@ -176,6 +182,21 @@ fun HomeScreen(navController: NavController) {
                     )
                 },
                 actions = {
+                    // Vybavené zvířátko
+                    val equippedPet by BackpackManager.equippedPet.collectAsState()
+                    equippedPet?.petIcon?.let { petIcon ->
+                        Text(
+                            text = petIcon,
+                            fontSize = 24.sp,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .clickable { navController.navigate("backpack") }
+                        )
+                    }
+                    
+                    // Zobrazení aktivního multiplikátoru
+                    MultiplierIndicator()
+                    
                     // Zobrazení bodů s nowym designem
                     val totalPoints by PointsManager.totalPoints.collectAsState()
                     Row(
@@ -257,30 +278,69 @@ fun HomeScreen(navController: NavController) {
                 }
             }
         } else {
-            LazyVerticalGrid(
-                state = gridState,
-                columns = GridCells.Fixed(columnCount),
-                contentPadding = PaddingValues(
-                    start = 8.dp,
-                    end = 8.dp,
-                    top = 8.dp,
-                    bottom = 8.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(subjects) { subject ->
-                    SubjectCard(
-                        subject = subject,
-                        modifier = Modifier,
-                        onClick = {
-                            val category = categories.find { it.name == subject.name }
-                            category?.let {
-                                navController.navigate("categoryList/${it.name}")
-                            }
+                // Vybavený citát
+                val equippedQuote by BackpackManager.equippedQuote.collectAsState()
+                equippedQuote?.quote?.let { quote ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .clickable { navController.navigate("backpack") },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FormatQuote,
+                                contentDescription = "Citát",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "\"$quote\"",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                textAlign = TextAlign.Center
+                            )
                         }
-                    )
+                    }
+                }
+                
+                LazyVerticalGrid(
+                    state = gridState,
+                    columns = GridCells.Fixed(columnCount),
+                    contentPadding = PaddingValues(
+                        start = 8.dp,
+                        end = 8.dp,
+                        top = 8.dp,
+                        bottom = 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(subjects) { subject ->
+                        SubjectCard(
+                            subject = subject,
+                            modifier = Modifier,
+                            onClick = {
+                                val category = categories.find { it.name == subject.name }
+                                category?.let {
+                                    navController.navigate("categoryList/${it.name}")
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }

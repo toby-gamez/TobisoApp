@@ -84,7 +84,7 @@ object ShopData {
                 type = ShopItemType.POINTS_MULTIPLIER,
                 durationMinutes = 15,
                 multiplier = 1.5f,
-                cooldownMinutes = 30,
+                cooldownMinutes = 300,
                 powerUpIcon = "1.5x" // Aqua
             ),
             ShopItem(
@@ -96,7 +96,7 @@ object ShopData {
                 type = ShopItemType.POINTS_MULTIPLIER,
                 durationMinutes = 15,
                 multiplier = 2.0f,
-                cooldownMinutes = 60,
+                cooldownMinutes = 300,
                 powerUpIcon = "2x" // Zlaté
             ),
             ShopItem(
@@ -108,7 +108,7 @@ object ShopData {
                 type = ShopItemType.POINTS_MULTIPLIER,
                 durationMinutes = 15,
                 multiplier = 3.0f,
-                cooldownMinutes = 120,
+                cooldownMinutes = 300,
                 powerUpIcon = "3x" // Fialové
             ),
             

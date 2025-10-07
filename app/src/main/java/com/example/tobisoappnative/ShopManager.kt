@@ -77,6 +77,9 @@ object ShopManager {
                 _purchasedItems.value = currentItems
                 savePurchasedItem(context, item.id)
                 
+                // Refresh aktovky po nákupu
+                BackpackManager.refreshItems(context)
+                
                 return true
             }
         }

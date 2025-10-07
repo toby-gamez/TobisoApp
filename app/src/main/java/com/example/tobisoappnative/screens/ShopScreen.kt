@@ -29,6 +29,7 @@ import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.ShopManager
 import com.example.tobisoappnative.StreakFreezeManager
 import com.example.tobisoappnative.data.ShopData
+import com.example.tobisoappnative.components.MultiplierIndicator
 import com.example.tobisoappnative.model.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -101,33 +102,20 @@ fun ShopScreen(navController: NavController) {
                 }
             },
             actions = {
-                // Zobrazení aktivního multiplikátoru
-                if (activeMultiplier > 1.0f) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.tertiary,
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Speed,
-                            contentDescription = "Multiplikátor",
-                            tint = MaterialTheme.colorScheme.onTertiary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${activeMultiplier}x",
-                            color = MaterialTheme.colorScheme.onTertiary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
+                // Ikona aktovky
+                IconButton(
+                    onClick = { navController.navigate("backpack") }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Work,
+                        contentDescription = "Aktovka",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
+                
+                // Zobrazení aktivního multiplikátoru
+                MultiplierIndicator()
                 
                 // Zobrazení bodů
                 Row(

@@ -52,6 +52,8 @@ import com.example.tobisoappnative.screens.SearchScreen
 import com.example.tobisoappnative.screens.CalendarScreen
 import com.example.tobisoappnative.screens.EventDetailScreen
 import com.example.tobisoappnative.screens.MoreScreen
+import com.example.tobisoappnative.screens.BackpackScreen
+import com.example.tobisoappnative.BackpackManager
 import com.example.tobisoappnative.navigation.BottomBar
 import com.example.tobisoappnative.screens.CategoryListScreen
 import com.example.tobisoappnative.screens.FeedbackScreen
@@ -92,9 +94,10 @@ class MainActivity : ComponentActivity() {
         // Přidat dnešní den do řady (pokud už tam není)
         addTodayToStreak(this)
         
-        // Inicializace StreakFreezeManager a kontrola automatického použití
+                // Inicializace managenů
+        PointsManager.init(this)
         StreakFreezeManager.init(this)
-        StreakFreezeManager.checkAndAutoUseFreeze(this)
+        BackpackManager.init(this)
         
         // DOČASNÉ: Vymazat dosažené milníky pro testování (odkomentujte pokud potřebujete)
         // resetMilestones(this)
@@ -348,7 +351,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("questions") ||
                                                     route.startsWith("mixedQuiz") ||
                                                     route.startsWith("eventDetail") ||
-                                                    route.startsWith("shop"))
+                                                    route.startsWith("shop") ||
+                                                    route.startsWith("backpack"))
                                             ),
                                     enter = slideInVertically(
                                         initialOffsetY = { it }, // přichází zdola
@@ -802,6 +806,35 @@ class MainActivity : ComponentActivity() {
                                     }
                                 ) {
                                     ShopScreen(navController = navController)
+                                }
+                                composable(
+                                    "backpack",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) {
+                                    BackpackScreen(navController = navController)
                                 }
                             }
                         }

@@ -132,6 +132,19 @@ object PointsManager {
         }
     }
     
+    // Získání zbývajícího času multiplikátoru v sekundách pro přesné zobrazení
+    fun getMultiplierTimeLeftInSeconds(context: Context): Long {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val endTime = prefs.getLong(KEY_MULTIPLIER_END, 0)
+        val currentTime = System.currentTimeMillis()
+        
+        return if (endTime > currentTime) {
+            (endTime - currentTime) / 1000 // vrátí v sekundách
+        } else {
+            0
+        }
+    }
+    
     // Kontrola, zda je multiplikátor aktivní
     fun isMultiplierActive(context: Context): Boolean {
         checkActiveMultiplier(context)

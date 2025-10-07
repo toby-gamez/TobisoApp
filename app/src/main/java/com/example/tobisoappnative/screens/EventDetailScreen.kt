@@ -23,6 +23,7 @@ import com.example.tobisoappnative.viewmodel.CalendarViewModel
 import com.example.tobisoappnative.components.AddEditEventDialog
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.tobisoappnative.components.MultiplierIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +72,9 @@ fun EventDetailScreen(
                     }
                 },
                 actions = {
+                    // Zobrazení aktivního multiplikátoru
+                    MultiplierIndicator()
+                    
                     // Tlačítka pro editaci a mazání pouze u místních eventů
                     event?.let { currentEvent ->
                         if (currentEvent.isLocalSafe()) {

@@ -28,6 +28,7 @@ import com.example.tobisoappnative.viewmodel.MainViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
+import com.example.tobisoappnative.components.MultiplierIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,6 +123,9 @@ fun MixedQuizScreen(
                         }
                     },
                     actions = {
+                        // Zobrazení aktivního multiplikátoru
+                        MultiplierIndicator()
+                        
                         if (showResults) {
                             IconButton(onClick = { 
                                 // Restart quiz

@@ -32,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
+import com.example.tobisoappnative.components.MultiplierIndicator
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post  
@@ -157,6 +158,10 @@ fun AllQuestionsScreen(
                             Icon(Icons.Filled.Refresh, contentDescription = "Obnovit")
                         }
                     }
+                    
+                    // Zobrazení aktivního multiplikátoru
+                    MultiplierIndicator()
+                    
                     // Zobrazení bodů s novým designem
                     val totalPoints by PointsManager.totalPoints.collectAsState()
                     Row(

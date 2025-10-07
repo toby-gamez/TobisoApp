@@ -34,6 +34,7 @@ import com.example.tobisoappnative.viewmodel.CalendarViewModel
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.AddEditEventDialog
+import com.example.tobisoappnative.components.MultiplierIndicator
 import kotlinx.coroutines.delay
 import android.content.Context
 import android.os.Build
@@ -219,6 +220,9 @@ fun CalendarScreen(
                             fontSize = 16.sp
                         )
                     }
+                    
+                    // Zobrazení aktivního multiplikátoru
+                    MultiplierIndicator()
                     
                     // Streak button s počtem dní
                     val currentStreak = remember { mutableStateOf(0) }

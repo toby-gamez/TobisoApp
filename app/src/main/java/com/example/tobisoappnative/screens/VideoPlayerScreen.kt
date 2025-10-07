@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.example.tobisoappnative.components.MultiplierIndicator
 import android.content.res.Configuration
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -221,6 +222,9 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                         }
                     },
                     actions = {
+                        // Zobrazení aktivního multiplikátoru
+                        MultiplierIndicator()
+                        
                         IconButton(onClick = { toggleFullscreen() }) {
                             Icon(Icons.Default.Fullscreen, contentDescription = "Fullscreen")
                         }

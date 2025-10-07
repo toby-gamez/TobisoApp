@@ -21,12 +21,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Stars
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
+import com.example.tobisoappnative.components.MultiplierIndicator
 import kotlinx.coroutines.delay
 import android.content.Context
 import android.os.Build
@@ -118,6 +120,9 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
                         )
                     }
                     
+                    // Zobrazení aktivního multiplikátoru
+                    MultiplierIndicator()
+                    
                     // Streak button s počtem dní
                     val context = LocalContext.current
                     val currentStreak = remember { mutableStateOf(0) }
@@ -205,6 +210,39 @@ fun MoreScreen(navController: NavController, viewModel: MainViewModel = viewMode
                                 "Utrať své body za streak freeze, citáty, ikony a zvířátka!", 
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                        onClick = { navController.navigate("backpack") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Work,
+                                    contentDescription = "Aktovka",
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
+                                Text(
+                                    "Aktovka", 
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Text(
+                                "Prohlédni si své koupené věci - citáty, ikony a zvířátka!", 
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         }
                     }

@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.ClipboardManager
 import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.LocalContext
+import com.example.tobisoappnative.components.MultiplierIndicator
 
 val prefixRegex = Regex("^(ml-|sl-|li-|hv-|m-|ch-|f-|pr-|z-)")
 
@@ -140,6 +141,9 @@ fun PostDetailScreen(
                         }
                     },
                     actions = {
+                        // Zobrazení aktivního multiplikátoru
+                        MultiplierIndicator()
+                        
                         val isFavorite = favoritePosts.any { it.id == postDetail?.id }
                         // HVĚZDIČKA - první vpravo
                         IconButton(onClick = {
