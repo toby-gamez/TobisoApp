@@ -61,6 +61,12 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.platform.LocalDensity
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
 
 // Helper funkce pro správu profilu
 fun getProfileName(context: android.content.Context): String {
@@ -81,6 +87,27 @@ fun getProfileImageUri(context: android.content.Context): String? {
 fun saveProfileImageUri(context: android.content.Context, uri: String?) {
     val prefs = context.getSharedPreferences("ProfilePrefs", android.content.Context.MODE_PRIVATE)
     prefs.edit().putString("profile_image_uri", uri).apply()
+}
+
+// Funkce pro kopírování obrázku do interního úložiště
+fun copyImageToInternalStorage(context: android.content.Context, uri: android.net.Uri): String? {
+    return try {
+        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+        val fileName = "profile_image.jpg"
+        val file = File(context.filesDir, fileName)
+        val outputStream = FileOutputStream(file)
+        
+        inputStream?.use { input ->
+            outputStream.use { output ->
+                input.copyTo(output)
+            }
+        }
+        
+        file.absolutePath
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
 }
 
 // Helper funkce pro získání aktuální řady
@@ -416,6 +443,127 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
     }
 }
 
+// Bubliny pro jednotlivá zvířátka
+val petBubbles = mapOf(
+    "🐱" to listOf(
+        "Mňau! Máš dnes skvělou náladu! �",
+        "Mrr... Vidím, že pilně studuješ! 🐱",
+        "Kočičí rada: Občas si zdřímni, pak budeš chytřejší! 😴",
+        "Mňau! Nezapomeň si pohladit svého virtuálního mazlíčka! 💕",
+        "Psst... V obchodě mají nové věci, mrr! 🛒",
+        "Dnes jsi můj nejoblíbenější člověk! Mňau! ❤️",
+        "Kočky jsou chytré, ale ty jsi ještě chytřejší! 🧠",
+        "Mrrrr... Čas na pauzu s kočičím video! 📱",
+        "Mňau! Tvoje streak je jako moje licousy - perfektní! 🔥",
+        "Kočičí moudrost: Každý den se něco nauč! 📚"
+    ),
+    "🐶" to listOf(
+        "Haf! Dobrý člověk, jak se máš? 🐕",
+        "Woof! Jsem tak hrdý na tvoje pokroky! 🎾",
+        "Haf haf! Nezapomeň si dnes udělat procházku! �",
+        "Psí rada: Věrnost k cílům vede k úspěchu! 💪",
+        "Woof! Máš nejlepší streak v celé smečce! 🔥",
+        "Haf! Čas na odměnu - zasloužíš si něco dobrého! 🦴",
+        "Psí moudrost: Nikdy se nevzdávej, haf! 🌟",
+        "Woof woof! Dnes budeš úžasný, cítím to! ✨",
+        "Haf! Společně zvládneme všechno! 🤝",
+        "Psí tip: Po učení si zahrát pomáhá mozku! 🎈"
+    ),
+    "🐰" to listOf(
+        "Hop hop! Rychle k novým znalostem! 🥕",
+        "Králičí rada: Malé kroky vedou k velkým cílům! �",
+        "Hop! Tvoje tempo učení je perfektní! ⚡",
+        "Králík říká: Zdravé jídlo = zdravý mozek! 🥬",
+        "Hop hop! Nezapomeň si odpočinout mezi lekcemi! 😌",
+        "Králičí moudrost: Buď rychlý, ale důkladný! 🏃",
+        "Hop! V obchodě jsou nové věci, skoč se podívat! 🛒",
+        "Králík ví: Trpělivost přináší ovoce! 🍎",
+        "Hop hop! Tvoje snaha mě inspiruje! 💫",
+        "Králičí tip: Cvič mozek každý den! 🧠"
+    ),
+    "🦉" to listOf(
+        "Hú hú! Moudrost přichází s praxí! 🦉",
+        "Sova praví: Noc je dobrá doba na učení! 🌙",
+        "Hú! Tvoje vědomosti rostou každým dnem! 📚",
+        "Sova doporučuje: Přečti si něco nového! 📖",
+        "Hú hú! Moudrost je největší poklad! 💎",
+        "Sova ví: Otázky jsou klíčem k poznání! ❓",
+        "Hú! Buď moudrý jako sova, pilný jako včela! 🐝",
+        "Sova říká: Každá chyba je lekce! 🎓",
+        "Hú hú! Tvoje vzdělání je investice do budoucnosti! �",
+        "Sova radí: Nikdy nepřestaň být zvědavý! 🔍"
+    ),
+    "🦊" to listOf(
+        "Chytrá liška ti radí: Mysli kreativně! 🦊",
+        "Liška ví: Lstivost a znalosti = úspěch! 🧠",
+        "Mazaná rada: Různé přístupy = různé výsledky! 🔄",
+        "Liška praví: Buď flexibilní ve svém učení! 🤸",
+        "Chytře zvolenou cestou dojdeš nejdál! 🛤️",
+        "Liška doporučuje: Hledej skryté souvislosti! 🔗",
+        "Mazaná poznámka: Někdy méně je více! ✨",
+        "Liška říká: Adaptabilita je klíčová! 🗝️",
+        "Chytrý tip: Využij své silné stránky! �",
+        "Liška ví: Intuice + fakta = dokonalost! 🎯"
+    ),
+    "🐼" to listOf(
+        "Panda říká: Klid a vyrovnanost vedou k úspěchu! 🧘",
+        "Zen rada: Dýchej hluboce a soustřeď se! 🌸",
+        "Panda ví: Pomalu ale jistě! 🐌",
+        "Klidná mysl = jasné myšlení! 💭",
+        "Panda doporučuje: Meditace před učením! 🕯️",
+        "Zen moudrost: Přítomný okamžik je vše! ⏰",
+        "Panda praví: Harmonie v učení i odpočinku! ⚖️",
+        "Klidný tip: Stres je nepřítel učení! �",
+        "Panda říká: Najdi si svůj rytmus! 🎵",
+        "Zen rada: Buď trpělivý sám se sebou! 🌱"
+    ),
+    "🐬" to listOf(
+        "Delfín plave: Inteligence je jako voda - tekutá! 🌊",
+        "Chytrá rada: Spolupráce přináší výsledky! 🤝",
+        "Delfín ví: Radost z učení je důležitá! 😊",
+        "Vodní moudrost: Plynule mezi tématy! 🏊",
+        "Delfín říká: Komunikace je klíčová! 💬",
+        "Inteligentní tip: Sdílej své znalosti! 📤",
+        "Delfín praví: Hravost podporuje kreativitu! 🎨",
+        "Vodní rada: Nech myšlenky volně plynout! 💫",
+        "Delfín doporučuje: Učte se ve skupině! 👥",
+        "Chytrý delfín ví: Každý má co nabídnout! 🎁"
+    )
+)
+
+// Fallback bubliny pro neznámá zvířátka
+val defaultPetBubbles = listOf(
+    "Ahoj! Jak ti jde učení? 😊",
+    "Nezapomeň na přestávku! ☕",
+    "Dnes budeš úžasný! ✨",
+    "Tvoje snaha se vyplácí! 💪",
+    "Zůstaň motivovaný! 🌟",
+    "Každý den se zlepšuješ! 📈",
+    "Věř si, zvládneš to! 💫",
+    "Učení je dobrodružství! 🗺️",
+    "Jsi na správné cestě! 🛤️",
+    "Pokračuj, jdeš skvěle! �"
+)
+
+// Helper funkce pro správu bubliny
+fun shouldShowBubble(context: android.content.Context): Boolean {
+    val prefs = context.getSharedPreferences("PetBubblePrefs", android.content.Context.MODE_PRIVATE)
+    val lastDismissed = prefs.getLong("last_dismissed", 0)
+    val currentTime = System.currentTimeMillis()
+    val oneHourInMillis = 60 * 60 * 1000L
+    return currentTime - lastDismissed > oneHourInMillis
+}
+
+fun dismissBubbleForHour(context: android.content.Context) {
+    val prefs = context.getSharedPreferences("PetBubblePrefs", android.content.Context.MODE_PRIVATE)
+    prefs.edit().putLong("last_dismissed", System.currentTimeMillis()).apply()
+}
+
+// Funkce pro získání náhodné bubliny podle zvířátka
+fun getRandomBubbleForPet(petIcon: String?): String {
+    return petBubbles[petIcon]?.random() ?: defaultPetBubbles.random()
+}
+
 @Composable
 fun ProfileSection(navController: NavController) {
     val context = LocalContext.current
@@ -424,32 +572,49 @@ fun ProfileSection(navController: NavController) {
     var tempName by remember { mutableStateOf(profileName) }
     var profileImageUri by remember { mutableStateOf<String?>(null) }
     var showFullscreenImage by remember { mutableStateOf(false) }
+    var showPetBubble by remember { mutableStateOf(false) }
+    var currentBubbleText by remember { mutableStateOf("") }
+    var isAnimatingOut by remember { mutableStateOf(false) }
     
     // Načtení dat při startu
     LaunchedEffect(Unit) {
         profileName = getProfileName(context)
         tempName = profileName
         profileImageUri = getProfileImageUri(context)
+        
+        // Zkontroluj, jestli má zobrazit bublinu
+        if (shouldShowBubble(context)) {
+            val equippedPet = BackpackManager.equippedPet.value
+            currentBubbleText = getRandomBubbleForPet(equippedPet?.petIcon)
+            showPetBubble = true
+        }
     }
     
     // Launcher pro výběr obrázku z galerie
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            profileImageUri = it.toString()
-            saveProfileImageUri(context, it.toString())
+        uri?.let { originalUri ->
+            // Zkopírujeme obrázek do interního úložiště
+            val copiedImagePath = copyImageToInternalStorage(context, originalUri)
+            copiedImagePath?.let { path ->
+                profileImageUri = path
+                saveProfileImageUri(context, path)
+            }
         }
     }
     
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
-        elevation = CardDefaults.cardElevation(6.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            .padding(8.dp)
     ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(6.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -474,7 +639,7 @@ fun ProfileSection(navController: NavController) {
                 ) {
                     if (profileImageUri != null) {
                         AsyncImage(
-                            model = profileImageUri,
+                            model = File(profileImageUri!!),
                             contentDescription = "Profilový obrázek",
                             modifier = Modifier
                                 .size(120.dp)
@@ -520,7 +685,10 @@ fun ProfileSection(navController: NavController) {
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f))
-                            .clickable { navController.navigate("backpack") },
+                            .clickable { 
+                                currentBubbleText = getRandomBubbleForPet(petIcon)
+                                showPetBubble = true
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -615,7 +783,7 @@ fun ProfileSection(navController: NavController) {
             ) {
                 if (profileImageUri != null) {
                     AsyncImage(
-                        model = profileImageUri,
+                        model = File(profileImageUri!!),
                         contentDescription = "Profilový obrázek",
                         modifier = Modifier
                             .fillMaxSize()
@@ -651,6 +819,102 @@ fun ProfileSection(navController: NavController) {
             }
         }
     }
+    
+    // Bublina nad profilem s animacemi
+    AnimatedVisibility(
+        visible = showPetBubble,
+        enter = slideInVertically(
+            initialOffsetY = { -it },
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        ) + fadeIn(
+            animationSpec = tween(300)
+        ) + scaleIn(
+            initialScale = 0.8f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { -it },
+            animationSpec = tween(300)
+        ) + fadeOut(
+            animationSpec = tween(300)
+        ) + scaleOut(
+            targetScale = 0.6f,
+            animationSpec = tween(300)
+        )
+    ) {
+        // Animovaný scale efekt při kliknutí
+        val scale by animateFloatAsState(
+            targetValue = if (isAnimatingOut) 0.9f else 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            label = "bubble_click_scale"
+        )
+        // Hlavní bublina
+        Card(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 60.dp, top = 20.dp, end = 20.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clickable { 
+                    isAnimatingOut = true
+                },
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            ),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Text(
+                text = currentBubbleText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(16.dp),
+                textAlign = TextAlign.Start
+            )
+        }
+        
+        // Špička bubliny (trojúhelník) směřující k zvířátku
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .offset(x = 40.dp, y = (-30).dp)
+                .size(16.dp)
+                .background(
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(bottomStart = 16.dp)
+                )
+        )
+    }
+    
+    // Automatické zavření po 7 sekundách
+    LaunchedEffect(showPetBubble) {
+        if (showPetBubble) {
+            delay(7000)
+            isAnimatingOut = true
+        }
+    }
+    
+    // Animace při kliknutí na bublinu
+    LaunchedEffect(isAnimatingOut) {
+        if (isAnimatingOut) {
+            delay(300) // Čeká na dokončení animace
+            dismissBubbleForHour(context)
+            showPetBubble = false
+            isAnimatingOut = false
+        }
+    }
+}
 }
 
 @Composable
