@@ -72,6 +72,7 @@ import com.example.tobisoappnative.ShopManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.FullScreenMilestoneOverlay
+import com.example.tobisoappnative.components.FullScreenAchievementOverlay
 import androidx.compose.runtime.rememberCoroutineScope
 import android.app.AlarmManager
 import com.example.tobisoappnative.screens.StreakScreen
@@ -79,6 +80,7 @@ import com.example.tobisoappnative.screens.ShopScreen
 import com.example.tobisoappnative.screens.addTodayToStreak
 import com.example.tobisoappnative.screens.getStreakDays
 import com.example.tobisoappnative.screens.calculateStreaks
+import com.example.tobisoappnative.screens.checkPointsAchievements
 import java.util.*
 
 class MainActivity : ComponentActivity() {
@@ -199,11 +201,14 @@ class MainActivity : ComponentActivity() {
         val hasUserDismissedNoInternet by mainViewModel.hasUserDismissedNoInternet.collectAsState()
         val lastAddedPoints by PointsManager.lastAddedPoints.collectAsState()
         val lastMilestone by PointsManager.lastMilestone.collectAsState()
+        val lastAchievement by PointsManager.lastAchievement.collectAsState()
         var showOverlay by remember { mutableStateOf(false) }
         var overlayPoints by remember { mutableStateOf(0) }
         var showTotalOverlay by remember { mutableStateOf(false) }
         var showMilestoneOverlay by remember { mutableStateOf(false) }
+        var showAchievementOverlay by remember { mutableStateOf(false) }
         var milestoneDay by remember { mutableStateOf(0) }
+        var achievementPoints by remember { mutableStateOf(0) }
         val coroutineScope = rememberCoroutineScope()
 
         // Kontrola, zda byla aplikace otevřena z notifikace
@@ -248,8 +253,9 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(context) {
             PointsManager.init(context)
             ShopManager.init(context)
-            // Kontrola milníků až po inicializaci PointsManager a UI
+            // Kontrola milníků a achievementů až po inicializaci PointsManager a UI
             checkStreakMilestones(context)
+            checkPointsAchievements(context)
         }
         val totalPoints by PointsManager.totalPoints.collectAsState()
 
@@ -278,9 +284,29 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // LaunchedEffect pro achievement overlay (priorita)
+        LaunchedEffect(lastAchievement) {
+            if (lastAchievement != null) {
+                println("=== ACHIEVEMENT OVERLAY DEBUG ===")
+                println("Achievement detected: $lastAchievement points")
+                println("Points to show: $lastAddedPoints")
+                println("Total points: $totalPoints")
+                
+                overlayPoints = lastAddedPoints
+                achievementPoints = lastAchievement!!
+                showAchievementOverlay = true
+                delay(3000) // Delší zobrazení pro achievement
+                showAchievementOverlay = false
+                PointsManager.resetLastAddedPoints()
+                
+                println("Achievement overlay finished and reset")
+                println("=== END ACHIEVEMENT OVERLAY DEBUG ===")
+            }
+        }
+
         // LaunchedEffect pro běžný overlay (body s přičítáním)
         LaunchedEffect(lastAddedPoints) {
-            if (lastAddedPoints != 0 && lastMilestone == null) {
+            if (lastAddedPoints != 0 && lastMilestone == null && lastAchievement == null) {
                 overlayPoints = lastAddedPoints
                 showOverlay = true
                 delay(2500)
@@ -840,12 +866,18 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     
-                    // Overlays pro body a milníky
+                    // Overlays pro body, milníky a achievementy
                     if (showMilestoneOverlay) {
                         FullScreenMilestoneOverlay(
                             points = overlayPoints,
                             totalPoints = totalPoints,
                             milestoneDay = milestoneDay
+                        )
+                    } else if (showAchievementOverlay) {
+                        FullScreenAchievementOverlay(
+                            points = overlayPoints,
+                            totalPoints = totalPoints,
+                            achievementPoints = achievementPoints
                         )
                     } else if (showOverlay) {
                         FullScreenPointsOverlay(

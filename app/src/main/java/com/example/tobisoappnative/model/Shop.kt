@@ -4,7 +4,7 @@ package com.example.tobisoappnative.model
 enum class ShopCategory(val displayName: String) {
     STREAK("Řada"),
     QUOTES("Citáty"),
-    SUBJECTS("Předměty"),
+    SUBJECTS("Balíčky ikon"),
     POWER_UPS("Power-upy"),
     PETS("Zvířátka")
 }

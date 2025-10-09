@@ -43,6 +43,17 @@ object ShopManager {
         prefs.edit().putBoolean("${KEY_PURCHASED_PREFIX}$itemId", true).apply()
     }
     
+    // Odebrání koupeného itemu (pro jednorázové použití power-upů)
+    private fun removePurchasedItem(context: Context, itemId: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().remove("${KEY_PURCHASED_PREFIX}$itemId").apply()
+        
+        // Aktualizace lokálního state
+        val currentItems = _purchasedItems.value.toMutableSet()
+        currentItems.remove(itemId)
+        _purchasedItems.value = currentItems
+    }
+    
     // Nákup itemu
     fun purchaseItem(context: Context, item: ShopItem): Boolean {
         // Odečtení bodů přes PointsManager
@@ -117,10 +128,14 @@ object ShopManager {
             
             PointsManager.activateMultiplier(context, item.multiplier, item.durationMinutes)
             
-            // Nastavení cooldownu
-            if (item.cooldownMinutes != null) {
-                setCooldown(context, item.id, item.cooldownMinutes)
-            }
+            // Odebrání power-upu z vlastněných položek (jednorázové použití)
+            removePurchasedItem(context, item.id)
+            
+            // Nastavení 3hodinového cooldownu (i když už power-up nevlastníme)
+            setCooldown(context, item.id, 180) // 180 minut = 3 hodiny
+            
+            // Refresh aktovky po použití
+            BackpackManager.refreshItems(context)
             
             return true
         }

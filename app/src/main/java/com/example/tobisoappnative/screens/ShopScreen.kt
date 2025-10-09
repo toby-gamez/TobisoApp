@@ -230,7 +230,10 @@ fun ShopScreen(navController: NavController) {
                             selectedItem = item
                             when (item.type) {
                                 ShopItemType.POINTS_MULTIPLIER -> {
-                                    if (purchasedItemIds.contains(item.id)) {
+                                    if (ShopManager.isOnCooldown(context, item.id)) {
+                                        // Na cooldownu - nezobrazuj dialog
+                                        return@ShopItemCard
+                                    } else if (purchasedItemIds.contains(item.id)) {
                                         showUsePowerUpDialog = true
                                     } else {
                                         showPurchaseDialog = true
@@ -430,14 +433,17 @@ fun ShopItemCard(
 ) {
     val containerColor = when {
         isPurchased -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        isOnCooldown && item.type == ShopItemType.POINTS_MULTIPLIER -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         !canAfford -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     
+    val isClickable = !isPurchased && !(isOnCooldown && item.type == ShopItemType.POINTS_MULTIPLIER)
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !isPurchased) { onClick() },
+            .clickable(enabled = isClickable) { onClick() },
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(
@@ -754,6 +760,33 @@ fun ShopItemCard(
                                         color = MaterialTheme.colorScheme.error
                                     )
                                 }
+                            }
+                        } else if (item.type == ShopItemType.POINTS_MULTIPLIER && isOnCooldown) {
+                            // Pro power-upy na cooldownu (i když nejsou vlastněné)
+                            Column(
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = "Cooldown",
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "${cooldownTimeLeft}min",
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                Text(
+                                    text = "Cooldown",
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontSize = 12.sp
+                                )
                             }
                         } else {
                             // Standardní zobrazení ceny pro ostatní itemy

@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.outlined.ShoppingBag
@@ -48,7 +49,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextAlign
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
@@ -67,6 +67,9 @@ import java.io.InputStream
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.text.style.TextAlign
 
 // Helper funkce pro správu profilu
 fun getProfileName(context: android.content.Context): String {
@@ -140,6 +143,7 @@ fun getCurrentStreakProfile(context: android.content.Context): Int {
     return currentStreak
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewModel()) {
@@ -286,6 +290,11 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                 // Vybavený citát
                 item(span = { GridItemSpan(gridColumns) }) {
                     EquippedQuoteSection(navController = navController)
+                }
+                
+                // Úspěchy
+                item(span = { GridItemSpan(gridColumns) }) {
+                    AchievementsSection()
                 }
                 
 
@@ -487,6 +496,18 @@ val petBubbles = mapOf(
         "Vodní rada: Nech myšlenky volně plynout! 💫",
         "Delfín doporučuje: Učte se ve skupině! 👥",
         "Chytrý delfín ví: Každý má co nabídnout! 🎁"
+    ),
+    "🐭" to listOf(
+        "Myška šeptá: Malé kroky vedou k velkým cílům! 🏃‍♀️",
+        "Rychlá rada: Procvič si paměť každý den! 🧠",
+        "Myši vědí: Pozornost k detailům je klíčová! 🔍",
+        "Myška praví: Buď rychlý, ale přesný! ⚡",
+        "Malá myška, velká moudrost: Vytrvej! 💪",
+        "Myška doporučuje: Najdi si tiché místo na učení! 🤫",
+        "Rychlý tip: Opakování je matka moudrosti! 🔄",
+        "Myška ví: I malé úspěchy se počítají! ⭐",
+        "Chytrá myška říká: Buď zvědavý jako já! 🤔",
+        "Myška radí: Někdy je nejlepší začít znovu! 🔄"
     )
 )
 
@@ -914,6 +935,433 @@ fun EquippedQuoteSection(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        }
+    }
+}
+
+// Funkce pro generování achievementů bodů
+fun generatePointsAchievements(): Map<Int, Int> {
+    return mapOf(
+        10 to 5,      // 10 bodů -> 5 bodů odměna
+        20 to 5,
+        50 to 10,
+        75 to 10,
+        100 to 15,
+        150 to 15,
+        200 to 15,
+        300 to 20,
+        400 to 20,
+        500 to 25,
+        600 to 25,
+        700 to 25,
+        800 to 30,
+        900 to 30,
+        1000 to 50,   // speciální odměna za 1000
+        1500 to 75,
+        2000 to 100,
+        3000 to 150,
+        4000 to 200,
+        5000 to 250
+        // můžeme přidat další podle potřeby
+    )
+}
+
+// Funkce pro kontrolu achievementů
+fun checkPointsAchievements(context: android.content.Context) {
+    val totalEarnedPoints = PointsManager.getTotalEarnedPoints()
+    val achievements = generatePointsAchievements()
+    
+    // SharedPreferences pro sledování dosažených achievementů
+    val achievementsPrefs = context.getSharedPreferences("points_achievements", android.content.Context.MODE_PRIVATE)
+    
+    var newAchievementsFound = false
+    achievements.forEach { (requiredPoints, rewardPoints) ->
+        if (totalEarnedPoints >= requiredPoints) {
+            val achievementKey = "achievement_$requiredPoints"
+            val isAlreadyAchieved = achievementsPrefs.getBoolean(achievementKey, false)
+            
+            if (!isAlreadyAchieved) {
+                newAchievementsFound = true
+                println("🏆 NEW ACHIEVEMENT UNLOCKED: $requiredPoints points - awarding $rewardPoints points")
+                
+                // Achievement dosažen poprvé - přidat body s informací o achievementu
+                PointsManager.addPointsForAchievement(context, rewardPoints, requiredPoints)
+                
+                // Označit achievement jako dosažený
+                achievementsPrefs.edit().putBoolean(achievementKey, true).apply()
+            }
+        }
+    }
+}
+
+// Funkce pro generování streak odznaků podle dní
+fun getStreakBadge(days: Int): AchievementBadge {
+    return when (days) {
+        7 -> AchievementBadge("🗓️", "Týdenní řada", "7 dní v řadě", Color(0xFF4CAF50))
+        14 -> AchievementBadge("📅", "Čtrnáctidenní řada", "14 dní v řadě", Color(0xFF2196F3))
+        25 -> AchievementBadge("🔥", "Čtvrt sta řada", "25 dní v řadě", Color(0xFFFF5722))
+        30 -> AchievementBadge("🌙", "Měsíční řada", "30 dní v řadě", Color(0xFF9C27B0))
+        50 -> AchievementBadge("💫", "Padesátidenní řada", "50 dní v řadě", Color(0xFFFFEB3B))
+        60 -> AchievementBadge("⏰", "Dvouměsíční řada", "60 dní v řadě", Color(0xFF00BCD4))
+        75 -> AchievementBadge("⚡", "Bleskurychlá řada", "75 dní v řadě", Color(0xFF673AB7))
+        100 -> AchievementBadge("💯", "Stoletní řada", "100 dní v řadě", Color(0xFFF44336))
+        125 -> AchievementBadge("🎯", "Vytrvalá řada", "125 dní v řadě", Color(0xFF795548))
+        150 -> AchievementBadge("🏅", "Šampionská řada", "150 dní v řadě", Color(0xFFFFEB3B))
+        175 -> AchievementBadge("🌟", "Hvězdná řada", "175 dní v řadě", Color(0xFF3F51B5))
+        183 -> AchievementBadge("📆", "Půlroční řada", "183 dní v řadě", Color(0xFF607D8B))
+        200 -> AchievementBadge("🚀", "Raketová řada", "200 dní v řadě", Color(0xFF9C27B0))
+        250 -> AchievementBadge("👑", "Královská řada", "250 dní v řadě", Color(0xFFE91E63))
+        300 -> AchievementBadge("💎", "Diamantová řada", "300 dní v řadě", Color(0xFF424242))
+        365 -> AchievementBadge("🎂", "Roční řada", "365 dní v řadě", Color(0xFFFF9800))
+        400 -> AchievementBadge("🦅", "Orlí řada", "400 dní v řadě", Color(0xFF3F51B5))
+        500 -> AchievementBadge("🏆", "Legendární řada", "500 dní v řadě", Color(0xFF9C27B0))
+        548 -> AchievementBadge("🌍", "Půldruharoční řada", "548 dní v řadě", Color(0xFFFF5722))
+        600 -> AchievementBadge("🔮", "Mystická řada", "600 dní v řadě", Color(0xFF4CAF50))
+        730 -> AchievementBadge("🌈", "Dvouletá řada", "730 dní v řadě", Color(0xFF2196F3))
+        800 -> AchievementBadge("🏔️", "Vrcholová řada", "800 dní v řadě", Color(0xFF9C27B0))
+        913 -> AchievementBadge("🎆", "Dva a půl roky řada", "913 dní v řadě", Color(0xFFFFEB3B))
+        1000 -> AchievementBadge("♾️", "Tisícidenní řada", "1000 dní v řadě", Color(0xFFFF5722))
+        1095 -> AchievementBadge("🌌", "Tříletá řada", "1095 dní v řadě", Color(0xFF00BCD4))
+        1460 -> AchievementBadge("🎊", "Čtyřletá řada", "1460 dní v řadě", Color(0xFF673AB7))
+        1826 -> AchievementBadge("🏰", "Pětiletá řada", "1826 dní v řadě", Color(0xFFF44336))
+        else -> {
+            // Každých 25 dní generický odznak
+            if (days % 25 == 0) {
+                AchievementBadge("🏅", "${days}denní řada", "$days dní v řadě", Color(0xFF795548))
+            } else {
+                AchievementBadge("📊", "Streak řada", "$days dní v řadě", Color(0xFF607D8B))
+            }
+        }
+    }
+}
+
+// Funkce pro získání všech dosažených streak milníků
+@RequiresApi(Build.VERSION_CODES.O)
+fun getCompletedStreakMilestones(context: android.content.Context): List<Int> {
+    val milestonesPrefs = context.getSharedPreferences("streak_milestones", android.content.Context.MODE_PRIVATE)
+    val streakDays = context.getSharedPreferences("StreakData", android.content.Context.MODE_PRIVATE)
+        .getStringSet("streak_days", emptySet()) ?: emptySet()
+    
+    if (streakDays.isEmpty()) return emptyList()
+    
+    // Použijeme stejnou logiku jako v MainActivity pro generování milníků
+    val sortedDates = streakDays.map { java.time.LocalDate.parse(it) }.sorted()
+    var maxStreak = 1
+    var runningStreak = 1
+
+    for (i in 1 until sortedDates.size) {
+        if (sortedDates[i].minusDays(1) == sortedDates[i - 1]) {
+            runningStreak++
+        } else {
+            runningStreak = 1
+        }
+        if (runningStreak > maxStreak) {
+            maxStreak = runningStreak
+        }
+    }
+    
+    // Speciální milníky podle MainActivity
+    val specialMilestones = listOf(7, 14, 30, 60, 100, 183, 365, 548, 730, 913, 1095, 1460, 1826)
+    val regularMilestones = (25..maxStreak + 100 step 25).filter { it !in specialMilestones }
+    val allMilestones = (specialMilestones + regularMilestones).filter { it <= maxStreak }
+    
+    // Vrátit jen ty, které jsou označené jako dosažené
+    return allMilestones.filter { days ->
+        milestonesPrefs.getBoolean("milestone_$days", false)
+    }.sorted()
+}
+
+// Funkce pro generování odznaků podle bodů
+fun getAchievementBadge(points: Int): AchievementBadge {
+    return when (points) {
+        10 -> AchievementBadge("🌱", "Začátečník", "První kroky", Color(0xFF4CAF50))
+        20 -> AchievementBadge("📚", "Student", "Učí se", Color(0xFF2196F3))
+        50 -> AchievementBadge("🎯", "Cílevědomý", "Má jasný cíl", Color(0xFF9C27B0))
+        75 -> AchievementBadge("⭐", "Hvězda", "Září mezi ostatními", Color(0xFFFFEB3B))
+        100 -> AchievementBadge("🏆", "Šampion", "První století", Color(0xFFFF9800))
+        150 -> AchievementBadge("🔥", "V ohni", "Neustále aktivní", Color(0xFFFF5722))
+        200 -> AchievementBadge("💎", "Diamant", "Vzácný talent", Color(0xFF00BCD4))
+        300 -> AchievementBadge("🚀", "Raketa", "Rychlý pokrok", Color(0xFF673AB7))
+        400 -> AchievementBadge("👑", "Král", "Vládne oboru", Color(0xFFF44336))
+        500 -> AchievementBadge("🦅", "Orel", "Letí vysoko", Color(0xFF795548))
+        600 -> AchievementBadge("⚡", "Blesk", "Rychlý jako světlo", Color(0xFFFFEB3B))
+        700 -> AchievementBadge("🌟", "Supernova", "Zářivý úspěch", Color(0xFF3F51B5))
+        800 -> AchievementBadge("🏔️", "Vrchol", "Na vrcholu hory", Color(0xFF607D8B))
+        900 -> AchievementBadge("🔮", "Mystik", "Tajemná síla", Color(0xFF9C27B0))
+        1000 -> AchievementBadge("🌈", "Legenda", "Tisíc bodů!", Color(0xFFE91E63))
+        1500 -> AchievementBadge("🌙", "Lunární", "Dosáhl měsíce", Color(0xFF424242))
+        2000 -> AchievementBadge("☀️", "Solární", "Síla slunce", Color(0xFFFF9800))
+        3000 -> AchievementBadge("🌌", "Galaktický", "Mezi hvězdami", Color(0xFF3F51B5))
+        4000 -> AchievementBadge("🎆", "Kosmický", "Za hranicí", Color(0xFF9C27B0))
+        5000 -> AchievementBadge("♾️", "Nekonečný", "Bez hranic", Color(0xFFFF5722))
+        else -> AchievementBadge("🏅", "Medaile", "Úspěch", Color(0xFF4CAF50))
+    }
+}
+
+// Data třída pro odznaky
+data class AchievementBadge(
+    val emoji: String,
+    val title: String,
+    val description: String,
+    val color: Color
+)
+
+// Data třída pro badge s dodatečnými informacemi
+data class BadgeData(
+    val id: String,
+    val badge: AchievementBadge,
+    val type: String // "points" nebo "streak"
+)
+
+// Komponenta pro zobrazení achievementů
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AchievementsSection() {
+    val context = LocalContext.current
+    val totalEarnedPoints by PointsManager.totalEarnedPoints.collectAsState()
+    val achievements = remember { generatePointsAchievements().toSortedMap() }
+    
+    // Získání dosažených achievementů bodů
+    val achievementsPrefs = context.getSharedPreferences("points_achievements", android.content.Context.MODE_PRIVATE)
+    val completedPointsAchievements = achievements.keys.filter { points ->
+        totalEarnedPoints >= points && achievementsPrefs.getBoolean("achievement_$points", false)
+    }
+    
+    // Získání dosažených streak milníků
+    val completedStreakMilestones = getCompletedStreakMilestones(context)
+    
+    // Spojit všechny dosažené odznaky
+    val allCompletedBadges = completedPointsAchievements.map { 
+        BadgeData(it.toString(), getAchievementBadge(it), "points") 
+    } + completedStreakMilestones.map { 
+        BadgeData(it.toString(), getStreakBadge(it), "streak") 
+    }
+    
+    // Najdi nejbližší nedosažený achievement bodů
+    val nextAchievement = achievements.entries.firstOrNull { it.key > totalEarnedPoints }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
+            // Hlavička s ikonou a názvem
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Stars,
+                    contentDescription = "Úspěchy",
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Odznaky",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "${allCompletedBadges.size}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Galerie dosažených odznaků
+            if (allCompletedBadges.isNotEmpty()) {
+                Text(
+                    text = "Získané odznaky:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Grid odznaků (3 v řádku) - seřazené podle typu a hodnoty
+                val sortedBadges = allCompletedBadges.sortedWith(
+                    compareBy<BadgeData> { if (it.type == "streak") 0 else 1 }
+                        .thenBy { it.id.toIntOrNull() ?: 0 }
+                )
+                val chunkedBadges = sortedBadges.chunked(3)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    chunkedBadges.forEach { rowBadges ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            rowBadges.forEach { badgeData ->
+                                BadgeCard(
+                                    badge = badgeData.badge,
+                                    value = badgeData.id.toIntOrNull() ?: 0,
+                                    type = badgeData.type,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            // Vyplnění zbývajících míst v řádku
+                            repeat(3 - rowBadges.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            // Progress k nejbližšímu achievementu
+            if (nextAchievement != null) {
+                val previousAchievement = achievements.entries.lastOrNull { it.key <= totalEarnedPoints }
+                val startValue = previousAchievement?.key ?: 0
+                val targetValue = nextAchievement.key
+                val currentProgress = (totalEarnedPoints - startValue).coerceAtLeast(0)
+                val maxProgress = targetValue - startValue
+                val progress = if (maxProgress > 0) currentProgress.toFloat() / maxProgress.toFloat() else 0f
+                
+                val nextBadge = getAchievementBadge(nextAchievement.key)
+                
+                // Náhled dalšího odznaku
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = nextBadge.emoji,
+                        fontSize = 20.sp,
+                        modifier = Modifier
+                            .background(
+                                nextBadge.color.copy(alpha = 0.2f),
+                                CircleShape
+                            )
+                            .padding(8.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Další: ${nextBadge.title}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = "${nextAchievement.key} bodů (+${nextAchievement.value} odměna)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = nextBadge.color,
+                    trackColor = nextBadge.color.copy(alpha = 0.3f)
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "$totalEarnedPoints / ${nextAchievement.key}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                )
+            } else {
+                // Všechny achievementy dokončeny
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "🎉",
+                        fontSize = 24.sp
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Všechny odznaky získány!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Komponenta pro jednotlivý odznak
+@Composable
+fun BadgeCard(
+    badge: AchievementBadge,
+    value: Int,
+    type: String, // "points" nebo "streak"
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .aspectRatio(1f),
+        colors = CardDefaults.cardColors(
+            containerColor = badge.color.copy(alpha = 0.15f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = badge.color.copy(alpha = 0.4f)
+        )
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+        ) {
+            Text(
+                text = badge.emoji,
+                fontSize = 24.sp
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Text(
+                text = badge.title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = badge.color,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+            
+            Text(
+                text = if (type == "streak") "${value}d" else "${value}b",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

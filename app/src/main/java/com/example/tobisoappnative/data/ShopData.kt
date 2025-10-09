@@ -288,7 +288,7 @@ object ShopData {
                 quote = "Všechno ti může být vzato kromě jedné věci: tvé svobody vybrat si svůj postoj v jakékoli situaci. - Viktor Frankl"
             ),
             
-            // Předměty kategorie - balíčky ikon
+            // Balíčky ikon kategorie
             ShopItem(
                 id = 20,
                 name = "Emoji balíček",
@@ -451,6 +451,15 @@ object ShopData {
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🐬"
+            ),
+            ShopItem(
+                id = 48,
+                name = "Myška Roztomilá",
+                description = "Malá, rychlá a chytrá myška, která ti pomůže najít nejkratší cesty k poznání",
+                price = 0, // DEBUG - normálně 45 (4.5 lekce)
+                category = ShopCategory.PETS,
+                type = ShopItemType.PET,
+                petIcon = "🐭"
             )
         )
     }

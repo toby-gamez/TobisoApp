@@ -392,3 +392,148 @@ fun FullScreenTotalPointsOverlay(totalPoints: Int) {
         }
     }
 }
+
+@Composable
+fun FullScreenAchievementOverlay(points: Int, totalPoints: Int, achievementPoints: Int) {
+    // Stavy pro animace
+    var startAnimations by remember { mutableStateOf(false) }
+    var startFadeOut by remember { mutableStateOf(false) }
+
+    // Spuštění animací při zobrazení komponenty
+    LaunchedEffect(Unit) {
+        startAnimations = true
+        delay(2200) // Delší delay pro achievement
+        startFadeOut = true
+    }
+
+    // Animace pro fade-in/out efekt celého overlay
+    val alpha by animateFloatAsState(
+        targetValue = when {
+            startFadeOut -> 0f
+            startAnimations -> 1f
+            else -> 0f
+        },
+        animationSpec = if (startFadeOut) {
+            tween(durationMillis = 400, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        },
+        label = "alpha"
+    )
+
+    // Animace pro text - postupné objevení s bounce efektem
+    val textScale by animateFloatAsState(
+        targetValue = if (startAnimations && !startFadeOut) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "textScale"
+    )
+
+    // Animace pro sekundární text - mírně zpožděná
+    val secondaryAlpha by animateFloatAsState(
+        targetValue = if (startAnimations && !startFadeOut) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 800,
+            delayMillis = 200,
+            easing = FastOutSlowInEasing
+        ),
+        label = "secondaryAlpha"
+    )
+
+    val achievementColor = MaterialTheme.colorScheme.tertiary
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(alpha)
+            .background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        // Kruh na pozadí s animací
+        Box(
+            modifier = Modifier
+                .size(400.dp)
+                .scale(textScale)
+                .border(
+                    width = 40.dp,
+                    color = achievementColor.copy(alpha = 0.3f),
+                    shape = CircleShape
+                )
+                .background(
+                    color = Color.Transparent,
+                    shape = CircleShape
+                )
+        )
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(32.dp)
+        ) {
+            // Emoji nebo ikona achievementu
+            Text(
+                text = "🏆",
+                fontSize = 64.sp,
+                modifier = Modifier
+                    .scale(textScale)
+                    .alpha(secondaryAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Hlavní text achievementu
+            Text(
+                text = "Úspěch odemčen!",
+                color = achievementColor,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.scale(textScale)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Text s počtem bodů pro achievement
+            Text(
+                text = "$achievementPoints celkových bodů",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.alpha(secondaryAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Body získané za achievement
+            Text(
+                text = "+$points bodů!",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.alpha(secondaryAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Celkový počet bodů s hvězdičkou
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.alpha(secondaryAlpha)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Stars,
+                    contentDescription = "Body",
+                    tint = achievementColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Celkem: $totalPoints bodů",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}

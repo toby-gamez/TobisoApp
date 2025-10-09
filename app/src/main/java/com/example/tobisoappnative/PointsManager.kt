@@ -20,6 +20,8 @@ object PointsManager {
     val totalPoints: StateFlow<Int> = _totalPoints
     private val _lastMilestone = MutableStateFlow<Int?>(null)
     val lastMilestone: StateFlow<Int?> = _lastMilestone
+    private val _lastAchievement = MutableStateFlow<Int?>(null)
+    val lastAchievement: StateFlow<Int?> = _lastAchievement
     private val _activeMultiplier = MutableStateFlow(1.0f)
     val activeMultiplier: StateFlow<Float> = _activeMultiplier
     private val _totalEarnedPoints = MutableStateFlow(0)
@@ -57,6 +59,16 @@ object PointsManager {
         _totalEarnedPoints.value = totalEarnedPointsValue
         savePoints(context)
         saveTotalEarnedPoints(context)
+        
+        // Kontrola achievementů po přidání bodů
+        try {
+            val checkPointsAchievements = Class.forName("com.example.tobisoappnative.screens.ProfileScreenKt")
+                .getDeclaredMethod("checkPointsAchievements", android.content.Context::class.java)
+            checkPointsAchievements.invoke(null, context)
+        } catch (e: Exception) {
+            // Fallback - pokud se nepodaří načíst funkci, nevadí
+            println("Could not call checkPointsAchievements: ${e.message}")
+        }
     }
 
     fun addPointsForMilestone(context: Context, amount: Int, milestoneDay: Int) {
@@ -80,6 +92,27 @@ object PointsManager {
         println("=== END POINTS MANAGER DEBUG ===")
     }
 
+    fun addPointsForAchievement(context: Context, amount: Int, achievementPoints: Int) {
+        println("=== ACHIEVEMENT POINTS MANAGER DEBUG ===")
+        println("Adding $amount points for achievement $achievementPoints points")
+        println("Points before: $points")
+        
+        points += amount
+        totalEarnedPointsValue += amount
+        _lastAddedPoints.value = amount
+        _lastAchievement.value = achievementPoints
+        _totalPoints.value = points
+        _totalEarnedPoints.value = totalEarnedPointsValue
+        savePoints(context)
+        saveTotalEarnedPoints(context)
+        
+        println("Points after: $points")
+        println("LastAddedPoints set to: $amount")
+        println("LastAchievement set to: $achievementPoints")
+        println("TotalPoints set to: $points")
+        println("=== END ACHIEVEMENT POINTS MANAGER DEBUG ===")
+    }
+
     private fun savePoints(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putInt(KEY_POINTS, points).apply()
@@ -93,6 +126,7 @@ object PointsManager {
     fun resetLastAddedPoints() {
         _lastAddedPoints.value = 0
         _lastMilestone.value = null
+        _lastAchievement.value = null
     }
 
     fun getPoints(): Int {
