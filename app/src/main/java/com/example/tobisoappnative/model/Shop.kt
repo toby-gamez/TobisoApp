@@ -3,7 +3,7 @@ package com.example.tobisoappnative.model
 // Kategorie obchodu
 enum class ShopCategory(val displayName: String) {
     STREAK("Řada"),
-    PROFILE("Profil"),
+    QUOTES("Citáty"),
     SUBJECTS("Předměty"),
     POWER_UPS("Power-upy"),
     PETS("Zvířátka")

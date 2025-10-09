@@ -165,6 +165,33 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
             LargeTopAppBar(
                 title = { Text("Profil", style = MaterialTheme.typography.titleLarge) },
                 actions = {
+                    // Ikona aktovky
+                    IconButton(
+                        onClick = { navController.navigate("backpack") }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Backpack,
+                            contentDescription = "Aktovka",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    
+                    // Ikona obchodu
+                    IconButton(
+                        onClick = { navController.navigate("shop") }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ShoppingBag,
+                            contentDescription = "Obchod",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    
+                    // Zobrazení aktivního multiplikátoru
+                    MultiplierIndicator()
+                    
                     // Zobrazení bodů s novým designem
                     val totalPoints by PointsManager.totalPoints.collectAsState()
                     Row(
@@ -192,9 +219,6 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                             fontSize = 16.sp
                         )
                     }
-                    
-                    // Zobrazení aktivního multiplikátoru
-                    MultiplierIndicator()
                     
                     // Streak button s počtem dní
                     val context = LocalContext.current
@@ -264,72 +288,7 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                     EquippedQuoteSection(navController = navController)
                 }
                 
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                        onClick = { navController.navigate("shop") }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.ShoppingBag,
-                                    contentDescription = "Obchod",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    "Obchod", 
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Text(
-                                "Utrať své body za streak freeze, citáty, ikony a zvířátka!", 
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                }
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                        onClick = { navController.navigate("backpack") }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Backpack,
-                                    contentDescription = "Aktovka",
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                                Text(
-                                    "Aktovka", 
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Text(
-                                "Prohlédni si své koupené věci - citáty, ikony a zvířátka!", 
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                }
+
                 item(span = { GridItemSpan(1) }) {
                     Card(
                         modifier = cardModifier,
@@ -925,17 +884,19 @@ fun EquippedQuoteSection(navController: NavController) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-                .clickable { navController.navigate("backpack") },
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
             ),
             shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(4.dp)
+            elevation = CardDefaults.cardElevation(4.dp),
+
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(
                     imageVector = Icons.Default.FormatQuote,
@@ -949,7 +910,8 @@ fun EquippedQuoteSection(navController: NavController) {
                     style = MaterialTheme.typography.bodyMedium,
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

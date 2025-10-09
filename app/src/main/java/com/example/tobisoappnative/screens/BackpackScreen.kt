@@ -50,23 +50,25 @@ fun BackpackScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val headerPositions = remember { mutableMapOf<BackpackCategory, Int>() }
     
-    // Sledování aktivní kategorie
+    // Sledování aktivní kategorie na základě scroll pozice - jednoduše!
     val activeCategory by remember {
         derivedStateOf {
             val visibleItems = listState.layoutInfo.visibleItemsInfo
-            if (visibleItems.isNotEmpty()) {
-                val firstVisibleKey = visibleItems.first().key as? String
-                when {
-                    firstVisibleKey?.contains("QUOTES") == true -> BackpackCategory.QUOTES
-                    firstVisibleKey?.contains("ICON_PACKS") == true -> BackpackCategory.ICON_PACKS
-                    firstVisibleKey?.contains("PETS") == true -> BackpackCategory.PETS
-                    firstVisibleKey?.contains("POWER_UPS") == true -> BackpackCategory.POWER_UPS
-                    firstVisibleKey?.contains("STREAK_ITEMS") == true -> BackpackCategory.STREAK_ITEMS
-                    else -> BackpackCategory.QUOTES
+            val firstIndex = if (visibleItems.isNotEmpty()) visibleItems.first().index else 0
+            
+            // Použij uložené pozice headerů a najdi nejbližší
+            val sortedPositions = headerPositions.toList().sortedBy { it.second }
+            
+            for (i in sortedPositions.indices.reversed()) {
+                if (firstIndex >= sortedPositions[i].second) {
+                    return@derivedStateOf sortedPositions[i].first
                 }
-            } else {
-                BackpackCategory.QUOTES
             }
+            
+            // Default - první kategorie s obsahem
+            BackpackCategory.entries.firstOrNull { category ->
+                BackpackManager.getItemsByCategory(category).isNotEmpty()
+            } ?: BackpackCategory.QUOTES
         }
     }
     
@@ -139,7 +141,7 @@ fun BackpackScreen(navController: NavController) {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(BackpackCategory.values().filter { category ->
+                items(BackpackCategory.entries.filter { category ->
                     BackpackManager.getItemsByCategory(category).isNotEmpty()
                 }) { category ->
                     BackpackCategoryChip(
@@ -149,7 +151,14 @@ fun BackpackScreen(navController: NavController) {
                             coroutineScope.launch {
                                 val targetIndex = headerPositions[category]
                                 if (targetIndex != null) {
-                                    listState.animateScrollToItem(targetIndex)
+                                    try {
+                                        listState.animateScrollToItem(
+                                            index = targetIndex,
+                                            scrollOffset = 0
+                                        )
+                                    } catch (e: Exception) {
+                                        listState.scrollToItem(targetIndex)
+                                    }
                                 }
                             }
                         }
@@ -168,7 +177,7 @@ fun BackpackScreen(navController: NavController) {
                 var currentIndex = 0
                 
                 // Všechny kategorie pod sebou
-                BackpackCategory.values().forEach { category ->
+                BackpackCategory.entries.forEach { category ->
                     val categoryItems = BackpackManager.getItemsByCategory(category)
                     
                     if (categoryItems.isNotEmpty()) {
@@ -190,7 +199,7 @@ fun BackpackScreen(navController: NavController) {
                         // Položky kategorie
                         items(
                             items = categoryItems,
-                            key = { item -> "item_${item.shopItem.id}" }
+                            key = { item -> "item_${category.name}_${item.shopItem.id}" }
                         ) { backpackItem ->
                             BackpackItemCard(
                                 backpackItem = backpackItem,

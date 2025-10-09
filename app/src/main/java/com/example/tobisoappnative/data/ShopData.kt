@@ -16,33 +16,276 @@ object ShopData {
                 type = ShopItemType.STREAK_FREEZE
             ),
             
-            // Profil kategorie - citáty
+            // Citáty kategorie
             ShopItem(
                 id = 10,
-                name = "Motivační citát",
-                description = "\"Úspěch je součet malých úsilí opakovaných den za dnem.\"",
-                price = 0, // DEBUG - normálně 15 (1.5 lekce)
-                category = ShopCategory.PROFILE,
+                name = "Robert Collier",
+                description = "Americký spisovatel a propagátor pozitivního myšlení",
+                price = 0,
+                category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
-                quote = "Úspěch je součet malých úsilí opakovaných den za dnem."
+                quote = "Úspěch je součet malých úsilí opakovaných den za dnem. - Robert Collier"
             ),
             ShopItem(
                 id = 11,
-                name = "Inspirující citát",
-                description = "\"Vzdělání je nejlepší investice do budoucnosti.\"",
-                price = 0, // DEBUG - normálně 15 (1.5 lekce)
-                category = ShopCategory.PROFILE,
+                name = "Benjamin Franklin",
+                description = "Americký politik, vědec a jeden ze zakladatelů USA",
+                price = 0,
+                category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
-                quote = "Vzdělání je nejlepší investice do budoucnosti."
+                quote = "Vzdělání je nejlepší investice do budoucnosti. - Benjamin Franklin"
             ),
             ShopItem(
                 id = 12,
-                name = "Filozofický citát",
-                description = "\"Jediná konstanta ve vesmíru je změna.\"",
-                price = 0, // DEBUG - normálně 20 (2 lekce)
-                category = ShopCategory.PROFILE,
+                name = "Hérakleitos",
+                description = "Starověký řecký filozof",
+                price = 0,
+                category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
-                quote = "Jediná konstanta ve vesmíru je změna."
+                quote = "Jediná konstanta ve vesmíru je změna. - Hérakleitos"
+            ),
+            ShopItem(
+                id = 13,
+                name = "Albert Einstein",
+                description = "Teoretický fyzik a nositel Nobelovy ceny",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Fantazie je důležitější než vědomosti. - Albert Einstein"
+            ),
+            ShopItem(
+                id = 14,
+                name = "Nelson Mandela",
+                description = "Jihoafrický prezident a bojovník proti apartheidu",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Vzdělání je nejmocnější zbraň, kterou můžete použít ke změně světa. - Nelson Mandela"
+            ),
+            ShopItem(
+                id = 15,
+                name = "Aristoteles",
+                description = "Starověký řecký filozof a učitel Alexandra Velikého",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Kvalita není čin, ale návyk. - Aristoteles"
+            ),
+            ShopItem(
+                id = 16,
+                name = "Walt Disney",
+                description = "Americký animátor a zakladatel Disney Company",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Způsob, jak začít, je přestat mluvit a začít dělat. - Walt Disney"
+            ),
+            ShopItem(
+                id = 17,
+                name = "Maya Angelou",
+                description = "Americká spisovatelka a aktivistka za občanská práva",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Lidé zapomenou, co jste řekli, lidé zapomenou, co jste udělali, ale nikdy nezapomenou, jak jste jim připadali. - Maya Angelou"
+            ),
+            ShopItem(
+                id = 18,
+                name = "Steve Jobs",
+                description = "Spoluzakladatel a CEO společnosti Apple",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Inovace rozlišuje vůdce od následovníka. - Steve Jobs"
+            ),
+            ShopItem(
+                id = 19,
+                name = "Mahatma Gandhi",
+                description = "Indický duchovní vůdce a bojovník za nezávislost",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Buď změnou, kterou chceš vidět ve světě. - Mahatma Gandhi"
+            ),
+            ShopItem(
+                id = 50,
+                name = "Winston Churchill",
+                description = "Britský premiér během druhé světové války",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Úspěch není konečný, neúspěch není fatální: důležitá je odvaha pokračovat. - Winston Churchill"
+            ),
+            ShopItem(
+                id = 51,
+                name = "Theodore Roosevelt",
+                description = "26. prezident Spojených států amerických",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Věř, že můžeš, a jsi na půli cesty. - Theodore Roosevelt"
+            ),
+            ShopItem(
+                id = 52,
+                name = "Mark Twain",
+                description = "Americký spisovatel a humorista",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Odvaha není absence strachu, ale zvládnutí strachu. - Mark Twain"
+            ),
+            ShopItem(
+                id = 53,
+                name = "Helen Keller",
+                description = "Americká spisovatelka a aktivistka pro práva postižených",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Život je buď odvážné dobrodružství, nebo nic. - Helen Keller"
+            ),
+            ShopItem(
+                id = 54,
+                name = "Leonardo da Vinci",
+                description = "Italský renesanční génius, malíř a vynálezce",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Učení nikdy nevyčerpá mysl. - Leonardo da Vinci"
+            ),
+            ShopItem(
+                id = 55,
+                name = "Konfucius",
+                description = "Čínský filozof a učitel",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Skutečné vědění je znát rozsah své neznalosti. - Konfucius"
+            ),
+            ShopItem(
+                id = 56,
+                name = "Oscar Wilde",
+                description = "Irský spisovatel a dramatik",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Buď sám sebou; všichni ostatní už jsou obsazeni. - Oscar Wilde"
+            ),
+            ShopItem(
+                id = 57,
+                name = "Maya Angelou",
+                description = "Americká spisovatelka a aktivistka za občanská práva",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Pokud se ti něco nelíbí, změň to. Pokud to nemůžeš změnit, změň svůj postoj. - Maya Angelou"
+            ),
+            ShopItem(
+                id = 58,
+                name = "Ralph Waldo Emerson",
+                description = "Americký esejista a filozof",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Co leží za námi a co leží před námi, jsou malé věci ve srovnání s tím, co leží v nás. - Ralph Waldo Emerson"
+            ),
+            ShopItem(
+                id = 59,
+                name = "Franklin D. Roosevelt",
+                description = "32. prezident Spojených států amerických",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Jediné, čeho se máme bát, je strach sám. - Franklin D. Roosevelt"
+            ),
+            ShopItem(
+                id = 60,
+                name = "Vince Lombardi",
+                description = "Legendární americký fotbalový trenér",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Dokonalost není dosažitelná, ale pokud se snažíme o dokonalost, můžeme dosáhnout excellence. - Vince Lombardi"
+            ),
+            ShopItem(
+                id = 61,
+                name = "John F. Kennedy",
+                description = "35. prezident Spojených států amerických",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Neptej se, co může tvoje země udělat pro tebe, ale co můžeš udělat ty pro svou zemi. - John F. Kennedy"
+            ),
+            ShopItem(
+                id = 62,
+                name = "Socrates",
+                description = "Starověký řecký filozof",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Vím, že nic nevím. - Socrates"
+            ),
+            ShopItem(
+                id = 63,
+                name = "Martin Luther King Jr.",
+                description = "Americký pastor a aktivista za občanská práva",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Temnota nemůže vyhnat temnotu: pouze světlo to dokáže. - Martin Luther King Jr."
+            ),
+            ShopItem(
+                id = 64,
+                name = "Oprah Winfrey",
+                description = "Americká mediální osobnost a filantropka",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Největší objevení všech časů je, že člověk může změnit svou budoucnost pouhým změněním svého postoje. - Oprah Winfrey"
+            ),
+            ShopItem(
+                id = 65,
+                name = "Muhammad Ali",
+                description = "Legendární americký boxer",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Nemožné je jen názor. - Muhammad Ali"
+            ),
+            ShopItem(
+                id = 66,
+                name = "Buddha",
+                description = "Zakladatel buddhismu",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Mysl je vše. Čím si myslíš, tím se stáváš. - Buddha"
+            ),
+            ShopItem(
+                id = 67,
+                name = "Marcus Aurelius",
+                description = "Římský císař a stoický filozof",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Velmi málo je potřeba k šťastnému životu; je to vše v tobě, ve tvém způsobu myšlení. - Marcus Aurelius"
+            ),
+            ShopItem(
+                id = 68,
+                name = "Eleanor Roosevelt",
+                description = "Americká první dáma a aktivistka za lidská práva",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Nikdo tě nemůže ponížit bez tvého souhlasu. - Eleanor Roosevelt"
+            ),
+            ShopItem(
+                id = 69,
+                name = "Viktor Frankl",
+                description = "Rakouský neurolog, psychiatr a filozof",
+                price = 0,
+                category = ShopCategory.QUOTES,
+                type = ShopItemType.PROFILE_QUOTE,
+                quote = "Všechno ti může být vzato kromě jedné věci: tvé svobody vybrat si svůj postoj v jakékoli situaci. - Viktor Frankl"
             ),
             
             // Předměty kategorie - balíčky ikon

@@ -58,33 +58,23 @@ fun ShopScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val headerPositions = remember { mutableMapOf<ShopCategory, Int>() }
     
-    // Sledování aktivní kategorie na základě scroll pozice
+    // Sledování aktivní kategorie na základě scroll pozice - jednoduše!
     val activeCategory by remember {
         derivedStateOf {
             val visibleItems = listState.layoutInfo.visibleItemsInfo
-            if (visibleItems.isNotEmpty()) {
-                val firstVisibleKey = visibleItems.first().key as? String
-                when {
-                    firstVisibleKey?.contains("STREAK") == true -> ShopCategory.STREAK
-                    firstVisibleKey?.contains("PROFILE") == true -> ShopCategory.PROFILE
-                    firstVisibleKey?.contains("SUBJECTS") == true -> ShopCategory.SUBJECTS
-                    firstVisibleKey?.contains("POWER_UPS") == true -> ShopCategory.POWER_UPS
-                    firstVisibleKey?.contains("PETS") == true -> ShopCategory.PETS
-                    else -> {
-                        // Fallback - detekce podle itemů
-                        val firstIndex = visibleItems.first().index
-                        when {
-                            firstIndex <= 3 -> ShopCategory.STREAK
-                            firstIndex <= 7 -> ShopCategory.PROFILE
-                            firstIndex <= 11 -> ShopCategory.SUBJECTS
-                            firstIndex <= 15 -> ShopCategory.POWER_UPS
-                            else -> ShopCategory.PETS
-                        }
-                    }
+            val firstIndex = if (visibleItems.isNotEmpty()) visibleItems.first().index else 0
+            
+            // Použij uložené pozice headerů a najdi nejbližší
+            val sortedPositions = headerPositions.toList().sortedBy { it.second }
+            
+            for (i in sortedPositions.indices.reversed()) {
+                if (firstIndex >= sortedPositions[i].second) {
+                    return@derivedStateOf sortedPositions[i].first
                 }
-            } else {
-                ShopCategory.STREAK
             }
+            
+            // Default
+            ShopCategory.STREAK
         }
     }
     
@@ -207,7 +197,9 @@ fun ShopScreen(navController: NavController) {
             ShopCategory.values().forEachIndexed { categoryIndex, category ->
                     // Uloží pozici headeru pro navigaci
                     headerPositions[category] = currentIndex
-                    println("Saved header position for $category at index: $currentIndex")                // Nadpis kategorie
+                    println("Saved header position for $category at index: $currentIndex")
+                    
+                // Nadpis kategorie
                 item(key = "header_$category") {
                     Text(
                         text = category.displayName,

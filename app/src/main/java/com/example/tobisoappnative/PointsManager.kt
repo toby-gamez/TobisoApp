@@ -8,10 +8,12 @@ import kotlinx.coroutines.flow.StateFlow
 object PointsManager {
     private const val PREFS_NAME = "points_prefs"
     private const val KEY_POINTS = "points"
+    private const val KEY_TOTAL_EARNED_POINTS = "total_earned_points"
     private const val KEY_MULTIPLIER = "active_multiplier"
     private const val KEY_MULTIPLIER_END = "multiplier_end_time"
     
     private var points: Int = 0
+    private var totalEarnedPointsValue: Int = 0
     private val _lastAddedPoints = MutableStateFlow(0)
     val lastAddedPoints: StateFlow<Int> = _lastAddedPoints
     private val _totalPoints = MutableStateFlow(0)
@@ -20,11 +22,22 @@ object PointsManager {
     val lastMilestone: StateFlow<Int?> = _lastMilestone
     private val _activeMultiplier = MutableStateFlow(1.0f)
     val activeMultiplier: StateFlow<Float> = _activeMultiplier
+    private val _totalEarnedPoints = MutableStateFlow(0)
+    val totalEarnedPoints: StateFlow<Int> = _totalEarnedPoints
 
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         points = prefs.getInt(KEY_POINTS, 0)
+        totalEarnedPointsValue = prefs.getInt(KEY_TOTAL_EARNED_POINTS, 0)
+        
+        // Pokud jsou současné body větší než totalEarnedPointsValue, nastaví se totalEarnedPointsValue na points
+        if (points > totalEarnedPointsValue) {
+            totalEarnedPointsValue = points
+            saveTotalEarnedPoints(context)
+        }
+        
         _totalPoints.value = points
+        _totalEarnedPoints.value = totalEarnedPointsValue
         
         // Kontrola aktivního multiplikátoru
         checkActiveMultiplier(context)
@@ -38,9 +51,12 @@ object PointsManager {
         val multipliedAmount = (amount * _activeMultiplier.value).toInt()
         
         points += multipliedAmount
+        totalEarnedPointsValue += multipliedAmount
         _lastAddedPoints.value = multipliedAmount
         _totalPoints.value = points
+        _totalEarnedPoints.value = totalEarnedPointsValue
         savePoints(context)
+        saveTotalEarnedPoints(context)
     }
 
     fun addPointsForMilestone(context: Context, amount: Int, milestoneDay: Int) {
@@ -49,10 +65,13 @@ object PointsManager {
         println("Points before: $points")
         
         points += amount
+        totalEarnedPointsValue += amount
         _lastAddedPoints.value = amount
         _lastMilestone.value = milestoneDay
         _totalPoints.value = points
+        _totalEarnedPoints.value = totalEarnedPointsValue
         savePoints(context)
+        saveTotalEarnedPoints(context)
         
         println("Points after: $points")
         println("LastAddedPoints set to: $amount")
@@ -65,6 +84,11 @@ object PointsManager {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putInt(KEY_POINTS, points).apply()
     }
+    
+    private fun saveTotalEarnedPoints(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putInt(KEY_TOTAL_EARNED_POINTS, totalEarnedPointsValue).apply()
+    }
 
     fun resetLastAddedPoints() {
         _lastAddedPoints.value = 0
@@ -73,6 +97,10 @@ object PointsManager {
 
     fun getPoints(): Int {
         return points
+    }
+    
+    fun getTotalEarnedPoints(): Int {
+        return totalEarnedPointsValue
     }
     
     fun subtractPoints(context: Context, amount: Int): Boolean {
