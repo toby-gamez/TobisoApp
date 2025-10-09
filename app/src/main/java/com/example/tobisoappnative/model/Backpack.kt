@@ -11,7 +11,7 @@ data class BackpackItem(
 // Kategorie itemů v aktovce
 enum class BackpackCategory(val displayName: String) {
     QUOTES("Citáty"),
-    ICONS("Ikony předmětů"),
+    ICON_PACKS("Balíčky ikon"), // Upraveno z "Ikony předmětů"
     PETS("Zvířátka"),
     POWER_UPS("Power-upy"),
     STREAK_ITEMS("Řada")

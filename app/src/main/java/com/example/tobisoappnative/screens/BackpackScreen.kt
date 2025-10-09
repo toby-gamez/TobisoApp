@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Backpack
+import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.tobisoappnative.BackpackManager
+import com.example.tobisoappnative.IconPackManager
 import com.example.tobisoappnative.model.*
 import com.example.tobisoappnative.components.MultiplierIndicator
 import kotlinx.coroutines.delay
@@ -55,7 +58,7 @@ fun BackpackScreen(navController: NavController) {
                 val firstVisibleKey = visibleItems.first().key as? String
                 when {
                     firstVisibleKey?.contains("QUOTES") == true -> BackpackCategory.QUOTES
-                    firstVisibleKey?.contains("ICONS") == true -> BackpackCategory.ICONS
+                    firstVisibleKey?.contains("ICON_PACKS") == true -> BackpackCategory.ICON_PACKS
                     firstVisibleKey?.contains("PETS") == true -> BackpackCategory.PETS
                     firstVisibleKey?.contains("POWER_UPS") == true -> BackpackCategory.POWER_UPS
                     firstVisibleKey?.contains("STREAK_ITEMS") == true -> BackpackCategory.STREAK_ITEMS
@@ -97,7 +100,7 @@ fun BackpackScreen(navController: NavController) {
                     modifier = Modifier.padding(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Backpack,
+                        imageVector = Icons.Outlined.Backpack,
                         contentDescription = "Prázdná aktovka",
                         modifier = Modifier.size(80.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -121,7 +124,7 @@ fun BackpackScreen(navController: NavController) {
                         onClick = { navController.navigate("shop") }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ShoppingCart,
+                            imageVector = Icons.Outlined.ShoppingBag,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
@@ -194,6 +197,7 @@ fun BackpackScreen(navController: NavController) {
                                 isEquipped = when (backpackItem.shopItem.type) {
                                     ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == backpackItem.shopItem.id
                                     ShopItemType.PET -> equippedPet?.id == backpackItem.shopItem.id
+                                    ShopItemType.ICON_PACK -> BackpackManager.equippedIconPack.collectAsState().value?.id == backpackItem.shopItem.id
                                     else -> false
                                 },
                                 onClick = {
@@ -227,20 +231,25 @@ fun BackpackScreen(navController: NavController) {
             isEquipped = when (selectedItem!!.shopItem.type) {
                 ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == selectedItem!!.shopItem.id
                 ShopItemType.PET -> equippedPet?.id == selectedItem!!.shopItem.id
+                ShopItemType.ICON_PACK -> BackpackManager.equippedIconPack.collectAsState().value?.id == selectedItem!!.shopItem.id
                 else -> false
             },
             onEquip = {
                 when (selectedItem!!.shopItem.type) {
                     ShopItemType.PROFILE_QUOTE -> {
                         BackpackManager.equipQuote(context, selectedItem!!.shopItem)
-                        successMessage = "Citát byl vybaven!"
+                        successMessage = "Citát byl nasazen!"
                     }
                     ShopItemType.PET -> {
                         BackpackManager.equipPet(context, selectedItem!!.shopItem)
-                        successMessage = "Zvířátko bylo vybaveno!"
+                        successMessage = "Zvířátko bylo nasazeno!"
+                    }
+                    ShopItemType.ICON_PACK -> {
+                        BackpackManager.equipIconPack(context, selectedItem!!.shopItem)
+                        successMessage = "Balíček ikon byl aktivován!"
                     }
                     else -> {
-                        successMessage = "Item byl aktivován!"
+                        successMessage = "Item byl použit!"
                     }
                 }
                 showSuccessMessage = true
@@ -256,8 +265,12 @@ fun BackpackScreen(navController: NavController) {
                         BackpackManager.equipPet(context, null)
                         successMessage = "Zvířátko bylo odstraněno"
                     }
+                    ShopItemType.ICON_PACK -> {
+                        BackpackManager.equipIconPack(context, null)
+                        successMessage = "Balíček ikon byl deaktivován"
+                    }
                     else -> {
-                        successMessage = "Item byl deaktivován"
+                        successMessage = "Item byl odstraněn"
                     }
                 }
                 showSuccessMessage = true
@@ -376,6 +389,108 @@ fun BackpackItemCard(
                 Spacer(modifier = Modifier.height(12.dp))
             }
             
+            // Pro balíčky ikon zobrazíme náhled
+            if (backpackItem.shopItem.type == ShopItemType.ICON_PACK && backpackItem.shopItem.subjectIcons != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        // Kompaktní row pro 4 ikony
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            backpackItem.shopItem.subjectIcons.take(4).forEach { subjectIcon ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 2.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .padding(2.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (backpackItem.shopItem.iconPackType == IconPackType.EMOJI) {
+                                            Text(
+                                                text = subjectIcon.icon,
+                                                fontSize = 16.sp,
+                                                maxLines = 1
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = when (subjectIcon.icon) {
+                                                    "edit" -> Icons.Default.Edit
+                                                    "library_books" -> Icons.Default.LibraryBooks
+                                                    "article" -> Icons.Default.Article
+                                                    "music_note" -> Icons.Default.MusicNote
+                                                    "functions" -> Icons.Default.Functions
+                                                    "biotech" -> Icons.Default.Biotech
+                                                    "bolt" -> Icons.Default.Bolt
+                                                    "local_florist" -> Icons.Default.LocalFlorist
+                                                    "language" -> Icons.Default.Language
+                                                    else -> Icons.Default.Book
+                                                },
+                                                contentDescription = subjectIcon.subjectName,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = subjectIcon.subjectName.take(3),
+                                        fontSize = 8.sp,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            
+                            // Zobrazení +X počtu zbývajících ikon
+                            if (backpackItem.shopItem.subjectIcons.size > 4) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 2.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .padding(2.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "+${backpackItem.shopItem.subjectIcons.size - 4}",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Text(
+                                        text = "více",
+                                        fontSize = 8.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -424,7 +539,7 @@ fun BackpackItemCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Vybaveno",
+                                text = "Nasazeno",
                                 color = MaterialTheme.colorScheme.primary,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
@@ -476,6 +591,87 @@ fun BackpackItemDialog(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
                 
+                // Pro balíčky ikon zobrazíme všechny ikony
+                if (backpackItem.shopItem.type == ShopItemType.ICON_PACK && backpackItem.shopItem.subjectIcons != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            Text(
+                                text = "Obsah balíčku:",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            // Grid s 3 sloupci
+                            val chunkedIcons = backpackItem.shopItem.subjectIcons.chunked(3)
+                            chunkedIcons.forEach { rowIcons ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    rowIcons.forEach { subjectIcon ->
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            if (backpackItem.shopItem.iconPackType == IconPackType.EMOJI) {
+                                                Text(
+                                                    text = subjectIcon.icon,
+                                                    fontSize = 28.sp
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = when (subjectIcon.icon) {
+                                                        "edit" -> Icons.Default.Edit
+                                                        "library_books" -> Icons.Default.LibraryBooks
+                                                        "article" -> Icons.Default.Article
+                                                        "music_note" -> Icons.Default.MusicNote
+                                                        "functions" -> Icons.Default.Functions
+                                                        "biotech" -> Icons.Default.Biotech
+                                                        "bolt" -> Icons.Default.Bolt
+                                                        "local_florist" -> Icons.Default.LocalFlorist
+                                                        "language" -> Icons.Default.Language
+                                                        else -> Icons.Default.Book
+                                                    },
+                                                    contentDescription = subjectIcon.subjectName,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(28.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = subjectIcon.subjectName,
+                                                fontSize = 11.sp,
+                                                textAlign = TextAlign.Center,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 2
+                                            )
+                                        }
+                                    }
+                                    // Vyplnění prázdných míst
+                                    repeat(3 - rowIcons.size) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                                if (rowIcons != chunkedIcons.last()) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                
                 Text(
                     text = backpackItem.shopItem.name,
                     style = MaterialTheme.typography.titleMedium,
@@ -508,7 +704,7 @@ fun BackpackItemDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Aktuálně vybaveno",
+                            text = "Aktuálně nasazeno",
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
@@ -518,14 +714,21 @@ fun BackpackItemDialog(
         },
         confirmButton = {
             if (backpackItem.shopItem.type == ShopItemType.PROFILE_QUOTE || 
-                backpackItem.shopItem.type == ShopItemType.PET) {
+                backpackItem.shopItem.type == ShopItemType.PET ||
+                backpackItem.shopItem.type == ShopItemType.ICON_PACK) {
                 if (isEquipped) {
                     Button(onClick = onUnequip) {
-                        Text("Odebrat")
+                        Text(when (backpackItem.shopItem.type) {
+                            ShopItemType.ICON_PACK -> "Deaktivovat"
+                            else -> "Odebrat"
+                        })
                     }
                 } else {
                     Button(onClick = onEquip) {
-                        Text("Vybavit")
+                        Text(when (backpackItem.shopItem.type) {
+                            ShopItemType.ICON_PACK -> "Aktivovat"
+                            else -> "Nasadit"
+                        })
                     }
                 }
             }

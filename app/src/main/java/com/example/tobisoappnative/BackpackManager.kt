@@ -10,6 +10,7 @@ object BackpackManager {
     private const val PREFS_NAME = "backpack_prefs"
     private const val KEY_EQUIPPED_QUOTE = "equipped_quote"
     private const val KEY_EQUIPPED_PET = "equipped_pet"
+    private const val KEY_EQUIPPED_ICON_PACK = "equipped_icon_pack"
     
     private val _backpackItems = MutableStateFlow<List<BackpackItem>>(emptyList())
     val backpackItems: StateFlow<List<BackpackItem>> = _backpackItems
@@ -20,9 +21,13 @@ object BackpackManager {
     private val _equippedPet = MutableStateFlow<ShopItem?>(null)
     val equippedPet: StateFlow<ShopItem?> = _equippedPet
     
+    private val _equippedIconPack = MutableStateFlow<ShopItem?>(null)
+    val equippedIconPack: StateFlow<ShopItem?> = _equippedIconPack
+    
     fun init(context: Context) {
         loadBackpackItems(context)
         loadEquippedItems(context)
+        IconPackManager.init(context)
     }
     
     // Načte všechny koupené itemy z obchodu
@@ -61,6 +66,16 @@ object BackpackManager {
         if (equippedPetId != -1) {
             _equippedPet.value = ShopData.getItemById(equippedPetId)
         }
+        
+        val equippedIconPackId = prefs.getInt(KEY_EQUIPPED_ICON_PACK, -1)
+        if (equippedIconPackId != -1) {
+            val iconPack = ShopData.getItemById(equippedIconPackId)
+            _equippedIconPack.value = iconPack
+            // Synchronizuj s IconPackManagerem
+            if (iconPack != null) {
+                IconPackManager.setActiveIconPack(context, iconPack)
+            }
+        }
     }
     
     // Vybavení citátu
@@ -77,12 +92,21 @@ object BackpackManager {
         _equippedPet.value = pet
     }
     
+    // Vybavení balíčku ikon
+    fun equipIconPack(context: Context, iconPack: ShopItem?) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putInt(KEY_EQUIPPED_ICON_PACK, iconPack?.id ?: -1).apply()
+        _equippedIconPack.value = iconPack
+        // Synchronizace s IconPackManagerem
+        IconPackManager.setActiveIconPack(context, iconPack)
+    }
+    
     // Získání itemů podle kategorie
     fun getItemsByCategory(category: BackpackCategory): List<BackpackItem> {
         return _backpackItems.value.filter { backpackItem ->
             when (category) {
                 BackpackCategory.QUOTES -> backpackItem.shopItem.type == ShopItemType.PROFILE_QUOTE
-                BackpackCategory.ICONS -> backpackItem.shopItem.type == ShopItemType.SUBJECT_ICON
+                BackpackCategory.ICON_PACKS -> backpackItem.shopItem.type == ShopItemType.ICON_PACK // Upraveno
                 BackpackCategory.PETS -> backpackItem.shopItem.type == ShopItemType.PET
                 BackpackCategory.POWER_UPS -> backpackItem.shopItem.type == ShopItemType.POINTS_MULTIPLIER
                 BackpackCategory.STREAK_ITEMS -> backpackItem.shopItem.type == ShopItemType.STREAK_FREEZE

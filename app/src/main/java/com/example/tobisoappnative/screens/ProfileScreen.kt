@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.ui.platform.LocalConfiguration
@@ -35,7 +35,7 @@ import kotlinx.coroutines.delay
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.material.icons.filled.Backpack
+import androidx.compose.material.icons.outlined.Backpack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -278,7 +278,7 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ShoppingCart,
+                                    imageVector = Icons.Outlined.ShoppingBag,
                                     contentDescription = "Obchod",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -311,7 +311,7 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.Backpack,
+                                    imageVector = Icons.Outlined.Backpack,
                                     contentDescription = "Aktovka",
                                     tint = MaterialTheme.colorScheme.secondary
                                 )

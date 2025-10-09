@@ -45,33 +45,66 @@ object ShopData {
                 quote = "Jediná konstanta ve vesmíru je změna."
             ),
             
-            // Předměty kategorie - ikony
+            // Předměty kategorie - balíčky ikon
             ShopItem(
                 id = 20,
-                name = "Matematická ikona",
-                description = "Speciální ikona pro matematické předměty",
-                price = 0, // DEBUG - normálně 25 (2.5 lekce)
+                name = "Emoji balíček",
+                description = "Veselé emoji ikony pro všechny předměty",
+                price = 0, // DEBUG - pro testování zdarma
                 category = ShopCategory.SUBJECTS,
-                type = ShopItemType.SUBJECT_ICON,
-                iconRes = android.R.drawable.ic_dialog_info // Placeholder
+                type = ShopItemType.ICON_PACK,
+                iconPackType = IconPackType.EMOJI,
+                subjectIcons = listOf(
+                    SubjectIcon("Mluvnice", "📝", IconPackType.EMOJI),
+                    SubjectIcon("Literatura", "📚", IconPackType.EMOJI),
+                    SubjectIcon("Sloh", "📄", IconPackType.EMOJI), // Změněno z ✍️ na 📄
+                    SubjectIcon("Hudební výchova", "🎵", IconPackType.EMOJI),
+                    SubjectIcon("Matematika", "🔢", IconPackType.EMOJI),
+                    SubjectIcon("Chemie", "🧪", IconPackType.EMOJI),
+                    SubjectIcon("Fyzika", "⚡", IconPackType.EMOJI),
+                    SubjectIcon("Přírodopis", "🌿", IconPackType.EMOJI),
+                    SubjectIcon("Zeměpis", "🌍", IconPackType.EMOJI)
+                )
             ),
             ShopItem(
                 id = 21,
-                name = "Vědecká ikona",
-                description = "Speciální ikona pro vědecké předměty",
-                price = 0, // DEBUG - normálně 25 (2.5 lekce)
+                name = "Moderní balíček",
+                description = "Stylové Material Design ikony",
+                price = 0, // DEBUG - normálně 75 (7.5 lekcí)
                 category = ShopCategory.SUBJECTS,
-                type = ShopItemType.SUBJECT_ICON,
-                iconRes = android.R.drawable.ic_dialog_info // Placeholder
+                type = ShopItemType.ICON_PACK,
+                iconPackType = IconPackType.MATERIAL_ICONS,
+                subjectIcons = listOf(
+                    SubjectIcon("Mluvnice", "edit", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Literatura", "library_books", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Sloh", "article", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Hudební výchova", "music_note", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Matematika", "functions", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Chemie", "biotech", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Fyzika", "bolt", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Přírodopis", "local_florist", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Zeměpis", "language", IconPackType.MATERIAL_ICONS)
+                )
             ),
             ShopItem(
                 id = 22,
-                name = "Jazyková ikona",
-                description = "Speciální ikona pro jazykové předměty",
-                price = 0, // DEBUG - normálně 25 (2.5 lekce)
+                name = "Premium balíček",
+                description = "Exkluzivní emoji ikony s gradientem",
+                price = 0, // DEBUG - normálně 100 (10 lekcí)
                 category = ShopCategory.SUBJECTS,
-                type = ShopItemType.SUBJECT_ICON,
-                iconRes = android.R.drawable.ic_dialog_info // Placeholder
+                type = ShopItemType.ICON_PACK,
+                iconPackType = IconPackType.EMOJI,
+                subjectIcons = listOf(
+                    SubjectIcon("Mluvnice", "✏️", IconPackType.EMOJI), // Změněno z 🖋️
+                    SubjectIcon("Literatura", "📖", IconPackType.EMOJI),
+                    SubjectIcon("Sloh", "📄", IconPackType.EMOJI),
+                    SubjectIcon("Hudební výchova", "🎼", IconPackType.EMOJI),
+                    SubjectIcon("Matematika", "📐", IconPackType.EMOJI),
+                    SubjectIcon("Chemie", "⚗️", IconPackType.EMOJI),
+                    SubjectIcon("Fyzika", "🔬", IconPackType.EMOJI),
+                    SubjectIcon("Přírodopis", "🦋", IconPackType.EMOJI),
+                    SubjectIcon("Zeměpis", "🌎", IconPackType.EMOJI) // Změněno z 🗺️
+                )
             ),
             
             // Power-upy kategorie

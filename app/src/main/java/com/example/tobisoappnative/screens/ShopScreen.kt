@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.outlined.Backpack
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ import com.example.tobisoappnative.StreakFreezeManager
 import com.example.tobisoappnative.data.ShopData
 import com.example.tobisoappnative.components.MultiplierIndicator
 import com.example.tobisoappnative.model.*
+import com.example.tobisoappnative.IconPackManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -107,7 +109,7 @@ fun ShopScreen(navController: NavController) {
                     onClick = { navController.navigate("backpack") }
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Backpack,
+                        imageVector = Icons.Outlined.Backpack,
                         contentDescription = "Aktovka",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
@@ -484,7 +486,7 @@ fun ShopItemCard(
                         .fillMaxWidth()
                         .height(120.dp)
                         .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            powerUpColor.copy(alpha = 0.2f),
                             RoundedCornerShape(8.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -495,6 +497,104 @@ fun ShopItemCard(
                         fontWeight = FontWeight.Bold,
                         color = powerUpColor
                     )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            
+            // Pro balíčky ikon zobrazíme preview ikon
+            if (item.type == ShopItemType.ICON_PACK && item.subjectIcons != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        // Grid layout pro 3 řádky po 3 ikonách
+                        val visibleIcons = item.subjectIcons.take(6)
+                        val rows = visibleIcons.chunked(3)
+                        
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rows.forEach { rowIcons ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    rowIcons.forEach { subjectIcon ->
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(horizontal = 4.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .padding(2.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (item.iconPackType == IconPackType.EMOJI) {
+                                                    Text(
+                                                        text = subjectIcon.icon,
+                                                        fontSize = 20.sp,
+                                                        maxLines = 1
+                                                    )
+                                                } else {
+                                                    Icon(
+                                                        imageVector = when (subjectIcon.icon) {
+                                                            "edit" -> Icons.Default.Edit
+                                                            "library_books" -> Icons.Default.LibraryBooks
+                                                            "article" -> Icons.Default.Article
+                                                            "music_note" -> Icons.Default.MusicNote
+                                                            "functions" -> Icons.Default.Functions
+                                                            "biotech" -> Icons.Default.Biotech
+                                                            "bolt" -> Icons.Default.Bolt
+                                                            "local_florist" -> Icons.Default.LocalFlorist
+                                                            "language" -> Icons.Default.Language
+                                                            else -> Icons.Default.Book
+                                                        },
+                                                        contentDescription = subjectIcon.subjectName,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                text = subjectIcon.subjectName.take(4),
+                                                fontSize = 9.sp,
+                                                textAlign = TextAlign.Center,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Vyplnění prázdných sloupců
+                                    repeat(3 - rowIcons.size) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                            
+                            // Zobrazení počtu dalších ikon
+                            if (item.subjectIcons.size > 6) {
+                                Text(
+                                    text = "...a dalších ${item.subjectIcons.size - 6} ikon",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -756,7 +856,7 @@ fun PurchaseDialog(
                             .fillMaxWidth()
                             .height(80.dp)
                             .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                powerUpColor.copy(alpha = 0.2f),
                                 RoundedCornerShape(8.dp)
                             ),
                         contentAlignment = Alignment.Center
@@ -767,6 +867,98 @@ fun PurchaseDialog(
                             fontWeight = FontWeight.Bold,
                             color = powerUpColor
                         )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                
+                // Pro balíčky ikon zobrazíme kompletní seznam
+                if (item.type == ShopItemType.ICON_PACK && item.subjectIcons != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            Text(
+                                text = "Obsah balíčku:",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            // Grid s 3 sloupci - lepší layout
+                            val chunkedIcons = item.subjectIcons.chunked(3)
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                chunkedIcons.forEach { rowIcons ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        rowIcons.forEach { subjectIcon ->
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .padding(horizontal = 8.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .padding(4.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    if (item.iconPackType == IconPackType.EMOJI) {
+                                                        Text(
+                                                            text = subjectIcon.icon,
+                                                            fontSize = 24.sp,
+                                                            maxLines = 1
+                                                        )
+                                                    } else {
+                                                        Icon(
+                                                            imageVector = when (subjectIcon.icon) {
+                                                                "edit" -> Icons.Default.Edit
+                                                                "library_books" -> Icons.Default.LibraryBooks
+                                                                "article" -> Icons.Default.Article
+                                                                "music_note" -> Icons.Default.MusicNote
+                                                                "functions" -> Icons.Default.Functions
+                                                                "biotech" -> Icons.Default.Biotech
+                                                                "bolt" -> Icons.Default.Bolt
+                                                                "local_florist" -> Icons.Default.LocalFlorist
+                                                                "language" -> Icons.Default.Language
+                                                                else -> Icons.Default.Book
+                                                            },
+                                                            contentDescription = subjectIcon.subjectName,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(24.dp)
+                                                        )
+                                                    }
+                                                }
+                                                Text(
+                                                    text = subjectIcon.subjectName,
+                                                    fontSize = 10.sp,
+                                                    textAlign = TextAlign.Center,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 2,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                        // Vyplnění prázdných míst
+                                        repeat(3 - rowIcons.size) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     
                     Spacer(modifier = Modifier.height(12.dp))

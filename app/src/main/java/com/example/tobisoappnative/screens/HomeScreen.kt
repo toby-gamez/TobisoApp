@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.BackpackManager
+import com.example.tobisoappnative.IconPackManager
 import kotlinx.coroutines.delay
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.MultiplierIndicator
@@ -163,6 +164,16 @@ fun HomeScreen(navController: NavController) {
     LaunchedEffect(Unit) { 
         viewModel.loadCategories()
         BackpackManager.init(context)
+        IconPackManager.init(context)
+    }
+    
+    // Debug - sleduj aktivní balíček ikon
+    val activeIconPack by IconPackManager.activeIconPack.collectAsState()
+    val equippedIconPack by BackpackManager.equippedIconPack.collectAsState()
+    
+    // Debug log
+    LaunchedEffect(activeIconPack) {
+        println("🎨 HomeScreen - Aktivní balíček ikon: ${activeIconPack?.name ?: "žádný"}")
     }
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
@@ -321,12 +332,46 @@ fun SubjectCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = subject.icon,
-                contentDescription = subject.name,
-                tint = getSubjectColor(subject.colorType),
-                modifier = Modifier.size(32.dp)
-            )
+            // Získáme ikonu z IconPackManageru - sledujeme změny
+            val activeIconPack by IconPackManager.activeIconPack.collectAsState()
+            val subjectIcon = IconPackManager.getSubjectIcon(subject.name)
+            val isEmoji = IconPackManager.isEmojiIcon(subject.name)
+            
+            // Debug log pro testování
+            LaunchedEffect(activeIconPack, subject.name) {
+                println("🏠 SubjectCard: ${subject.name} -> icon: $subjectIcon, isEmoji: $isEmoji, activePack: ${activeIconPack?.name}")
+            }
+            
+            // Ikona nebo emoji s flexibilní velikostí
+            if (isEmoji && subjectIcon is String) {
+                // Pro emoji použijeme větší prostor a menší font
+                Box(
+                    modifier = Modifier
+                        .size(48.dp) // Větší prostor pro emoji
+                        .padding(4.dp), // Padding pro lepší zarovnání
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = subjectIcon,
+                        fontSize = 28.sp, // Trochu menší font aby se vešlo
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Clip
+                    )
+                }
+            } else {
+                // Pro Material ikony standardní velikost
+                Box(
+                    modifier = Modifier.size(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (subjectIcon is ImageVector) subjectIcon else subject.icon,
+                        contentDescription = subject.name,
+                        tint = getSubjectColor(subject.colorType),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 
