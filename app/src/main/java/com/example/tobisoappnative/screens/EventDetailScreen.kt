@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,30 +60,31 @@ fun EventDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Detail události") },
-                navigationIcon = {
-                    IconButton(onClick = { 
-                        // Jednoduchá navigace zpět na předchozí obrazovku
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zpět")
-                    }
-                },
-                actions = {
-                    // Zobrazení aktivního multiplikátoru
-                    MultiplierIndicator()
-                    
-                    // Tlačítka pro editaci a mazání pouze u místních eventů
-                    event?.let { currentEvent ->
-                        if (currentEvent.isLocalSafe()) {
-                            // Tlačítko pro editaci
-                            IconButton(
-                                onClick = { showEditDialog = true }
-                            ) {
-                                Icon(
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        TopAppBar(
+            title = { Text("Detail události", style = MaterialTheme.typography.headlineLarge) },
+            navigationIcon = {
+                IconButton(onClick = { 
+                    // Jednoduchá navigace zpět na předchozí obrazovku
+                    navController.popBackStack()
+                }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Zpět")
+                }
+            },
+            actions = {
+                // Zobrazení aktivního multiplikátoru
+                MultiplierIndicator()
+                
+                // Tlačítka pro editaci a mazání pouze u místních eventů
+                event?.let { currentEvent ->
+                    if (currentEvent.isLocalSafe()) {
+                        // Tlačítko pro editaci
+                        IconButton(
+                            onClick = { showEditDialog = true }
+                        ) {
+                            Icon(
                                     Icons.Default.Edit,
                                     contentDescription = "Upravit událost",
                                     tint = MaterialTheme.colorScheme.primary
@@ -106,13 +108,8 @@ fun EventDetailScreen(
                     }
                 }
             )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
+
+        Box(modifier = Modifier.fillMaxSize()) {
             when {
                 isLoading -> {
                     CircularProgressIndicator(

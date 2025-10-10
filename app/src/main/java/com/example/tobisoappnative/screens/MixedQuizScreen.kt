@@ -16,6 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -109,13 +110,16 @@ fun MixedQuizScreen(
                 }
             }
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                LargeTopAppBar(
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                TopAppBar(
                     title = { 
                         Text(
                             text = if (showResults) "Výsledky procvičování"
                             else if (quizStarted) "Procvičování (${currentQuestionIndex + 1}/$totalQuestions)"
                             else "Procvičování",
+                            style = MaterialTheme.typography.headlineLarge,
                             maxLines = 1
                         )
                     },
@@ -260,8 +264,7 @@ fun MixedQuizScreen(
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            "$correctAnswers z $totalQuestions správně",
-                                            style = MaterialTheme.typography.titleLarge
+                                            "$correctAnswers z $totalQuestions správně"
                                         )
                                         Text(
                                             "${(correctAnswers.toFloat() / totalQuestions * 100).toInt()}%",
@@ -445,7 +448,6 @@ fun MixedQuizScreen(
                                         )
                                         Text(
                                             "${mixedQuestions.size}",
-                                            style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )

@@ -84,8 +84,8 @@ fun AboutScreen(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        LargeTopAppBar(
-            title = { Text("O aplikaci") },
+        TopAppBar(
+            title = { Text("O aplikaci", style = MaterialTheme.typography.headlineLarge) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -118,7 +118,7 @@ fun AboutScreen(navController: NavController) {
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            Text("Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 9. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků, offline režim, bodový systém pro otázky, řada otevření aplikace, procvičování a kalendář událostí, kdy není škola + vaše události. Další budou pokračovat!", style = MaterialTheme.typography.bodyMedium)
+            Text("Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 9. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků, offline režim, bodový systém pro otázky, řada otevření aplikace a s tím odměny, profil, obchod a aktovka, procvičování a kalendář událostí, kdy není škola + vaše události. Další budou pokračovat!", style = MaterialTheme.typography.bodyMedium)
             Divider(
                 color = Color.Gray,
                 thickness = 1.dp,

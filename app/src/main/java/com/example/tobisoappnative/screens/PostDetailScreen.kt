@@ -1,6 +1,10 @@
 package com.example.tobisoappnative.screens
 
 import android.net.Uri
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -11,7 +15,9 @@ import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -113,6 +119,10 @@ fun PostDetailScreen(
     }
 
     val context = LocalContext.current
+    
+    // Scroll behavior pro nested scrolling
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Box(modifier = Modifier.fillMaxSize()) {
         SwipeRefresh(
             state = swipeRefreshState,
@@ -131,15 +141,26 @@ fun PostDetailScreen(
             }
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
             ) {
                 LargeTopAppBar(
-                    title = { Text(postDetail?.title ?: "Detail článku") },
+                    title = { 
+                        val collapsedFraction = scrollBehavior.state.collapsedFraction
+                        val fontSize = (28 - (12 * collapsedFraction)).sp
+                        Text(
+                            text = postDetail?.title ?: "Detail článku",
+                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = fontSize),
+                            maxLines = 1
+                        ) 
+                    },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
                         }
                     },
+                    scrollBehavior = scrollBehavior,
                     actions = {
                         // Zobrazení aktivního multiplikátoru
                         MultiplierIndicator()
@@ -181,22 +202,6 @@ fun PostDetailScreen(
                     }
                 )
 
-                // Zobrazení počtu slov a času čtení pod nadpisem
-                if (postDetail?.content != null) {
-                    val words = postDetail!!.content.trim().split("\\s+".toRegex()).size
-                    val minutes = Math.ceil(words / 200.0).toInt().coerceAtLeast(1)
-                    val infoText = "$words slov | ~${minutes} min čtení"
-                    Text(
-                        text = infoText,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.End
-                    )
-                }
-
                 when {
                     postDetailError != null -> {
                         Box(
@@ -226,7 +231,21 @@ fun PostDetailScreen(
                                 .padding(16.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            // Zobrazení počtu slov a času čtení
+                            if (postDetail?.content != null) {
+                                val words = postDetail!!.content.trim().split("\\s+".toRegex()).size
+                                val minutes = Math.ceil(words / 200.0).toInt().coerceAtLeast(1)
+                                val infoText = "$words slov | ~${minutes} min čtení"
+                                Text(
+                                    text = infoText,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.End
+                                )
+                            }
                             postDetail?.content?.let { content ->
                                 // Nejprve nahradíme nebo odstraníme obrázky 
                                 val imageRegex = Regex("!\\[(.*?)]\\((images/[^)]+)\\)")

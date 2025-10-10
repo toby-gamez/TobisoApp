@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -73,8 +74,8 @@ fun StreakScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        LargeTopAppBar(
-            title = { Text("Řada") },
+        TopAppBar(
+            title = { Text("Řada", style = MaterialTheme.typography.headlineLarge) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.Default.ArrowUpward, contentDescription = "Zpět")

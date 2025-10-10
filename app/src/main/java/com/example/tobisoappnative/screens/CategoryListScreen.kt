@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.example.tobisoappnative.model.Category
@@ -62,9 +63,9 @@ fun CategoryListScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        LargeTopAppBar(
-            title = { Text("$parentCategoryName") },
-            colors = TopAppBarDefaults.largeTopAppBarColors(
+        TopAppBar(
+            title = { Text("$parentCategoryName", style = MaterialTheme.typography.headlineLarge) },
+            colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
         )

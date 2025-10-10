@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.example.tobisoappnative.model.ApiClient
@@ -47,10 +48,12 @@ fun FavoritesScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var deleteType by remember { mutableStateOf(0) } // 0 = snippets, 1 = posts
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        LargeTopAppBar(
-            title = { Text("Oblíbené") },
-            colors = TopAppBarDefaults.largeTopAppBarColors(
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        TopAppBar(
+            title = { Text("Oblíbené", style = MaterialTheme.typography.headlineLarge) },
+            colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
             navigationIcon = {

@@ -38,6 +38,7 @@ val Typography = Typography(
     ),
     displayLarge = TextStyle(fontFamily = poppins, fontWeight = FontWeight.Bold, fontSize = 25.sp),
     titleLarge = TextStyle(fontFamily = poppins, fontWeight = FontWeight.Bold, fontSize = 35.sp),
+    headlineLarge = TextStyle(fontFamily = poppins, fontWeight = FontWeight.Medium, fontSize = 28.sp),
     headlineMedium = TextStyle(fontFamily = poppins, fontWeight = FontWeight.Medium, fontSize = 28.sp),
     headlineSmall = TextStyle(fontFamily = poppins, fontWeight = FontWeight.Medium, fontSize = 22.sp),
     labelSmall = TextStyle(fontFamily = poppins_regular, fontWeight = FontWeight.Medium, fontSize = 13.sp)

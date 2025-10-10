@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -137,13 +138,16 @@ fun QuestionsScreen(
                 }
             }
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                LargeTopAppBar(
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                TopAppBar(
                     title = { 
                         Text(
                             text = if (showResults) "Vaše výsledky"
                             else if (quizStarted) "Prověrka (${currentQuestionIndex + 1}/$totalQuestions)"
                             else "Prověrka",
+                            style = MaterialTheme.typography.headlineLarge,
                             maxLines = 1
                         )
                     },
@@ -443,7 +447,6 @@ fun QuestionsScreen(
                                         )
                                         Text(
                                             "${questions.size}",
-                                            style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )

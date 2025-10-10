@@ -214,8 +214,8 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
         // Normální režim se Scaffold
         Scaffold(
             topBar = {
-                LargeTopAppBar(
-                    title = { Text("Přehrávač videa") },
+                TopAppBar(
+                    title = { Text("Přehrávač videa", style = MaterialTheme.typography.headlineLarge) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

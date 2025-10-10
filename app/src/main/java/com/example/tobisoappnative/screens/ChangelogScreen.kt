@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.foundation.rememberScrollState
@@ -161,8 +162,8 @@ fun ChangelogScreen(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        LargeTopAppBar(
-            title = { Text("Deník změn") },
+        TopAppBar(
+            title = { Text("Deník změn", style = MaterialTheme.typography.headlineLarge) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

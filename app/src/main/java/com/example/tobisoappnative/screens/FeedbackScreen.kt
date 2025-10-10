@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,8 +61,8 @@ fun FeedbackScreen(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        LargeTopAppBar(
-            title = { Text("Zpětná vazba") },
+        TopAppBar(
+            title = { Text("Zpětná vazba", style = MaterialTheme.typography.headlineLarge) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
