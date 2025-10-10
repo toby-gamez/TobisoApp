@@ -8,13 +8,13 @@ interface ApiService {
     @GET("categories")
     suspend fun getCategories(): Array<Category>
 
-    @GET("posts")
+    @GET("pages")
     suspend fun getPosts(@Query("categoryId") categoryId: Int? = null): Array<Post>
 
-    @GET("posts/links")
+    @GET("pages/links")
     suspend fun getPostLinks(): Array<PostLink>
 
-    @GET("posts/{id}")
+    @GET("pages/{id}")
     suspend fun getPost(@Path("id") id: Int): Post
 
     @GET("Questions/post/{postId}")
