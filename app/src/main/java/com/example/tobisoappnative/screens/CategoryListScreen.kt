@@ -42,14 +42,12 @@ fun CategoryListScreen(
     val favoritePosts by viewModel.favoritePosts.collectAsState()
     LaunchedEffect(Unit) { viewModel.loadCategories() }
 
-    var parentCategoryNameState by remember { mutableStateOf(parentCategoryName) }
-
-    val parentCategory = categories.find { it.name == parentCategoryNameState }
+    val parentCategory = categories.find { it.name == parentCategoryName }
     val filteredCategories = parentCategory?.let { parent ->
         categories.filter { it.parentId == parent.id }
     } ?: emptyList()
 
-    val showConnectionError = parentCategoryNameState == "Mluvnice" && (parentCategory == null || filteredCategories.isEmpty())
+    val showConnectionError = parentCategoryName == "Mluvnice" && (parentCategory == null || filteredCategories.isEmpty())
 
     // Načtení postů při změně parentCategory
     LaunchedEffect(parentCategory?.id) {
@@ -65,7 +63,7 @@ fun CategoryListScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         LargeTopAppBar(
-            title = { Text("$parentCategoryNameState") },
+            title = { Text("$parentCategoryName") },
             colors = TopAppBarDefaults.largeTopAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
@@ -126,7 +124,7 @@ fun CategoryListScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { parentCategoryNameState = category.name },
+                            .clickable { navController.navigate("categoryList/${category.name}") },
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Folder, contentDescription = "Kategorie", modifier = Modifier.size(32.dp))

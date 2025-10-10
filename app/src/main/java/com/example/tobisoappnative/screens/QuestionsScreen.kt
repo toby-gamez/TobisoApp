@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.MainViewModel
@@ -599,6 +601,17 @@ fun QuestionsScreen(
                                 
                                 // Možnosti odpovědí nebo textové pole
                                 if (question.isTextQuestion) {
+                                    // Detekce typu klávesnice na základě správné odpovědi
+                                    val keyboardType = remember(question.correctTextAnswer) {
+                                        val correctAnswer = question.correctTextAnswer?.trim() ?: ""
+                                        // Pokud odpověď neobsahuje písmena (pouze číslice a jiné znaky)
+                                        if (correctAnswer.matches(Regex("^[^a-zA-ZáčďéěíňóřšťůúýžÁČĎÉĚÍŇÓŘŠŤŮÚÝŽ]*$")) && correctAnswer.isNotEmpty()) {
+                                            KeyboardType.Number
+                                        } else {
+                                            KeyboardType.Text
+                                        }
+                                    }
+                                    
                                     // Textové pole pro textové otázky
                                     OutlinedTextField(
                                         value = textAnswers[currentQuestionIndex] ?: "",
@@ -609,7 +622,10 @@ fun QuestionsScreen(
                                         },
                                         label = { Text("Zadejte vaši odpověď...") },
                                         modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = keyboardType
+                                        )
                                     )
                                 } else {
                                     // Výběr z možností pro běžné otázky
