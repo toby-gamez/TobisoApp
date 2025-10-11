@@ -11,7 +11,7 @@ object ShopData {
                 id = 1,
                 name = "Zmražení řady",
                 description = "Ochráni svoji řadu před přerušením na jeden den",
-                price = 0, // DEBUG - normálně 20 (2 lekce)
+                price = 20,
                 category = ShopCategory.STREAK,
                 type = ShopItemType.STREAK_FREEZE
             ),
@@ -21,7 +21,7 @@ object ShopData {
                 id = 10,
                 name = "Robert Collier",
                 description = "Americký spisovatel a propagátor pozitivního myšlení",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Úspěch je součet malých úsilí opakovaných den za dnem. - Robert Collier"
@@ -30,7 +30,7 @@ object ShopData {
                 id = 11,
                 name = "Benjamin Franklin",
                 description = "Americký politik, vědec a jeden ze zakladatelů USA",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Vzdělání je nejlepší investice do budoucnosti. - Benjamin Franklin"
@@ -39,7 +39,7 @@ object ShopData {
                 id = 12,
                 name = "Hérakleitos",
                 description = "Starověký řecký filozof",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Jediná konstanta ve vesmíru je změna. - Hérakleitos"
@@ -48,7 +48,7 @@ object ShopData {
                 id = 13,
                 name = "Albert Einstein",
                 description = "Teoretický fyzik a nositel Nobelovy ceny",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Fantazie je důležitější než vědomosti. - Albert Einstein"
@@ -57,7 +57,7 @@ object ShopData {
                 id = 14,
                 name = "Nelson Mandela",
                 description = "Jihoafrický prezident a bojovník proti apartheidu",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Vzdělání je nejmocnější zbraň, kterou můžete použít ke změně světa. - Nelson Mandela"
@@ -66,7 +66,7 @@ object ShopData {
                 id = 15,
                 name = "Aristoteles",
                 description = "Starověký řecký filozof a učitel Alexandra Velikého",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Kvalita není čin, ale návyk. - Aristoteles"
@@ -75,7 +75,7 @@ object ShopData {
                 id = 16,
                 name = "Walt Disney",
                 description = "Americký animátor a zakladatel Disney Company",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Způsob, jak začít, je přestat mluvit a začít dělat. - Walt Disney"
@@ -84,7 +84,7 @@ object ShopData {
                 id = 17,
                 name = "Maya Angelou",
                 description = "Americká spisovatelka a aktivistka za občanská práva",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Lidé zapomenou, co jste řekli, lidé zapomenou, co jste udělali, ale nikdy nezapomenou, jak jste jim připadali. - Maya Angelou"
@@ -93,7 +93,7 @@ object ShopData {
                 id = 18,
                 name = "Steve Jobs",
                 description = "Spoluzakladatel a CEO společnosti Apple",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Inovace rozlišuje vůdce od následovníka. - Steve Jobs"
@@ -102,7 +102,7 @@ object ShopData {
                 id = 19,
                 name = "Mahatma Gandhi",
                 description = "Indický duchovní vůdce a bojovník za nezávislost",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Buď změnou, kterou chceš vidět ve světě. - Mahatma Gandhi"
@@ -111,7 +111,7 @@ object ShopData {
                 id = 50,
                 name = "Winston Churchill",
                 description = "Britský premiér během druhé světové války",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Úspěch není konečný, neúspěch není fatální: důležitá je odvaha pokračovat. - Winston Churchill"
@@ -120,7 +120,7 @@ object ShopData {
                 id = 51,
                 name = "Theodore Roosevelt",
                 description = "26. prezident Spojených států amerických",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Věř, že můžeš, a jsi na půli cesty. - Theodore Roosevelt"
@@ -129,7 +129,7 @@ object ShopData {
                 id = 52,
                 name = "Mark Twain",
                 description = "Americký spisovatel a humorista",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Odvaha není absence strachu, ale zvládnutí strachu. - Mark Twain"
@@ -138,7 +138,7 @@ object ShopData {
                 id = 53,
                 name = "Helen Keller",
                 description = "Americká spisovatelka a aktivistka pro práva postižených",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Život je buď odvážné dobrodružství, nebo nic. - Helen Keller"
@@ -147,7 +147,7 @@ object ShopData {
                 id = 54,
                 name = "Leonardo da Vinci",
                 description = "Italský renesanční génius, malíř a vynálezce",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Učení nikdy nevyčerpá mysl. - Leonardo da Vinci"
@@ -156,7 +156,7 @@ object ShopData {
                 id = 55,
                 name = "Konfucius",
                 description = "Čínský filozof a učitel",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Skutečné vědění je znát rozsah své neznalosti. - Konfucius"
@@ -165,7 +165,7 @@ object ShopData {
                 id = 56,
                 name = "Oscar Wilde",
                 description = "Irský spisovatel a dramatik",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Buď sám sebou; všichni ostatní už jsou obsazeni. - Oscar Wilde"
@@ -174,7 +174,7 @@ object ShopData {
                 id = 57,
                 name = "Maya Angelou",
                 description = "Americká spisovatelka a aktivistka za občanská práva",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Pokud se ti něco nelíbí, změň to. Pokud to nemůžeš změnit, změň svůj postoj. - Maya Angelou"
@@ -183,7 +183,7 @@ object ShopData {
                 id = 58,
                 name = "Ralph Waldo Emerson",
                 description = "Americký esejista a filozof",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Co leží za námi a co leží před námi, jsou malé věci ve srovnání s tím, co leží v nás. - Ralph Waldo Emerson"
@@ -192,7 +192,7 @@ object ShopData {
                 id = 59,
                 name = "Franklin D. Roosevelt",
                 description = "32. prezident Spojených států amerických",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Jediné, čeho se máme bát, je strach sám. - Franklin D. Roosevelt"
@@ -201,7 +201,7 @@ object ShopData {
                 id = 60,
                 name = "Vince Lombardi",
                 description = "Legendární americký fotbalový trenér",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Dokonalost není dosažitelná, ale pokud se snažíme o dokonalost, můžeme dosáhnout excellence. - Vince Lombardi"
@@ -210,7 +210,7 @@ object ShopData {
                 id = 61,
                 name = "John F. Kennedy",
                 description = "35. prezident Spojených států amerických",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Neptej se, co může tvoje země udělat pro tebe, ale co můžeš udělat ty pro svou zemi. - John F. Kennedy"
@@ -219,7 +219,7 @@ object ShopData {
                 id = 62,
                 name = "Socrates",
                 description = "Starověký řecký filozof",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Vím, že nic nevím. - Socrates"
@@ -228,7 +228,7 @@ object ShopData {
                 id = 63,
                 name = "Martin Luther King Jr.",
                 description = "Americký pastor a aktivista za občanská práva",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Temnota nemůže vyhnat temnotu: pouze světlo to dokáže. - Martin Luther King Jr."
@@ -237,7 +237,7 @@ object ShopData {
                 id = 64,
                 name = "Oprah Winfrey",
                 description = "Americká mediální osobnost a filantropka",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Největší objevení všech časů je, že člověk může změnit svou budoucnost pouhým změněním svého postoje. - Oprah Winfrey"
@@ -246,7 +246,7 @@ object ShopData {
                 id = 65,
                 name = "Muhammad Ali",
                 description = "Legendární americký boxer",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Nemožné je jen názor. - Muhammad Ali"
@@ -255,7 +255,7 @@ object ShopData {
                 id = 66,
                 name = "Buddha",
                 description = "Zakladatel buddhismu",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Mysl je vše. Čím si myslíš, tím se stáváš. - Buddha"
@@ -264,7 +264,7 @@ object ShopData {
                 id = 67,
                 name = "Marcus Aurelius",
                 description = "Římský císař a stoický filozof",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Velmi málo je potřeba k šťastnému životu; je to vše v tobě, ve tvém způsobu myšlení. - Marcus Aurelius"
@@ -273,7 +273,7 @@ object ShopData {
                 id = 68,
                 name = "Eleanor Roosevelt",
                 description = "Americká první dáma a aktivistka za lidská práva",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Nikdo tě nemůže ponížit bez tvého souhlasu. - Eleanor Roosevelt"
@@ -282,7 +282,7 @@ object ShopData {
                 id = 69,
                 name = "Viktor Frankl",
                 description = "Rakouský neurolog, psychiatr a filozof",
-                price = 0,
+                price = 15,
                 category = ShopCategory.QUOTES,
                 type = ShopItemType.PROFILE_QUOTE,
                 quote = "Všechno ti může být vzato kromě jedné věci: tvé svobody vybrat si svůj postoj v jakékoli situaci. - Viktor Frankl"
@@ -293,7 +293,7 @@ object ShopData {
                 id = 20,
                 name = "Emoji balíček",
                 description = "Veselé emoji ikony pro všechny předměty",
-                price = 0, // DEBUG - pro testování zdarma
+                price = 40,
                 category = ShopCategory.SUBJECTS,
                 type = ShopItemType.ICON_PACK,
                 iconPackType = IconPackType.EMOJI,
@@ -313,7 +313,7 @@ object ShopData {
                 id = 21,
                 name = "Moderní balíček",
                 description = "Stylové Material Design ikony",
-                price = 0, // DEBUG - normálně 75 (7.5 lekcí)
+                price = 75,
                 category = ShopCategory.SUBJECTS,
                 type = ShopItemType.ICON_PACK,
                 iconPackType = IconPackType.MATERIAL_ICONS,
@@ -333,7 +333,7 @@ object ShopData {
                 id = 22,
                 name = "Premium balíček",
                 description = "Exkluzivní emoji ikony s gradientem",
-                price = 0, // DEBUG - normálně 100 (10 lekcí)
+                price = 100,
                 category = ShopCategory.SUBJECTS,
                 type = ShopItemType.ICON_PACK,
                 iconPackType = IconPackType.EMOJI,
@@ -353,7 +353,7 @@ object ShopData {
                 id = 23,
                 name = "Klasické ikony",
                 description = "Původní Material Design ikony z výchozího nastavení",
-                price = 0, // DEBUG - normálně 50 (5 lekcí)
+                price = 0,
                 category = ShopCategory.SUBJECTS,
                 type = ShopItemType.ICON_PACK,
                 iconPackType = IconPackType.MATERIAL_ICONS,
@@ -375,7 +375,7 @@ object ShopData {
                 id = 30,
                 name = "1.5x Body",
                 description = "Získávej 1.5x více bodů po dobu 15 minut",
-                price = 0, // DEBUG - normálně 30 (3 lekce)
+                price = 30,
                 category = ShopCategory.POWER_UPS,
                 type = ShopItemType.POINTS_MULTIPLIER,
                 durationMinutes = 15,
@@ -387,7 +387,7 @@ object ShopData {
                 id = 31,
                 name = "2x Body",
                 description = "Získávej dvojnásobné body po dobu 15 minut",
-                price = 0, // DEBUG - normálně 50 (5 lekcí)
+                price = 50,
                 category = ShopCategory.POWER_UPS,
                 type = ShopItemType.POINTS_MULTIPLIER,
                 durationMinutes = 15,
@@ -399,7 +399,7 @@ object ShopData {
                 id = 32,
                 name = "3x Body",
                 description = "Získávej trojnásobné body po dobu 15 minut",
-                price = 0, // DEBUG - normálně 80 (8 lekcí)
+                price = 80,
                 category = ShopCategory.POWER_UPS,
                 type = ShopItemType.POINTS_MULTIPLIER,
                 durationMinutes = 15,
@@ -413,7 +413,7 @@ object ShopData {
                 id = 40,
                 name = "Kočka Mourek",
                 description = "Roztomilá kočka, která ti bude dělat společnost při učení",
-                price = 0, // DEBUG - normálně 60 (6 lekcí)
+                price = 70,
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🐱"
@@ -422,7 +422,7 @@ object ShopData {
                 id = 41,
                 name = "Pes Rexík",
                 description = "Věrný společník, který tě bude motivovat k dalšímu učení",
-                price = 0, // DEBUG - normálně 70 (7 lekcí)
+                price = 70,
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🐶"
@@ -431,7 +431,7 @@ object ShopData {
                 id = 42,
                 name = "Králík Hopísek",
                 description = "Rychlý králík, který ti dodá energii do studia",
-                price = 0, // DEBUG - normálně 50 (5 lekcí)
+                price = 70,
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🐰"
@@ -440,7 +440,7 @@ object ShopData {
                 id = 43,
                 name = "Sova Moudrá",
                 description = "Moudrá sova, symbol vzdělání a vědomostí",
-                price = 0, // DEBUG - normálně 100 (10 lekcí)
+                price = 70,
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🦉"
@@ -449,7 +449,7 @@ object ShopData {
                 id = 44,
                 name = "Liška Chytrá",
                 description = "Mazaná liška, která ti pomůže s řešením těžkých úkolů",
-                price = 0, // DEBUG - normálně 80 (8 lekcí)
+                price = 70,
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🦊"
@@ -458,7 +458,7 @@ object ShopData {
                 id = 45,
                 name = "Panda Klidná",
                 description = "Klidná panda, která ti dodá zen při studiu",
-                price = 0, // DEBUG - normálně 90 (9 lekcí)
+                price = 70,
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🐼"
@@ -467,7 +467,7 @@ object ShopData {
                 id = 46,
                 name = "Delfín Inteligentní",
                 description = "Chytrý delfín, který ti pomůže s koncentrací",
-                price = 0, // DEBUG - normálně 85 (8.5 lekcí)
+                price = 70,
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🐬"
@@ -476,7 +476,7 @@ object ShopData {
                 id = 48,
                 name = "Myška Roztomilá",
                 description = "Malá, rychlá a chytrá myška, která ti pomůže najít nejkratší cesty k poznání",
-                price = 0, // DEBUG - normálně 45 (4.5 lekce)
+                price = 70,
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🐭"
