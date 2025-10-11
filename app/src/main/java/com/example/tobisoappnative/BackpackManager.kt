@@ -50,6 +50,21 @@ object BackpackManager {
             }
         }
         
+        // Ujisti se, že "Klasické ikony" jsou vždycky v aktovce
+        val classicIconPackId = 23
+        val hasClassicIconPack = backpackItemsList.any { it.shopItem.id == classicIconPackId }
+        if (!hasClassicIconPack) {
+            val classicIconPack = ShopData.getItemById(classicIconPackId)
+            if (classicIconPack != null) {
+                backpackItemsList.add(
+                    BackpackItem(
+                        shopItem = classicIconPack,
+                        purchaseDate = System.currentTimeMillis()
+                    )
+                )
+            }
+        }
+        
         _backpackItems.value = backpackItemsList
     }
     
@@ -74,6 +89,12 @@ object BackpackManager {
             // Synchronizuj s IconPackManagerem
             if (iconPack != null) {
                 IconPackManager.setActiveIconPack(context, iconPack)
+            }
+        } else {
+            // Pokud nemá vybavený žádný balíček ikon, nastav "Klasické ikony" jako výchozí
+            val classicIconPack = ShopData.getItemById(23) // ID 23 = Klasické ikony
+            if (classicIconPack != null) {
+                equipIconPack(context, classicIconPack)
             }
         }
     }

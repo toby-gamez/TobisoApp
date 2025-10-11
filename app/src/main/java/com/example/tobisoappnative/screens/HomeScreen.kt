@@ -104,6 +104,24 @@ fun getColumnCount(): Int {
     }
 }
 
+// Funkce pro získání barvy podle názvu předmětu
+@Composable 
+fun getSubjectColorByName(subjectName: String): Color {
+    val colorType = when (subjectName) {
+        "Mluvnice" -> SubjectColorType.PRIMARY
+        "Literatura" -> SubjectColorType.SECONDARY  
+        "Sloh" -> SubjectColorType.TERTIARY
+        "Hudební výchova" -> SubjectColorType.PRIMARY_CONTAINER
+        "Matematika" -> SubjectColorType.SECONDARY_CONTAINER
+        "Chemie" -> SubjectColorType.ERROR
+        "Fyzika" -> SubjectColorType.TERTIARY_CONTAINER
+        "Přírodopis" -> SubjectColorType.OUTLINE
+        "Zeměpis" -> SubjectColorType.SURFACE_VARIANT
+        else -> SubjectColorType.PRIMARY // Výchozí barva
+    }
+    return getSubjectColor(colorType)
+}
+
 @Composable
 fun getSubjectColor(colorType: SubjectColorType): Color {
     val isDarkTheme = isSystemInDarkTheme()

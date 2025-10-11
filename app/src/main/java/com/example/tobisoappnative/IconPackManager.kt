@@ -39,7 +39,17 @@ object IconPackManager {
         "biotech" to Icons.Default.Biotech,
         "bolt" to Icons.Default.Bolt,
         "local_florist" to Icons.Default.LocalFlorist,
-        "language" to Icons.Default.Language
+        "language" to Icons.Default.Language,
+        // Přidáno mapování pro klasické ikony
+        "spellcheck" to Icons.Default.Spellcheck,
+        "menu_book" to Icons.Default.MenuBook,
+        "description" to Icons.Default.Description,
+        "library_music" to Icons.Default.LibraryMusic,
+        "calculate" to Icons.Default.Calculate,
+        "science" to Icons.Default.Science,
+        "precision_manufacturing" to Icons.Default.PrecisionManufacturing,
+        "eco" to Icons.Default.Eco,
+        "public" to Icons.Default.Public
     )
     
     fun init(context: Context) {
@@ -52,6 +62,12 @@ object IconPackManager {
         
         if (activePackId != -1) {
             _activeIconPack.value = ShopData.getItemById(activePackId)
+        } else {
+            // Pokud nemá žádný aktivní balíček, nastav "Klasické ikony" jako výchozí
+            val classicIconPack = ShopData.getItemById(23) // ID 23 = Klasické ikony
+            if (classicIconPack != null) {
+                setActiveIconPack(context, classicIconPack)
+            }
         }
     }
     

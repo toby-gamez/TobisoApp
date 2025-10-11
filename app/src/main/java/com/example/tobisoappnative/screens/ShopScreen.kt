@@ -558,10 +558,20 @@ fun ShopItemCard(
                                                             "bolt" -> Icons.Default.Bolt
                                                             "local_florist" -> Icons.Default.LocalFlorist
                                                             "language" -> Icons.Default.Language
+                                                            // Přidáno mapování pro klasické ikony
+                                                            "spellcheck" -> Icons.Default.Spellcheck
+                                                            "menu_book" -> Icons.Default.MenuBook
+                                                            "description" -> Icons.Default.Description
+                                                            "library_music" -> Icons.Default.LibraryMusic
+                                                            "calculate" -> Icons.Default.Calculate
+                                                            "science" -> Icons.Default.Science
+                                                            "precision_manufacturing" -> Icons.Default.PrecisionManufacturing
+                                                            "eco" -> Icons.Default.Eco
+                                                            "public" -> Icons.Default.Public
                                                             else -> Icons.Default.Book
                                                         },
                                                         contentDescription = subjectIcon.subjectName,
-                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        tint = getSubjectColorByName(subjectIcon.subjectName),
                                                         modifier = Modifier.size(20.dp)
                                                     )
                                                 }
@@ -961,10 +971,20 @@ fun PurchaseDialog(
                                                                 "bolt" -> Icons.Default.Bolt
                                                                 "local_florist" -> Icons.Default.LocalFlorist
                                                                 "language" -> Icons.Default.Language
+                                                                // Přidáno mapování pro klasické ikony
+                                                                "spellcheck" -> Icons.Default.Spellcheck
+                                                                "menu_book" -> Icons.Default.MenuBook
+                                                                "description" -> Icons.Default.Description
+                                                                "library_music" -> Icons.Default.LibraryMusic
+                                                                "calculate" -> Icons.Default.Calculate
+                                                                "science" -> Icons.Default.Science
+                                                                "precision_manufacturing" -> Icons.Default.PrecisionManufacturing
+                                                                "eco" -> Icons.Default.Eco
+                                                                "public" -> Icons.Default.Public
                                                                 else -> Icons.Default.Book
                                                             },
                                                             contentDescription = subjectIcon.subjectName,
-                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            tint = getSubjectColorByName(subjectIcon.subjectName),
                                                             modifier = Modifier.size(24.dp)
                                                         )
                                                     }

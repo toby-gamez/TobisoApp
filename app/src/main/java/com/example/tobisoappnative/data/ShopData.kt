@@ -349,6 +349,26 @@ object ShopData {
                     SubjectIcon("Zeměpis", "🌎", IconPackType.EMOJI) // Změněno z 🗺️
                 )
             ),
+            ShopItem(
+                id = 23,
+                name = "Klasické ikony",
+                description = "Původní Material Design ikony z výchozího nastavení",
+                price = 0, // DEBUG - normálně 50 (5 lekcí)
+                category = ShopCategory.SUBJECTS,
+                type = ShopItemType.ICON_PACK,
+                iconPackType = IconPackType.MATERIAL_ICONS,
+                subjectIcons = listOf(
+                    SubjectIcon("Mluvnice", "spellcheck", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Literatura", "menu_book", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Sloh", "description", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Hudební výchova", "library_music", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Matematika", "calculate", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Chemie", "science", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Fyzika", "precision_manufacturing", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Přírodopis", "eco", IconPackType.MATERIAL_ICONS),
+                    SubjectIcon("Zeměpis", "public", IconPackType.MATERIAL_ICONS)
+                )
+            ),
             
             // Power-upy kategorie
             ShopItem(

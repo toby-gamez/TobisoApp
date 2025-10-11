@@ -34,6 +34,14 @@ object ShopManager {
             }
         }
         
+        // Vždycky automaticky přidat "Klasické ikony" balíček (ID 23) jako vlastněný
+        val classicIconPackId = 23
+        if (!purchasedSet.contains(classicIconPackId)) {
+            purchasedSet.add(classicIconPackId)
+            // Uložit do SharedPreferences pro budoucí použití
+            savePurchasedItem(context, classicIconPackId)
+        }
+        
         _purchasedItems.value = purchasedSet
     }
     
