@@ -779,8 +779,10 @@ fun DateDetailCard(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                Column {
-                    events.forEach { event ->
+                LazyColumn(
+                    
+                ) {
+                    items(events) { event ->
                         EventItem(
                             event = event,
                             timeFormat = timeFormat,
@@ -791,9 +793,7 @@ fun DateDetailCard(
                             onDelete = if (event.isLocalSafe()) { { onDeleteEvent(event.id) } } else null
                         )
                         
-                        if (event != events.last()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
