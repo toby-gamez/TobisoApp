@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
+import com.example.tobisoappnative.components.CustomNumericKeyboard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -605,14 +606,10 @@ fun QuestionsScreen(
                                 // Možnosti odpovědí nebo textové pole
                                 if (question.isTextQuestion) {
                                     // Detekce typu klávesnice na základě správné odpovědi
-                                    val keyboardType = remember(question.correctTextAnswer) {
+                                    val isNumericAnswer = remember(question.correctTextAnswer) {
                                         val correctAnswer = question.correctTextAnswer?.trim() ?: ""
                                         // Pokud odpověď neobsahuje písmena (pouze číslice a jiné znaky)
-                                        if (correctAnswer.matches(Regex("^[^a-zA-ZáčďéěíňóřšťůúýžÁČĎÉĚÍŇÓŘŠŤŮÚÝŽ]*$")) && correctAnswer.isNotEmpty()) {
-                                            KeyboardType.Number
-                                        } else {
-                                            KeyboardType.Text
-                                        }
+                                        correctAnswer.matches(Regex("^[^a-zA-ZáčďéěíňóřšťůúýžÁČĎÉĚÍŇÓŘŠŤŮÚÝŽ]*$")) && correctAnswer.isNotEmpty()
                                     }
                                     
                                     // Textové pole pro textové otázky
@@ -626,10 +623,32 @@ fun QuestionsScreen(
                                         label = { Text("Zadejte vaši odpověď...") },
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true,
+                                        readOnly = isNumericAnswer, // Pokud je číselná odpověď, pole bude jen pro čtení
                                         keyboardOptions = KeyboardOptions(
-                                            keyboardType = keyboardType
+                                            keyboardType = KeyboardType.Text
                                         )
                                     )
+                                    
+                                    // Vlastní číselná klávesnice pro číselné odpovědi
+                                    if (isNumericAnswer) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        CustomNumericKeyboard(
+                                            onKeyPress = { key ->
+                                                val currentText = textAnswers[currentQuestionIndex] ?: ""
+                                                textAnswers = textAnswers.toMutableMap().apply {
+                                                    put(currentQuestionIndex, currentText + key)
+                                                }
+                                            },
+                                            onBackspace = {
+                                                val currentText = textAnswers[currentQuestionIndex] ?: ""
+                                                if (currentText.isNotEmpty()) {
+                                                    textAnswers = textAnswers.toMutableMap().apply {
+                                                        put(currentQuestionIndex, currentText.dropLast(1))
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
                                 } else {
                                     // Výběr z možností pro běžné otázky
                                     Column(

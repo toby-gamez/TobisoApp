@@ -66,6 +66,11 @@ fun BulletPoint(text: String) {
 @Composable
 fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
+        VersionInfo("2.2.1", listOf(
+            "přidána oúrava obrázku",
+            "opraveny bubliny při neexistujících zvířátkách",
+            "místo klávesnice mobilu je použita klávesnice vložená"
+        )),
         VersionInfo("2.2", listOf(
             "přidán obchod (zmražení řady, balíčky ikon, zvířátka atd.)",
             "přidán profil, odměny a odznaky",

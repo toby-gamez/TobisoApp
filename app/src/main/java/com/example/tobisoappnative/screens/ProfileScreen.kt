@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.text.style.TextAlign
+import com.example.tobisoappnative.components.ImageCropperDialog
 
 // Helper funkce pro správu profilu
 fun getProfileName(context: android.content.Context): String {
@@ -254,7 +255,7 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Načítání dalšího obsahu...")
+                        Text("Načítání profilu...")
                     }
                 }
             } else {
@@ -536,6 +537,8 @@ fun ProfileSection(navController: NavController) {
     var showPetBubble by remember { mutableStateOf(false) }
     var currentBubbleText by remember { mutableStateOf("") }
     var isAnimatingOut by remember { mutableStateOf(false) }
+    var showImageCropper by remember { mutableStateOf(false) }
+    var tempImageForCropping by remember { mutableStateOf<String?>(null) }
     
     // Načtení dat při startu
     LaunchedEffect(Unit) {
@@ -543,10 +546,10 @@ fun ProfileSection(navController: NavController) {
         tempName = profileName
         profileImageUri = getProfileImageUri(context)
         
-        // Zkontroluj, jestli má zobrazit bublinu
-        if (shouldShowBubble(context)) {
-            val equippedPet = BackpackManager.equippedPet.value
-            currentBubbleText = getRandomBubbleForPet(equippedPet?.petIcon)
+        // Zkontroluj, jestli má zobrazit bublinu - pouze pokud má vybavené zvířátko
+        val equippedPet = BackpackManager.equippedPet.value
+        if (equippedPet != null && shouldShowBubble(context)) {
+            currentBubbleText = getRandomBubbleForPet(equippedPet.petIcon)
             showPetBubble = true
         }
     }
@@ -559,8 +562,9 @@ fun ProfileSection(navController: NavController) {
             // Zkopírujeme obrázek do interního úložiště
             val copiedImagePath = copyImageToInternalStorage(context, originalUri)
             copiedImagePath?.let { path ->
-                profileImageUri = path
-                saveProfileImageUri(context, path)
+                // Místo přímého nastavení, otevřeme cropper
+                tempImageForCropping = path
+                showImageCropper = true
             }
         }
     }
@@ -647,6 +651,7 @@ fun ProfileSection(navController: NavController) {
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f))
                             .clickable { 
+                                // Kliknutí zobrazí bublinu pouze pokud je zvířátko vybavené
                                 currentBubbleText = getRandomBubbleForPet(petIcon)
                                 showPetBubble = true
                             },
@@ -874,6 +879,24 @@ fun ProfileSection(navController: NavController) {
             showPetBubble = false
             isAnimatingOut = false
         }
+    }
+    
+    // Image Cropper Dialog
+    if (showImageCropper && tempImageForCropping != null) {
+        ImageCropperDialog(
+            imageUri = tempImageForCropping!!,
+            onCropComplete = { croppedImagePath ->
+                // Uložit oříznutý obrázek
+                profileImageUri = croppedImagePath
+                saveProfileImageUri(context, croppedImagePath)
+                showImageCropper = false
+                tempImageForCropping = null
+            },
+            onDismiss = {
+                showImageCropper = false
+                tempImageForCropping = null
+            }
+        )
     }
 }
 }
