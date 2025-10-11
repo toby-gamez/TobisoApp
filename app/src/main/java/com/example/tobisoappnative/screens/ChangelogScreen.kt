@@ -67,9 +67,9 @@ fun BulletPoint(text: String) {
 fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
         VersionInfo("2.2.1", listOf(
-            "přidána oúrava obrázku",
+            "přidána úprava obrázku",
             "opraveny bubliny při neexistujících zvířátkách",
-            "místo klávesnice mobilu je použita klávesnice vložená"
+            "místo klávesnice mobilu je použita klávesnice vlastní"
         )),
         VersionInfo("2.2", listOf(
             "přidán obchod (zmražení řady, balíčky ikon, zvířátka atd.)",
