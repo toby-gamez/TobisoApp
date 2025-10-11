@@ -50,35 +50,12 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import com.example.tobisoappnative.utils.StreakUtils
 
-// Helper funkce pro získání aktuální řady
+// Helper funkce pro získání aktuální řady (nyní s freeze podporou)
 @RequiresApi(Build.VERSION_CODES.O)
 fun getCurrentStreak(context: Context): Int {
-    val sharedPreferences = context.getSharedPreferences("StreakData", Context.MODE_PRIVATE)
-    val streakDays = sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
-    
-    if (streakDays.isEmpty()) return 0
-    
-    val sortedDates = streakDays.map { LocalDate.parse(it) }.sorted()
-    if (sortedDates.size == 1) return 1
-    
-    var currentStreak = 0
-    val today = LocalDate.now()
-    val lastRecordedDay = sortedDates.last()
-    
-    if (lastRecordedDay == today || lastRecordedDay == today.minusDays(1)) {
-        var expectedDate = lastRecordedDay
-        for (i in sortedDates.indices.reversed()) {
-            if (sortedDates[i] == expectedDate) {
-                currentStreak++
-                expectedDate = expectedDate.minusDays(1)
-            } else {
-                break
-            }
-        }
-    }
-    
-    return currentStreak
+    return StreakUtils.getCurrentStreak(context)
 }
 
 data class Subject(
@@ -242,11 +219,15 @@ fun HomeScreen(navController: NavController) {
                         )
                     }
                     
-                    // Streak button s počtem dní
+                    // Streak button s počtem dní (s freeze podporou)
                     val context = LocalContext.current
                     val currentStreak = remember { mutableStateOf(0) }
                     
-                    LaunchedEffect(Unit) {
+                    // Sledování změn v freeze
+                    val availableFreezes by com.example.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
+                    val usedFreezes by com.example.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
+                    
+                    LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             currentStreak.value = getCurrentStreak(context)
                         }

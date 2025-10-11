@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -113,34 +114,10 @@ fun copyImageToInternalStorage(context: android.content.Context, uri: android.ne
     }
 }
 
-// Helper funkce pro získání aktuální řady
+// Helper funkce pro získání aktuální řady (nyní s freeze podporou)
 @RequiresApi(Build.VERSION_CODES.O)
 fun getCurrentStreakProfile(context: android.content.Context): Int {
-    val sharedPreferences = context.getSharedPreferences("StreakData", android.content.Context.MODE_PRIVATE)
-    val streakDays = sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
-    
-    if (streakDays.isEmpty()) return 0
-    
-    val sortedDates = streakDays.map { LocalDate.parse(it) }.sorted()
-    if (sortedDates.size == 1) return 1
-    
-    var currentStreak = 0
-    val today = LocalDate.now()
-    val lastRecordedDay = sortedDates.last()
-    
-    if (lastRecordedDay == today || lastRecordedDay == today.minusDays(1)) {
-        var expectedDate = lastRecordedDay
-        for (i in sortedDates.indices.reversed()) {
-            if (sortedDates[i] == expectedDate) {
-                currentStreak++
-                expectedDate = expectedDate.minusDays(1)
-            } else {
-                break
-            }
-        }
-    }
-    
-    return currentStreak
+    return com.example.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -224,11 +201,15 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                         )
                     }
                     
-                    // Streak button s počtem dní
+                    // Streak button s počtem dní (s freeze podporou)
                     val context = LocalContext.current
                     val currentStreak = remember { mutableStateOf(0) }
                     
-                    LaunchedEffect(Unit) {
+                    // Sledování změn v freeze
+                    val availableFreezes by com.example.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
+                    val usedFreezes by com.example.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
+                    
+                    LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             currentStreak.value = getCurrentStreakProfile(context)
                         }
@@ -1035,30 +1016,15 @@ fun getStreakBadge(days: Int): AchievementBadge {
     }
 }
 
-// Funkce pro získání všech dosažených streak milníků
+// Funkce pro získání všech dosažených streak milníků (nyní s freeze podporou)
 @RequiresApi(Build.VERSION_CODES.O)
 fun getCompletedStreakMilestones(context: android.content.Context): List<Int> {
     val milestonesPrefs = context.getSharedPreferences("streak_milestones", android.content.Context.MODE_PRIVATE)
-    val streakDays = context.getSharedPreferences("StreakData", android.content.Context.MODE_PRIVATE)
-        .getStringSet("streak_days", emptySet()) ?: emptySet()
     
-    if (streakDays.isEmpty()) return emptyList()
+    // Používáme StreakUtils pro správný výpočet včetně freezes
+    val maxStreak = com.example.tobisoappnative.utils.StreakUtils.getMaxStreak(context)
     
-    // Použijeme stejnou logiku jako v MainActivity pro generování milníků
-    val sortedDates = streakDays.map { java.time.LocalDate.parse(it) }.sorted()
-    var maxStreak = 1
-    var runningStreak = 1
-
-    for (i in 1 until sortedDates.size) {
-        if (sortedDates[i].minusDays(1) == sortedDates[i - 1]) {
-            runningStreak++
-        } else {
-            runningStreak = 1
-        }
-        if (runningStreak > maxStreak) {
-            maxStreak = runningStreak
-        }
-    }
+    if (maxStreak == 0) return emptyList()
     
     // Speciální milníky podle MainActivity
     val specialMilestones = listOf(7, 14, 30, 60, 100, 183, 365, 548, 730, 913, 1095, 1460, 1826)

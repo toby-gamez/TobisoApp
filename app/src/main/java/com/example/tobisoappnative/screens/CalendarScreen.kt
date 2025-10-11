@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,34 +51,10 @@ enum class EventFilter(val displayName: String) {
     REMOTE("Vzdálené")
 }
 
-// Helper funkce pro získání aktuální řady
+// Helper funkce pro získání aktuální řady (nyní s freeze podporou)
 @RequiresApi(Build.VERSION_CODES.O)
 fun getCurrentStreakCalendar(context: Context): Int {
-    val sharedPreferences = context.getSharedPreferences("StreakData", Context.MODE_PRIVATE)
-    val streakDays = sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
-    
-    if (streakDays.isEmpty()) return 0
-    
-    val sortedDates = streakDays.map { LocalDate.parse(it) }.sorted()
-    if (sortedDates.size == 1) return 1
-    
-    var currentStreak = 0
-    val today = LocalDate.now()
-    val lastRecordedDay = sortedDates.last()
-    
-    if (lastRecordedDay == today || lastRecordedDay == today.minusDays(1)) {
-        var expectedDate = lastRecordedDay
-        for (i in sortedDates.indices.reversed()) {
-            if (sortedDates[i] == expectedDate) {
-                currentStreak++
-                expectedDate = expectedDate.minusDays(1)
-            } else {
-                break
-            }
-        }
-    }
-    
-    return currentStreak
+    return com.example.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -224,10 +201,14 @@ fun CalendarScreen(
                     // Zobrazení aktivního multiplikátoru
                     MultiplierIndicator()
                     
-                    // Streak button s počtem dní
+                    // Streak button s počtem dní (s freeze podporou)
                     val currentStreak = remember { mutableStateOf(0) }
                     
-                    LaunchedEffect(Unit) {
+                    // Sledování změn v freeze
+                    val availableFreezes by com.example.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
+                    val usedFreezes by com.example.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
+                    
+                    LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             currentStreak.value = getCurrentStreakCalendar(context)
                         }
@@ -779,9 +760,7 @@ fun DateDetailCard(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                LazyColumn(
-                    
-                ) {
+                LazyColumn() {
                     items(events) { event ->
                         EventItem(
                             event = event,

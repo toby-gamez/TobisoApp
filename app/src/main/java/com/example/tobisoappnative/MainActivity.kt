@@ -78,9 +78,8 @@ import android.app.AlarmManager
 import com.example.tobisoappnative.screens.StreakScreen
 import com.example.tobisoappnative.screens.ShopScreen
 import com.example.tobisoappnative.screens.addTodayToStreak
-import com.example.tobisoappnative.screens.getStreakDays
-import com.example.tobisoappnative.screens.calculateStreaks
 import com.example.tobisoappnative.screens.checkPointsAchievements
+import com.example.tobisoappnative.utils.StreakUtils
 import java.util.*
 
 class MainActivity : ComponentActivity() {
@@ -93,13 +92,21 @@ class MainActivity : ComponentActivity() {
         // Zaznamenat otevření aplikace
         recordAppOpen()
         
-        // Přidat dnešní den do řady (pokud už tam není)
-        addTodayToStreak(this)
-        
-                // Inicializace managenů
+        // Inicializace managenů
         PointsManager.init(this)
         StreakFreezeManager.init(this)
         BackpackManager.init(this)
+        
+        // DŮLEŽITÉ: Kontrola freeze PŘED přidáním dnešního dne
+        val freezeUsed = StreakFreezeManager.checkAndAutoUseFreeze(this)
+        if (freezeUsed) {
+            println("MainActivity: Streak Freeze byl automaticky použit!")
+        } else {
+            println("MainActivity: Žádný Streak Freeze nebyl použit")
+        }
+        
+        // Přidat dnešní den do řady (pokud už tam není)
+        addTodayToStreak(this)
         
         // DOČASNÉ: Vymazat dosažené milníky pro testování (odkomentujte pokud potřebujete)
         // resetMilestones(this)
@@ -574,7 +581,32 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     FavoritesScreen(navController = navController)
                                 }
-                                composable("categoryList/{categoryName}") { backStackEntry ->
+                                composable("categoryList/{categoryName}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                    ) { backStackEntry ->
                                     val categoryName =
                                         backStackEntry.arguments?.getString("categoryName") ?: ""
                                     CategoryListScreen(
@@ -948,13 +980,13 @@ class MainActivity : ComponentActivity() {
     
     @RequiresApi(Build.VERSION_CODES.O)
     private fun checkStreakMilestones(context: Context) {
-        val streakDays = getStreakDays(context)
-        val streakInfo = calculateStreaks(streakDays)
+        // Používáme nové StreakUtils s freeze podporou
+        val streakInfo = com.example.tobisoappnative.utils.StreakUtils.calculateStreaks(context)
         val currentStreak = streakInfo.currentStreak
         
         println("=== STREAK MILESTONES DEBUG ===")
-        println("Current streak: $currentStreak days")
-        println("Total streak days: ${streakDays.size}")
+        println("Current streak: $currentStreak days (včetně freezes)")
+        println("Max streak: ${streakInfo.maxStreak} days")
         
         // Generování všech milníků dynamicky
         val allMilestones = generateStreakMilestones(currentStreak)

@@ -49,39 +49,56 @@ object StreakFreezeManager {
     
     /**
      * Zkontroluje, zda je potřeba automaticky použít Streak Freeze
-     * Zavolá se na začátku aplikace, pokud uživatel včera neměl aktivitu
+     * Zavolá se na začátku aplikace před přidáním dnešní aktivity
      */
     fun checkAndAutoUseFreeze(context: Context): Boolean {
-        val today = LocalDate.now()
-        val yesterday = today.minusDays(1)
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val yesterdayString = yesterday.format(formatter)
-        
-        // Zkontroluj, zda včera nebyla aktivita
         val streakDays = getStreakDays(context)
-        val hasYesterdayActivity = streakDays.contains(yesterdayString)
-        
-        if (hasYesterdayActivity) {
-            return false // Včera byla aktivita, freeze není potřeba
-        }
-        
-        // Zkontroluj, zda už nebyl freeze použit pro včerejšek
-        val usedFreezes = _usedFreezes.value
-        if (usedFreezes.contains(yesterdayString)) {
-            return false // Freeze už byl použit pro včerejšek
-        }
+        val today = LocalDate.now()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val todayString = today.format(formatter)
         
         // Zkontroluj, zda má k dispozici freeze
         if (_availableFreezes.value <= 0) {
             return false // Nemá žádný freeze
         }
         
-        // Zkontroluj, zda by bez freeze ztratil streak
-        if (wouldLoseStreakWithoutFreeze(context, yesterdayString)) {
-            return useFreeze(context, yesterdayString)
+        // Zkontroluj pouze včerejšek (nejběžnější případ)
+        val yesterday = today.minusDays(1)
+        val yesterdayString = yesterday.format(formatter)
+        
+        // Zkontroluj, zda včera nebyla aktivita a nebyl už použit freeze
+        val hasYesterdayActivity = streakDays.contains(yesterdayString)
+        val usedFreezes = _usedFreezes.value
+        
+        if (!hasYesterdayActivity && !usedFreezes.contains(yesterdayString)) {
+            // Zkontroluj, zda by freeze zachránil streak
+            if (wouldSaveStreak(context, yesterdayString)) {
+                println("AUTO-FREEZE: Používám freeze pro včerejšek ($yesterdayString)")
+                return useFreeze(context, yesterdayString)
+            }
         }
         
         return false
+    }
+    
+    /**
+     * Zkontroluje, zda by freeze pro dané datum zachránil/prodloužil streak
+     */
+    private fun wouldSaveStreak(context: Context, freezeDate: String): Boolean {
+        val streakDays = getStreakDays(context).toMutableSet()
+        val freezeLocalDate = LocalDate.parse(freezeDate)
+        val today = LocalDate.now()
+        
+        // Pokud by dnes měl aktivitu (očekáváme, že aplikace běží = uživatel je aktivní)
+        // a včera chybí aktivita, freeze by prodloužil streak
+        val dayBeforeFreeze = freezeLocalDate.minusDays(1)
+        val dayAfterFreeze = freezeLocalDate.plusDays(1)
+        
+        val hasDayBefore = streakDays.contains(dayBeforeFreeze.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+        val hasDayAfter = dayAfterFreeze == today // dnes se přidá aktivita
+        
+        // Freeze má smysl, pokud spojí včerejší aktivitu s dnešní
+        return hasDayBefore && hasDayAfter
     }
     
     /**
@@ -116,18 +133,7 @@ object StreakFreezeManager {
         return true
     }
     
-    /**
-     * Zjistí, zda by uživatel ztratil streak bez použití freeze
-     */
-    private fun wouldLoseStreakWithoutFreeze(context: Context, missingDate: String): Boolean {
-        val streakDays = getStreakDays(context)
-        val today = LocalDate.now()
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val todayString = today.format(formatter)
-        
-        // Pokud má aktivitu dnes, ale ne včera, freeze zachrání streak
-        return streakDays.contains(todayString) && !streakDays.contains(missingDate)
-    }
+
     
     /**
      * Získá aktuální počet dostupných freezes

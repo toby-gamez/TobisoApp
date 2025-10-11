@@ -31,13 +31,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import com.example.tobisoappnative.StreakFreezeManager
+import com.example.tobisoappnative.utils.StreakUtils
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
-
-// Nová datová třída pro přehledné vracení obou hodnot
-data class StreakInfo(val currentStreak: Int, val maxStreak: Int)
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,11 +55,14 @@ fun StreakScreen(
     val streakDays by remember(calendarMonth, calendarYear) {
         mutableStateOf(getStreakDays(context))
     }
+    
+    // Sledování změn v Streak Freeze pro přepočítání
+    val usedFreezes by StreakFreezeManager.usedFreezes.collectAsState()
     val currentDateString = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(today.time)
 
-    // --- NOVÝ A EFEKTIVNÍ VÝPOČET ---
-    val (currentStreak, maxStreak) = remember(streakDays) {
-        calculateStreaks(streakDays)
+    // --- NOVÝ A EFEKTIVNÍ VÝPOČET S FREEZE PODPOROU ---
+    val (currentStreak, maxStreak) = remember(streakDays, usedFreezes) {
+        StreakUtils.calculateStreaks(context)
     }
     
     // Inicializace a sledování Streak Freezes
@@ -295,55 +296,7 @@ fun CalendarSection(
     }
 }
 
-/**
- * Nová, optimalizovaná funkce pro výpočet aktuální a maximální série.
- * Používá java.time.LocalDate pro výrazně vyšší výkon.
- */
-@RequiresApi(Build.VERSION_CODES.O)
-fun calculateStreaks(streakDays: Set<String>): StreakInfo {
-    if (streakDays.isEmpty()) {
-        return StreakInfo(0, 0)
-    }
-
-    val sortedDates = streakDays.map { LocalDate.parse(it) }.sorted()
-
-    // Pokud je v seznamu jen jeden den, série je 1.
-    if (sortedDates.size == 1) {
-        return StreakInfo(1, 1)
-    }
-
-    var maxStreak = 1
-    var runningStreak = 1
-
-    for (i in 1 until sortedDates.size) {
-        if (sortedDates[i].minusDays(1) == sortedDates[i - 1]) {
-            runningStreak++
-        } else {
-            runningStreak = 1
-        }
-        if (runningStreak > maxStreak) {
-            maxStreak = runningStreak
-        }
-    }
-
-    var currentStreak = 0
-    val today = LocalDate.now()
-    val lastRecordedDay = sortedDates.last()
-
-    if (lastRecordedDay == today || lastRecordedDay == today.minusDays(1)) {
-        var expectedDate = lastRecordedDay
-        for (i in sortedDates.indices.reversed()) {
-            if (sortedDates[i] == expectedDate) {
-                currentStreak++
-                expectedDate = expectedDate.minusDays(1)
-            } else {
-                break
-            }
-        }
-    }
-
-    return StreakInfo(currentStreak = currentStreak, maxStreak = maxStreak)
-}
+// Funkce calculateStreaks je nyní v StreakUtils s freeze podporou
 
 // --- ZMĚNA: Napojení na reálné úložiště telefonu ---
 @RequiresApi(Build.VERSION_CODES.O)
@@ -437,6 +390,7 @@ fun CalendarStreak(
             ) {
                 for (day in week) {
                     val isActive = day.fullDate != null && streakDays.contains(day.fullDate)
+                    val isFreezed = day.fullDate != null && StreakFreezeManager.isFreezeActive(day.fullDate)
                     val isToday = day.fullDate == todayString
 
                     Box(
@@ -479,6 +433,31 @@ fun CalendarStreak(
                                         color = MaterialTheme.colorScheme.onTertiaryContainer
                                     )
                                 )
+                            }
+                        } else if (isFreezed) {
+                            // Den s použitým freeze - speciální zobrazení
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = day.dayNumber.toString(),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Shield,
+                                        contentDescription = "Freeze",
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(8.dp)
+                                    )
+                                }
                             }
                         } else if (day.isCurrentMonth) {
                             Box(
