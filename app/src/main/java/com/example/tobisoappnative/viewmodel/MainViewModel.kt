@@ -112,6 +112,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _snippets = MutableStateFlow<List<Snippet>>(emptyList())
     val snippets: StateFlow<List<Snippet>> = _snippets
     private val SNIPPETS_FILE_NAME = "snippets.json"
+    // Track last clipboard text that was already handled (saved or dismissed) so we
+    // don't repeatedly prompt the user for the same clipboard content across screens
+    private val _lastHandledClipboard = MutableStateFlow<String?>(null)
+    val lastHandledClipboard: StateFlow<String?> = _lastHandledClipboard
+
+    fun markClipboardHandled(text: String) {
+        _lastHandledClipboard.value = text
+    }
 
     init {
         // Inicializace offline stavu na začátku
@@ -434,6 +442,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val json = gson.toJson(current)
             file.writeText(json)
             _snippets.value = current
+            // If we have the post detail loaded for this snippet and the global
+            // posts cache doesn't contain it, add it so FavoritesScreen can
+            // immediately resolve the post title.
+            try {
+                if (snippet.postId != 0) {
+                    val hasPost = _posts.value.any { it.id == snippet.postId }
+                    val loadedDetail = _postDetail.value
+                    if (!hasPost && loadedDetail != null && loadedDetail.id == snippet.postId) {
+                        // Append the post to cached posts so other screens (Favorites)
+                        // can find the title without requiring a full reload.
+                        val newPosts = _posts.value.toMutableList()
+                        newPosts.add(loadedDetail)
+                        _posts.value = newPosts
+                    }
+                }
+            } catch (e: Exception) {
+                // ignore any errors here; this is a best-effort cache update
+            }
         }
     }
 

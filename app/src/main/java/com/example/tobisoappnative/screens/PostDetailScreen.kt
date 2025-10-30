@@ -31,17 +31,19 @@ import java.text.SimpleDateFormat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.text.selection.SelectionContainer
+// selection removed from this screen — selection moved to PlainTextScreen
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.text.AnnotatedString
 import com.example.tobisoappnative.model.ApiClient
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.ui.text.style.TextAlign
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.ClipboardManager
-import kotlinx.coroutines.delay
+// combinedClickable not used here
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.platform.LocalContext
 import com.example.tobisoappnative.components.MultiplierIndicator
 
@@ -94,29 +96,7 @@ fun PostDetailScreen(
         }
     }
 
-    val clipboardManager: ClipboardManager = LocalClipboardManager.current
-    var lastClipboardText by remember { mutableStateOf("") }
-    var showCopyDialog by remember { mutableStateOf(false) }
-    var copiedText by remember { mutableStateOf("") }
-    var showSavedSnackbar by remember { mutableStateOf(false) }
-    val postContent = postDetail?.content ?: ""
-
-    // Detekce kopírování přes clipboard
-    LaunchedEffect(postContent) {
-        while (true) {
-            val clipboardText = clipboardManager.getText()?.text ?: ""
-            if (
-                clipboardText.isNotBlank() &&
-                postContent.contains(clipboardText) &&
-                clipboardText != lastClipboardText
-            ) {
-                showCopyDialog = true
-                copiedText = clipboardText
-                lastClipboardText = clipboardText
-            }
-            delay(500)
-        }
-    }
+    var showFloatingSelectButton by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     
@@ -287,21 +267,31 @@ fun PostDetailScreen(
                                     Triple(it.range.first, it.range.last + 1, "video" to it)
                                 }).sortedBy { it.first }
 
-                                if (allMatches.isEmpty()) {
-                                    SelectionContainer {
-                                        RichText { Markdown(processedContent) }
+                                // Wrap rendered markdown area with a long-press detector that does NOT
+                                // interfere with inner clickable links. A long-press will show the
+                                // custom "Vybrat text" UI which navigates to the plain text screen.
+                                Box(modifier = Modifier
+                                    .fillMaxWidth()
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                // show floating select button (ChatGPT-like)
+                                                showFloatingSelectButton = true
+                                            }
+                                        )
                                     }
-                                } else {
+                                ) {
+                                    if (allMatches.isEmpty()) {
+                                        RichText { Markdown(processedContent) }
+                                    } else {
                                     var lastIndex = 0
                                     Column {
                                         for ((start, end, typeAndMatch) in allMatches) {
                                             // Text před aktuálním elementem
-                                            if (start > lastIndex) {
+                                                if (start > lastIndex) {
                                                 val before =
                                                     processedContent.substring(lastIndex, start)
-                                                SelectionContainer {
-                                                    RichText { Markdown(before) }
-                                                }
+                                                RichText { Markdown(before) }
                                             }
 
                                             when (typeAndMatch.first) {
@@ -319,9 +309,7 @@ fun PostDetailScreen(
                                                             )
                                                             .padding(8.dp)
                                                     ) {
-                                                        SelectionContainer {
-                                                            RichText { Markdown(blockText) }
-                                                        }
+                                                        RichText { Markdown(blockText) }
                                                     }
                                                 }
 
@@ -422,10 +410,9 @@ fun PostDetailScreen(
                                         if (lastIndex < processedContent.length) {
                                             val after = processedContent.substring(lastIndex)
                                             // Zobrazíme pouze text za closing tagem, closing tag ani text uvnitř videa se nezobrazí
-                                            SelectionContainer {
-                                                RichText { Markdown(after) }
-                                            }
+                                            RichText { Markdown(after) }
                                         }
+                                    }
                                     }
                                 }
                             }
@@ -543,60 +530,37 @@ fun PostDetailScreen(
                     }
                 }
             }
-        }
-        // Dialog pro uložení útržku
-        if (showCopyDialog) {
-            AlertDialog(
-                onDismissRequest = { showCopyDialog = false },
-                title = { Text("Uložit do útržků?") },
-                text = { Text("Útržky jsou kousky textu, které si uložíte na příště nebo vás zajímají. Možnosti jsou neomezené.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        val snippet = com.example.tobisoappnative.model.Snippet(
-                            postId = postId,
-                            content = copiedText,
-                            createdAt = System.currentTimeMillis()
-                        )
-                        viewModel.addSnippet(snippet)
-                        showCopyDialog = false
-                        showSavedSnackbar = true
+            // Long-press now only shows floating button; plain-text navigation is handled by the FAB.
+            // Floating select button (levitující) — zobrazuje se po podržení
+            androidx.compose.animation.AnimatedVisibility(
+                visible = showFloatingSelectButton,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = androidx.compose.ui.Alignment.BottomEnd
+                ) {
+                    FloatingActionButton(onClick = {
+                        showFloatingSelectButton = false
+                        // Proper navigation to the plain-text selectable screen
+                        navController.navigate("plainText/$postId")
                     }) {
-                        Text("Ano")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showCopyDialog = false }) {
-                        Text("Ne")
+                        Icon(Icons.Default.TextFields, contentDescription = "Vybrat text")
                     }
                 }
-            )
-        }
-        // Snackbar po uložení útržku
-        if (showSavedSnackbar) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = androidx.compose.ui.Alignment.BottomCenter
-            ) {
-                Snackbar(
-                    action = {
-                        Row {
-                            TextButton(onClick = { showSavedSnackbar = false }) {
-                                Text("Zavřít", textAlign = TextAlign.Start)
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            TextButton(onClick = {
-                                showSavedSnackbar = false
-                                navController.navigate("favorites")
-                            }) {
-                                Text("Zobrazit", textAlign = TextAlign.Start)
-                            }
-                        }
-                    },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Text("Útržek uložen.", textAlign = TextAlign.Start)
+            }
+
+            // Auto-hide floating button after a short period
+            LaunchedEffect(showFloatingSelectButton) {
+                if (showFloatingSelectButton) {
+                    delay(4000)
+                    showFloatingSelectButton = false
                 }
             }
         }
+        // Snippet UI moved to PlainTextScreen; nothing extra here.
     }
 }

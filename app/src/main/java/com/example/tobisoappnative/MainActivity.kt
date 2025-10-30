@@ -385,7 +385,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("mixedQuiz") ||
                                                     route.startsWith("eventDetail") ||
                                                     route.startsWith("shop") ||
-                                                    route.startsWith("backpack"))
+                                                    route.startsWith("backpack") ||
+                                                    route.startsWith("plainText"))
                                             ),
                                     enter = slideInVertically(
                                         initialOffsetY = { it }, // přichází zdola
@@ -645,6 +646,35 @@ class MainActivity : ComponentActivity() {
                                         backStackEntry.arguments?.getString("postId")?.toIntOrNull()
                                     if (postId != null) {
                                         com.example.tobisoappnative.screens.PostDetailScreen(
+                                            postId = postId,
+                                            navController = navController
+                                        )
+                                    } else {
+                                        Text(
+                                            "Chybný postId",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                // Plain text selectable view for markdown (used via long-press -> FAB)
+                                composable(
+                                    "plainText/{postId}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(300)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(300)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val postId = backStackEntry.arguments?.getString("postId")?.toIntOrNull()
+                                    if (postId != null) {
+                                        com.example.tobisoappnative.screens.PlainTextScreen(
                                             postId = postId,
                                             navController = navController
                                         )

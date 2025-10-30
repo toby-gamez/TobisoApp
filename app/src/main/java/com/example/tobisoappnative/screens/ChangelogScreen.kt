@@ -68,7 +68,8 @@ fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
         VersionInfo("2.2.2", listOf(
             "přidána podpora pro : na klávesnici",
-            "změněna logika pro zadávání a vyhledávání (není již závislé na diakritice)"
+            "změněna logika pro zadávání a vyhledávání (není již závislé na diakritice)",
+            "oprava vybírání textu a ukládání útržků",
         )),
         VersionInfo("2.2.1", listOf(
             "přidána úprava obrázku",
