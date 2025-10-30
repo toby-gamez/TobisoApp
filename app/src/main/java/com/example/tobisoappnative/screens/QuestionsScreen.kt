@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import com.example.tobisoappnative.components.CustomNumericKeyboard
+import com.example.tobisoappnative.utils.normalizeText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +65,8 @@ fun QuestionsScreen(
     
     val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()
+
+    
     
     // Načtení dat při startu (nyní funguje v online i offline režimu)
     val isOffline by viewModel.isOffline.collectAsState()
@@ -91,7 +94,7 @@ fun QuestionsScreen(
                 // Pro textové otázky porovnáváme text case-insensitive
                 val userText = textAnswers[index]?.trim() ?: ""
                 val correctText = question.correctTextAnswer?.trim() ?: ""
-                userText.equals(correctText, ignoreCase = true)
+                normalizeText(userText) == normalizeText(correctText)
             } else {
                 // Pro výběrové otázky porovnáváme index
                 selectedAnswers[index] == question.correctAnswer
@@ -290,7 +293,7 @@ fun QuestionsScreen(
                                 val isCorrect = if (question.isTextQuestion) {
                                     val userText = textAnswers[displayIndex]?.trim() ?: ""
                                     val correctText = question.correctTextAnswer?.trim() ?: ""
-                                    userText.equals(correctText, ignoreCase = true)
+                                    normalizeText(userText) == normalizeText(correctText)
                                 } else {
                                     val selectedAnswer = selectedAnswers[displayIndex]
                                     selectedAnswer != null && 
@@ -633,6 +636,9 @@ fun QuestionsScreen(
                                     if (isNumericAnswer) {
                                         Spacer(modifier = Modifier.height(16.dp))
                                         CustomNumericKeyboard(
+                                            // If the correct text answer contains a colon (e.g. time like 12:30),
+                                            // show ":" on the keyboard instead of "%"
+                                            alternateSymbol = if ((question.correctTextAnswer ?: "").contains(":")) ":" else "%",
                                             onKeyPress = { key ->
                                                 val currentText = textAnswers[currentQuestionIndex] ?: ""
                                                 textAnswers = textAnswers.toMutableMap().apply {

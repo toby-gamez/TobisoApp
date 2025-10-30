@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import com.example.tobisoappnative.utils.StreakUtils
+import com.example.tobisoappnative.utils.normalizeText
 
 // Helper funkce pro získání aktuální řady (nyní s freeze podporou)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -69,28 +70,32 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
     var showTotalOverlay by remember { mutableStateOf(false) }
     val totalPoints by PointsManager.totalPoints.collectAsState()
 
-    // Funce pro zvýraznění textu
+    // Funce pro zvýraznění textu (ignoruje case i diakritiku)
     @Composable
     fun highlightText(text: String, query: String): AnnotatedString {
         if (query.isBlank()) return AnnotatedString(text)
-        val lowerText = text.lowercase()
-        val lowerQuery = query.lowercase()
+    val normText = normalizeText(text)
+    val normQuery = normalizeText(query)
         val isDark = isSystemInDarkTheme()
         val highlightBackground = if (isDark) MaterialTheme.colorScheme.secondaryContainer else Color.Yellow
         val highlightTextColor = if (isDark) MaterialTheme.colorScheme.onSecondaryContainer else Color.Black
         val builder = buildAnnotatedString {
             var i = 0
             while (i < text.length) {
-                val idx = lowerText.indexOf(lowerQuery, i)
+                val idx = normText.indexOf(normQuery, i)
                 if (idx == -1) {
                     append(text.substring(i))
                     break
                 }
-                append(text.substring(i, idx))
+                // idx is location in normalized text; map to original by using same index positions
+                val matchStart = idx
+                val matchEnd = idx + normQuery.length
+                append(text.substring(i, matchStart))
                 withStyle(SpanStyle(background = highlightBackground, color = highlightTextColor)) {
-                    append(text.substring(idx, idx + query.length))
+                    // Use original substring for visual fidelity
+                    append(text.substring(matchStart, matchEnd))
                 }
-                i = idx + query.length
+                i = matchEnd
             }
         }
         return builder
@@ -100,15 +105,15 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
     @Composable
     fun getSnippetWithHighlight(content: String, query: String, contextLen: Int = 40, fallbackLen: Int = 80): AnnotatedString {
         if (query.isBlank()) return AnnotatedString(content.take(fallbackLen))
-        val lowerContent = content.lowercase()
-        val lowerQuery = query.lowercase()
-        val idx = lowerContent.indexOf(lowerQuery)
+    val normContent = normalizeText(content)
+    val normQuery = normalizeText(query)
+        val idx = normContent.indexOf(normQuery)
         if (idx == -1) {
             // Pokud výraz není v content, zobraz začátek content
             return AnnotatedString(content.take(fallbackLen))
         }
         val start = maxOf(0, idx - contextLen)
-        val end = minOf(content.length, idx + query.length + contextLen)
+        val end = minOf(content.length, idx + normQuery.length + contextLen)
         val snippet = content.substring(start, end)
         // Zvýraznění v rámci snippet
         return highlightText(snippet, query)
@@ -133,13 +138,19 @@ fun SearchScreen(navController: NavController, searchRequestFocus: androidx.comp
     }
 
     // Filtrování postů realtime podle debouncedSearchText
-    val filteredPosts = if (debouncedSearchText.isBlank()) emptyList() else posts.filter {
-        it.title.contains(debouncedSearchText, ignoreCase = true) || it.content.contains(debouncedSearchText, ignoreCase = true)
+    val filteredPosts = if (debouncedSearchText.isBlank()) emptyList() else {
+        val normQuery = normalizeText(debouncedSearchText)
+        posts.filter {
+            normalizeText(it.title).contains(normQuery) || normalizeText(it.content).contains(normQuery)
+        }
     }
 
     // Filtrování kategorií podle debouncedSearchText
-    val filteredCategories = if (debouncedSearchText.isBlank()) emptyList() else categories.filter {
-        it.name.contains(debouncedSearchText, ignoreCase = true)
+    val filteredCategories = if (debouncedSearchText.isBlank()) emptyList() else {
+        val normQuery = normalizeText(debouncedSearchText)
+        categories.filter {
+            normalizeText(it.name).contains(normQuery)
+        }
     }
 
     // ✅ Celý obsah obrazovky je nyní v jednom hlavním Boxu.

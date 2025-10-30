@@ -29,6 +29,7 @@ import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import com.example.tobisoappnative.components.CustomNumericKeyboard
 import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.utils.normalizeText
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
@@ -70,6 +71,8 @@ fun MixedQuizScreen(
     
     val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()
+
+    // Using shared normalizeText for diacritics-insensitive comparisons
     
     // Load questions if not available (nyní funguje v online i offline režimu)
     LaunchedEffect(isOffline) {
@@ -235,7 +238,7 @@ fun MixedQuizScreen(
                                     if (question.isTextQuestion) {
                                         val userText = textAnswers[displayIndex]?.trim() ?: ""
                                         val correctText = question.correctTextAnswer?.trim() ?: ""
-                                        userText.equals(correctText, ignoreCase = true)
+                                        normalizeText(userText) == normalizeText(correctText)
                                     } else {
                                         val selectedAnswer = selectedAnswers[displayIndex]
                                         selectedAnswer != null && 
@@ -288,7 +291,7 @@ fun MixedQuizScreen(
                                 val isCorrect = if (question.isTextQuestion) {
                                     val userText = textAnswers[displayIndex]?.trim() ?: ""
                                     val correctText = question.correctTextAnswer?.trim() ?: ""
-                                    userText.equals(correctText, ignoreCase = true)
+                                    normalizeText(userText) == normalizeText(correctText)
                                 } else {
                                     val selectedAnswer = selectedAnswers[displayIndex]
                                     selectedAnswer != null && 
@@ -654,6 +657,8 @@ fun MixedQuizScreen(
                                     if (isNumericAnswer) {
                                         Spacer(modifier = Modifier.height(16.dp))
                                         CustomNumericKeyboard(
+                                            // Show ":" on the keyboard when the expected answer contains a colon (e.g. time)
+                                            alternateSymbol = if ((question.correctTextAnswer ?: "").contains(":")) ":" else "%",
                                             onKeyPress = { key ->
                                                 val currentText = textAnswers[currentQuestionIndex] ?: ""
                                                 textAnswers = textAnswers.toMutableMap().apply {
@@ -739,7 +744,7 @@ fun MixedQuizScreen(
                                                         if (q.isTextQuestion) {
                                                             val userText = textAnswers[displayIndex]?.trim() ?: ""
                                                             val correctText = q.correctTextAnswer?.trim() ?: ""
-                                                            userText.equals(correctText, ignoreCase = true)
+                                                            normalizeText(userText) == normalizeText(correctText)
                                                         } else {
                                                             val selectedAnswer = selectedAnswers[displayIndex]
                                                             selectedAnswer != null && 

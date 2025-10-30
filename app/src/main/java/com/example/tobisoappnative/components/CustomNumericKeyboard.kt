@@ -19,7 +19,9 @@ import androidx.compose.ui.unit.sp
 fun CustomNumericKeyboard(
     onKeyPress: (String) -> Unit,
     onBackspace: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Symbol shown in place of the percent key; default is "%"
+    alternateSymbol: String = "%"
 ) {
     Column(
         modifier = modifier
@@ -64,7 +66,7 @@ fun CustomNumericKeyboard(
                 KeyboardButton("1", onKeyPress, Modifier.weight(1f))
                 KeyboardButton("2", onKeyPress, Modifier.weight(1f))
                 KeyboardButton("3", onKeyPress, Modifier.weight(1f))
-                KeyboardButton("%", onKeyPress, Modifier.weight(1f), isOperator = true)
+                KeyboardButton(alternateSymbol, onKeyPress, Modifier.weight(1f), isOperator = true)
                 KeyboardButton("␣", onKeyPress, Modifier.weight(1f), actualValue = " ", isOperator = true)
             }
             

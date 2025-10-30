@@ -26,6 +26,8 @@ class EventNotificationWorker(
 ) : Worker(context, workerParams) {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+    // for logging human readable times
+    private val logDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     override fun doWork(): Result {
         return try {
@@ -177,18 +179,30 @@ class EventNotificationWorker(
         calendar.set(Calendar.SECOND, 59)
         val endDate = dateFormat.format(calendar.time)
         
-        return try {
+        try {
+            android.util.Log.d("EventNotificationWorker", "Requesting events range: $startDate - $endDate")
             val allEventsArray = ApiClient.apiService.getEventsInRange(startDate, endDate)
             val allEvents = allEventsArray.toList()
-            
+
+            android.util.Log.d("EventNotificationWorker", "API returned ${allEvents.size} events (raw)")
+
             // Filtruj události, které se skutečně překrývají s daným dnem
-            allEvents.filter { event ->
-                event.startDate != null && doesEventOverlapDay(event, date)
+            val filtered = allEvents.filter { event ->
+                val hasStart = event.startDate != null
+                val overlaps = hasStart && doesEventOverlapDay(event, date)
+                android.util.Log.d(
+                    "EventNotificationWorker",
+                    "Event check id=${event.id} title=${event.getTitleSafe()} start=${event.startDate?.let { logDateFormat.format(it) }} end=${event.endDate?.let { logDateFormat.format(it) }} isAllDay=${event.isAllDaySafe()} overlaps=$overlaps"
+                )
+                overlaps
             }
+
+            android.util.Log.d("EventNotificationWorker", "Filtered to ${filtered.size} events for date ${logDateFormat.format(date)}")
+            return filtered
         } catch (e: Exception) {
             android.util.Log.e("EventNotificationWorker", "Error fetching events for date $date", e)
             android.util.Log.w("EventNotificationWorker", "API failed, trying fallback logic...")
-            
+
             // FALLBACK: Zkus použít lokální data nebo základní víkendovou logiku
             return getFallbackEventsForDate(date)
         }
@@ -209,14 +223,14 @@ class EventNotificationWorker(
             set(Calendar.MILLISECOND, 999)
         }.time
         
-        // Speciální ošetření pro jednodenní události
-        if (eventStart == eventEnd) {
-            val eventCal = Calendar.getInstance().apply { time = eventStart }
-            val eventDay = Calendar.getInstance().apply {
-                set(eventCal.get(Calendar.YEAR), eventCal.get(Calendar.MONTH), eventCal.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.time
-            return eventDay == targetDayStart
+        // Speciální ošetření pro jednodenní události: porovnej rok/měsíc/den místo reference equality
+        val eventCal = Calendar.getInstance().apply { time = eventStart }
+        val eventDayStart = Calendar.getInstance().apply {
+            set(eventCal.get(Calendar.YEAR), eventCal.get(Calendar.MONTH), eventCal.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+        if (eventDayStart.time == targetDayStart.time && eventStart.time == eventEnd.time) {
+            return true
         }
         
         // Standardní logika pro rozpětí událostí
