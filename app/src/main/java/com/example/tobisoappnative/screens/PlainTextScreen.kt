@@ -6,6 +6,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
+import android.util.Log
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -19,6 +24,10 @@ import com.example.tobisoappnative.model.Snippet
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import android.content.ClipDescription
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.TextFields
@@ -60,31 +69,86 @@ fun PlainTextScreen(
     val context = LocalContext.current
     val systemClipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
 
-    DisposableEffect(systemClipboard, content, lastHandledClipboard) {
-        val listener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
-            try {
-                val clip = systemClipboard.primaryClip
-                val clipboardText = clip?.getItemAt(0)?.coerceToText(context)?.toString()?.trim() ?: ""
-                // Show dialog for any new clipboard text (while on this screen).
-                // We only check that the text is non-blank and wasn't already handled.
-                if (clipboardText.isNotBlank() && clipboardText != lastHandledClipboard) {
-                    copiedText = clipboardText
-                    // show a small FAB letting the user save the copied selection as a snippet
-                    showSaveFab = true
+    // Lifecycle-aware clipboard listener with debounce.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
+    var debounceJob by remember { mutableStateOf<Job?>(null) }
+    var lastDetectedClipboard by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(lifecycleOwner, systemClipboard) {
+        var activeListener: android.content.ClipboardManager.OnPrimaryClipChangedListener? = null
+
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // create and register listener when resumed
+                activeListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
+                    try {
+                        // debounce rapid changes and check clipboard again after delay
+                        debounceJob?.cancel()
+                        debounceJob = coroutineScope.launch {
+                            delay(300) // slightly longer stability window
+                            try {
+                                val clip = systemClipboard.primaryClip
+                                val description = systemClipboard.primaryClipDescription
+                                val clipboardText = clip?.getItemAt(0)?.coerceToText(context)?.toString()?.trim() ?: ""
+
+                                // ignore empty clips
+                                if (clipboardText.isBlank()) return@launch
+
+                                // filter to plain text / html text only
+                                val isTextMime = description?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
+                                        || description?.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML) == true
+
+                                if (!isTextMime) return@launch
+
+                                val lastHandled = try { viewModel.lastHandledClipboard.value } catch (e: Exception) { null }
+
+                                // avoid reacting to the same clipboard repeatedly
+                                if (clipboardText != lastHandled && clipboardText != lastDetectedClipboard) {
+                                    lastDetectedClipboard = clipboardText
+                                    copiedText = clipboardText
+                                    showSaveFab = true
+                                    Log.d("PlainTextScreen", "showing save FAB for clipboard: '${clipboardText.take(30)}'")
+                                }
+                            } catch (e: Exception) {
+                                // ignore
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // ignore
+                    }
                 }
-            } catch (e: Exception) {
-                // ignore
+                try {
+                    activeListener?.let { systemClipboard.addPrimaryClipChangedListener(it) }
+                } catch (e: Exception) {
+                    // ignore
+                }
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
+                // remove listener when paused
+                try {
+                    activeListener?.let { systemClipboard.removePrimaryClipChangedListener(it) }
+                } catch (e: Exception) {
+                    // ignore
+                }
+                activeListener = null
+                debounceJob?.cancel()
             }
         }
-        systemClipboard.addPrimaryClipChangedListener(listener)
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
         onDispose {
             try {
-                systemClipboard.removePrimaryClipChangedListener(listener)
+                activeListener?.let { systemClipboard.removePrimaryClipChangedListener(it) }
             } catch (e: Exception) {
                 // ignore
             }
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            debounceJob?.cancel()
         }
     }
+
+    
 
     // Shared scroll behavior for top bar and content
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -107,6 +171,17 @@ fun PlainTextScreen(
                 },
                 scrollBehavior = scrollBehavior
             )
+        },
+        floatingActionButton = {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = showSaveFab,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                FloatingActionButton(onClick = { showCopyDialog = true }) {
+                    Icon(Icons.Default.Save, contentDescription = "Uložit útržek")
+                }
+            }
         }
     ) { innerPadding ->
         // Apply nestedScroll so the top bar collapses like in PostDetailScreen
@@ -120,7 +195,7 @@ fun PlainTextScreen(
                 postDetailError != null -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            "Chyba při načítání článku: ${postDetailError}",
+                            "Chyba při načítání článku: $postDetailError",
                             color = MaterialTheme.colorScheme.error
                         )
                     }
@@ -155,26 +230,7 @@ fun PlainTextScreen(
             }
 
             // Dialog pro uložení útržku
-            // Floating button to save the last copied selection as a snippet
-            androidx.compose.animation.AnimatedVisibility(
-                visible = showSaveFab,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.BottomEnd
-                ) {
-                    FloatingActionButton(onClick = {
-                        // open confirm dialog
-                        showCopyDialog = true
-                    }) {
-                        Icon(Icons.Default.Save, contentDescription = "Uložit útržek")
-                    }
-                }
-            }
+            // Floating button moved to Scaffold.floatingActionButton
 
             // Dialog pro uložení útržku (opened from FAB)
             if (showCopyDialog) {
@@ -184,7 +240,7 @@ fun PlainTextScreen(
                     text = { Text("Uložit právě zkopírovaný text jako útržek?") },
                     confirmButton = {
                         TextButton(onClick = {
-                            val actualPostId = postDetail?.id ?: postId
+                            val actualPostId = postId
                             val snippet = Snippet(
                                 postId = actualPostId,
                                 content = copiedText,

@@ -144,6 +144,12 @@ fun FavoritesScreen(
                                 }
                             }
                             val postTitle = postTitleState.value
+                            // If the title is not yet available but we have an ID, try fetching the post
+                            LaunchedEffect(postTitle, snippet.postId) {
+                                if (postTitle == null && snippet.postId != 0) {
+                                    viewModel.fetchAndCachePost(snippet.postId)
+                                }
+                            }
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()

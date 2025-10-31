@@ -412,6 +412,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Fetch a single post from the API by id and append it to the posts cache.
+     * Best-effort; failure is logged but doesn't crash the UI.
+     */
+    fun fetchAndCachePost(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // If we already cached it, nothing to do
+                if (_posts.value.any { it.id == postId }) return@launch
+                val post = ApiClient.apiService.getPost(postId)
+                val list = _posts.value.toMutableList()
+                list.add(post)
+                _posts.value = list
+                println("DEBUG: fetchAndCachePost cached post id=$postId title=${post.title}")
+            } catch (e: Exception) {
+                println("DEBUG: fetchAndCachePost failed for id=$postId: ${e.message}")
+            }
+        }
+    }
+
     fun loadSnippets() {
         viewModelScope.launch(Dispatchers.IO) {
             val file = File(getApplication<Application>().filesDir, SNIPPETS_FILE_NAME)
