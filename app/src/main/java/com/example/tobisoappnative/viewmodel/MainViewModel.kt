@@ -691,37 +691,61 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 // Znovu zkontroluj připojení při načítání otázek
                 refreshNetworkState()
-                
+
+                // Pokud jsou offline otázky čerstvé (např. uložené v posledních 15 minutách), použij je
+                try {
+                    if (offlineDataManager.isCacheFresh(15)) {
+                        val questions = offlineDataManager.getCachedQuestions() ?: emptyList()
+                        val posts = offlineDataManager.getCachedQuestionsPosts() ?: emptyList()
+
+                        _allQuestions.value = questions
+                        _questionsPosts.value = posts
+                        _allQuestionsError.value = if (questions.isEmpty()) "Otázky nejsou dostupné v offline režimu" else null
+
+                        // Aplikuj aktuální filtr
+                        if (questions.isNotEmpty()) {
+                            applyQuestionsFilter()
+                        }
+
+                        println("DEBUG: Using fresh cached all questions (<=15min) - Questions: ${questions.size}, Posts: ${posts.size}")
+                        _allQuestionsLoading.value = false
+                        return@launch
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("MainViewModel", "Error checking offline cache freshness for all questions: ${e.message}")
+                    // pokud kontrola cache selže, pokračujeme dál (fallback níže)
+                }
+
                 // V offline režimu používáme cached data
                 if (_isOffline.value) {
                     val questions = offlineDataManager.getCachedQuestions() ?: emptyList()
                     val posts = offlineDataManager.getCachedQuestionsPosts() ?: emptyList()
-                    
+
                     _allQuestions.value = questions
                     _questionsPosts.value = posts
                     _allQuestionsError.value = if (questions.isEmpty()) "Otázky nejsou dostupné v offline režimu" else null
-                    
+
                     // Aplikuj aktuální filtr
                     if (questions.isNotEmpty()) {
                         applyQuestionsFilter()
                     }
-                    
+
                     println("DEBUG: Loaded offline all questions - Count: ${questions.size}, Posts: ${posts.size}")
                 } else {
                     // Online režim - načítáme z API
                     val questionsArray = ApiClient.apiService.getAllQuestions()
                     val postsArray = ApiClient.apiService.getPosts()
-                    
+
                     val questions = questionsArray.toList()
                     val posts = postsArray.toList()
-                    
+
                     _allQuestions.value = questions
                     _questionsPosts.value = posts
                     _allQuestionsError.value = null
-                    
+
                     // Aplikuj aktuální filtr
                     applyQuestionsFilter()
-                    
+
                     println("DEBUG: Loaded all questions - Count: ${questions.size}, Posts: ${posts.size}")
                 }
             } catch (e: Exception) {

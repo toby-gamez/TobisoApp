@@ -70,7 +70,7 @@ fun ChangelogScreen(navController: NavController) {
             "opraven přechod u Vybrat text",
             "přidáno čtení článků",
             "přidány funkce do offline režimu",
-            "přidány algoritmy na zrychlování načítání kategorií a předmětů",
+            "přidány algoritmy na zrychlování načítání kategorií, otázek a předmětů",
             "opraveno upravování obrázku při nahrávání",
             "lepší popis přírodopisu",
             "opraveny časy článků v celé aplikaci"
