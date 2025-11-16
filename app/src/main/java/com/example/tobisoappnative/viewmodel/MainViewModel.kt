@@ -204,6 +204,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _categoryLoading.value = true
             val isOnline = NetworkUtils.isOnline(getApplication())
             
+                // Pokud jsou offline data čerstvá (do 15 minut), načti je pro urychlení
+                try {
+                    if (offlineDataManager.isCacheFresh(15)) {
+                        println("DEBUG: Using fresh offline cache for categories (<=15min). Skipping API call.")
+                        loadOfflineData()
+                        _categoryLoading.value = false
+                        return@launch
+                    }
+                } catch (e: Exception) {
+                    // Pokud něco selže při čtení cache, pokračujeme běžně
+                    android.util.Log.w("MainViewModel", "Error checking offline cache freshness: ${e.message}")
+                }
+
                 if (isOnline) {
                 try {
                     // Online - načti z API a ulož offline
@@ -238,7 +251,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     
                     // Zobraz toast pouze při prvním úspěšném načtení online
                     if (isFirstLoad) {
-                        showToast("Obsah pro offline režim byl aktualizován")
+                        showToast("Offline obsah byl aktualizován")
                         isFirstLoad = false
                     }
                 } catch (e: Exception) {
@@ -272,7 +285,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val cachedCategories = offlineDataManager.getCachedCategories()
         val cachedPosts = offlineDataManager.getCachedPosts()
         
-        if (cachedCategories != null && cachedPosts != null) {
+            if (cachedCategories != null && cachedPosts != null) {
             _categories.value = cachedCategories
             _posts.value = cachedPosts
             _categoryError.value = null
@@ -285,7 +298,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _categoryError.value = "Žádná offline data k dispozici"
             _postError.value = "Žádná offline data k dispozici"
             _isOffline.value = true
-            showToast("Žádná offline data - připojte se k internetu")
+                showToast("Žádná offline data. Připojte se k internetu.")
         }
     }
     
@@ -328,6 +341,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             _postLoading.value = true
             try {
+                // Pokud nejsme offline, ale cache je čerstvá, použij cache pro rychlé načtení
+                if (!_isOffline.value) {
+                    try {
+                        if (offlineDataManager.isCacheFresh(15)) {
+                            println("DEBUG: Using fresh offline cache for posts (<=15min). Skipping API call.")
+                            val posts = if (categoryId != null) {
+                                offlineDataManager.getCachedPostsByCategory(categoryId) ?: emptyList()
+                            } else {
+                                offlineDataManager.getCachedPosts() ?: emptyList()
+                            }
+                            _posts.value = posts
+                            _postError.value = null
+                            _postLoading.value = false
+                            return@launch
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("MainViewModel", "Error checking offline cache freshness for posts: ${e.message}")
+                    }
+                }
+
                 // V offline režimu používáme cached data
                 if (_isOffline.value) {
                     val posts = if (categoryId != null) {
@@ -363,10 +396,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         _posts.value = posts
                         _postError.value = null
                         _isOffline.value = true
-                        showToast("Přepnuto na offline režim")
+                        showToast("Přepnuto do offline režimu")
                     } else {
                         _posts.value = emptyList()
-                        _postError.value = "Žádná offline data"
+                        _postError.value = "Žádná offline data k dispozici"
                     }
                 }
             }
@@ -408,7 +441,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         _postDetail.value = post
                         _postDetailError.value = null
                         _isOffline.value = true
-                        showToast("Přepnuto na offline režim")
+                        showToast("Přepnuto do offline režimu")
                         println("DEBUG: API failed, using cached post detail - Post ID: $postId")
                     } else {
                         _postDetail.value = null
@@ -568,7 +601,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         _questions.value = questions
                         _questionsError.value = null
                         _isOffline.value = true
-                        showToast("Přepnuto na offline režim")
+                        showToast("Přepnuto do offline režimu")
                         println("DEBUG: API failed, using cached questions - Post ID: $postId, Questions: ${questions.size}")
                     } else {
                         _questions.value = emptyList()
@@ -710,7 +743,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         _questionsPosts.value = posts
                         _allQuestionsError.value = null
                         _isOffline.value = true
-                        showToast("Přepnuto na offline režim")
+                        showToast("Přepnuto do offline režimu")
                         
                         // Aplikuj aktuální filtr
                         applyQuestionsFilter()

@@ -345,9 +345,14 @@ fun CalendarScreen(
                     )
                 }
                 if (isOfflineMode) {
-                    Text("Zobrazují se zde pouze místní události, jsi totiž v offline režimu.")
-                }
-                else {
+                    // Pokud jsme offline, zkontrolujeme, zda máme i dříve stažené (cache) API události
+                    val hasCachedApiEvents = events.any { !it.isLocalSafe() }
+                    if (hasCachedApiEvents) {
+                        Text("Jsi v offline režimu — zobrazují se místní události a uložené události.")
+                    } else {
+                        Text("Jsi v offline režimu — zobrazují se pouze místní události.")
+                    }
+                } else {
                     Text("Kalendář dnů, kdy je ve škole volno.")
                 }
             }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.model.LocalEventManager
+import com.example.tobisoappnative.model.OfflineDataManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
     private val context = application.applicationContext
+    private val offlineDataManager = OfflineDataManager(application)
 
     // Centralizovaná funkce pro kontrolu, jestli event zasahuje do konkrétního dne
     private fun doesEventOverlapDay(event: Event, year: Int, month: Int, day: Int): Boolean {
@@ -113,12 +115,48 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
                 
                 android.util.Log.d("CalendarViewModel", "Loading events from $startDate to $endDate")
                 
+                // Pokud jsou uložené eventy čerstvé (např. do 15 minut), načti je z offline cache pro rychlejší zobrazení
+                try {
+                    if (offlineDataManager.isEventsCacheFresh(15)) {
+                        val cached = offlineDataManager.getCachedEvents() ?: emptyList()
+                        // Filtrovat cached podle rozsahu
+                        val cachedInRange = cached.filter { ev ->
+                            val evStart = ev.getStartDateSafe()
+                            val evEnd = ev.getEndDateSafe()
+                            // Overlap s rozsahem
+                            (evStart.before(endDateObj) || evStart == endDateObj) &&
+                            (evEnd.after(startDateObj) || evEnd == startDateObj)
+                        }
+                        android.util.Log.d("CalendarViewModel", "Using cached events: ${cachedInRange.size}")
+                        val localEvents = try {
+                            LocalEventManager.expandRecurringEvents(context, startDateObj, endDateObj)
+                        } catch (e: Exception) {
+                            android.util.Log.e("CalendarViewModel", "Error loading local events", e)
+                            emptyList()
+                        }
+                        _events.value = cachedInRange + localEvents
+                        _isLoading.value = false
+                        return@launch
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("CalendarViewModel", "Error checking/using events cache: ${e.message}")
+                }
+
                 // Načti API eventy
                 val apiEvents = try {
                     ApiClient.apiService.getEventsInRange(startDate, endDate).toList()
                 } catch (e: Exception) {
                     android.util.Log.e("CalendarViewModel", "Error loading API events", e)
                     emptyList()
+                }
+
+                // Pokud API vrátilo eventy, ulož je do offline cache (best-effort)
+                try {
+                    if (apiEvents.isNotEmpty()) {
+                        offlineDataManager.saveEvents(apiEvents)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("CalendarViewModel", "Failed to save API events to cache: ${e.message}")
                 }
                 
                 // Načti místní eventy

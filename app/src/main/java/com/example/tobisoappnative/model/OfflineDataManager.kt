@@ -19,6 +19,8 @@ class OfflineDataManager(private val context: Context) {
         private const val KEY_QUESTIONS_POSTS = "questions_posts_json"
         private const val KEY_LAST_UPDATE = "last_update_timestamp"
         private const val KEY_LAST_UPDATE_FORMATTED = "last_update_formatted"
+            private const val KEY_EVENTS = "events_json"
+            private const val KEY_EVENTS_LAST_UPDATE = "events_last_update_timestamp"
     }
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -129,6 +131,22 @@ class OfflineDataManager(private val context: Context) {
     fun getLastUpdateFormatted(): String? {
         return prefs.getString(KEY_LAST_UPDATE_FORMATTED, null)
     }
+
+    /**
+     * Vrátí čas (millis) poslední aktualizace offline dat nebo null pokud není
+     */
+    fun getLastUpdateTimestamp(): Long? {
+        return if (prefs.contains(KEY_LAST_UPDATE)) prefs.getLong(KEY_LAST_UPDATE, 0L) else null
+    }
+
+    /**
+     * Ověří, zda byla offline data aktualizována v posledních `minutes` minutách
+     */
+    fun isCacheFresh(minutes: Int): Boolean {
+        val ts = getLastUpdateTimestamp() ?: return false
+        val ageMillis = System.currentTimeMillis() - ts
+        return ageMillis <= minutes * 60 * 1000L
+    }
     
     /**
      * Načtení uložených otázek
@@ -187,5 +205,58 @@ class OfflineDataManager(private val context: Context) {
      */
     fun hasCachedQuestions(): Boolean {
         return prefs.contains(KEY_QUESTIONS) && prefs.contains(KEY_QUESTIONS_POSTS)
+    }
+
+    /**
+     * Uložení eventů (např. z API) spolu s vlastním timestampem
+     */
+    suspend fun saveEvents(events: List<Event>) = withContext(Dispatchers.IO) {
+        try {
+            val currentTime = System.currentTimeMillis()
+            prefs.edit().apply {
+                putString(KEY_EVENTS, gson.toJson(events))
+                putLong(KEY_EVENTS_LAST_UPDATE, currentTime)
+                apply()
+            }
+            println("DEBUG: Offline events saved - Count: ${events.size}")
+        } catch (e: Exception) {
+            println("DEBUG: Error saving offline events: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Načtení uložených eventů
+     */
+    suspend fun getCachedEvents(): List<Event>? = withContext(Dispatchers.IO) {
+        val json = prefs.getString(KEY_EVENTS, null)
+        return@withContext if (json != null) {
+            try {
+                val eventsArray = gson.fromJson(json, Array<Event>::class.java)
+                eventsArray?.toList()
+            } catch (e: Exception) {
+                println("DEBUG: Error loading cached events: ${e.message}")
+                e.printStackTrace()
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Vrátí čas (millis) poslední aktualizace event cache nebo null pokud není
+     */
+    fun getLastEventsUpdateTimestamp(): Long? {
+        return if (prefs.contains(KEY_EVENTS_LAST_UPDATE)) prefs.getLong(KEY_EVENTS_LAST_UPDATE, 0L) else null
+    }
+
+    /**
+     * Ověří, zda byla event cache aktualizována v posledních `minutes` minutách
+     */
+    fun isEventsCacheFresh(minutes: Int): Boolean {
+        val ts = getLastEventsUpdateTimestamp() ?: return false
+        val ageMillis = System.currentTimeMillis() - ts
+        return ageMillis <= minutes * 60 * 1000L
     }
 }

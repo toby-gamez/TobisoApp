@@ -570,7 +570,7 @@ fun MixedQuizScreen(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            "Offline režim - používáte uložené otázky",
+                                            "Offline režim — používají se uložené otázky",
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
