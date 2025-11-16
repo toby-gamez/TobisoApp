@@ -23,6 +23,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.map
+import com.example.tobisoappnative.tts.TtsManager
 
 private val Context.dataStore by preferencesDataStore(name = "saved_posts")
 
@@ -105,6 +106,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val dataStore = application.dataStore
     private val FAVORITE_POSTS_KEY = stringSetPreferencesKey("favorite_posts_json")
     private val gson = Gson()
+    
+    // TTS Manager
+    private val _ttsManager = MutableStateFlow<TtsManager?>(null)
+    val ttsManager: StateFlow<TtsManager?> = _ttsManager
 
     private val _favoritePosts = MutableStateFlow<List<Post>>(emptyList())
     val favoritePosts: StateFlow<List<Post>> = _favoritePosts
@@ -128,6 +133,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isOffline.value = !isOnline
             println("DEBUG: App initialized - Online: $isOnline, Offline: ${!isOnline}")
         }
+        
+        // Inicializace TTS manageru
+        initializeTts()
         
         viewModelScope.launch(Dispatchers.IO) {
             dataStore.data
@@ -783,5 +791,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _allQuestionsLoading.value = false
         _selectedCategoryId.value = null
         _selectedPostId.value = null
+    }
+    
+    // TTS Methods
+    private fun initializeTts() {
+        _ttsManager.value = TtsManager(getApplication())
+    }
+    
+    fun getTtsManager(): TtsManager? {
+        return _ttsManager.value
+    }
+    
+    fun speakText(text: String) {
+        _ttsManager.value?.speak(text)
+    }
+    
+    fun pauseTts() {
+        _ttsManager.value?.pause()
+    }
+    
+    fun resumeTts() {
+        _ttsManager.value?.resume()
+    }
+    
+    fun stopTts() {
+        _ttsManager.value?.stop()
+    }
+    
+    fun skipToNextSegment() {
+        _ttsManager.value?.skipToNext()
+    }
+    
+    fun skipToPreviousSegment() {
+        _ttsManager.value?.skipToPrevious()
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        _ttsManager.value?.destroy()
     }
 }

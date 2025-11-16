@@ -35,6 +35,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.ui.Alignment
+import com.example.tobisoappnative.components.TtsPlayer
+import androidx.compose.material.icons.filled.VolumeUp
+import com.example.tobisoappnative.utils.TextUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +49,7 @@ fun PlainTextScreen(
     val postDetail by viewModel.postDetail.collectAsState()
     val postDetailError by viewModel.postDetailError.collectAsState()
     val isOffline by viewModel.isOffline.collectAsState()
+    val ttsManager = viewModel.getTtsManager()
 
     var isLoading by remember { mutableStateOf(false) }
     LaunchedEffect(postId) {
@@ -169,7 +173,24 @@ fun PlainTextScreen(
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Zpět")
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                actions = {
+                    // TTS button
+                    if (ttsManager != null && postDetail?.content != null) {
+                        IconButton(onClick = {
+                            val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content)
+                            if (plainText.isNotEmpty()) {
+                                viewModel.speakText(plainText)
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Filled.VolumeUp,
+                                contentDescription = "Přečíst článek",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -296,6 +317,10 @@ fun PlainTextScreen(
                     }
                 }
             }
+            
+            // Persistent TTS player is provided globally in MainActivity.MyApp().
+            // Do not render a local TtsPlayer here to avoid duplication and ensure
+            // playback continues across navigation.
         }
     }
 }

@@ -74,6 +74,7 @@ import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.FullScreenMilestoneOverlay
 import com.example.tobisoappnative.components.FullScreenAchievementOverlay
 import androidx.compose.runtime.rememberCoroutineScope
+import com.example.tobisoappnative.components.TtsPlayer
 import android.app.AlarmManager
 import com.example.tobisoappnative.screens.StreakScreen
 import com.example.tobisoappnative.screens.ShopScreen
@@ -647,7 +648,8 @@ class MainActivity : ComponentActivity() {
                                     if (postId != null) {
                                         com.example.tobisoappnative.screens.PostDetailScreen(
                                             postId = postId,
-                                            navController = navController
+                                            navController = navController,
+                                            viewModel = mainViewModel
                                         )
                                     } else {
                                         Text(
@@ -662,13 +664,25 @@ class MainActivity : ComponentActivity() {
                                     enterTransition = {
                                         slideInHorizontally(
                                             initialOffsetX = { it },
-                                            animationSpec = tween(300)
+                                            animationSpec = tween(400)
                                         )
                                     },
                                     exitTransition = {
                                         slideOutHorizontally(
                                             targetOffsetX = { -it },
-                                            animationSpec = tween(300)
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
                                         )
                                     }
                                 ) { backStackEntry ->
@@ -676,7 +690,8 @@ class MainActivity : ComponentActivity() {
                                     if (postId != null) {
                                         com.example.tobisoappnative.screens.PlainTextScreen(
                                             postId = postId,
-                                            navController = navController
+                                            navController = navController,
+                                            viewModel = mainViewModel
                                         )
                                     } else {
                                         Text(
@@ -925,6 +940,42 @@ class MainActivity : ComponentActivity() {
                                     BackpackScreen(navController = navController)
                                 }
                             }
+                        }
+                        // Persistent TTS player shown above other content (bottom-aligned).
+                        // It uses the single TtsManager instance from the MainViewModel so playback
+                        // continues across navigation.
+                        val ttsManagerInstance = mainViewModel.getTtsManager()
+                        val bottomBarVisible = (route == null ||
+                                !(route.startsWith("postDetail") ||
+                                        route.startsWith("about") ||
+                                        route.startsWith("feedback") ||
+                                        route.startsWith("changelog") ||
+                                        route.startsWith("videoPlayer") ||
+                                        route.startsWith("streak") ||
+                                        route.startsWith("favorites") ||
+                                        route.startsWith("updater") ||
+                                        route.startsWith("questions") ||
+                                        route.startsWith("mixedQuiz") ||
+                                        route.startsWith("eventDetail") ||
+                                        route.startsWith("shop") ||
+                                        route.startsWith("backpack") ||
+                                        route.startsWith("plainText")
+                                )
+                        )
+
+                        if (ttsManagerInstance != null) {
+                            // Raise the player by ~1 cm (approx. 63.dp) so it sits slightly
+                            // above the very bottom of the screen.
+                            val raiseBy = 63.dp
+                            val bottomPadding = if (bottomBarVisible) 72.dp else 12.dp
+                            val adjustedBottom = bottomPadding + raiseBy
+                            TtsPlayer(
+                                ttsManager = ttsManagerInstance,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.BottomCenter)
+                                    .padding(start = 8.dp, end = 8.dp, bottom = adjustedBottom)
+                            )
                         }
                     }
                     

@@ -46,6 +46,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.platform.LocalContext
 import com.example.tobisoappnative.components.MultiplierIndicator
+import com.example.tobisoappnative.components.TtsPlayer
+import androidx.compose.material.icons.filled.VolumeUp
+import com.example.tobisoappnative.utils.TextUtils
 
 val prefixRegex = Regex("^(ml-|sl-|li-|hv-|m-|ch-|f-|pr-|z-)")
 
@@ -69,6 +72,7 @@ fun PostDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(false) }
     var hasQuestions by remember { mutableStateOf(false) }
+    val ttsManager = viewModel.getTtsManager()
     
     LaunchedEffect(postId) {
         // Načteme detail (ViewModel má logiku pro offline i online režim)
@@ -144,6 +148,22 @@ fun PostDetailScreen(
                     actions = {
                         // Zobrazení aktivního multiplikátoru
                         MultiplierIndicator()
+                        
+                        // TTS BUTTON - nejlevější tlačítko
+                        if (ttsManager != null && postDetail?.content != null) {
+                            IconButton(onClick = {
+                                val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content)
+                                if (plainText.isNotEmpty()) {
+                                    viewModel.speakText(plainText)
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Filled.VolumeUp,
+                                    contentDescription = "Přečíst článek",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                         
                         val isFavorite = favoritePosts.any { it.id == postDetail?.id }
                         // HVĚZDIČKA - první vpravo
@@ -561,6 +581,9 @@ fun PostDetailScreen(
                 }
             }
         }
-        // Snippet UI moved to PlainTextScreen; nothing extra here.
+        
+        // Persistent TTS player is provided globally in MainActivity.MyApp().
+        // Do not render a local TtsPlayer here to avoid duplication and ensure
+        // playback continues across navigation.
     }
 }
