@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -59,6 +60,9 @@ fun ImageCropperDialog(
     var resizeHandle by remember { mutableStateOf(-1) }
     var dragStartOffset by remember { mutableStateOf(Offset.Zero) }
     var dragStartRect by remember { mutableStateOf(SimpleCropRect(0f, 0f, 0f, 0f)) }
+    // Accumulate drag deltas between onDrag calls so we can compute the
+    // total movement/resizing from the start of the gesture.
+    var accumulatedDrag by remember { mutableStateOf(Offset.Zero) }
     
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -88,11 +92,17 @@ fun ImageCropperDialog(
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            dismissOnBackPress = true,
+            dismissOnBackPress = false,
             dismissOnClickOutside = false,
             usePlatformDefaultWidth = false
         )
     ) {
+        // Consume system Back (button and gesture) so the dialog isn't
+        // dismissed by the global back action. The UI still provides the
+        // explicit Close icon to dismiss via onDismiss.
+        BackHandler(enabled = true) {
+            // Intentionally empty to consume the back event.
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -171,23 +181,31 @@ fun ImageCropperDialog(
                                             isResizing = true
                                             resizeHandle = handle
                                             dragStartRect = cropRect
+                                            accumulatedDrag = Offset.Zero
                                         } else if (isInsideCropArea(offset, cropRect, handleSize)) {
                                             isDragging = true
                                             dragStartOffset = offset
                                             dragStartRect = cropRect
+                                            accumulatedDrag = Offset.Zero
                                         }
                                     },
                                     onDragEnd = {
                                         isDragging = false
                                         isResizing = false
                                         resizeHandle = -1
+                                        accumulatedDrag = Offset.Zero
                                     }
                                 ) { _, dragAmount ->
+                                    // accumulate deltas so we can apply the total
+                                    // movement/resizing relative to the rect at
+                                    // gesture start. The dragAmount parameter is
+                                    // the delta since the last event.
+                                    accumulatedDrag = accumulatedDrag + dragAmount
                                     when {
                                         isDragging -> {
                                             cropRect = moveCropRect(
                                                 rect = dragStartRect,
-                                                dragAmount = dragAmount,
+                                                dragAmount = accumulatedDrag,
                                                 containerSize = containerSize,
                                                 minSize = minCropSize
                                             )
@@ -196,7 +214,7 @@ fun ImageCropperDialog(
                                             cropRect = resizeCropRect(
                                                 rect = dragStartRect,
                                                 handle = resizeHandle,
-                                                dragAmount = dragAmount,
+                                                dragAmount = accumulatedDrag,
                                                 containerSize = containerSize,
                                                 minSize = minCropSize
                                             )

@@ -71,7 +71,8 @@ fun ChangelogScreen(navController: NavController) {
             "přidáno čtení článků",
             "přidány funkce do offline režimu",
             "přidány algoritmy na zrychlování načítání kategorií a předmětů",
-            "opraveno upravování obrázku při nahrávání"
+            "opraveno upravování obrázku při nahrávání",
+            "lepší popis přírodopisu"
         )),
         VersionInfo("2.2.2", listOf(
             "přidána podpora pro : na klávesnici",
