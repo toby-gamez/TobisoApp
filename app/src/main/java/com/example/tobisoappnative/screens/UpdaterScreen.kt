@@ -106,7 +106,7 @@ fun UpdaterScreen(
                     } else if (latestVersion != null && currentVersion > latestVersion!!) {
                         Icon(Icons.Default.CheckCircle, contentDescription = "Debug", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(64.dp))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Jste v Debug verzi aplikace!", color = MaterialTheme.colorScheme.tertiary)
+                        Text(text = "Jste v debug verzi aplikace!", color = MaterialTheme.colorScheme.tertiary)
                     } else {
                         Text(text = "Dostupná nová verze: $latestVersion", color = Color.Blue)
                         Spacer(modifier = Modifier.height(8.dp))

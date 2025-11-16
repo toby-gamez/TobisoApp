@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Star
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -178,10 +179,16 @@ fun CategoryListScreen(
                                     val updated = post.updatedAt
                                     val formatted = updated?.let { dateString ->
                                         try {
-                                            val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", java.util.Locale("cs", "CZ"))
-                                            val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale("cs", "CZ"))
-                                            val date = inputFormatter.parse(dateString)
-                                            date?.let { outputFormatter.format(it) } ?: dateString
+                                                    val locale = java.util.Locale("cs", "CZ")
+                                                    // Parse server timestamps as UTC and display in device local timezone
+                                                    val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
+                                                        timeZone = TimeZone.getTimeZone("UTC")
+                                                    }
+                                                    val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
+                                                        timeZone = TimeZone.getDefault()
+                                                    }
+                                                    val date = inputFormatter.parse(dateString)
+                                                    date?.let { outputFormatter.format(it) } ?: dateString
                                         } catch (e: Exception) {
                                             dateString
                                         }

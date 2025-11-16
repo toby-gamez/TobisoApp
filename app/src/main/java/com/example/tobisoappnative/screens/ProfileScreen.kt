@@ -62,6 +62,7 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.platform.LocalDensity
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.TimeZone
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -364,8 +365,14 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                             val updated = post.updatedAt
                             val formatted = updated?.let { dateString ->
                                 try {
-                                    val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", java.util.Locale.forLanguageTag("cs-CZ"))
-                                    val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale.forLanguageTag("cs-CZ"))
+                                    val locale = java.util.Locale.forLanguageTag("cs-CZ")
+                                    // Parse server timestamps as UTC and display them in device local timezone
+                                    val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
+                                        timeZone = TimeZone.getTimeZone("UTC")
+                                    }
+                                    val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
+                                        timeZone = TimeZone.getDefault()
+                                    }
                                     val date = inputFormatter.parse(dateString)
                                     date?.let { outputFormatter.format(it) } ?: dateString
                                 } catch (_: Exception) {

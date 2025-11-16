@@ -175,7 +175,9 @@ fun FavoritesScreen(
                                         Text(text = snippet.content, style = MaterialTheme.typography.bodyMedium)
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            text = "Vytvořeno: " + java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale.forLanguageTag("cs-CZ")).format(snippet.createdAt),
+                                            text = "Vytvořeno: " + java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale.forLanguageTag("cs-CZ")).apply {
+                                                timeZone = java.util.TimeZone.getDefault()
+                                            }.format(snippet.createdAt),
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                     }
@@ -221,8 +223,13 @@ fun FavoritesScreen(
                                         val updated = post.updatedAt
                                         val formatted = updated?.let { dateString ->
                                             try {
-                                                val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", java.util.Locale.forLanguageTag("cs-CZ"))
-                                                val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", java.util.Locale.forLanguageTag("cs-CZ"))
+                                                val locale = java.util.Locale.forLanguageTag("cs-CZ")
+                                                val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
+                                                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                                                }
+                                                val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
+                                                    timeZone = java.util.TimeZone.getDefault()
+                                                }
                                                 val date = inputFormatter.parse(dateString)
                                                 date?.let { outputFormatter.format(it) } ?: dateString
                                             } catch (_: Exception) {

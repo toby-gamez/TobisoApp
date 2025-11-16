@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.remember
 import java.text.SimpleDateFormat
+import java.util.TimeZone
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.text.ClickableText
@@ -513,8 +514,13 @@ fun PostDetailScreen(
                             }
                             
                             val locale = java.util.Locale("cs", "CZ")
-                            val inputFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale)
-                            val outputFormatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale)
+                            // Parse server timestamps as UTC and display them in device's local timezone
+                            val inputFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
+                                timeZone = TimeZone.getTimeZone("UTC")
+                            }
+                            val outputFormatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
+                                timeZone = TimeZone.getDefault()
+                            }
                             val createdFormatted = postDetail?.createdAt?.let { dateString ->
                                 try {
                                     val date = inputFormatter.parse(dateString)
