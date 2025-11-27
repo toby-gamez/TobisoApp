@@ -387,7 +387,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("eventDetail") ||
                                                     route.startsWith("shop") ||
                                                     route.startsWith("backpack") ||
-                                                    route.startsWith("plainText"))
+                                                    route.startsWith("plainText") ||
+                                                    route.startsWith("offlineManager"))
                                             ),
                                     enter = slideInVertically(
                                         initialOffsetY = { it }, // přichází zdola
@@ -517,6 +518,35 @@ class MainActivity : ComponentActivity() {
                                     }
                                 ) {
                                     UpdaterScreen(navController = navController)
+                                }
+                                composable(
+                                    "offlineManager",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) {
+                                    com.example.tobisoappnative.screens.OfflineManagerScreen(navController = navController)
                                 }
                                 composable(
                                     "about",

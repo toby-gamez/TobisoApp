@@ -239,6 +239,18 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                             modifier = Modifier.size(24.dp)
                         )
                     }
+                    // Offline download progress indicator (small circle)
+                    val offlineDownloading by viewModel.offlineDownloading.collectAsState()
+                    val offlineProgress by viewModel.offlineDownloadProgress.collectAsState()
+                    if (offlineDownloading) {
+                        Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                progress = offlineProgress.coerceIn(0f, 1f),
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 },
                 scrollBehavior = scrollBehavior
             )
@@ -351,6 +363,20 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                         Column(Modifier.padding(16.dp)) {
                             Text("Aktualizátor", style = MaterialTheme.typography.titleMedium)
                             Text("Aktualizuj si aplikaci, ať ti nic neunikne!", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { navController.navigate("offlineManager") }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Správce offline dat", style = MaterialTheme.typography.titleMedium)
+                            Text("Správa a stažení offline dat", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }

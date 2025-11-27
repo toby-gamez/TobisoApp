@@ -125,6 +125,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun markClipboardHandled(text: String) {
         _lastHandledClipboard.value = text
     }
+    // New: offline download state and helpers (class-level)
+    private val _offlineDownloading = MutableStateFlow(false)
+    val offlineDownloading: StateFlow<Boolean> = _offlineDownloading
+    private val _offlineDownloadProgress = MutableStateFlow(0f)
+    val offlineDownloadProgress: StateFlow<Float> = _offlineDownloadProgress
 
     init {
         // Inicializace offline stavu na začátku
@@ -132,11 +137,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val isOnline = NetworkUtils.isOnline(getApplication())
             _isOffline.value = !isOnline
             println("DEBUG: App initialized - Online: $isOnline, Offline: ${!isOnline}")
+
+            // Automatické stahování offline dat pokud jsou starší než 15 min
+            try {
+                if (!offlineDataManager.isCacheFresh(15)) {
+                    downloadAllOfflineData(getApplication())
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("MainViewModel", "Failed checking cache freshness: ${e.message}")
+            }
         }
-        
+
         // Inicializace TTS manageru
         initializeTts()
-        
+
         viewModelScope.launch(Dispatchers.IO) {
             dataStore.data
                 .map { prefs ->
@@ -193,6 +207,52 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Toast funkce
     fun showToast(message: String) {
         _toastMessage.value = message
+    }
+
+    /**
+     * Spustí stahování všech offline dat na pozadí a aktualizuje progress
+     */
+    fun downloadAllOfflineData(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _offlineDownloading.value = true
+            _offlineDownloadProgress.value = 0f
+            try {
+                // 1. Kategorie
+                val categoriesArray = ApiClient.apiService.getCategories()
+                _offlineDownloadProgress.value = 0.2f
+
+                // 2. Články
+                val postsArray = ApiClient.apiService.getPosts()
+                _offlineDownloadProgress.value = 0.4f
+
+                // 3. Otázky
+                val questionsArray = ApiClient.apiService.getAllQuestions()
+                _offlineDownloadProgress.value = 0.6f
+
+                // 4. Posty pro otázky
+                val questionsPostsArray = ApiClient.apiService.getPostsForQuestions()
+                _offlineDownloadProgress.value = 0.8f
+
+                // Uložení všeho do offline cache
+                offlineDataManager.saveCategoriesPostsAndQuestions(
+                    categoriesArray.toList(),
+                    postsArray.toList(),
+                    questionsArray.toList(),
+                    questionsPostsArray.toList()
+                )
+
+                // Aktualizuj in-memory stav
+                _categories.value = categoriesArray.toList()
+                _posts.value = postsArray.toList()
+
+                _offlineDownloadProgress.value = 1f
+                showToast("Offline obsah byl aktualizován")
+            } catch (e: Exception) {
+                android.util.Log.w("MainViewModel", "Offline download failed: ${e.message}")
+            } finally {
+                _offlineDownloading.value = false
+            }
+        }
     }
     
     fun clearToast() {

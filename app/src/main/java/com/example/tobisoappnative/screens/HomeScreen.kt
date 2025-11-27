@@ -158,6 +158,10 @@ fun HomeScreen(navController: NavHostController) {
     
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
+    val offlineDownloading by viewModel.offlineDownloading.collectAsState()
+    val offlineProgress by viewModel.offlineDownloadProgress.collectAsState()
+    val toastMessage by viewModel.toastMessage.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -203,7 +207,18 @@ fun HomeScreen(navController: NavHostController) {
                             fontSize = 16.sp
                         )
                     }
-                    
+                    // Offline download indicator / tlačítko
+                    if (offlineDownloading) {
+                        Box(modifier = Modifier.padding(end = 8.dp)) {
+                            CircularProgressIndicator(
+                                progress = offlineProgress.coerceIn(0f, 1f),
+                                modifier = Modifier.size(28.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
                     // Streak button s počtem dní (s freeze podporou)
                     val currentStreak = remember { mutableStateOf(0) }
                     
@@ -267,6 +282,25 @@ fun HomeScreen(navController: NavHostController) {
                 delay(2200)
                 showTotalOverlay = false
             }
+        }
+
+        // Snackbar pro toastMessage z ViewModel
+        LaunchedEffect(toastMessage
+        ) {
+            toastMessage?.let { msg ->
+                snackbarHostState.showSnackbar(msg)
+                viewModel.clearToast()
+            }
+        }
+
+        // Snackbar host (moved higher)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 80.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            SnackbarHost(hostState = snackbarHostState)
         }
     }
 }

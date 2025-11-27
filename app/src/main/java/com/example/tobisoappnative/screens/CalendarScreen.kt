@@ -241,6 +241,18 @@ fun CalendarScreen(
                             modifier = Modifier.size(24.dp)
                         )
                     }
+                    // Offline download progress indicator (small circle)
+                    val offlineDownloading by mainViewModel.offlineDownloading.collectAsState()
+                    val offlineProgress by mainViewModel.offlineDownloadProgress.collectAsState()
+                    if (offlineDownloading) {
+                        Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                progress = offlineProgress.coerceIn(0f, 1f),
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 },
                 scrollBehavior = scrollBehavior,
             )
@@ -554,6 +566,7 @@ fun CalendarGrid(
             }
         }
 
+                    
         Spacer(modifier = Modifier.height(8.dp))
 
         // Kalendářní dny
