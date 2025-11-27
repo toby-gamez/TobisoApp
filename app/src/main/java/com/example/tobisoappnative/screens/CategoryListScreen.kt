@@ -18,6 +18,7 @@ import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Star
@@ -27,6 +28,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.TimeZone
+import com.example.tobisoappnative.components.FloatingSearchBar
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +63,7 @@ fun CategoryListScreen(
     val columns = if (isLandscape) 3 else 1
 
     // ✅ Odstraněn Scaffold - padding se aplikuje z MainActivity
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -214,6 +217,7 @@ fun CategoryListScreen(
                 }
             }
         }
+    }
     }
     }
 }

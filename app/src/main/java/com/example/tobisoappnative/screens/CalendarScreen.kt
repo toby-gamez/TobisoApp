@@ -373,15 +373,8 @@ fun CalendarScreen(
                 showTotalOverlay = false
             }
         }
-
-        // Floating Search Bar - dolů
-        FloatingSearchBar(
-            navController = navController,
-            viewModel = mainViewModel,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
         
-        // Floating Action Button - zvýšený padding kvůli search baru
+        // Floating Action Button
         FloatingActionButton(
             onClick = { 
                 editingEvent = null
@@ -390,7 +383,7 @@ fun CalendarScreen(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 88.dp, end = 16.dp),
+                .padding(16.dp),
             containerColor = MaterialTheme.colorScheme.primary
         ) {
             Icon(

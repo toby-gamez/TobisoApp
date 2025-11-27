@@ -399,13 +399,6 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                 showTotalOverlay = false
             }
         }
-        
-        // Floating Search Bar - dolů
-        FloatingSearchBar(
-            navController = navController as NavHostController?,
-            viewModel = viewModel,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 

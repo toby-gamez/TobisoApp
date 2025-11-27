@@ -76,11 +76,11 @@ fun FloatingSearchBar(
     // Debounce pro vyhledávání
     LaunchedEffect(searchText) {
         delay(400)
-        debouncedSearchText = searchText
+        debouncedSearchText = searchText.trim()
     }
 
     // Filtrování výsledků
-    val normQuery = normalizeText(debouncedSearchText)
+    val normQuery = normalizeText(debouncedSearchText.trim())
     val filteredCategories = if (debouncedSearchText.isBlank()) emptyList() else {
         categories.filter {
             normalizeText(it.name).contains(normQuery)
@@ -232,7 +232,7 @@ fun FloatingSearchBar(
                 TextField(
                     value = searchText,
                     onValueChange = { searchText = it },
-                    placeholder = { Text("Vyhledat...") },
+                    placeholder = { Text("Prohledat celý svět vědění...") },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = "Hledat")
                     },

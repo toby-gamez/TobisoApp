@@ -48,7 +48,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.tobisoappnative.ui.theme.TobisoAppNativeTheme
 import com.example.tobisoappnative.screens.HomeScreen
-import com.example.tobisoappnative.screens.SearchScreen
 import com.example.tobisoappnative.screens.CalendarScreen
 import com.example.tobisoappnative.screens.EventDetailScreen
 import com.example.tobisoappnative.screens.ProfileScreen
@@ -81,6 +80,7 @@ import com.example.tobisoappnative.screens.ShopScreen
 import com.example.tobisoappnative.screens.addTodayToStreak
 import com.example.tobisoappnative.screens.checkPointsAchievements
 import com.example.tobisoappnative.utils.StreakUtils
+import com.example.tobisoappnative.components.FloatingSearchBar
 import java.util.*
 
 class MainActivity : ComponentActivity() {
@@ -415,13 +415,6 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 composable("home") {
                                     HomeScreen(navController = navController)
-                                }
-                                composable("search") {
-                                    SearchScreen(
-                                        navController = navController,
-                                        searchRequestFocus = searchRequestFocus,
-                                        viewModel = mainViewModel
-                                    )
                                 }
                                 composable("calendar") {
                                     CalendarScreen(navController = navController)
@@ -975,6 +968,41 @@ class MainActivity : ComponentActivity() {
                                     .fillMaxWidth()
                                     .align(Alignment.BottomCenter)
                                     .padding(start = 8.dp, end = 8.dp, bottom = adjustedBottom)
+                            )
+                        }
+                        
+                        // Floating Search Bar - zobrazený pouze na vybraných obrazovkách
+                        val currentRoute = navBackStackEntry?.destination?.route
+                        val showFloatingSearch = currentRoute?.startsWith("home") == true ||
+                                currentRoute?.startsWith("allQuestions") == true ||
+                                currentRoute?.startsWith("calendar") == true ||
+                                currentRoute?.startsWith("profile") == true ||
+                                currentRoute?.startsWith("categoryList/") == true
+                        
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = showFloatingSearch,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter),
+                            enter = androidx.compose.animation.fadeIn(
+                                animationSpec = androidx.compose.animation.core.tween(300)
+                            ) + androidx.compose.animation.slideInVertically(
+                                initialOffsetY = { it / 2 },
+                                animationSpec = androidx.compose.animation.core.tween(300)
+                            ),
+                            exit = androidx.compose.animation.fadeOut(
+                                animationSpec = androidx.compose.animation.core.tween(200)
+                            ) + androidx.compose.animation.slideOutVertically(
+                                targetOffsetY = { it / 2 },
+                                animationSpec = androidx.compose.animation.core.tween(200)
+                            )
+                        ) {
+                            FloatingSearchBar(
+                                navController = navController,
+                                viewModel = mainViewModel,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = if (bottomBarVisible) 100.dp else 16.dp)
                             )
                         }
                     }

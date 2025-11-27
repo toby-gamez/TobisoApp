@@ -338,13 +338,6 @@ fun AllQuestionsScreen(
             }
         }
     }
-    
-    // Floating Search Bar - dolů
-    FloatingSearchBar(
-        navController = navController as NavHostController?,
-        viewModel = viewModel,
-        modifier = Modifier.align(Alignment.BottomCenter)
-    )
     }
 }
 
