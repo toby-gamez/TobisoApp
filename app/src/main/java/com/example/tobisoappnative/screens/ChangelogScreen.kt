@@ -69,7 +69,8 @@ fun ChangelogScreen(navController: NavController) {
         VersionInfo("2.4", listOf(
             "floating vyhledávání místo celé obrazovky",
             "vylepšen offline mode",
-            "přidán Správce offline dat"
+            "přidán Správce offline dat",
+            "přeskládán profil a vylepšeny popisy"
         )),
         VersionInfo("2.3", listOf(
             "opraven přechod u Vybrat text",
