@@ -68,7 +68,8 @@ fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
         VersionInfo("2.4", listOf(
             "floating vyhledávání místo celé obrazovky",
-            "vylepšen offline mode, přidán Správce offline dat"
+            "vylepšen offline mode",
+            "přidán Správce offline dat"
         )),
         VersionInfo("2.3", listOf(
             "opraven přechod u Vybrat text",

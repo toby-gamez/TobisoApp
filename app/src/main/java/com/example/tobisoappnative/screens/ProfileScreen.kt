@@ -293,50 +293,22 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                 item(span = { GridItemSpan(gridColumns) }) {
                     AchievementsSection()
                 }
-                
 
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate("feedback") }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("Zpětná vazba", style = MaterialTheme.typography.titleMedium)
-                            Text("Napište nám, co byste chtěli změnit nebo vylepšit.", style = MaterialTheme.typography.bodySmall)
+                    item(span = { GridItemSpan(1) }) {
+                        Card(
+                            modifier = cardModifier,
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            shape = cardShape,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            onClick = { navController.navigate("offlineManager") }
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text("Správce offline dat", style = MaterialTheme.typography.titleMedium)
+                                Text("Správa a stažení offline dat", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
-                }
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate("about") }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("O aplikaci", style = MaterialTheme.typography.titleMedium)
-                            Text("Všechno o aplikaci", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate("changelog") }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("Deník změn", style = MaterialTheme.typography.titleMedium)
-                            Text("Všechno důležité, co bylo změněno", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
+
                 item(span = { GridItemSpan(1) }) {
                     Card(
                         modifier = cardModifier,
@@ -366,20 +338,48 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                         }
                     }
                 }
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate("offlineManager") }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("Správce offline dat", style = MaterialTheme.typography.titleMedium)
-                            Text("Správa a stažení offline dat", style = MaterialTheme.typography.bodySmall)
+                    item(span = { GridItemSpan(1) }) {
+                        Card(
+                            modifier = cardModifier,
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            shape = cardShape,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            onClick = { navController.navigate("feedback") }
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text("Zpětná vazba", style = MaterialTheme.typography.titleMedium)
+                                Text("Napište nám, co byste chtěli změnit nebo vylepšit.", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
-                }
+                    item(span = { GridItemSpan(1) }) {
+                        Card(
+                            modifier = cardModifier,
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            shape = cardShape,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            onClick = { navController.navigate("about") }
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text("O aplikaci", style = MaterialTheme.typography.titleMedium)
+                                Text("Všechno o aplikaci", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                    item(span = { GridItemSpan(1) }) {
+                        Card(
+                            modifier = cardModifier,
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            shape = cardShape,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            onClick = { navController.navigate("changelog") }
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text("Deník změn", style = MaterialTheme.typography.titleMedium)
+                                Text("Všechno důležité, co bylo změněno", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
                 items(filteredPosts) { post ->
                     Card(
                         modifier = cardModifier,
@@ -408,7 +408,7 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                                 }
                             } ?: ""
                             if (formatted.isNotBlank()) {
-                                Text(text = "Upraveno: $formatted", style = MaterialTheme.typography.bodySmall)
+                                Text(text = if (post.title == "O mně") "Něco drobného o autoru aplikace" else "Proč vlastně toto existuje?", style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
