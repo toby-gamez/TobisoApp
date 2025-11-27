@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.MultiplierIndicator
@@ -42,6 +43,7 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import com.example.tobisoappnative.utils.StreakUtils
+import com.example.tobisoappnative.components.FloatingSearchBar
 
 // Helper funkce pro získání aktuální řady (nyní s freeze podporou)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -95,6 +97,7 @@ fun AllQuestionsScreen(
         }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -334,6 +337,14 @@ fun AllQuestionsScreen(
                 }
             }
         }
+    }
+    
+    // Floating Search Bar - dolů
+    FloatingSearchBar(
+        navController = navController as NavHostController?,
+        viewModel = viewModel,
+        modifier = Modifier.align(Alignment.BottomCenter)
+    )
     }
 }
 

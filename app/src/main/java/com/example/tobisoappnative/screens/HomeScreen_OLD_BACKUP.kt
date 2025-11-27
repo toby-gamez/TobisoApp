@@ -1,7 +1,8 @@
+/*
 package com.example.tobisoappnative.screens
 
 import com.example.tobisoappnative.R
-import com.example.tobisoappnative.components.FloatingSearchBar
+import com.example.tobisoappnative.components.ToastHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,22 +31,27 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
-import androidx.navigation.NavHostController
+import androidx.navigation.NavController
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.BackpackManager
 import com.example.tobisoappnative.IconPackManager
+import kotlinx.coroutines.delay
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.MultiplierIndicator
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import com.example.tobisoappnative.utils.StreakUtils
-import kotlinx.coroutines.delay
 
 // Helper funkce pro získání aktuální řady (nyní s freeze podporou)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -77,11 +83,11 @@ fun getColumnCount(): Int {
 }
 
 // Funkce pro získání barvy podle názvu předmětu
-@Composable 
+@Composable
 fun getSubjectColorByName(subjectName: String): Color {
     val colorType = when (subjectName) {
         "Mluvnice" -> SubjectColorType.PRIMARY
-        "Literatura" -> SubjectColorType.SECONDARY  
+        "Literatura" -> SubjectColorType.SECONDARY
         "Sloh" -> SubjectColorType.TERTIARY
         "Hudební výchova" -> SubjectColorType.PRIMARY_CONTAINER
         "Matematika" -> SubjectColorType.SECONDARY_CONTAINER
@@ -129,7 +135,7 @@ fun getSubjectColor(colorType: SubjectColorType): Color {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavHostController) {
+fun HomeScreen(navController: NavController) {
     val isDark = isSystemInDarkTheme()
     val logoRes = if (isDark) R.drawable.logo_dark else R.drawable.logo_light
     val subjects = listOf(
@@ -148,23 +154,32 @@ fun HomeScreen(navController: NavHostController) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyGridState()
     val viewModel: MainViewModel = viewModel()
-    
-    LaunchedEffect(Unit) { 
+    val categories by viewModel.categories.collectAsState()
+    val categoryLoading by viewModel.categoryLoading.collectAsState()
+    val toastMessage by viewModel.toastMessage.collectAsState()
+    LaunchedEffect(Unit) {
         viewModel.loadCategories()
-        viewModel.loadPosts()
         BackpackManager.init(context)
         IconPackManager.init(context)
     }
-    
+
+    // Debug - sleduj aktivní balíček ikon
+    val activeIconPack by IconPackManager.activeIconPack.collectAsState()
+    val equippedIconPack by BackpackManager.equippedIconPack.collectAsState()
+
+    // Debug log
+    LaunchedEffect(activeIconPack) {
+        println("🎨 HomeScreen - Aktivní balíček ikon: ${activeIconPack?.name ?: "žádný"}")
+    }
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             LargeTopAppBar(
                 title = {
                     Image(
@@ -176,12 +191,13 @@ fun HomeScreen(navController: NavHostController) {
                 actions = {
                     // Zobrazení aktivního multiplikátoru
                     MultiplierIndicator()
-                    
-                    // Zobrazení bodů s novým designem
+
+                    // Zobrazení bodů s nowym designem
+                    val totalPoints by PointsManager.totalPoints.collectAsState()
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .padding(end = 8.dp)
+                            .padding(end = 16.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 shape = RoundedCornerShape(20.dp)
@@ -203,25 +219,24 @@ fun HomeScreen(navController: NavHostController) {
                             fontSize = 16.sp
                         )
                     }
-                    
+
                     // Streak button s počtem dní (s freeze podporou)
+                    val context = LocalContext.current
                     val currentStreak = remember { mutableStateOf(0) }
-                    
+
                     // Sledování změn v freeze
                     val availableFreezes by com.example.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
                     val usedFreezes by com.example.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
-                    
+
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             currentStreak.value = getCurrentStreak(context)
                         }
                     }
-                    
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .clickable { navController.navigate("streak") }
+                        modifier = Modifier.clickable { navController.navigate("streak") }
                     ) {
                         if (currentStreak.value > 0) {
                             Text(
@@ -242,40 +257,60 @@ fun HomeScreen(navController: NavHostController) {
                 },
                 scrollBehavior = scrollBehavior
             )
-            
-            // Grid se subjects
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columnCount),
-                state = gridState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                items(subjects) { subject ->
-                    SubjectCard(
-                        subject = subject,
-                        onClick = { navController.navigate("categoryList/${subject.name}") },
-                        modifier = Modifier.padding(8.dp)
-                    )
+            if (showTotalOverlay) {
+                FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+                LaunchedEffect(showTotalOverlay) {
+                    kotlinx.coroutines.delay(2200)
+                    showTotalOverlay = false
                 }
             }
         }
-        
-        // Overlay pro celkové body
-        if (showTotalOverlay) {
-            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-            LaunchedEffect(showTotalOverlay) {
-                delay(2200)
-                showTotalOverlay = false
+        if (categoryLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Načítání obsahu...")
+                }
             }
+        } else {
+            LazyVerticalGrid(
+                    state = gridState,
+                    columns = GridCells.Fixed(columnCount),
+                    contentPadding = PaddingValues(
+                        start = 8.dp,
+                        end = 8.dp,
+                        top = 8.dp,
+                        bottom = 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(subjects) { subject ->
+                        SubjectCard(
+                            subject = subject,
+                            modifier = Modifier,
+                            onClick = {
+                                val category = categories.find { it.name == subject.name }
+                                category?.let {
+                                    navController.navigate("categoryList/${it.name}")
+                                }
+                            }
+                        )
+                    }
+                }
         }
-        
-        // Floating Search Bar - dolů
-        FloatingSearchBar(
-            navController = navController,
-            viewModel = viewModel,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
+
+    // Toast handler pro zobrazení zpráv
+    ToastHandler(
+        toastMessage = toastMessage,
+        onClearToast = { viewModel.clearToast() }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -297,25 +332,34 @@ fun SubjectCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Získáme ikonu z IconPackManageru - sledujeme změny
+            val activeIconPack by IconPackManager.activeIconPack.collectAsState()
             val subjectIcon = IconPackManager.getSubjectIcon(subject.name)
             val isEmoji = IconPackManager.isEmojiIcon(subject.name)
-            
-            // Ikona nebo emoji
+
+            // Debug log pro testování
+            LaunchedEffect(activeIconPack, subject.name) {
+                println("🏠 SubjectCard: ${subject.name} -> icon: $subjectIcon, isEmoji: $isEmoji, activePack: ${activeIconPack?.name}")
+            }
+
+            // Ikona nebo emoji s flexibilní velikostí
             if (isEmoji && subjectIcon is String) {
+                // Pro emoji použijeme větší prostor a menší font
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .padding(4.dp),
+                        .size(48.dp) // Větší prostor pro emoji
+                        .padding(4.dp), // Padding pro lepší zarovnání
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = subjectIcon,
-                        fontSize = 28.sp,
+                        fontSize = 28.sp, // Trochu menší font aby se vešlo
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Clip
                     )
                 }
             } else {
+                // Pro Material ikony standardní velikost
                 Box(
                     modifier = Modifier.size(48.dp),
                     contentAlignment = Alignment.Center
@@ -328,9 +372,9 @@ fun SubjectCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -348,3 +392,4 @@ fun SubjectCard(
         }
     }
 }
+ */

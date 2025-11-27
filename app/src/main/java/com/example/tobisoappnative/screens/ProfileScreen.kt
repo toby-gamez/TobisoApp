@@ -72,7 +72,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.text.style.TextAlign
+import androidx.navigation.NavHostController
 import com.example.tobisoappnative.components.ImageCropperDialog
+import com.example.tobisoappnative.components.FloatingSearchBar
 
 // Helper funkce pro správu profilu
 fun getProfileName(context: android.content.Context): String {
@@ -397,6 +399,13 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                 showTotalOverlay = false
             }
         }
+        
+        // Floating Search Bar - dolů
+        FloatingSearchBar(
+            navController = navController as NavHostController?,
+            viewModel = viewModel,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 

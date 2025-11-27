@@ -43,6 +43,7 @@ import androidx.annotation.RequiresApi
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.*
+import com.example.tobisoappnative.components.FloatingSearchBar
 
 // Enum pro filtrování událostí
 enum class EventFilter(val displayName: String) {
@@ -103,6 +104,12 @@ fun CalendarScreen(
 
     LaunchedEffect(currentMonth, currentYear) {
         viewModel.loadEventsForMonth(currentYear, currentMonth)
+    }
+    
+    // Načtení dat pro FloatingSearchBar
+    LaunchedEffect(Unit) {
+        mainViewModel.loadCategories()
+        mainViewModel.loadPosts()
     }
 
     // Hlavní Box pro celou obrazovku
@@ -358,7 +365,23 @@ fun CalendarScreen(
             }
         }
         
-        // Floating Action Button
+        // Overlay pro celkové body
+        if (showTotalOverlay) {
+            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+            LaunchedEffect(showTotalOverlay) {
+                delay(2200)
+                showTotalOverlay = false
+            }
+        }
+
+        // Floating Search Bar - dolů
+        FloatingSearchBar(
+            navController = navController,
+            viewModel = mainViewModel,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+        
+        // Floating Action Button - zvýšený padding kvůli search baru
         FloatingActionButton(
             onClick = { 
                 editingEvent = null
@@ -367,7 +390,7 @@ fun CalendarScreen(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp),
+                .padding(bottom = 88.dp, end = 16.dp),
             containerColor = MaterialTheme.colorScheme.primary
         ) {
             Icon(
@@ -375,15 +398,6 @@ fun CalendarScreen(
                 contentDescription = "Přidat událost",
                 tint = MaterialTheme.colorScheme.onPrimary
             )
-        }
-        
-        // Overlay pro celkové body
-        if (showTotalOverlay) {
-            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-            LaunchedEffect(showTotalOverlay) {
-                delay(2200)
-                showTotalOverlay = false
-            }
         }
     }
     
