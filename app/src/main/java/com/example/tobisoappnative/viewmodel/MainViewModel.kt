@@ -8,6 +8,7 @@ import com.example.tobisoappnative.model.Addendum
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post
+import okhttp3.ResponseBody
 import com.example.tobisoappnative.model.Question
 import com.example.tobisoappnative.model.RelatedPost
 import com.example.tobisoappnative.model.Snippet
@@ -25,6 +26,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.map
 import com.example.tobisoappnative.tts.TtsManager
+import kotlinx.coroutines.withContext
 
 private val Context.dataStore by preferencesDataStore(name = "saved_posts")
 
@@ -1057,6 +1059,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
+    suspend fun downloadPostPdf(postId: Int): ResponseBody {
+        return withContext(Dispatchers.IO) {
+            try {
+                android.util.Log.d("MainViewModel", "Volání API pro PDF generování, postId: $postId")
+                val response = ApiClient.apiService.generatePostPdf(postId)
+                android.util.Log.d("MainViewModel", "API odpovědělo, velikost: ${response.contentLength()}")
+                response
+            } catch (e: Exception) {
+                android.util.Log.e("MainViewModel", "Chyba při volání PDF API: ${e.message}", e)
+                throw e
+            }
+        }
+    }
+
     fun loadAddendum(addendumId: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             _addendumsLoading.value = true

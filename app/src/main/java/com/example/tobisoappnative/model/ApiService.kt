@@ -3,6 +3,8 @@ package com.example.tobisoappnative.model
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import okhttp3.ResponseBody
+import retrofit2.http.Streaming
 
 interface ApiService {
     @GET("categories")
@@ -54,4 +56,9 @@ interface ApiService {
 
     @GET("Addendums/{id}")
     suspend fun getAddendum(@Path("id") id: Int): Addendum
+
+    // PDF generation
+    @Streaming
+    @GET("Pdf/generate/post/{id}")
+    suspend fun generatePostPdf(@Path("id") id: Int): ResponseBody
 }

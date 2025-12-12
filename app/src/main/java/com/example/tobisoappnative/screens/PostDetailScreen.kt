@@ -52,7 +52,17 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.tobisoappnative.components.MultiplierIndicator
 import com.example.tobisoappnative.components.TtsPlayer
 import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.Print
 import com.example.tobisoappnative.utils.TextUtils
+import java.io.File
+import java.io.FileOutputStream
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.os.Build
+import androidx.compose.runtime.saveable.rememberSaveable
+import android.provider.MediaStore
+import android.content.ContentValues
+import android.os.Environment
 
 val prefixRegex = Regex("^(ml-|sl-|li-|hv-|m-|ch-|f-|pr-|z-)")
 
@@ -89,6 +99,111 @@ fun PostDetailScreen(
     val addendums by viewModel.addendums.collectAsState()
     var selectedAddendum by remember { mutableStateOf<Addendum?>(null) }
     var showAddendumDialog by remember { mutableStateOf(false) }
+    var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingPdfDownload by rememberSaveable { mutableStateOf(false) }
+    
+    val context = LocalContext.current
+    
+    // Funkce pro stažení PDF
+    val downloadPdf: (Int) -> Unit = { id ->
+        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                android.util.Log.d("PostDetailScreen", "Stahování PDF pro post ID: $id")
+                val responseBody = viewModel.downloadPostPdf(id)
+                val pdfBytes = responseBody.bytes()
+                android.util.Log.d("PostDetailScreen", "PDF staženo, velikost: ${pdfBytes.size} bytes")
+                
+                val fileName = "tobiso_post_${id}.pdf"
+                var pdfUri: android.net.Uri? = null
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    // Pro Android 10+ použijeme MediaStore
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    }
+                    
+                    val resolver = context.contentResolver
+                    pdfUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                    
+                    pdfUri?.let { uri ->
+                        resolver.openOutputStream(uri)?.use { outputStream ->
+                            outputStream.write(pdfBytes)
+                        }
+                        android.util.Log.d("PostDetailScreen", "PDF uloženo do Downloads: $fileName")
+                    }
+                } else {
+                    // Pro starší verze použijeme starý způsob
+                    @Suppress("DEPRECATION")
+                    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    val pdfFile = File(downloadsDir, fileName)
+                    
+                    FileOutputStream(pdfFile).use { output ->
+                        output.write(pdfBytes)
+                    }
+                    pdfUri = android.net.Uri.fromFile(pdfFile)
+                    android.util.Log.d("PostDetailScreen", "PDF uloženo: ${pdfFile.absolutePath}")
+                }
+                
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    if (pdfUri != null) {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            setDataAndType(pdfUri, "application/pdf")
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: android.content.ActivityNotFoundException) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "PDF uloženo do složky Stažené",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    } else {
+                        android.widget.Toast.makeText(
+                            context,
+                            "Chyba při ukládání PDF",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PostDetailScreen", "Chyba při generování PDF", e)
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    val errorMsg = when {
+                        e.message != null -> e.message
+                        e.cause?.message != null -> e.cause?.message
+                        else -> e.javaClass.simpleName
+                    }
+                    android.widget.Toast.makeText(
+                        context,
+                        "Chyba při generování PDF: $errorMsg",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+    
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted && pendingPdfDownload) {
+            pendingPdfDownload = false
+            postDetail?.id?.let { downloadPdf(it) }
+        } else if (!isGranted) {
+            pendingPdfDownload = false
+            android.widget.Toast.makeText(
+                context,
+                "Pro stažení PDF je potřeba oprávnění k úložišti",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
     
     LaunchedEffect(postId) {
         // Načteme detail (ViewModel má logiku pro offline i online režim)
@@ -116,8 +231,6 @@ fun PostDetailScreen(
     }
 
     var showFloatingSelectButton by remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
     
     // Scroll behavior pro nested scrolling
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -193,7 +306,37 @@ fun PostDetailScreen(
                                 tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        // SHARE BUTTON - druhé vpravo (pouze v online režimu)
+                        // PRINT PDF BUTTON - pouze v online režimu
+                        if (!isOffline) {
+                            IconButton(onClick = {
+                                postDetail?.id?.let { id ->
+                                    // Pro Android 10+ (API 29+) nepotřebujeme permission
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        downloadPdf(id)
+                                    } else {
+                                        // Pro starší verze Android < 10 zkontrolujeme permission
+                                        val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                                            context,
+                                            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                        
+                                        if (hasPermission) {
+                                            downloadPdf(id)
+                                        } else {
+                                            // Požádáme o permission
+                                            showPermissionDialog = true
+                                        }
+                                    }
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Print,
+                                    contentDescription = "Stáhnout PDF",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        // SHARE BUTTON - třetí vpravo (pouze v online režimu)
                         if (!isOffline) {
                             IconButton(onClick = {
                                 postDetail?.id?.let { id ->
@@ -659,6 +802,29 @@ fun PostDetailScreen(
                     showFloatingSelectButton = false
                 }
             }
+        }
+        
+        // Dialog pro vysvětlení permission
+        if (showPermissionDialog) {
+            AlertDialog(
+                onDismissRequest = { showPermissionDialog = false },
+                title = { Text("Oprávnění k úložišti") },
+                text = { Text("Pro stažení PDF souboru potřebujeme přístup k úložišti vašeho zařízení.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showPermissionDialog = false
+                        pendingPdfDownload = true
+                        permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    }) {
+                        Text("Povolit")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPermissionDialog = false }) {
+                        Text("Zrušit")
+                    }
+                }
+            )
         }
         
         // Dialog pro zobrazení dodatku
