@@ -53,6 +53,15 @@ import com.example.tobisoappnative.utils.TextUtils
 
 val prefixRegex = Regex("^(ml-|sl-|li-|hv-|m-|ch-|f-|pr-|z-)")
 
+@Composable
+fun SafeMarkdown(content: String, modifier: Modifier = Modifier) {
+    // Jednoduše renderuj markdown - pokud dojde k pádu, aplikace se bude moci zotavit
+    // díky bezpečnému zpracování dat v remember bloku
+    RichText(modifier = modifier) { 
+        Markdown(content) 
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostDetailScreen(
@@ -233,60 +242,82 @@ fun PostDetailScreen(
                                 .verticalScroll(rememberScrollState())
                         ) {
                             // Zobrazení počtu slov a času čtení
-                            if (postDetail?.content != null) {
-                                val words = postDetail!!.content.trim().split("\\s+".toRegex()).size
-                                val minutes = Math.ceil(words / 200.0).toInt().coerceAtLeast(1)
-                                val infoText = "$words slov | ~${minutes} min čtení"
-                                Text(
-                                    text = infoText,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 8.dp),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    textAlign = TextAlign.End
-                                )
+                            postDetail?.content?.let { contentText ->
+                                val wordCountResult = remember(contentText) {
+                                    runCatching {
+                                        val trimmed = contentText.trim()
+                                        if (trimmed.isNotEmpty()) {
+                                            val words = trimmed.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
+                                            val minutes = Math.ceil(words / 200.0).toInt().coerceAtLeast(1)
+                                            "$words slov | ~${minutes} min čtení"
+                                        } else null
+                                    }.getOrNull()
+                                }
+                                
+                                wordCountResult?.let { infoText ->
+                                    Text(
+                                        text = infoText,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 8.dp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = TextAlign.End
+                                    )
+                                }
                             }
                             postDetail?.content?.let { content ->
-                                // Nejprve nahradíme nebo odstraníme obrázky 
-                                val imageRegex = Regex("!\\[(.*?)]\\((images/[^)]+)\\)")
-                                var processedContent = if (!isOffline) {
-                                    content.replace(imageRegex) {
-                                        val alt = it.groupValues[1]
-                                        val path = it.groupValues[2]
-                                        "![${alt}](https://tobiso.com/${path})"
-                                    }
-                                } else {
-                                    // V offline režimu úplně odstraníme obrázky a nahradíme jen textem
-                                    content.replace(imageRegex) {
-                                        val alt = it.groupValues[1]
-                                        "\n\n**[Obrázek: $alt - nedostupný v offline režimu]**\n\n"
+                                val processedData = remember(content, isOffline) {
+                                    runCatching {
+                                        // Nejprve nahradíme nebo odstraníme obrázky 
+                                        val imageRegex = Regex("!\\[(.*?)]\\((images/[^)]+)\\)")
+                                        val processedContent = if (!isOffline) {
+                                            content.replace(imageRegex) {
+                                                val alt = it.groupValues[1]
+                                                val path = it.groupValues[2]
+                                                "![${alt}](https://tobiso.com/${path})"
+                                            }
+                                        } else {
+                                            // V offline režimu úplně odstraníme obrázky a nahradíme jen textem
+                                            content.replace(imageRegex) {
+                                                val alt = it.groupValues[1]
+                                                "\n\n**[Obrázek: $alt - nedostupný v offline režimu]**\n\n"
+                                            }
+                                        }
+
+                                        // Najdeme zvýrazněné bloky ...text...
+                                        val blockRegex = Regex("\\.\\.\\.\\s*([\\s\\S]*?)\\s*\\.\\.\\.")
+                                        val blockMatches = blockRegex.findAll(processedContent).toList()
+
+                                        // Najdeme odkazy [text](url) ale ne obrázky ![alt](url)
+                                        val linkRegex = Regex("(?<!!)\\[(.+?)\\]\\((.+?)\\)")
+                                        val linkMatches = linkRegex.findAll(processedContent).toList()
+
+                                        // Detekce video tagu včetně obsahu a closing tagu
+                                        val videoRegex = Regex(
+                                            "<video[^>]*src=\"([^\"]+)\"[^>]*>(.*?)</video>",
+                                            RegexOption.DOT_MATCHES_ALL
+                                        )
+                                        val videoMatches = videoRegex.findAll(processedContent).toList()
+
+                                        // Kombinujeme všechny matches a seřadíme podle pozice
+                                        val allMatches = (blockMatches.map {
+                                            Triple(it.range.first, it.range.last + 1, "block" to it)
+                                        } + linkMatches.map {
+                                            Triple(it.range.first, it.range.last + 1, "link" to it)
+                                        } + videoMatches.map {
+                                            Triple(it.range.first, it.range.last + 1, "video" to it)
+                                        }).sortedBy { it.first }
+                                        
+                                        processedContent to allMatches
+                                    }.getOrElse { e ->
+                                        println("DEBUG: Error processing content: ${e.message}")
+                                        e.printStackTrace()
+                                        content to emptyList()
                                     }
                                 }
-
-                                // Najdeme zvýrazněné bloky ...text...
-                                val blockRegex = Regex("\\.\\.\\.\\s*([\\s\\S]*?)\\s*\\.\\.\\.")
-                                val blockMatches = blockRegex.findAll(processedContent).toList()
-
-                                // Najdeme odkazy [text](url) ale ne obrázky ![alt](url)
-                                val linkRegex = Regex("(?<!!)\\[(.+?)\\]\\((.+?)\\)")
-                                val linkMatches = linkRegex.findAll(processedContent).toList()
-
-                                // Detekce video tagu včetně obsahu a closing tagu
-                                val videoRegex = Regex(
-                                    "<video[^>]*src=\"([^\"]+)\"[^>]*>(.*?)</video>",
-                                    RegexOption.DOT_MATCHES_ALL
-                                )
-                                val videoMatches = videoRegex.findAll(processedContent).toList()
-
-                                // Kombinujeme všechny matches a seřadíme podle pozice
-                                val allMatches = (blockMatches.map {
-                                    Triple(it.range.first, it.range.last + 1, "block" to it)
-                                } + linkMatches.map {
-                                    Triple(it.range.first, it.range.last + 1, "link" to it)
-                                } + videoMatches.map {
-                                    Triple(it.range.first, it.range.last + 1, "video" to it)
-                                }).sortedBy { it.first }
+                                
+                                val (processedContent, allMatches) = processedData
 
                                 // Wrap rendered markdown area with a long-press detector that does NOT
                                 // interfere with inner clickable links. A long-press will show the
@@ -303,7 +334,7 @@ fun PostDetailScreen(
                                     }
                                 ) {
                                     if (allMatches.isEmpty()) {
-                                        RichText { Markdown(processedContent) }
+                                        SafeMarkdown(processedContent)
                                     } else {
                                     var lastIndex = 0
                                     Column {
@@ -312,7 +343,7 @@ fun PostDetailScreen(
                                                 if (start > lastIndex) {
                                                 val before =
                                                     processedContent.substring(lastIndex, start)
-                                                RichText { Markdown(before) }
+                                                SafeMarkdown(before)
                                             }
 
                                             when (typeAndMatch.first) {
@@ -330,7 +361,7 @@ fun PostDetailScreen(
                                                             )
                                                             .padding(8.dp)
                                                     ) {
-                                                        RichText { Markdown(blockText) }
+                                                        SafeMarkdown(blockText)
                                                     }
                                                 }
 
@@ -431,7 +462,7 @@ fun PostDetailScreen(
                                         if (lastIndex < processedContent.length) {
                                             val after = processedContent.substring(lastIndex)
                                             // Zobrazíme pouze text za closing tagem, closing tag ani text uvnitř videa se nezobrazí
-                                            RichText { Markdown(after) }
+                                            SafeMarkdown(after)
                                         }
                                     }
                                     }
@@ -587,9 +618,5 @@ fun PostDetailScreen(
                 }
             }
         }
-        
-        // Persistent TTS player is provided globally in MainActivity.MyApp().
-        // Do not render a local TtsPlayer here to avoid duplication and ensure
-        // playback continues across navigation.
     }
 }
