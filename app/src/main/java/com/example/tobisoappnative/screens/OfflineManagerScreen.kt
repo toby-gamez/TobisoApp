@@ -32,6 +32,7 @@ fun OfflineManagerScreen(
     var postsCount by remember { mutableStateOf<Int?>(null) }
     var questionsCount by remember { mutableStateOf<Int?>(null) }
     var questionsPostsCount by remember { mutableStateOf<Int?>(null) }
+    var relatedPostsCount by remember { mutableStateOf<Int?>(null) }
     var lastUpdateFormatted by remember { mutableStateOf<String?>(null) }
     var lastUpdateTimestamp by remember { mutableStateOf<Long?>(null) }
     var cacheFresh15 by remember { mutableStateOf<Boolean?>(null) }
@@ -48,6 +49,7 @@ fun OfflineManagerScreen(
                 val posts = offlineManager.getCachedPosts()
                 val questions = offlineManager.getCachedQuestions()
                 val qposts = offlineManager.getCachedQuestionsPosts()
+                val relatedPosts = offlineManager.getCachedRelatedPosts()
                 val last = offlineManager.getLastUpdateFormatted()
                 val lastTs = offlineManager.getLastUpdateTimestamp()
                 val fresh = offlineManager.isCacheFresh(15)
@@ -56,6 +58,7 @@ fun OfflineManagerScreen(
                 postsCount = posts?.size
                 questionsCount = questions?.size
                 questionsPostsCount = qposts?.size
+                relatedPostsCount = relatedPosts?.size
                 lastUpdateFormatted = last
                 lastUpdateTimestamp = lastTs
                 cacheFresh15 = fresh
@@ -64,6 +67,7 @@ fun OfflineManagerScreen(
                 postsCount = null
                 questionsCount = null
                 questionsPostsCount = null
+                relatedPostsCount = null
                 lastUpdateFormatted = null
                 cacheFresh15 = null
             }
@@ -128,6 +132,11 @@ fun OfflineManagerScreen(
                         Text(text = "Vysvětlení otázek")
                         Text(text = questionsPostsCount?.toString() ?: "—")
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Související články")
+                        Text(text = relatedPostsCount?.toString() ?: "—")
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Column {
@@ -165,6 +174,11 @@ fun OfflineManagerScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = "Vysvětlení otázek")
                         Text(text = questionsPostsCount?.toString() ?: "—")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Související články")
+                        Text(text = relatedPostsCount?.toString() ?: "—")
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))

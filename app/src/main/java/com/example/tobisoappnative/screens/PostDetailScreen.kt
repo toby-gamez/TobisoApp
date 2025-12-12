@@ -87,19 +87,12 @@ fun PostDetailScreen(
     LaunchedEffect(postId) {
         // Načteme detail (ViewModel má logiku pro offline i online režim)
         viewModel.loadPostDetail(postId)
-        // Načteme související články (pouze v online režimu)
-        if (!isOffline) {
-            viewModel.loadRelatedPosts(postId)
-        }
-        loaded = true
-    }
-    
-    // Separate effect pro kontrolu otázek a posts - reaguje na změny offline stavu
-    LaunchedEffect(isOffline, posts.isEmpty()) {
-        // Načteme všechny posts pro vyhledávání odkazů (pouze pokud není offline nebo jsou prázdné)
-        if (posts.isEmpty() && !isOffline) {
+        // Načteme všechny posts pro vyhledávání odkazů a zobrazení souvisejících článků
+        if (posts.isEmpty()) {
             viewModel.loadPosts()
         }
+        // Načteme související články (funguje v online i offline režimu)
+        viewModel.loadRelatedPosts(postId)
         
         // Kontrola otázek pro tento příspěvek (nyní funguje v online i offline režimu)
         hasQuestions = try {
@@ -108,6 +101,8 @@ fun PostDetailScreen(
             println("DEBUG: Error checking questions: ${e.message}")
             false
         }
+        
+        loaded = true
     }
 
     var showFloatingSelectButton by remember { mutableStateOf(false) }
@@ -491,7 +486,7 @@ fun PostDetailScreen(
                             }
                             
                             // Související články
-                            if (!isOffline && relatedPosts.isNotEmpty()) {
+                            if (relatedPosts.isNotEmpty()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()

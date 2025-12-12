@@ -17,6 +17,7 @@ class OfflineDataManager(private val context: Context) {
         private const val KEY_POSTS = "posts_json"
         private const val KEY_QUESTIONS = "questions_json"
         private const val KEY_QUESTIONS_POSTS = "questions_posts_json"
+        private const val KEY_RELATED_POSTS = "related_posts_json"
         private const val KEY_LAST_UPDATE = "last_update_timestamp"
         private const val KEY_LAST_UPDATE_FORMATTED = "last_update_formatted"
             private const val KEY_EVENTS = "events_json"
@@ -52,7 +53,8 @@ class OfflineDataManager(private val context: Context) {
         categories: List<Category>, 
         posts: List<Post>, 
         questions: List<Question>, 
-        questionsPosts: List<Post>
+        questionsPosts: List<Post>,
+        relatedPosts: List<RelatedPost> = emptyList()
     ) = withContext(Dispatchers.IO) {
         val currentTime = System.currentTimeMillis()
         val formatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", Locale.Builder().setLanguage("cs").setRegion("CZ").build())
@@ -63,12 +65,13 @@ class OfflineDataManager(private val context: Context) {
             putString(KEY_POSTS, gson.toJson(posts))
             putString(KEY_QUESTIONS, gson.toJson(questions))
             putString(KEY_QUESTIONS_POSTS, gson.toJson(questionsPosts))
+            putString(KEY_RELATED_POSTS, gson.toJson(relatedPosts))
             putLong(KEY_LAST_UPDATE, currentTime)
             putString(KEY_LAST_UPDATE_FORMATTED, formattedTime)
             apply()
         }
         
-        println("DEBUG: Offline data saved - Categories: ${categories.size}, Posts: ${posts.size}, Questions: ${questions.size}, Questions Posts: ${questionsPosts.size}, Time: $formattedTime")
+        println("DEBUG: Offline data saved - Categories: ${categories.size}, Posts: ${posts.size}, Questions: ${questions.size}, Questions Posts: ${questionsPosts.size}, Related Posts: ${relatedPosts.size}, Time: $formattedTime")
     }
     
     /**
@@ -205,6 +208,32 @@ class OfflineDataManager(private val context: Context) {
      */
     fun hasCachedQuestions(): Boolean {
         return prefs.contains(KEY_QUESTIONS) && prefs.contains(KEY_QUESTIONS_POSTS)
+    }
+
+    /**
+     * Načtení uložených souvisejících článků
+     */
+    suspend fun getCachedRelatedPosts(): List<RelatedPost>? = withContext(Dispatchers.IO) {
+        val json = prefs.getString(KEY_RELATED_POSTS, null)
+        return@withContext if (json != null) {
+            try {
+                val relatedPostsArray = gson.fromJson(json, Array<RelatedPost>::class.java)
+                relatedPostsArray?.toList()
+            } catch (e: Exception) {
+                println("DEBUG: Error loading cached related posts: ${e.message}")
+                e.printStackTrace()
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Načtení souvisejících článků pro konkrétní post z cache
+     */
+    suspend fun getCachedRelatedPostsByPostId(postId: Int): List<RelatedPost>? = withContext(Dispatchers.IO) {
+        getCachedRelatedPosts()?.filter { it.postId == postId }
     }
 
     /**

@@ -227,10 +227,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 // 3. Otázky
                 val questionsArray = ApiClient.apiService.getAllQuestions()
-                _offlineDownloadProgress.value = 0.6f
+                _offlineDownloadProgress.value = 0.5f
 
                 // 4. Posty pro otázky
                 val questionsPostsArray = ApiClient.apiService.getPostsForQuestions()
+                _offlineDownloadProgress.value = 0.65f
+
+                // 5. Související články
+                val relatedPostsArray = ApiClient.apiService.getAllRelatedPosts()
                 _offlineDownloadProgress.value = 0.8f
 
                 // Uložení všeho do offline cache
@@ -238,7 +242,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     categoriesArray.toList(),
                     postsArray.toList(),
                     questionsArray.toList(),
-                    questionsPostsArray.toList()
+                    questionsPostsArray.toList(),
+                    relatedPostsArray.toList()
                 )
 
                 // Aktualizuj in-memory stav
@@ -287,20 +292,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val categories = categoriesArray.toList()
                     val posts = postsArray.toList()
                     
-                    // Pokus se načíst i otázky pro offline cache
+                    // Pokus se načíst i otázky a related posts pro offline cache
                     try {
                         val questionsArray = ApiClient.apiService.getAllQuestions()
                         val questionsPostsArray = ApiClient.apiService.getPosts()
+                        val relatedPostsArray = ApiClient.apiService.getAllRelatedPosts()
                         val questions = questionsArray.toList()
                         val questionsPosts = questionsPostsArray.toList()
+                        val relatedPosts = relatedPostsArray.toList()
                         
-                        // Ulož vše do offline cache včetně otázek
-                        offlineDataManager.saveCategoriesPostsAndQuestions(categories, posts, questions, questionsPosts)
-                        println("DEBUG: Saved offline data with questions - Questions: ${questions.size}")
+                        // Ulož vše do offline cache včetně otázek a related posts
+                        offlineDataManager.saveCategoriesPostsAndQuestions(categories, posts, questions, questionsPosts, relatedPosts)
+                        println("DEBUG: Saved offline data with questions and related posts - Questions: ${questions.size}, Related Posts: ${relatedPosts.size}")
                     } catch (e: Exception) {
                         // Pokud se nepodaří načíst otázky, ulož alespoň kategorie a posty
                         offlineDataManager.saveCategoriesAndPosts(categories, posts)
-                        println("DEBUG: Failed to load questions for offline cache: ${e.message}")
+                        println("DEBUG: Failed to load questions/related posts for offline cache: ${e.message}")
                     }
                     
                     _categories.value = categories
@@ -716,19 +723,81 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // Nejprve zkontrolujeme aktuální network stav
                 refreshNetworkState()
                 
-                // V offline režimu nemáme související články k dispozici
+                val relatedPostsList = mutableListOf<RelatedPost>()
+                
+                // V offline režimu načítáme z offline dat
                 if (_isOffline.value) {
-                    _relatedPosts.value = emptyList()
+                    // Načteme související články z offline cache
+                    val cachedRelatedPosts = offlineDataManager.getCachedRelatedPostsByPostId(postId)
+                    if (cachedRelatedPosts != null) {
+                        relatedPostsList.addAll(cachedRelatedPosts)
+                    }
+                    
+                    // Přidat články ze stejné kategorie
+                    val currentPost = _postDetail.value
+                    val cachedPosts = offlineDataManager.getCachedPosts()
+                    
+                    if (currentPost?.categoryId != null && !cachedPosts.isNullOrEmpty() && relatedPostsList.size < 5) {
+                        val remainingSlots = 5 - relatedPostsList.size
+                        val categoryPosts = cachedPosts
+                            .filter { p -> p.categoryId == currentPost.categoryId && p.id != currentPost.id }
+                            .take(remainingSlots)
+                            .map { p ->
+                                RelatedPost(
+                                    id = 0,
+                                    postId = currentPost.id,
+                                    relatedPostId = p.id,
+                                    text = "souvisí s tématem",
+                                    postTitle = currentPost.title,
+                                    relatedPostTitle = p.title
+                                )
+                            }
+                        
+                        // Vyfiltrovat články, které už jsou v relatedPostsList
+                        val existingIds = relatedPostsList.map { it.relatedPostId }.toSet()
+                        val newCategoryPosts = categoryPosts.filter { cp -> !existingIds.contains(cp.relatedPostId) }
+                        
+                        relatedPostsList.addAll(newCategoryPosts)
+                    }
+                    
+                    _relatedPosts.value = relatedPostsList
                     _relatedPostsError.value = null
-                    println("DEBUG: Offline mode - no related posts available for post $postId")
+                    println("DEBUG: Offline mode - Loaded related posts for post $postId - Count: ${relatedPostsList.size}")
                     return@launch
                 }
                 
                 // Online režim - načítáme z API
                 val relatedPostsArray = ApiClient.apiService.getRelatedPostsByPostId(postId)
-                _relatedPosts.value = relatedPostsArray.toList()
+                relatedPostsList.addAll(relatedPostsArray.toList())
+                
+                // Přidat články ze stejné kategorie (max 5 celkem)
+                val currentPost = _postDetail.value
+                if (currentPost?.categoryId != null && _posts.value.isNotEmpty() && relatedPostsList.size < 5) {
+                    val remainingSlots = 5 - relatedPostsList.size
+                    val categoryPosts = _posts.value
+                        .filter { p -> p.categoryId == currentPost.categoryId && p.id != currentPost.id }
+                        .take(remainingSlots)
+                        .map { p ->
+                            RelatedPost(
+                                id = 0, // ID není důležité pro zobrazení
+                                postId = currentPost.id,
+                                relatedPostId = p.id,
+                                text = "souvisí s tématem",
+                                postTitle = currentPost.title,
+                                relatedPostTitle = p.title
+                            )
+                        }
+                    
+                    // Vyfiltrovat články, které už jsou v relatedPostsList
+                    val existingIds = relatedPostsList.map { it.relatedPostId }.toSet()
+                    val newCategoryPosts = categoryPosts.filter { cp -> !existingIds.contains(cp.relatedPostId) }
+                    
+                    relatedPostsList.addAll(newCategoryPosts)
+                }
+                
+                _relatedPosts.value = relatedPostsList
                 _relatedPostsError.value = null
-                println("DEBUG: Loaded related posts for post $postId - Count: ${relatedPostsArray.size}")
+                println("DEBUG: Loaded related posts for post $postId - Count: ${relatedPostsList.size}")
             } catch (e: Exception) {
                 _relatedPosts.value = emptyList()
                 _relatedPostsError.value = "Chyba při načítání souvisejících článků: ${e.message}"

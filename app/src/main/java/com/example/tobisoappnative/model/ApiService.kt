@@ -29,6 +29,9 @@ interface ApiService {
     @GET("RelatedPosts/by-post/{postId}")
     suspend fun getRelatedPostsByPostId(@Path("postId") postId: Int): Array<RelatedPost>
 
+    @GET("RelatedPosts")
+    suspend fun getAllRelatedPosts(): Array<RelatedPost>
+
     // Event endpoints
     @GET("Events")
     suspend fun getEvents(): Array<Event>
