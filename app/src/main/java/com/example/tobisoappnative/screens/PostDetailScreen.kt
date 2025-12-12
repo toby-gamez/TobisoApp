@@ -34,8 +34,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.text.ClickableText
 // selection removed from this screen — selection moved to PlainTextScreen
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.text.AnnotatedString
 import com.example.tobisoappnative.model.ApiClient
+import com.example.tobisoappnative.model.Addendum
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.filled.TextFields
@@ -83,6 +86,9 @@ fun PostDetailScreen(
     var loaded by remember { mutableStateOf(false) }
     var hasQuestions by remember { mutableStateOf(false) }
     val ttsManager = viewModel.getTtsManager()
+    val addendums by viewModel.addendums.collectAsState()
+    var selectedAddendum by remember { mutableStateOf<Addendum?>(null) }
+    var showAddendumDialog by remember { mutableStateOf(false) }
     
     LaunchedEffect(postId) {
         // Načteme detail (ViewModel má logiku pro offline i online režim)
@@ -93,6 +99,10 @@ fun PostDetailScreen(
         }
         // Načteme související články (funguje v online i offline režimu)
         viewModel.loadRelatedPosts(postId)
+        // Načteme dodatky
+        if (addendums.isEmpty()) {
+            viewModel.loadAddendums()
+        }
         
         // Kontrola otázek pro tento příspěvek (nyní funguje v online i offline režimu)
         hasQuestions = try {
@@ -295,6 +305,10 @@ fun PostDetailScreen(
                                         )
                                         val videoMatches = videoRegex.findAll(processedContent).toList()
 
+                                        // Detekce dodatků (--DOD-x--)
+                                        val addendumRegex = Regex("\\(--DOD-(\\d+)--\\)")
+                                        val addendumMatches = addendumRegex.findAll(processedContent).toList()
+
                                         // Kombinujeme všechny matches a seřadíme podle pozice
                                         val allMatches = (blockMatches.map {
                                             Triple(it.range.first, it.range.last + 1, "block" to it)
@@ -302,6 +316,8 @@ fun PostDetailScreen(
                                             Triple(it.range.first, it.range.last + 1, "link" to it)
                                         } + videoMatches.map {
                                             Triple(it.range.first, it.range.last + 1, "video" to it)
+                                        } + addendumMatches.map {
+                                            Triple(it.range.first, it.range.last + 1, "addendum" to it)
                                         }).sortedBy { it.first }
                                         
                                         processedContent to allMatches
@@ -448,6 +464,37 @@ fun PostDetailScreen(
                                                     }
                                                     // Nastavíme lastIndex na konec celého video bloku včetně closing tagu
                                                     lastIndex = end
+                                                }
+
+                                                "addendum" -> {
+                                                    val match = typeAndMatch.second as MatchResult
+                                                    val addendumId = match.groupValues[1].toIntOrNull()
+                                                    
+                                                    if (addendumId != null) {
+                                                        val addendum = addendums.find { it.id == addendumId }
+                                                        if (addendum != null) {
+                                                            IconButton(
+                                                                onClick = {
+                                                                    selectedAddendum = addendum
+                                                                    showAddendumDialog = true
+                                                                },
+                                                                modifier = Modifier.size(32.dp)
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Help,
+                                                                    contentDescription = "Zobrazit dodatek",
+                                                                    tint = MaterialTheme.colorScheme.primary
+                                                                )
+                                                            }
+                                                        } else {
+                                                            // Dodatek nenalezen - zobrazíme placeholder
+                                                            Text(
+                                                                text = "[Dodatek #$addendumId]",
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
                                             lastIndex = end
@@ -612,6 +659,81 @@ fun PostDetailScreen(
                     showFloatingSelectButton = false
                 }
             }
+        }
+        
+        // Dialog pro zobrazení dodatku
+        if (showAddendumDialog && selectedAddendum != null) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showAddendumDialog = false
+                    selectedAddendum = null
+                },
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = selectedAddendum!!.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { 
+                            showAddendumDialog = false
+                            selectedAddendum = null
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Zavřít")
+                        }
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        SafeMarkdown(
+                            content = selectedAddendum!!.content,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        
+                        selectedAddendum!!.updatedAt?.let { updatedAt ->
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Divider()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            val locale = java.util.Locale("cs", "CZ")
+                            val inputFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
+                                timeZone = TimeZone.getTimeZone("UTC")
+                            }
+                            val outputFormatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
+                                timeZone = TimeZone.getDefault()
+                            }
+                            val updatedFormatted = try {
+                                val date = inputFormatter.parse(updatedAt)
+                                date?.let { outputFormatter.format(it) } ?: updatedAt
+                            } catch (e: Exception) {
+                                updatedAt
+                            }
+                            
+                            Text(
+                                text = "Aktualizováno: $updatedFormatted",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        showAddendumDialog = false
+                        selectedAddendum = null
+                    }) {
+                        Text("Zavřít")
+                    }
+                }
+            )
         }
     }
 }
