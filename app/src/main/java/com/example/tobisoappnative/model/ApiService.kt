@@ -47,4 +47,11 @@ interface ApiService {
 
     @GET("Events/search")
     suspend fun searchEvents(@Query("query") query: String): Array<Event>
+
+    // Addendum endpoints
+    @GET("Addendums")
+    suspend fun getAddendums(): Array<Addendum>
+
+    @GET("Addendums/{id}")
+    suspend fun getAddendum(@Path("id") id: Int): Addendum
 }

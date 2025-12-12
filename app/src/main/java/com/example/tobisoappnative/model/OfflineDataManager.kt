@@ -22,6 +22,7 @@ class OfflineDataManager(private val context: Context) {
         private const val KEY_LAST_UPDATE_FORMATTED = "last_update_formatted"
             private const val KEY_EVENTS = "events_json"
             private const val KEY_EVENTS_LAST_UPDATE = "events_last_update_timestamp"
+        private const val KEY_ADDENDUMS = "addendums_json"
     }
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -54,7 +55,8 @@ class OfflineDataManager(private val context: Context) {
         posts: List<Post>, 
         questions: List<Question>, 
         questionsPosts: List<Post>,
-        relatedPosts: List<RelatedPost> = emptyList()
+        relatedPosts: List<RelatedPost> = emptyList(),
+        addendums: List<Addendum> = emptyList()
     ) = withContext(Dispatchers.IO) {
         val currentTime = System.currentTimeMillis()
         val formatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", Locale.Builder().setLanguage("cs").setRegion("CZ").build())
@@ -66,12 +68,13 @@ class OfflineDataManager(private val context: Context) {
             putString(KEY_QUESTIONS, gson.toJson(questions))
             putString(KEY_QUESTIONS_POSTS, gson.toJson(questionsPosts))
             putString(KEY_RELATED_POSTS, gson.toJson(relatedPosts))
+            putString(KEY_ADDENDUMS, gson.toJson(addendums))
             putLong(KEY_LAST_UPDATE, currentTime)
             putString(KEY_LAST_UPDATE_FORMATTED, formattedTime)
             apply()
         }
         
-        println("DEBUG: Offline data saved - Categories: ${categories.size}, Posts: ${posts.size}, Questions: ${questions.size}, Questions Posts: ${questionsPosts.size}, Related Posts: ${relatedPosts.size}, Time: $formattedTime")
+        println("DEBUG: Offline data saved - Categories: ${categories.size}, Posts: ${posts.size}, Questions: ${questions.size}, Questions Posts: ${questionsPosts.size}, Related Posts: ${relatedPosts.size}, Addendums: ${addendums.size}, Time: $formattedTime")
     }
     
     /**
@@ -287,5 +290,31 @@ class OfflineDataManager(private val context: Context) {
         val ts = getLastEventsUpdateTimestamp() ?: return false
         val ageMillis = System.currentTimeMillis() - ts
         return ageMillis <= minutes * 60 * 1000L
+    }
+
+    /**
+     * Načtení uložených addendums
+     */
+    suspend fun getCachedAddendums(): List<Addendum>? = withContext(Dispatchers.IO) {
+        val json = prefs.getString(KEY_ADDENDUMS, null)
+        return@withContext if (json != null) {
+            try {
+                val addendumsArray = gson.fromJson(json, Array<Addendum>::class.java)
+                addendumsArray?.toList()
+            } catch (e: Exception) {
+                println("DEBUG: Error loading cached addendums: ${e.message}")
+                e.printStackTrace()
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Načtení konkrétního addendu z cache
+     */
+    suspend fun getCachedAddendum(addendumId: Int): Addendum? = withContext(Dispatchers.IO) {
+        getCachedAddendums()?.find { it.id == addendumId }
     }
 }

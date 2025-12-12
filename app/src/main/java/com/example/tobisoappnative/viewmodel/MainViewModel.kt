@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tobisoappnative.model.Addendum
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post
@@ -86,6 +87,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val relatedPostsError: StateFlow<String?> = _relatedPostsError
     private val _relatedPostsLoading = MutableStateFlow(false)
     val relatedPostsLoading: StateFlow<Boolean> = _relatedPostsLoading
+
+    // Addendums state
+    private val _addendums = MutableStateFlow<List<Addendum>>(emptyList())
+    val addendums: StateFlow<List<Addendum>> = _addendums
+    private val _addendumsError = MutableStateFlow<String?>(null)
+    val addendumsError: StateFlow<String?> = _addendumsError
+    private val _addendumsLoading = MutableStateFlow(false)
+    val addendumsLoading: StateFlow<Boolean> = _addendumsLoading
 
     // Toast systém
     private val _toastMessage = MutableStateFlow<String?>(null)
@@ -237,18 +246,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val relatedPostsArray = ApiClient.apiService.getAllRelatedPosts()
                 _offlineDownloadProgress.value = 0.8f
 
+                // 6. Dodatky
+                val addendumsArray = ApiClient.apiService.getAddendums()
+                _offlineDownloadProgress.value = 0.9f
+
                 // Uložení všeho do offline cache
                 offlineDataManager.saveCategoriesPostsAndQuestions(
                     categoriesArray.toList(),
                     postsArray.toList(),
                     questionsArray.toList(),
                     questionsPostsArray.toList(),
-                    relatedPostsArray.toList()
+                    relatedPostsArray.toList(),
+                    addendumsArray.toList()
                 )
 
                 // Aktualizuj in-memory stav
                 _categories.value = categoriesArray.toList()
                 _posts.value = postsArray.toList()
+                _addendums.value = addendumsArray.toList()
 
                 _offlineDownloadProgress.value = 1f
                 showToast("Offline obsah byl aktualizován")
@@ -1010,6 +1025,91 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     fun skipToPreviousSegment() {
         _ttsManager.value?.skipToPrevious()
+    }
+    
+    // Addendums Methods
+    fun loadAddendums() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _addendumsLoading.value = true
+            _addendumsError.value = null
+            try {
+                // Nejprve zkontrolujeme aktuální network stav
+                refreshNetworkState()
+                
+                if (_isOffline.value) {
+                    // Offline režim - načteme z cache
+                    val cachedAddendums = offlineDataManager.getCachedAddendums() ?: emptyList()
+                    _addendums.value = cachedAddendums
+                    println("DEBUG: Loaded offline addendums - Count: ${cachedAddendums.size}")
+                } else {
+                    // Online režim - načteme z API
+                    val addendumsArray = ApiClient.apiService.getAddendums()
+                    _addendums.value = addendumsArray.toList()
+                    println("DEBUG: Loaded online addendums - Count: ${addendumsArray.size}")
+                }
+            } catch (e: Exception) {
+                _addendumsError.value = "Chyba při načítání dodatků: ${e.message}"
+                println("DEBUG: Error loading addendums: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                _addendumsLoading.value = false
+            }
+        }
+    }
+    
+    fun loadAddendum(addendumId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _addendumsLoading.value = true
+            _addendumsError.value = null
+            try {
+                // Nejprve zkontrolujeme aktuální network stav
+                refreshNetworkState()
+                
+                if (_isOffline.value) {
+                    // Offline režim - načteme z cache
+                    val cachedAddendum = offlineDataManager.getCachedAddendum(addendumId)
+                    if (cachedAddendum != null) {
+                        // Přidáme/aktualizujeme v seznamu addendums
+                        val currentList = _addendums.value.toMutableList()
+                        val existingIndex = currentList.indexOfFirst { it.id == addendumId }
+                        if (existingIndex >= 0) {
+                            currentList[existingIndex] = cachedAddendum
+                        } else {
+                            currentList.add(cachedAddendum)
+                        }
+                        _addendums.value = currentList
+                        println("DEBUG: Loaded offline addendum - ID: $addendumId")
+                    } else {
+                        _addendumsError.value = "Dodatek nenalezen v offline cache"
+                    }
+                } else {
+                    // Online režim - načteme z API
+                    val addendum = ApiClient.apiService.getAddendum(addendumId)
+                    // Přidáme/aktualizujeme v seznamu addendums
+                    val currentList = _addendums.value.toMutableList()
+                    val existingIndex = currentList.indexOfFirst { it.id == addendumId }
+                    if (existingIndex >= 0) {
+                        currentList[existingIndex] = addendum
+                    } else {
+                        currentList.add(addendum)
+                    }
+                    _addendums.value = currentList
+                    println("DEBUG: Loaded online addendum - ID: $addendumId")
+                }
+            } catch (e: Exception) {
+                _addendumsError.value = "Chyba při načítání dodatku: ${e.message}"
+                println("DEBUG: Error loading addendum $addendumId: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                _addendumsLoading.value = false
+            }
+        }
+    }
+    
+    fun clearAddendums() {
+        _addendums.value = emptyList()
+        _addendumsError.value = null
+        _addendumsLoading.value = false
     }
     
     override fun onCleared() {
