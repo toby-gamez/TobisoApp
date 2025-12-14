@@ -317,4 +317,20 @@ class OfflineDataManager(private val context: Context) {
     suspend fun getCachedAddendum(addendumId: Int): Addendum? = withContext(Dispatchers.IO) {
         getCachedAddendums()?.find { it.id == addendumId }
     }
+
+    /**
+     * Uložení dodatků (samostatně)
+     */
+    suspend fun saveAddendums(addendums: List<Addendum>) = withContext(Dispatchers.IO) {
+        try {
+            prefs.edit().apply {
+                putString(KEY_ADDENDUMS, gson.toJson(addendums))
+                apply()
+            }
+            println("DEBUG: Addendums saved to cache - Count: ${addendums.size}")
+        } catch (e: Exception) {
+            println("DEBUG: Error saving addendums: ${e.message}")
+            e.printStackTrace()
+        }
+    }
 }

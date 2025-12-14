@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -63,15 +64,207 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import android.provider.MediaStore
 import android.content.ContentValues
 import android.os.Environment
+import kotlin.getOrElse
 
 val prefixRegex = Regex("^(ml-|sl-|li-|hv-|m-|ch-|f-|pr-|z-)")
 
 @Composable
-fun SafeMarkdown(content: String, modifier: Modifier = Modifier) {
-    // Jednoduše renderuj markdown - pokud dojde k pádu, aplikace se bude moci zotavit
-    // díky bezpečnému zpracování dat v remember bloku
-    RichText(modifier = modifier) { 
-        Markdown(content) 
+fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
+    // Kontrola na null nebo prázdný string - odstraníme null bytes a ořežeme
+    val safeContent = content
+        ?.replace("\u0000", "")
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+        ?: return
+    
+    // Použijeme remember pro zachycení případných chyb během inicializace
+    val renderError = remember(safeContent) {
+        try {
+            // Validace že content neobsahuje problematické hodnoty
+            safeContent.length // test že není null
+            null
+        } catch (e: Exception) {
+            android.util.Log.e("SafeMarkdown", "Content validation failed", e)
+            e
+        }
+    }
+    
+    if (renderError != null) {
+        // Fallback na prostý text pokud validace selže
+        Text(
+            text = "Chyba při načítání obsahu",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = modifier,
+            color = MaterialTheme.colorScheme.error
+        )
+    } else {
+        // Bezpečné vykreslení Markdownu s zachycením chyb
+        val result = runCatching {
+            RichText(modifier = modifier) {
+                Markdown(safeContent)
+            }
+        }
+        if (result.isFailure) {
+            android.util.Log.e("SafeMarkdown", "Markdown render failed", result.exceptionOrNull())
+            // Fallback na prostý text, aby aplikace nespadla
+            Text(
+                text = safeContent,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = modifier
+            )
+        } else {
+            // Pokud se vykreslení povedlo, nic dalšího neděláme — obsah je zobrazen uvnitř RichText
+            result.getOrNull()
+        }
+    }
+}
+
+// Data class pro speciální prvky v obsahu
+sealed class ContentElement {
+    data class MarkdownText(val text: String) : ContentElement()
+    data class HighlightedBlock(val text: String) : ContentElement()
+    data class ClickableLink(val text: String, val url: String, val postId: Int?) : ContentElement()
+    data class VideoPlayer(val videoUrl: String, val posterUrl: String?) : ContentElement()
+    data class AddendumReference(val addendumId: Int) : ContentElement()
+}
+
+// Parsuje obsah článku na seznam elementů
+fun parseContentToElements(
+    content: String,
+    isOffline: Boolean,
+    posts: List<com.example.tobisoappnative.model.Post>
+): List<ContentElement> {
+    try {
+        // Nejprve zpracujeme obrázky
+        val imageRegex = Regex("!\\[(.*?)]\\((images/[^)]+)\\)")
+        val processedContent = if (!isOffline) {
+            content.replace(imageRegex) {
+                val alt = it.groups[1]?.value ?: ""
+                val path = it.groups[2]?.value ?: ""
+                "![${alt}](https://tobiso.com/${path})"
+            }
+        } else {
+            content.replace(imageRegex) {
+                val alt = it.groups[1]?.value ?: ""
+                "\n\n**[Obrázek: $alt - nedostupný v offline režimu]**\n\n"
+            }
+        }
+
+        // Najdeme všechny speciální prvky
+        val blockRegex = Regex("\\.\\.\\.\\s*([\\s\\S]*?)\\s*\\.\\.\\.")
+        val linkRegex = Regex("(?<!!)\\[(.+?)\\]\\((.+?)\\)")
+        val videoRegex = Regex("<video[^>]*src=\"([^\"]+)\"[^>]*>(.*?)</video>", RegexOption.DOT_MATCHES_ALL)
+        val addendumRegex = Regex("\\(--DOD-(\\d+)--\\)")
+
+        // Najdeme všechny matche
+        val allMatches = mutableListOf<Triple<Int, Int, Pair<String, MatchResult>>>()
+        
+        blockRegex.findAll(processedContent).forEach {
+            allMatches.add(Triple(it.range.first, it.range.last + 1, "block" to it))
+        }
+        linkRegex.findAll(processedContent).forEach {
+            allMatches.add(Triple(it.range.first, it.range.last + 1, "link" to it))
+        }
+        videoRegex.findAll(processedContent).forEach {
+            allMatches.add(Triple(it.range.first, it.range.last + 1, "video" to it))
+        }
+        addendumRegex.findAll(processedContent).forEach {
+            allMatches.add(Triple(it.range.first, it.range.last + 1, "addendum" to it))
+        }
+        
+        allMatches.sortBy { it.first }
+
+        // Pokud nejsou žádné speciální prvky, vrátíme celý obsah jako jeden markdown element
+        if (allMatches.isEmpty()) {
+            return listOf(ContentElement.MarkdownText(processedContent))
+        }
+
+        // Sestavíme seznam elementů
+        val elements = mutableListOf<ContentElement>()
+        var lastIndex = 0
+
+        for ((start, end, typeAndMatch) in allMatches) {
+            // Přidáme text před aktuálním elementem
+            if (start > lastIndex && start <= processedContent.length) {
+                try {
+                    val textBefore = processedContent.substring(lastIndex, start)
+                        .replace("\u0000", "")
+                        .trim()
+                    if (textBefore.isNotBlank()) {
+                        elements.add(ContentElement.MarkdownText(textBefore))
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("parseContentToElements", "Error extracting text before element", e)
+                }
+            }
+
+            // Přidáme speciální element
+            when (typeAndMatch.first) {
+                "block" -> {
+                    val blockText = typeAndMatch.second.groups[1]?.value?.trim() ?: ""
+                    if (blockText.isNotBlank()) {
+                        elements.add(ContentElement.HighlightedBlock(blockText))
+                    }
+                }
+                "link" -> {
+                    val linkText = typeAndMatch.second.groups[1]?.value?.trim() ?: ""
+                    val url = typeAndMatch.second.groups[2]?.value?.trim() ?: ""
+                    if (linkText.isNotBlank() && url.isNotBlank()) {
+                        var filePath = url
+                        if (filePath.endsWith(".html")) {
+                            filePath = filePath.removeSuffix(".html") + ".md"
+                        }
+                        filePath = filePath.replace(prefixRegex, "")
+                        if (!filePath.startsWith("/")) {
+                            filePath = "/$filePath"
+                        }
+                        val post = posts.find { it.filePath == filePath }
+                        elements.add(ContentElement.ClickableLink(linkText, url, post?.id))
+                    }
+                }
+                "video" -> {
+                    val videoSrc = typeAndMatch.second.groups[1]?.value ?: ""
+                    if (videoSrc.isNotBlank()) {
+                        val videoUrl = if (videoSrc.startsWith("http")) videoSrc else "https://tobiso.com/$videoSrc"
+                        elements.add(ContentElement.VideoPlayer(videoUrl, null))
+                    }
+                }
+                "addendum" -> {
+                    val addendumIdStr = typeAndMatch.second.groups[1]?.value ?: ""
+                    val addendumId = addendumIdStr.toIntOrNull()
+                    if (addendumId != null) {
+                        elements.add(ContentElement.AddendumReference(addendumId))
+                    }
+                }
+            }
+
+            lastIndex = end
+        }
+
+        // Přidáme zbývající text na konci
+        if (lastIndex < processedContent.length) {
+            try {
+                val textAfter = processedContent.substring(lastIndex)
+                    .replace("\u0000", "")
+                    .trim()
+                if (textAfter.isNotBlank()) {
+                    elements.add(ContentElement.MarkdownText(textAfter))
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("parseContentToElements", "Error extracting text after elements", e)
+            }
+        }
+
+        return elements
+    } catch (e: Exception) {
+        android.util.Log.e("parseContentToElements", "Chyba při parsování obsahu", e)
+        // V případě chyby vrátíme celý obsah jako prostý text (s kontrolou na null)
+        val safeContent = content.replace("\u0000", "").trim()
+        return if (safeContent.isNotBlank()) {
+            listOf(ContentElement.MarkdownText(safeContent))
+        } else {
+            emptyList()
+        }
     }
 }
 
@@ -206,28 +399,41 @@ fun PostDetailScreen(
     }
     
     LaunchedEffect(postId) {
-        // Načteme detail (ViewModel má logiku pro offline i online režim)
-        viewModel.loadPostDetail(postId)
-        // Načteme všechny posts pro vyhledávání odkazů a zobrazení souvisejících článků
-        if (posts.isEmpty()) {
-            viewModel.loadPosts()
-        }
-        // Načteme související články (funguje v online i offline režimu)
-        viewModel.loadRelatedPosts(postId)
-        // Načteme dodatky
-        if (addendums.isEmpty()) {
-            viewModel.loadAddendums()
-        }
-        
-        // Kontrola otázek pro tento příspěvek (nyní funguje v online i offline režimu)
-        hasQuestions = try {
-            viewModel.checkHasQuestions(postId)
+        try {
+            android.util.Log.d("PostDetailScreen", "LaunchedEffect started for post $postId")
+            // Načteme detail (ViewModel má logiku pro offline i online režim)
+            viewModel.loadPostDetail(postId)
+            android.util.Log.d("PostDetailScreen", "Post detail loaded")
+            
+            // Načteme všechny posts pro vyhledávání odkazů a zobrazení souvisejících článků
+            if (posts.isEmpty()) {
+                viewModel.loadPosts()
+                android.util.Log.d("PostDetailScreen", "Posts loaded")
+            }
+            // Načteme související články (funguje v online i offline režimu)
+            viewModel.loadRelatedPosts(postId)
+            android.util.Log.d("PostDetailScreen", "Related posts loaded")
+            
+            // Načteme dodatky
+            if (addendums.isEmpty()) {
+                viewModel.loadAddendums()
+                android.util.Log.d("PostDetailScreen", "Addendums loaded")
+            }
+            
+            // Kontrola otázek pro tento příspěvek (nyní funguje v online i offline režimu)
+            hasQuestions = try {
+                viewModel.checkHasQuestions(postId)
+            } catch (e: Exception) {
+                android.util.Log.e("PostDetailScreen", "Error checking questions", e)
+                false
+            }
+            
+            loaded = true
+            android.util.Log.d("PostDetailScreen", "LaunchedEffect completed for post $postId")
         } catch (e: Exception) {
-            println("DEBUG: Error checking questions: ${e.message}")
-            false
+            android.util.Log.e("PostDetailScreen", "Critical error in LaunchedEffect for post $postId", e)
+            loaded = true // Stejně nastavíme, aby se zobrazila chyba místo nekonečného načítání
         }
-        
-        loaded = true
     }
 
     var showFloatingSelectButton by remember { mutableStateOf(false) }
@@ -383,14 +589,40 @@ fun PostDetailScreen(
                     }
 
                     else -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            // Zobrazení počtu slov a času čtení
-                            postDetail?.content?.let { contentText ->
+                        var renderError by remember { mutableStateOf<String?>(null) }
+                        
+                        if (renderError != null) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = androidx.compose.ui.Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                    Text(
+                                        "Chyba při zobrazení článku:",
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        renderError ?: "",
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(onClick = { navController.popBackStack() }) {
+                                        Text("Zpět")
+                                    }
+                                }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                // Zobrazení počtu slov a času čtení
+                                postDetail?.content?.let { contentText ->
                                 val wordCountResult = remember(contentText) {
                                     runCatching {
                                         val trimmed = contentText.trim()
@@ -415,163 +647,87 @@ fun PostDetailScreen(
                                 }
                             }
                             postDetail?.content?.let { content ->
-                                val processedData = remember(content, isOffline) {
-                                    runCatching {
-                                        // Nejprve nahradíme nebo odstraníme obrázky 
-                                        val imageRegex = Regex("!\\[(.*?)]\\((images/[^)]+)\\)")
-                                        val processedContent = if (!isOffline) {
-                                            content.replace(imageRegex) {
-                                                val alt = it.groupValues[1]
-                                                val path = it.groupValues[2]
-                                                "![${alt}](https://tobiso.com/${path})"
-                                            }
-                                        } else {
-                                            // V offline režimu úplně odstraníme obrázky a nahradíme jen textem
-                                            content.replace(imageRegex) {
-                                                val alt = it.groupValues[1]
-                                                "\n\n**[Obrázek: $alt - nedostupný v offline režimu]**\n\n"
-                                            }
-                                        }
-
-                                        // Najdeme zvýrazněné bloky ...text...
-                                        val blockRegex = Regex("\\.\\.\\.\\s*([\\s\\S]*?)\\s*\\.\\.\\.")
-                                        val blockMatches = blockRegex.findAll(processedContent).toList()
-
-                                        // Najdeme odkazy [text](url) ale ne obrázky ![alt](url)
-                                        val linkRegex = Regex("(?<!!)\\[(.+?)\\]\\((.+?)\\)")
-                                        val linkMatches = linkRegex.findAll(processedContent).toList()
-
-                                        // Detekce video tagu včetně obsahu a closing tagu
-                                        val videoRegex = Regex(
-                                            "<video[^>]*src=\"([^\"]+)\"[^>]*>(.*?)</video>",
-                                            RegexOption.DOT_MATCHES_ALL
-                                        )
-                                        val videoMatches = videoRegex.findAll(processedContent).toList()
-
-                                        // Detekce dodatků (--DOD-x--)
-                                        val addendumRegex = Regex("\\(--DOD-(\\d+)--\\)")
-                                        val addendumMatches = addendumRegex.findAll(processedContent).toList()
-
-                                        // Kombinujeme všechny matches a seřadíme podle pozice
-                                        val allMatches = (blockMatches.map {
-                                            Triple(it.range.first, it.range.last + 1, "block" to it)
-                                        } + linkMatches.map {
-                                            Triple(it.range.first, it.range.last + 1, "link" to it)
-                                        } + videoMatches.map {
-                                            Triple(it.range.first, it.range.last + 1, "video" to it)
-                                        } + addendumMatches.map {
-                                            Triple(it.range.first, it.range.last + 1, "addendum" to it)
-                                        }).sortedBy { it.first }
-                                        
-                                        processedContent to allMatches
-                                    }.getOrElse { e ->
-                                        println("DEBUG: Error processing content: ${e.message}")
-                                        e.printStackTrace()
-                                        content to emptyList()
-                                    }
+                                val contentElements = remember(content, isOffline, posts) {
+                                    android.util.Log.d("PostDetailScreen", "Parsování článku ID: $postId, délka: ${content.length}")
+                                    parseContentToElements(content, isOffline, posts)
                                 }
-                                
-                                val (processedContent, allMatches) = processedData
 
-                                // Wrap rendered markdown area with a long-press detector that does NOT
-                                // interfere with inner clickable links. A long-press will show the
-                                // custom "Vybrat text" UI which navigates to the plain text screen.
+                                // Renderování obsahu podle elementů
                                 Box(modifier = Modifier
                                     .fillMaxWidth()
                                     .pointerInput(Unit) {
                                         detectTapGestures(
                                             onLongPress = {
-                                                // show floating select button (ChatGPT-like)
                                                 showFloatingSelectButton = true
                                             }
                                         )
                                     }
                                 ) {
-                                    if (allMatches.isEmpty()) {
-                                        SafeMarkdown(processedContent)
-                                    } else {
-                                    var lastIndex = 0
                                     Column {
-                                        for ((start, end, typeAndMatch) in allMatches) {
-                                            // Text před aktuálním elementem
-                                                if (start > lastIndex) {
-                                                val before =
-                                                    processedContent.substring(lastIndex, start)
-                                                SafeMarkdown(before)
-                                            }
-
-                                            when (typeAndMatch.first) {
-                                                "block" -> {
-                                                    // Zvýrazněný blok
-                                                    val match = typeAndMatch.second as MatchResult
-                                                    val blockText = match.groupValues[1]
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(vertical = 4.dp)
-                                                            .background(
-                                                                MaterialTheme.colorScheme.surfaceVariant,
-                                                                shape = MaterialTheme.shapes.medium
-                                                            )
-                                                            .padding(8.dp)
-                                                    ) {
-                                                        SafeMarkdown(blockText)
+                                        contentElements.forEach { element ->
+                                            when (element) {
+                                                is ContentElement.MarkdownText -> {
+                                                    if (element.text.isNotBlank()) {
+                                                        SafeMarkdown(element.text)
                                                     }
                                                 }
-
-                                                "link" -> {
-                                                    // Klikatelný odkaz
-                                                    val match = typeAndMatch.second as MatchResult
-                                                    val linkText = match.groupValues[1]
-                                                    var url = match.groupValues[2]
-                                                    var filePath = url
-                                                    if (filePath.endsWith(".html")) filePath =
-                                                        filePath.removeSuffix(".html") + ".md"
-                                                    filePath = filePath.replace(prefixRegex, "")
-                                                    if (!filePath.startsWith("/")) filePath =
-                                                        "/$filePath"
-                                                    
-                                                    ClickableText(
-                                                        text = AnnotatedString(linkText),
-                                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                                            color = MaterialTheme.colorScheme.primary
-                                                        ),
-                                                        onClick = {
-                                                            // Hledáme post podle filePath (funguje offline i online)
-                                                            val post = posts.find { it.filePath == filePath }
-                                                            if (post != null) {
-                                                                navController.navigate("postDetail/${post.id}")
-                                                            } else if (!isOffline) {
-                                                                // Pouze v online režimu zkusíme otevřít externí odkazy
-                                                                if (url.contains("http") || url.startsWith("files") || url.contains("/files/")) {
-                                                                    val fullUrl = if (url.startsWith("http")) {
-                                                                        url
-                                                                    } else {
-                                                                        "https://tobiso.com/" + url.removePrefix("/")
-                                                                    }
-                                                                    val intent = android.content.Intent(
-                                                                        android.content.Intent.ACTION_VIEW,
-                                                                        android.net.Uri.parse(fullUrl)
-                                                                    )
-                                                                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                                    try {
-                                                                        navController.context.startActivity(intent)
-                                                                    } catch (e: Exception) {
-                                                                        // Tiše ignorujeme chyby
+                                                
+                                                is ContentElement.HighlightedBlock -> {
+                                                    if (element.text.isNotBlank()) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(vertical = 4.dp)
+                                                                .background(
+                                                                    MaterialTheme.colorScheme.surfaceVariant,
+                                                                    shape = MaterialTheme.shapes.medium
+                                                                )
+                                                                .padding(8.dp)
+                                                        ) {
+                                                            SafeMarkdown(element.text)
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                is ContentElement.ClickableLink -> {
+                                                    val linkText = element.text.trim()
+                                                    if (linkText.isNotBlank()) {
+                                                        Text(
+                                                            text = linkText,
+                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                color = MaterialTheme.colorScheme.primary,
+                                                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                                            ),
+                                                            modifier = Modifier.clickable {
+                                                                if (element.postId != null) {
+                                                                    navController.navigate("postDetail/${element.postId}")
+                                                                } else if (!isOffline) {
+                                                                    val url = element.url
+                                                                    if (url.contains("http") || url.startsWith("files") || url.contains("/files/")) {
+                                                                        val fullUrl = if (url.startsWith("http")) {
+                                                                            url
+                                                                        } else {
+                                                                            "https://tobiso.com/" + url.removePrefix("/")
+                                                                        }
+                                                                        val intent = android.content.Intent(
+                                                                            android.content.Intent.ACTION_VIEW,
+                                                                            android.net.Uri.parse(fullUrl)
+                                                                        )
+                                                                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                                        try {
+                                                                            navController.context.startActivity(intent)
+                                                                        } catch (e: Exception) {
+                                                                            android.util.Log.e("PostDetailScreen", "Chyba při otevírání odkazu", e)
+                                                                        }
                                                                     }
                                                                 }
                                                             }
-                                                            // V offline režimu nebo při nenalezení souboru neděláme nic
-                                                        }
-                                                    )
+                                                        )
+                                                    }
                                                 }
-
-                                                "video" -> {
-                                                    val match = typeAndMatch.second as MatchResult
-                                                    val videoSrc = match.groupValues[1]
-                                                    
+                                                
+                                                is ContentElement.VideoPlayer -> {
                                                     if (isOffline) {
-                                                        // V offline režimu zobrazíme pouze text
                                                         Text(
                                                             text = "*[Video nedostupné v offline režimu]*",
                                                             modifier = Modifier.padding(vertical = 8.dp),
@@ -579,16 +735,10 @@ fun PostDetailScreen(
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     } else {
-                                                        val videoUrl =
-                                                            if (videoSrc.startsWith("http")) videoSrc else "https://tobiso.com/$videoSrc"
                                                         OutlinedButton(
                                                             onClick = {
                                                                 navController.navigate(
-                                                                    "videoPlayer/${
-                                                                        Uri.encode(
-                                                                            videoUrl
-                                                                        )
-                                                                    }"
+                                                                    "videoPlayer/${Uri.encode(element.videoUrl)}"
                                                                 )
                                                             },
                                                             modifier = Modifier.padding(vertical = 8.dp)
@@ -599,57 +749,38 @@ fun PostDetailScreen(
                                                                 tint = MaterialTheme.colorScheme.primary
                                                             )
                                                             Spacer(modifier = Modifier.width(8.dp))
-                                                            Text(
-                                                                "Video",
-                                                                color = MaterialTheme.colorScheme.primary
-                                                            )
+                                                            Text("Video", color = MaterialTheme.colorScheme.primary)
                                                         }
                                                     }
-                                                    // Nastavíme lastIndex na konec celého video bloku včetně closing tagu
-                                                    lastIndex = end
                                                 }
-
-                                                "addendum" -> {
-                                                    val match = typeAndMatch.second as MatchResult
-                                                    val addendumId = match.groupValues[1].toIntOrNull()
-                                                    
-                                                    if (addendumId != null) {
-                                                        val addendum = addendums.find { it.id == addendumId }
-                                                        if (addendum != null) {
-                                                            IconButton(
-                                                                onClick = {
-                                                                    selectedAddendum = addendum
-                                                                    showAddendumDialog = true
-                                                                },
-                                                                modifier = Modifier.size(32.dp)
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Help,
-                                                                    contentDescription = "Zobrazit dodatek",
-                                                                    tint = MaterialTheme.colorScheme.primary
-                                                                )
-                                                            }
-                                                        } else {
-                                                            // Dodatek nenalezen - zobrazíme placeholder
-                                                            Text(
-                                                                text = "[Dodatek #$addendumId]",
-                                                                style = MaterialTheme.typography.bodySmall,
-                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                
+                                                is ContentElement.AddendumReference -> {
+                                                    val addendum = addendums.find { it.id == element.addendumId }
+                                                    if (addendum != null) {
+                                                        IconButton(
+                                                            onClick = {
+                                                                selectedAddendum = addendum
+                                                                showAddendumDialog = true
+                                                            },
+                                                            modifier = Modifier.size(32.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Help,
+                                                                contentDescription = "Zobrazit dodatek",
+                                                                tint = MaterialTheme.colorScheme.primary
                                                             )
                                                         }
+                                                    } else {
+                                                        Text(
+                                                            text = "[Dodatek #${element.addendumId}]",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
                                                     }
                                                 }
                                             }
-                                            lastIndex = end
                                         }
-
-                                        // Zbytek textu za posledním elementem
-                                        if (lastIndex < processedContent.length) {
-                                            val after = processedContent.substring(lastIndex)
-                                            // Zobrazíme pouze text za closing tagem, closing tag ani text uvnitř videa se nezobrazí
-                                            SafeMarkdown(after)
                                         }
-                                    }
                                     }
                                 }
                             }
@@ -841,7 +972,7 @@ fun PostDetailScreen(
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
                         Text(
-                            text = selectedAddendum!!.name,
+                            text = (selectedAddendum!!.name ?: "Dodatek").ifBlank { "Dodatek" },
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f)
                         )
@@ -903,3 +1034,4 @@ fun PostDetailScreen(
         }
     }
 }
+

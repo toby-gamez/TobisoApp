@@ -309,22 +309,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val categories = categoriesArray.toList()
                     val posts = postsArray.toList()
                     
-                    // Pokus se načíst i otázky a related posts pro offline cache
+                    // Pokus se načíst i otázky, related posts a addendums pro offline cache
                     try {
                         val questionsArray = ApiClient.apiService.getAllQuestions()
                         val questionsPostsArray = ApiClient.apiService.getPosts()
                         val relatedPostsArray = ApiClient.apiService.getAllRelatedPosts()
+                        val addendumsArray = ApiClient.apiService.getAddendums()
                         val questions = questionsArray.toList()
                         val questionsPosts = questionsPostsArray.toList()
                         val relatedPosts = relatedPostsArray.toList()
+                        val addendums = addendumsArray.toList()
                         
-                        // Ulož vše do offline cache včetně otázek a related posts
-                        offlineDataManager.saveCategoriesPostsAndQuestions(categories, posts, questions, questionsPosts, relatedPosts)
-                        println("DEBUG: Saved offline data with questions and related posts - Questions: ${questions.size}, Related Posts: ${relatedPosts.size}")
+                        // Ulož vše do offline cache včetně otázek, related posts a addendums
+                        offlineDataManager.saveCategoriesPostsAndQuestions(categories, posts, questions, questionsPosts, relatedPosts, addendums)
+                        println("DEBUG: Saved offline data with questions, related posts and addendums - Questions: ${questions.size}, Related Posts: ${relatedPosts.size}, Addendums: ${addendums.size}")
                     } catch (e: Exception) {
-                        // Pokud se nepodaří načíst otázky, ulož alespoň kategorie a posty
+                        // Pokud se nepodaří načíst otázky/related posts/addendums, ulož alespoň kategorie a posty
                         offlineDataManager.saveCategoriesAndPosts(categories, posts)
-                        println("DEBUG: Failed to load questions/related posts for offline cache: ${e.message}")
+                        println("DEBUG: Failed to load questions/related posts/addendums for offline cache: ${e.message}")
                     }
                     
                     _categories.value = categories
@@ -1044,10 +1046,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _addendums.value = cachedAddendums
                     println("DEBUG: Loaded offline addendums - Count: ${cachedAddendums.size}")
                 } else {
-                    // Online režim - načteme z API
+                    // Online režim - načteme z API a uložíme do cache
                     val addendumsArray = ApiClient.apiService.getAddendums()
-                    _addendums.value = addendumsArray.toList()
-                    println("DEBUG: Loaded online addendums - Count: ${addendumsArray.size}")
+                    val addendumsList = addendumsArray.toList()
+                    _addendums.value = addendumsList
+                    // Uložíme do offline cache pro příští použití
+                    offlineDataManager.saveAddendums(addendumsList)
+                    println("DEBUG: Loaded online addendums - Count: ${addendumsList.size}")
                 }
             } catch (e: Exception) {
                 _addendumsError.value = "Chyba při načítání dodatků: ${e.message}"
