@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -26,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.compose.ui.unit.Dp
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.utils.normalizeText
@@ -65,10 +68,13 @@ fun highlightText(text: String, query: String, isDark: Boolean): AnnotatedString
 fun FloatingSearchBar(
     navController: NavHostController?,
     viewModel: MainViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialExpanded: Boolean = true,
+    collapsedHeight: Dp = 20.dp
 ) {
     var searchText by remember { mutableStateOf("") }
     var debouncedSearchText by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(initialExpanded) }
     val posts by viewModel.posts.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
@@ -104,11 +110,22 @@ fun FloatingSearchBar(
             .zIndex(10f)
     ) {
         Column(
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .pointerInput(Unit) {
+                    detectDragGestures { _, dragAmount ->
+                        // dragAmount.y > 0 => dragging down; < 0 => dragging up
+                        if (dragAmount.y > 20f && expanded) {
+                            expanded = false
+                        } else if (dragAmount.y < -20f && !expanded) {
+                            expanded = true
+                        }
+                    }
+                }
         ) {
-            // Výsledky hledání
+            // Výsledky hledání (jen když je rozbaleno)
             AnimatedVisibility(
-                visible = debouncedSearchText.isNotBlank() && 
+                visible = expanded && debouncedSearchText.isNotBlank() && 
                           (filteredCategories.isNotEmpty() || filteredPosts.isNotEmpty()),
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
@@ -201,7 +218,7 @@ fun FloatingSearchBar(
 
             // Žádné výsledky
             AnimatedVisibility(
-                visible = debouncedSearchText.isNotBlank() && 
+                visible = expanded && debouncedSearchText.isNotBlank() && 
                           filteredCategories.isEmpty() && 
                           filteredPosts.isEmpty(),
                 enter = expandVertically() + fadeIn(),
@@ -223,36 +240,65 @@ fun FloatingSearchBar(
                 }
             }
 
-            // Search TextField
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                elevation = CardDefaults.cardElevation(8.dp)
-            ) {
-                TextField(
-                    value = searchText,
-                    onValueChange = { searchText = it },
-                    placeholder = { Text("Prohledat celý svět vědění...") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Hledat")
-                    },
-                    trailingIcon = {
-                        if (searchText.isNotEmpty()) {
-                            IconButton(onClick = { searchText = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Smazat")
-                            }
-                        }
-                    },
+            // Pokud není rozbaleno, ukážeme opravdu tenký handle (vizuálně ne vyhledávání)
+            AnimatedVisibility(visible = !expanded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(collapsedHeight),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    // Klikací kontejner přesunutý dolů tak, aby odpovídal viditelnému handle
+                    Box(
+                        modifier = Modifier
+                            .offset(y = 15.dp)
+                            .size(width = 48.dp, height = 28.dp)
+                            .clickable { expanded = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Vlastní vizuální tenký pruh
+                        Box(
+                            modifier = Modifier
+                                .width(48.dp)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
+                    shape = RoundedCornerShape(28.dp),
+                    elevation = CardDefaults.cardElevation(8.dp)
+                ) {
+                    TextField(
+                        value = searchText,
+                        onValueChange = { searchText = it },
+                        placeholder = { Text("Prohledat celý svět vědění...") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = "Hledat")
+                        },
+                        trailingIcon = {
+                            if (searchText.isNotEmpty()) {
+                                IconButton(onClick = { searchText = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Smazat")
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        )
                     )
-                )
+                }
             }
         }
     }
