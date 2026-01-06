@@ -24,7 +24,7 @@ fun BottomBar(navController: NavHostController, searchRequestFocus: MutableState
     ) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, contentDescription = "Zobrazení všech předmětů") },
-            label = { Text("Předměty", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
+            label = { Text("Učivo", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
             selected = currentDestination == "home",
             onClick = { navController.navigate("home") }
         )

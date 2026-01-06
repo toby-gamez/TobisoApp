@@ -10,6 +10,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -46,11 +50,105 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.tobisoappnative.utils.StreakUtils
 import kotlinx.coroutines.delay
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.*
 
 // Helper funkce pro získání aktuální řady (nyní s freeze podporou)
 @RequiresApi(Build.VERSION_CODES.O)
 fun getCurrentStreak(context: Context): Int {
     return StreakUtils.getCurrentStreak(context)
+}
+
+// Pomocné funkce pro parsování a formát data
+fun parseDateToMillis(dateStr: String?): Long? {
+    if (dateStr.isNullOrBlank()) return null
+    val patterns = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ssX",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy-MM-dd"
+    )
+
+    for (p in patterns) {
+        try {
+            val sdf = SimpleDateFormat(p, Locale.getDefault())
+            // Treat unknown zone as UTC for ISO-like patterns
+            if (p.contains("'Z'") || p.contains("X") ) {
+                sdf.timeZone = TimeZone.getTimeZone("UTC")
+            }
+            return sdf.parse(dateStr)?.time
+        } catch (e: ParseException) {
+            // try next
+        } catch (e: Exception) {
+            // ignore and try next
+        }
+    }
+    return null
+}
+
+fun formatDateDisplay(millis: Long?): String {
+    if (millis == null) return "Neznámé datum"
+    return try {
+        val sdf = SimpleDateFormat("d. M. yyyy 'v' HH:mm", Locale("cs","CZ"))
+        sdf.format(Date(millis))
+    } catch (e: Exception) {
+        "Neznámé datum"
+    }
+}
+
+fun formatDateOnly(millis: Long?): String {
+    if (millis == null) return "Neznámé datum"
+    return try {
+        val sdf = SimpleDateFormat("d. M. yyyy", Locale("cs","CZ"))
+        sdf.format(Date(millis))
+    } catch (e: Exception) {
+        "Neznámé datum"
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PostListItem(
+    post: com.example.tobisoappnative.model.Post,
+    categoryName: String,
+    onClick: () -> Unit = {}
+) {
+    val displayMillis = post.lastEdit?.let { parseDateToMillis(it) } ?: post.lastFix?.let { parseDateToMillis(it) }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = post.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = categoryName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatDateOnly(displayMillis),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }
 
 data class Subject(
@@ -64,6 +162,12 @@ enum class SubjectColorType {
     PRIMARY, SECONDARY, TERTIARY, ERROR, OUTLINE,
     PRIMARY_CONTAINER, SECONDARY_CONTAINER, TERTIARY_CONTAINER,
     SURFACE_VARIANT
+}
+
+// Režimy řazení / zobrazení na Home obrazovce
+enum class SortMode {
+    SUBJECTS,
+    NEWEST
 }
 
 @Composable
@@ -148,6 +252,11 @@ fun HomeScreen(navController: NavHostController) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyGridState()
     val viewModel: MainViewModel = viewModel()
+    var sortMode by remember { mutableStateOf(SortMode.SUBJECTS) }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    val posts by viewModel.posts.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    var selectedSubjectId by remember { mutableStateOf<Int?>(null) }
     
     LaunchedEffect(Unit) { 
         viewModel.loadCategories()
@@ -178,6 +287,29 @@ fun HomeScreen(navController: NavHostController) {
                     )
                 },
                 actions = {
+                    // Dropdown pro výběr zobrazení (předměty / nejnovější)
+                    IconButton(onClick = { dropdownExpanded = true }) {
+                        Icon(imageVector = Icons.Default.Sort, contentDescription = "Řazení")
+                    }
+                    DropdownMenu(
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Podle předmětů") },
+                            onClick = {
+                                sortMode = SortMode.SUBJECTS
+                                dropdownExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Nejnovější") },
+                            onClick = {
+                                sortMode = SortMode.NEWEST
+                                dropdownExpanded = false
+                            }
+                        )
+                    }
                     // Zobrazení aktivního multiplikátoru
                     MultiplierIndicator()
                     
@@ -258,19 +390,112 @@ fun HomeScreen(navController: NavHostController) {
                 scrollBehavior = scrollBehavior
             )
             
-            // Grid se subjects
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columnCount),
-                state = gridState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                items(subjects) { subject ->
-                    SubjectCard(
-                        subject = subject,
-                        onClick = { navController.navigate("categoryList/${subject.name}") },
-                        modifier = Modifier.padding(8.dp)
-                    )
+            // Obsah podle režimu (předměty / nejnovější)
+            when (sortMode) {
+                SortMode.SUBJECTS -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(columnCount),
+                        state = gridState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(8.dp)
+                    ) {
+                        items(subjects) { subject ->
+                            SubjectCard(
+                                subject = subject,
+                                onClick = { navController.navigate("categoryList/${subject.name}") },
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
+                }
+                SortMode.NEWEST -> {
+                    // Tlačítka pro výběr předmětu (root kategorie se skutečnými potomky)
+                    val rootSubjects = remember(categories) { categories.filter { it.parentId == null } }
+                    val rootWithChildren = remember(categories) { rootSubjects.filter { root -> categories.any { it.parentId == root.id } } }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { selectedSubjectId = null }) {
+                            Text("Všechny předměty")
+                        }
+
+                        rootWithChildren.forEach { subj ->
+                            Button(onClick = { selectedSubjectId = subj.id }) {
+                                Text(subj.name)
+                            }
+                        }
+                    }
+
+                    // Zobrazit vybraný filtr pod tlačítky (pokud není vybráno 'Vše')
+                    if (selectedSubjectId != null) {
+                        val selName = rootWithChildren.find { it.id == selectedSubjectId }?.name
+                        selName?.let { name ->
+                            Text(
+                                text = "Vybrán filtr: $name",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(start = 12.dp, top = 6.dp)
+                            )
+                        }
+                    }
+
+                    // Pomocná funkce: najde rekurzivně všechny ID potomků pro zadané rootId
+                    fun collectDescendantIds(rootId: Int, all: List<com.example.tobisoappnative.model.Category>): Set<Int> {
+                        val map = all.groupBy { it.parentId }
+                        val result = mutableSetOf<Int>()
+                        fun dfs(id: Int) {
+                            result.add(id)
+                            val children = map[id] ?: emptyList()
+                            children.forEach { dfs(it.id) }
+                        }
+                        dfs(rootId)
+                        return result
+                    }
+
+                    // Vypočítáme kombinovaný seznam: nejprve podle lastEdit, pak zbytek podle lastFix
+                    val combined = remember(posts, categories, selectedSubjectId) {
+                        // Filtrujeme články bez kategorie nebo z kategorie "More"
+                        val baseFiltered = posts.filter { p ->
+                            p.categoryId != null && categories.find { it.id == p.categoryId }?.name != "More"
+                        }
+
+                        // Pokud je vybrán subject, zjistíme jeho ID a potomky a aplikujeme filtr
+                        val subjectFiltered = selectedSubjectId?.let { sid ->
+                            val ids = collectDescendantIds(sid, categories)
+                            baseFiltered.filter { p -> p.categoryId != null && ids.contains(p.categoryId) }
+                        } ?: baseFiltered
+
+                        val withEdit = subjectFiltered.filter { !it.lastEdit.isNullOrBlank() }
+                            .sortedByDescending { parseDateToMillis(it.lastEdit) }
+
+                        val remaining = subjectFiltered.filter { it.lastEdit.isNullOrBlank() && !it.lastFix.isNullOrBlank() }
+                            .sortedByDescending { parseDateToMillis(it.lastFix) }
+
+                        val others = subjectFiltered.filter { it.lastEdit.isNullOrBlank() && it.lastFix.isNullOrBlank() }
+
+                        val list = mutableListOf<com.example.tobisoappnative.model.Post>()
+                        list.addAll(withEdit)
+                        list.addAll(remaining)
+                        list.addAll(others)
+                        // remove duplicates just in case
+                        list.distinctBy { it.id }
+                    }
+
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+                        items(combined) { post ->
+                            PostListItem(
+                                post = post,
+                                categoryName = categories.find { it.id == post.categoryId }?.name ?: "Nezařazeno",
+                                onClick = { navController.navigate("postDetail/${post.id}") }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
                 }
             }
         }
