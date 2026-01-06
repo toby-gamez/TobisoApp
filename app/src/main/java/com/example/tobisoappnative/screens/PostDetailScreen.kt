@@ -876,14 +876,18 @@ fun PostDetailScreen(
                                     dateString // fallback to raw string
                                 }
                             } ?: ""
-                            val updatedFormatted = postDetail?.updatedAt?.let { dateString ->
+
+                            // Compute updatedFormatted as the most recent among lastEdit, lastFix (fallback to createdAt)
+                            val candidates = listOfNotNull(postDetail?.lastEdit, postDetail?.lastFix, postDetail?.createdAt)
+                            val latest = candidates.mapNotNull { ds ->
                                 try {
-                                    val date = inputFormatter.parse(dateString)
-                                    date?.let { outputFormatter.format(it) } ?: ""
+                                    inputFormatter.parse(ds)
                                 } catch (e: Exception) {
-                                    dateString // fallback to raw string
+                                    null
                                 }
-                            } ?: ""
+                            }.maxOrNull()
+
+                            val updatedFormatted = latest?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
                             Text(
                                 text = "Vytvořeno: $createdFormatted",
                                 style = MaterialTheme.typography.bodySmall,

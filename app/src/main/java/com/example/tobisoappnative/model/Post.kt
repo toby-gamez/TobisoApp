@@ -6,6 +6,8 @@ data class Post(
     val content: String,
     val filePath: String,
     val createdAt: String?,
-    val updatedAt: String?,
+    // Server no longer provides `updatedAt`. New fields:
+    val lastFix: String?,
+    val lastEdit: String?,
     val categoryId: Int?,
 )

@@ -179,23 +179,25 @@ fun CategoryListScreen(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(text = post.title, style = MaterialTheme.typography.titleMedium)
-                                    val updated = post.updatedAt
-                                    val formatted = updated?.let { dateString ->
+                                    // Show the most recent timestamp among `lastEdit`, `lastFix`, `createdAt`
+                                    val locale = java.util.Locale("cs", "CZ")
+                                    val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
+                                        timeZone = TimeZone.getTimeZone("UTC")
+                                    }
+                                    val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
+                                        timeZone = TimeZone.getDefault()
+                                    }
+
+                                    val candidates = listOfNotNull(post.lastEdit, post.lastFix, post.createdAt)
+                                    val latestDate = candidates.mapNotNull { ds ->
                                         try {
-                                                    val locale = java.util.Locale("cs", "CZ")
-                                                    // Parse server timestamps as UTC and display in device local timezone
-                                                    val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
-                                                        timeZone = TimeZone.getTimeZone("UTC")
-                                                    }
-                                                    val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
-                                                        timeZone = TimeZone.getDefault()
-                                                    }
-                                                    val date = inputFormatter.parse(dateString)
-                                                    date?.let { outputFormatter.format(it) } ?: dateString
+                                            inputFormatter.parse(ds)
                                         } catch (e: Exception) {
-                                            dateString
+                                            null
                                         }
-                                    } ?: ""
+                                    }.maxOrNull()
+
+                                    val formatted = latestDate?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
                                     if (formatted.isNotBlank()) {
                                         Text(text = "Upraveno: $formatted", style = MaterialTheme.typography.bodySmall)
                                     }

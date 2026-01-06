@@ -390,23 +390,24 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                     ) {
                         Column(Modifier.padding(16.dp)) {
                             Text(text = post.title, style = MaterialTheme.typography.titleMedium)
-                            val updated = post.updatedAt
-                            val formatted = updated?.let { dateString ->
+                            val locale = java.util.Locale.forLanguageTag("cs-CZ")
+                            val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
+                                timeZone = TimeZone.getTimeZone("UTC")
+                            }
+                            val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
+                                timeZone = TimeZone.getDefault()
+                            }
+
+                            val candidates = listOfNotNull(post.lastEdit, post.lastFix, post.createdAt)
+                            val latestDate = candidates.mapNotNull { ds ->
                                 try {
-                                    val locale = java.util.Locale.forLanguageTag("cs-CZ")
-                                    // Parse server timestamps as UTC and display them in device local timezone
-                                    val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
-                                        timeZone = TimeZone.getTimeZone("UTC")
-                                    }
-                                    val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
-                                        timeZone = TimeZone.getDefault()
-                                    }
-                                    val date = inputFormatter.parse(dateString)
-                                    date?.let { outputFormatter.format(it) } ?: dateString
+                                    inputFormatter.parse(ds)
                                 } catch (_: Exception) {
-                                    dateString
+                                    null
                                 }
-                            } ?: ""
+                            }.maxOrNull()
+
+                            val formatted = latestDate?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
                             if (formatted.isNotBlank()) {
                                 Text(text = if (post.title == "O mně") "Něco drobného o autoru aplikace" else "Proč vlastně toto existuje?", style = MaterialTheme.typography.bodySmall)
                             }
