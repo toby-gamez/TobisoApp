@@ -109,6 +109,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Stav pro ruční opuštění "No Internet" obrazovky
     private val _hasUserDismissedNoInternet = MutableStateFlow(false)
     val hasUserDismissedNoInternet: StateFlow<Boolean> = _hasUserDismissedNoInternet
+
+    // Search bar expanded/collapsed state (persisted in ViewModel so UI remembers when navigated away)
+    private val _searchBarExpanded = MutableStateFlow(true)
+    val searchBarExpanded: StateFlow<Boolean> = _searchBarExpanded
+
+    fun setSearchBarExpanded(expanded: Boolean) {
+        _searchBarExpanded.value = expanded
+    }
     
     // Flag pro sledování prvního načtení
     private var isFirstLoad = true

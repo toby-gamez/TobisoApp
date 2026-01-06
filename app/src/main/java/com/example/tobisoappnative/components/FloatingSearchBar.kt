@@ -74,7 +74,7 @@ fun FloatingSearchBar(
 ) {
     var searchText by remember { mutableStateOf("") }
     var debouncedSearchText by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(initialExpanded) }
+    val expanded by viewModel.searchBarExpanded.collectAsState(initial = initialExpanded)
     val posts by viewModel.posts.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
@@ -116,9 +116,9 @@ fun FloatingSearchBar(
                     detectDragGestures { _, dragAmount ->
                         // dragAmount.y > 0 => dragging down; < 0 => dragging up
                         if (dragAmount.y > 20f && expanded) {
-                            expanded = false
+                            viewModel.setSearchBarExpanded(false)
                         } else if (dragAmount.y < -20f && !expanded) {
-                            expanded = true
+                            viewModel.setSearchBarExpanded(true)
                         }
                     }
                 }
@@ -253,7 +253,7 @@ fun FloatingSearchBar(
                         modifier = Modifier
                             .offset(y = 15.dp)
                             .size(width = 48.dp, height = 28.dp)
-                            .clickable { expanded = true },
+                            .clickable { viewModel.setSearchBarExpanded(true) },
                         contentAlignment = Alignment.Center
                     ) {
                         // Vlastní vizuální tenký pruh
@@ -282,7 +282,7 @@ fun FloatingSearchBar(
                             Icon(Icons.Default.Search, contentDescription = "Hledat")
                         },
                         trailingIcon = {
-                            if (searchText.isNotEmpty()) {
+                                if (searchText.isNotEmpty()) {
                                 IconButton(onClick = { searchText = "" }) {
                                     Icon(Icons.Default.Clear, contentDescription = "Smazat")
                                 }
