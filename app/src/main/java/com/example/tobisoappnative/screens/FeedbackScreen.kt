@@ -13,13 +13,12 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
 import androidx.navigation.NavController
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.tobisoappnative.model.ApiClient
+import com.example.tobisoappnative.model.FeedbackDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,18 +39,16 @@ fun FeedbackScreen(navController: NavController) {
     suspend fun sendFeedback(name: String, email: String, message: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                val url = URL("https://formspree.io/f/mqaqnlld")
-                val params = "name=" + URLEncoder.encode(name, "UTF-8") +
-                        "&email=" + URLEncoder.encode(email, "UTF-8") +
-                        "&message=" + URLEncoder.encode(message, "UTF-8")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Accept", "application/json")
-                conn.doOutput = true
-                conn.outputStream.use { it.write(params.toByteArray()) }
-                val responseCode = conn.responseCode
-                responseCode in 200..299
-            } catch (_: Exception) {
+                val feedbackDto = FeedbackDto(
+                    name = name,
+                    email = email,
+                    message = message,
+                    platform = "Aplikace"
+                )
+                ApiClient.apiService.sendFeedback(feedbackDto)
+                true
+            } catch (e: Exception) {
+                android.util.Log.e("FeedbackScreen", "Error sending feedback", e)
                 false
             }
         }

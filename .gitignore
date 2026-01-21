@@ -43,3 +43,4 @@ proguard-mapping.txt
 .kotlin/sessions/kotlin-compiler-2084949318228727147.salive
 app/release/output-metadata.json
 app/release/baselineProfiles/0/app-release.dm
+app/release/*

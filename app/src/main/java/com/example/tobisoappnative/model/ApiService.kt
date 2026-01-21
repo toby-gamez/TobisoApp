@@ -5,6 +5,8 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import okhttp3.ResponseBody
 import retrofit2.http.Streaming
+import retrofit2.http.POST
+import retrofit2.http.Body
 
 interface ApiService {
     @GET("categories")
@@ -61,4 +63,8 @@ interface ApiService {
     @Streaming
     @GET("Pdf/generate/post/{id}")
     suspend fun generatePostPdf(@Path("id") id: Int): ResponseBody
+
+    // Feedback endpoint
+    @POST("Feedback")
+    suspend fun sendFeedback(@Body feedback: FeedbackDto)
 }
