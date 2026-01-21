@@ -66,6 +66,9 @@ fun BulletPoint(text: String) {
 @Composable
 fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
+        VersionInfo("2.6.1", listOf(
+            "zpětná vazba je nově nativní a nepoužívá Formspree",
+        )),
         VersionInfo("2.6", listOf(
             "přidáno řazení podle nejnovějšího učiva",
             "přidán systém oprav/úprav článků",
