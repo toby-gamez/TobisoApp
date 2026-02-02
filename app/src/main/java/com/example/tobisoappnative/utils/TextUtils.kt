@@ -2,6 +2,68 @@ package com.example.tobisoappnative.utils
 
 object TextUtils {
     /**
+     * Předzpracuje Markdown pro zobrazení:
+     * - "->" na šipku "→"
+     *
+     * Zlomky se nevykreslují jako HTML (CommonMark renderer inline HTML ignoruje).
+     * Pro „skutečné“ zlomky používáme vlastní inline rendering v `SafeMarkdown`.
+     *
+     * Neprovádí změny uvnitř code bloků (```...```) ani inline kódu (`...`).
+     */
+    fun preprocessMarkdownForDisplay(markdownContent: String): String {
+        if (markdownContent.isBlank()) return markdownContent
+
+        fun transformTextSegment(segment: String): String {
+            return segment.replace("->", "→")
+        }
+
+        fun transformInlineCode(line: String): String {
+            if (!line.contains('`')) return transformTextSegment(line)
+
+            val out = StringBuilder()
+            val chunk = StringBuilder()
+            var inInlineCode = false
+            for (ch in line) {
+                if (ch == '`') {
+                    if (!inInlineCode) {
+                        out.append(transformTextSegment(chunk.toString()))
+                        chunk.setLength(0)
+                        inInlineCode = true
+                        out.append('`')
+                    } else {
+                        out.append(chunk.toString())
+                        chunk.setLength(0)
+                        inInlineCode = false
+                        out.append('`')
+                    }
+                } else {
+                    chunk.append(ch)
+                }
+            }
+            if (chunk.isNotEmpty()) {
+                if (inInlineCode) out.append(chunk.toString()) else out.append(transformTextSegment(chunk.toString()))
+            }
+            return out.toString()
+        }
+
+        val lines = markdownContent.split('\n')
+        val sb = StringBuilder(markdownContent.length)
+        var inFence = false
+        for (index in lines.indices) {
+            val line = lines[index]
+            val trimmed = line.trimStart()
+            if (trimmed.startsWith("```")) {
+                inFence = !inFence
+                sb.append(line)
+            } else {
+                sb.append(if (inFence) line else transformInlineCode(line))
+            }
+            if (index != lines.lastIndex) sb.append('\n')
+        }
+        return sb.toString()
+    }
+
+    /**
      * Extrahuje čistý text z markdown obsahu pro TTS
      */
     fun extractPlainTextForTts(markdownContent: String): String {

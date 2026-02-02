@@ -23,7 +23,6 @@ import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.Composable
-import com.halilibo.richtext.commonmark.Markdown
 import com.halilibo.richtext.ui.material3.RichText
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -65,8 +64,134 @@ import android.provider.MediaStore
 import android.content.ContentValues
 import android.os.Environment
 import kotlin.getOrElse
+import coil.compose.AsyncImage
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.unit.IntSize
+import com.example.tobisoappnative.components.InlineFraction
+import com.halilibo.richtext.commonmark.CommonmarkAstNodeParser
+import com.halilibo.richtext.markdown.AstBlockNodeComposer
+import com.halilibo.richtext.markdown.BasicMarkdown
+import com.halilibo.richtext.markdown.node.AstBlockNodeType
+import com.halilibo.richtext.markdown.node.AstCode
+import com.halilibo.richtext.markdown.node.AstEmphasis
+import com.halilibo.richtext.markdown.node.AstHardLineBreak
+import com.halilibo.richtext.markdown.node.AstHtmlInline
+import com.halilibo.richtext.markdown.node.AstImage
+import com.halilibo.richtext.markdown.node.AstLink
+import com.halilibo.richtext.markdown.node.AstNode
+import com.halilibo.richtext.markdown.node.AstParagraph
+import com.halilibo.richtext.markdown.node.AstSoftLineBreak
+import com.halilibo.richtext.markdown.node.AstStrikethrough
+import com.halilibo.richtext.markdown.node.AstStrongEmphasis
+import com.halilibo.richtext.markdown.node.AstText
+import com.halilibo.richtext.ui.RichTextScope
+import com.halilibo.richtext.ui.string.InlineContent
+import com.halilibo.richtext.ui.string.RichTextString
+import com.halilibo.richtext.ui.string.Text as RichTextScopeText
+import kotlin.math.max
 
 val prefixRegex = Regex("^(ml-|sl-|li-|hv-|m-|ch-|f-|pr-|z-)")
+
+private val inlineFractionRegex = Regex(
+    """(?<![\p{L}\p{N}_])([0-9]+(?:[\.,][0-9]+)?|[\p{L}])\/([0-9]+(?:[\.,][0-9]+)?|[\p{L}])(?![\p{L}\p{N}_])"""
+)
+
+private fun fractionInlineContent(numerator: String, denominator: String): InlineContent {
+    return InlineContent(
+        initialSize = {
+            // Rough sizing so the placeholder stays on the same line.
+            val maxLen = max(numerator.length, denominator.length).coerceAtLeast(1)
+            val charWidth = 6.sp.toPx()
+            val width = (maxLen * charWidth + 8.sp.toPx()).toInt().coerceAtLeast(1)
+            val height = (18.sp.toPx()).toInt().coerceAtLeast(1)
+            IntSize(width, height)
+        },
+        placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+    ) {
+        InlineFraction(
+            numerator = numerator,
+            denominator = denominator,
+            modifier = Modifier
+        )
+    }
+}
+
+private fun inlineChildren(astNode: AstNode): List<AstNode> {
+    val out = mutableListOf<AstNode>()
+    var child = astNode.links.firstChild
+    while (child != null) {
+        out.add(child)
+        child = child.links.next
+    }
+    return out
+}
+
+private fun appendTextWithFractions(builder: RichTextString.Builder, text: String) {
+    var lastIndex = 0
+    for (match in inlineFractionRegex.findAll(text)) {
+        val start = match.range.first
+        val end = match.range.last + 1
+        if (start > lastIndex) builder.append(text.substring(lastIndex, start))
+
+        val numerator = match.groupValues[1]
+        val denominator = match.groupValues[2]
+
+        val numIsWord = numerator.length > 1 && numerator.all { it.isLetter() }
+        val denIsWord = denominator.length > 1 && denominator.all { it.isLetter() }
+        if (numIsWord || denIsWord) {
+            builder.append(match.value)
+        } else {
+            builder.appendInlineContent(
+                alternateText = match.value,
+                content = fractionInlineContent(numerator, denominator)
+            )
+        }
+
+        lastIndex = end
+    }
+    if (lastIndex < text.length) builder.append(text.substring(lastIndex))
+}
+
+private fun appendInlineNode(builder: RichTextString.Builder, node: AstNode) {
+    when (val t = node.type) {
+        is AstText -> appendTextWithFractions(builder, t.literal)
+        is AstSoftLineBreak -> builder.append(" ")
+        is AstHardLineBreak -> builder.append("\n")
+        is AstHtmlInline -> builder.append(t.literal)
+        is AstCode -> {
+            val idx = builder.pushFormat(RichTextString.Format.Code)
+            builder.append(t.literal)
+            builder.pop(idx)
+        }
+        is AstEmphasis -> {
+            val idx = builder.pushFormat(RichTextString.Format.Italic)
+            inlineChildren(node).forEach { appendInlineNode(builder, it) }
+            builder.pop(idx)
+        }
+        is AstStrongEmphasis -> {
+            val idx = builder.pushFormat(RichTextString.Format.Bold)
+            inlineChildren(node).forEach { appendInlineNode(builder, it) }
+            builder.pop(idx)
+        }
+        is AstStrikethrough -> {
+            val idx = builder.pushFormat(RichTextString.Format.Strikethrough)
+            inlineChildren(node).forEach { appendInlineNode(builder, it) }
+            builder.pop(idx)
+        }
+        is AstLink -> {
+            val idx = builder.pushFormat(RichTextString.Format.Link(t.destination))
+            inlineChildren(node).forEach { appendInlineNode(builder, it) }
+            builder.pop(idx)
+        }
+        is AstImage -> {
+            // If an image is mixed into a sentence, keep at least the title as fallback.
+            if (t.title.isNotBlank()) builder.append(t.title)
+        }
+        else -> {
+            // Ignore unknown inline node types.
+        }
+    }
+}
 
 @Composable
 fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
@@ -76,6 +201,10 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
         ?.trim()
         ?.takeIf { it.isNotBlank() }
         ?: return
+
+    val displayMarkdown = remember(safeContent) {
+        runCatching { TextUtils.preprocessMarkdownForDisplay(safeContent) }.getOrElse { safeContent }
+    }
     
     // Použijeme remember pro zachycení případných chyb během inicializace
     val renderError = remember(safeContent) {
@@ -100,8 +229,48 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
     } else {
         // Bezpečné vykreslení Markdownu s zachycením chyb
         val result = runCatching {
+            val parser = remember { CommonmarkAstNodeParser() }
+            val astNode = remember(displayMarkdown) { parser.parse(displayMarkdown) }
+
+            val paragraphComposer = remember {
+                object : AstBlockNodeComposer {
+                    override fun predicate(astBlockNodeType: AstBlockNodeType): Boolean {
+                        return astBlockNodeType == AstParagraph
+                    }
+
+                    @Composable
+                    override fun RichTextScope.Compose(
+                        astNode: AstNode,
+                        visitChildren: @Composable (AstNode) -> Unit
+                    ) {
+                        val children = inlineChildren(astNode)
+
+                        // Standalone image paragraph: keep the original block behavior.
+                        if (children.size == 1 && children.first().type is AstImage) {
+                            val img = children.first().type as AstImage
+                            AsyncImage(
+                                model = img.destination,
+                                contentDescription = img.title.ifBlank { "image" },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                            )
+                            return
+                        }
+
+                        val builder = RichTextString.Builder(children.sumOf { (it.type as? AstText)?.literal?.length ?: 8 })
+                        children.forEach { appendInlineNode(builder, it) }
+                        val rich = builder.toRichTextString()
+                        RichTextScopeText(text = rich)
+                    }
+                }
+            }
+
             RichText(modifier = modifier) {
-                Markdown(safeContent)
+                BasicMarkdown(
+                    astNode = astNode,
+                    astBlockNodeComposer = paragraphComposer
+                )
             }
         }
         if (result.isFailure) {
