@@ -681,6 +681,121 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                 }
+                                // Interactive Exercises routes
+                                composable(
+                                    "exerciseTimeline/{exerciseId}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val exerciseId = backStackEntry.arguments?.getString("exerciseId")?.toIntOrNull()
+                                    if (exerciseId != null) {
+                                        com.example.tobisoappnative.screens.TimelineExerciseScreen(
+                                            exerciseId = exerciseId,
+                                            navController = navController,
+                                            viewModel = mainViewModel
+                                        )
+                                    } else {
+                                        Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                                composable(
+                                    "exerciseDragDrop/{exerciseId}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val exerciseId = backStackEntry.arguments?.getString("exerciseId")?.toIntOrNull()
+                                    if (exerciseId != null) {
+                                        com.example.tobisoappnative.screens.DragDropExerciseScreen(
+                                            exerciseId = exerciseId,
+                                            navController = navController,
+                                            viewModel = mainViewModel
+                                        )
+                                    } else {
+                                        Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                                composable(
+                                    "exerciseMatching/{exerciseId}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val exerciseId = backStackEntry.arguments?.getString("exerciseId")?.toIntOrNull()
+                                    if (exerciseId != null) {
+                                        com.example.tobisoappnative.screens.MatchingExerciseScreen(
+                                            exerciseId = exerciseId,
+                                            navController = navController,
+                                            viewModel = mainViewModel
+                                        )
+                                    } else {
+                                        Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
                                 // Plain text selectable view for markdown (used via long-press -> FAB)
                                 composable(
                                     "plainText/{postId}",

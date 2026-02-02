@@ -67,4 +67,17 @@ interface ApiService {
     // Feedback endpoint
     @POST("Feedback")
     suspend fun sendFeedback(@Body feedback: FeedbackDto)
+
+    // Interactive Exercise endpoints
+    @GET("InteractiveExercises/post/{postId}")
+    suspend fun getExercisesByPostId(@Path("postId") postId: Int): Array<InteractiveExerciseResponse>
+
+    @GET("InteractiveExercises/{id}")
+    suspend fun getExercise(@Path("id") id: Int): InteractiveExerciseResponse
+
+    @POST("InteractiveExercises/{id}/validate")
+    suspend fun validateExercise(
+        @Path("id") id: Int,
+        @Body request: ValidateSolutionRequest
+    ): ExerciseValidationResult
 }

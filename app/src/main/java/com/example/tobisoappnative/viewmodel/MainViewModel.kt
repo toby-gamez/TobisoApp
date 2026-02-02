@@ -13,10 +13,12 @@ import com.example.tobisoappnative.model.Question
 import com.example.tobisoappnative.model.RelatedPost
 import com.example.tobisoappnative.model.Snippet
 import com.example.tobisoappnative.model.Explanation
+import com.example.tobisoappnative.model.InteractiveExerciseResponse
 import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.utils.NetworkUtils
 import com.google.gson.Gson
 import java.io.File
+import retrofit2.HttpException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -97,6 +99,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val addendumsError: StateFlow<String?> = _addendumsError
     private val _addendumsLoading = MutableStateFlow(false)
     val addendumsLoading: StateFlow<Boolean> = _addendumsLoading
+
+    // Interactive Exercises state
+    private val _exercises = MutableStateFlow<List<com.example.tobisoappnative.model.InteractiveExerciseResponse>>(emptyList())
+    val exercises: StateFlow<List<com.example.tobisoappnative.model.InteractiveExerciseResponse>> = _exercises
+    private val _exercisesError = MutableStateFlow<String?>(null)
+    val exercisesError: StateFlow<String?> = _exercisesError
+    private val _exercisesLoading = MutableStateFlow(false)
+    val exercisesLoading: StateFlow<Boolean> = _exercisesLoading
+
+    private val _currentExercise = MutableStateFlow<com.example.tobisoappnative.model.InteractiveExerciseResponse?>(null)
+    val currentExercise: StateFlow<com.example.tobisoappnative.model.InteractiveExerciseResponse?> = _currentExercise
+
+    private val _validationResult = MutableStateFlow<com.example.tobisoappnative.model.ExerciseValidationResult?>(null)
+    val validationResult: StateFlow<com.example.tobisoappnative.model.ExerciseValidationResult?> = _validationResult
+    private val _validationLoading = MutableStateFlow(false)
+    val validationLoading: StateFlow<Boolean> = _validationLoading
 
     // Toast systém
     private val _toastMessage = MutableStateFlow<String?>(null)
@@ -260,6 +278,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val addendumsArray = ApiClient.apiService.getAddendums()
                 _offlineDownloadProgress.value = 0.9f
 
+                // 7. Cvičení - načteme všechna dostupná cvičení
+                // Nejprve získáme všechny posty
+                val allExercises = mutableListOf<com.example.tobisoappnative.model.InteractiveExerciseResponse>()
+                try {
+                    // Procházíme posty a získáváme cvičení pro každý
+                    postsArray.forEach { post ->
+                        try {
+                            val exercisesForPost = ApiClient.apiService.getExercisesByPostId(post.id)
+                            allExercises.addAll(exercisesForPost)
+                        } catch (e: Exception) {
+                            // Pokračujeme i když pro některé posty cvičení nejsou
+                            println("DEBUG: No exercises for post ${post.id}")
+                        }
+                    }
+                    println("DEBUG: Downloaded ${allExercises.size} exercises")
+                } catch (e: Exception) {
+                    println("DEBUG: Error downloading exercises: ${e.message}")
+                }
+                _offlineDownloadProgress.value = 0.95f
+
                 // Uložení všeho do offline cache
                 offlineDataManager.saveCategoriesPostsAndQuestions(
                     categoriesArray.toList(),
@@ -267,7 +305,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     questionsArray.toList(),
                     questionsPostsArray.toList(),
                     relatedPostsArray.toList(),
-                    addendumsArray.toList()
+                    addendumsArray.toList(),
+                    allExercises
                 )
 
                 // Aktualizuj in-memory stav
@@ -328,13 +367,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val relatedPosts = relatedPostsArray.toList()
                         val addendums = addendumsArray.toList()
                         
-                        // Ulož vše do offline cache včetně otázek, related posts a addendums
-                        offlineDataManager.saveCategoriesPostsAndQuestions(categories, posts, questions, questionsPosts, relatedPosts, addendums)
-                        println("DEBUG: Saved offline data with questions, related posts and addendums - Questions: ${questions.size}, Related Posts: ${relatedPosts.size}, Addendums: ${addendums.size}")
+                        // Načti i cvičení
+                        val allExercises = mutableListOf<com.example.tobisoappnative.model.InteractiveExerciseResponse>()
+                        posts.forEach { post ->
+                            try {
+                                val exercisesForPost = ApiClient.apiService.getExercisesByPostId(post.id)
+                                allExercises.addAll(exercisesForPost)
+                            } catch (e: Exception) {
+                                // Ignorujeme chyby pro jednotlivé posty
+                            }
+                        }
+                        
+                        // Ulož vše do offline cache včetně otázek, related posts, addendums a cvičení
+                        offlineDataManager.saveCategoriesPostsAndQuestions(categories, posts, questions, questionsPosts, relatedPosts, addendums, allExercises)
+                        println("DEBUG: Saved offline data with questions, related posts, addendums and exercises - Questions: ${questions.size}, Related Posts: ${relatedPosts.size}, Addendums: ${addendums.size}, Exercises: ${allExercises.size}")
                     } catch (e: Exception) {
                         // Pokud se nepodaří načíst otázky/related posts/addendums, ulož alespoň kategorie a posty
                         offlineDataManager.saveCategoriesAndPosts(categories, posts)
-                        println("DEBUG: Failed to load questions/related posts/addendums for offline cache: ${e.message}")
+                        println("DEBUG: Failed to load questions/related posts/addendums/exercises for offline cache: ${e.message}")
                     }
                     
                     _categories.value = categories
@@ -711,10 +761,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun checkHasQuestions(postId: Int): Boolean {
         return try {
-            // Nejprve zkontrolujeme aktuální network stav
-            refreshNetworkState()
-            
-            if (_isOffline.value) {
+            // Zkontrolujeme připojení synchronně (refreshNetworkState() spouští coroutine a není okamžité)
+            val isOnline = withContext(Dispatchers.IO) {
+                NetworkUtils.isOnline(getApplication())
+            }
+            _isOffline.value = !isOnline
+
+            if (!isOnline) {
                 // V offline režimu zkontrolujeme cached data
                 val questions = offlineDataManager.getCachedQuestionsByPostId(postId) ?: emptyList()
                 val hasQuestions = questions.isNotEmpty()
@@ -969,7 +1022,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Filtr podle kategorie
             selectedCategoryId != null -> {
                 // Získej všechny podkategorie
-                val relevantCategoryIds = getAllSubcategoryIds(selectedCategoryId, categories)
+                val relevantCategoryIds = getAllSubcategoryIds(selectedCategoryId!!, categories)
                 // Najdi posty v těchto kategoriích
                 val relevantPostIds = posts
                     .filter { post -> post.categoryId in relevantCategoryIds }
@@ -994,6 +1047,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         
         return result
+    }
+
+    private fun getAllAncestorCategoryIds(categoryId: Int, categories: List<Category>): Set<Int> {
+        val result = mutableSetOf<Int>()
+        var currentId: Int? = categoryId
+        val seen = mutableSetOf<Int>()
+
+        while (currentId != null && seen.add(currentId)) {
+            result.add(currentId)
+            currentId = categories.firstOrNull { it.id == currentId }?.parentId
+        }
+
+        return result
+    }
+
+    private fun getRelevantCategoryIdsForPost(postCategoryId: Int?, categories: List<Category>): Set<Int> {
+        if (postCategoryId == null) return emptySet()
+        // Kategorie cvičení platí pro články v této kategorii a rekurzivně v podkategoriích.
+        // Pro konkrétní článek to znamená: zahrnout jeho kategorii a všechny její ancestors.
+        return getAllAncestorCategoryIds(postCategoryId, categories)
+    }
+
+    private suspend fun getCachedExercisesForPost(postId: Int, postCategoryId: Int?): List<InteractiveExerciseResponse> {
+        val categories = _categories.value
+        val relevantCategoryIds = getRelevantCategoryIdsForPost(postCategoryId, categories)
+        val cached = offlineDataManager.getCachedExercises() ?: emptyList()
+
+        return cached
+            .asSequence()
+            .filter { it.isActive != false }
+            .filter { ex ->
+                (ex.postIds?.contains(postId) == true) ||
+                    (relevantCategoryIds.isNotEmpty() && ex.categoryIds?.any { it in relevantCategoryIds } == true)
+            }
+            .distinctBy { it.id }
+            .toList()
     }
 
     fun clearAllQuestions() {
@@ -1139,6 +1228,150 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _addendums.value = emptyList()
         _addendumsError.value = null
         _addendumsLoading.value = false
+    }
+    
+    // Interactive Exercises methods
+    fun loadExercisesByPostId(postId: Int, postCategoryId: Int? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _exercisesLoading.value = true
+            _exercisesError.value = null
+            try {
+                val isOnline = NetworkUtils.isOnline(getApplication())
+                _isOffline.value = !isOnline
+
+                println("DEBUG: loadExercisesByPostId postId=$postId postCategoryId=$postCategoryId isOnline=$isOnline")
+
+                if (!isOnline) {
+                    val cachedExercises = getCachedExercisesForPost(postId, postCategoryId)
+                    _exercises.value = cachedExercises
+                    _exercisesError.value = if (cachedExercises.isEmpty()) {
+                        "Cvičení pro tento článek nejsou dostupná v offline režimu"
+                    } else {
+                        null
+                    }
+                    println("DEBUG: Loaded offline exercises for post $postId - Count: ${cachedExercises.size}")
+                } else {
+                    val exercisesArray = ApiClient.apiService.getExercisesByPostId(postId)
+                    _exercises.value = exercisesArray.toList()
+                    println("DEBUG: Loaded ${exercisesArray.size} exercises for post $postId")
+                }
+            } catch (e: Exception) {
+                val errorText = when (e) {
+                    is HttpException -> {
+                        val body = try {
+                            e.response()?.errorBody()?.string()?.take(500)
+                        } catch (_: Exception) {
+                            null
+                        }
+                        "HTTP ${e.code()} ${e.message()}" + (if (!body.isNullOrBlank()) " | $body" else "")
+                    }
+                    else -> (e.message ?: e.javaClass.simpleName)
+                }
+                _exercisesError.value = "Chyba při načítání cvičení: $errorText"
+                println("DEBUG: Error loading exercises for post $postId: $errorText")
+                e.printStackTrace()
+            } finally {
+                _exercisesLoading.value = false
+            }
+        }
+    }
+
+    suspend fun checkHasExercises(postId: Int, postCategoryId: Int? = null): Boolean {
+        return try {
+            val isOnline = withContext(Dispatchers.IO) { NetworkUtils.isOnline(getApplication()) }
+            _isOffline.value = !isOnline
+
+            if (!isOnline) {
+                // Offline: rozhodujeme podle uložené cache (včetně kategorií)
+                getCachedExercisesForPost(postId, postCategoryId).isNotEmpty()
+            } else {
+                val exercisesArray = ApiClient.apiService.getExercisesByPostId(postId)
+                exercisesArray.isNotEmpty()
+            }
+        } catch (e: Exception) {
+            println("DEBUG: Error checking exercises for post $postId: ${e.message}")
+            // Fallback na cached data (pro zobrazení tlačítka)
+            getCachedExercisesForPost(postId, postCategoryId).isNotEmpty()
+        }
+    }
+
+    fun loadExercise(exerciseId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _exercisesLoading.value = true
+            _exercisesError.value = null
+            try {
+                val isOnline = NetworkUtils.isOnline(getApplication())
+                _isOffline.value = !isOnline
+
+                if (!isOnline) {
+                    val cached = offlineDataManager.getCachedExercise(exerciseId)
+                    _currentExercise.value = cached
+                    _exercisesError.value = if (cached == null) {
+                        "Cvičení nebylo nalezeno v offline datech"
+                    } else {
+                        null
+                    }
+                    println("DEBUG: Loaded offline exercise $exerciseId - Found: ${cached != null}")
+                } else {
+                    val exercise = ApiClient.apiService.getExercise(exerciseId)
+                    _currentExercise.value = exercise
+                    println("DEBUG: Loaded exercise $exerciseId")
+                }
+            } catch (e: Exception) {
+                _exercisesError.value = "Chyba při načítání cvičení: ${e.message}"
+                println("DEBUG: Error loading exercise $exerciseId: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                _exercisesLoading.value = false
+            }
+        }
+    }
+
+    fun validateExercise(
+        exerciseId: Int,
+        userSolutionJson: String,
+        onSuccess: ((com.example.tobisoappnative.model.ExerciseValidationResult) -> Unit)? = null,
+        onError: ((String) -> Unit)? = null
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _validationLoading.value = true
+            _validationResult.value = null
+            try {
+                val isOnline = NetworkUtils.isOnline(getApplication())
+                _isOffline.value = !isOnline
+                if (!isOnline) {
+                    val errorMsg = "Validace vyžaduje internetové připojení"
+                    withContext(Dispatchers.Main) {
+                        onError?.invoke(errorMsg)
+                    }
+                    return@launch
+                }
+
+                val request = com.example.tobisoappnative.model.ValidateSolutionRequest(userSolutionJson)
+                val result = ApiClient.apiService.validateExercise(exerciseId, request)
+                _validationResult.value = result
+                println("DEBUG: Validated exercise $exerciseId - Score: ${result.score}, Correct: ${result.isCorrect}")
+                withContext(Dispatchers.Main) {
+                    onSuccess?.invoke(result)
+                }
+            } catch (e: Exception) {
+                val errorMsg = "Chyba při validaci: ${e.message}"
+                println("DEBUG: Error validating exercise $exerciseId: ${e.message}")
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    onError?.invoke(errorMsg)
+                }
+            } finally {
+                _validationLoading.value = false
+            }
+        }
+    }
+
+    fun clearExercises() {
+        _exercises.value = emptyList()
+        _exercisesError.value = null
+        _currentExercise.value = null
+        _validationResult.value = null
     }
     
     override fun onCleared() {

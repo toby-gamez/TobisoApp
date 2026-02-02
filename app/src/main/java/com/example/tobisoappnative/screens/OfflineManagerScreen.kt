@@ -34,6 +34,7 @@ fun OfflineManagerScreen(
     var questionsPostsCount by remember { mutableStateOf<Int?>(null) }
     var relatedPostsCount by remember { mutableStateOf<Int?>(null) }
     var addendumsCount by remember { mutableStateOf<Int?>(null) }
+    var exercisesCount by remember { mutableStateOf<Int?>(null) }
     var lastUpdateFormatted by remember { mutableStateOf<String?>(null) }
     var lastUpdateTimestamp by remember { mutableStateOf<Long?>(null) }
     var cacheFresh15 by remember { mutableStateOf<Boolean?>(null) }
@@ -52,6 +53,7 @@ fun OfflineManagerScreen(
                 val qposts = offlineManager.getCachedQuestionsPosts()
                 val relatedPosts = offlineManager.getCachedRelatedPosts()
                 val addendums = offlineManager.getCachedAddendums()
+                val exercises = offlineManager.getCachedExercises()
                 val last = offlineManager.getLastUpdateFormatted()
                 val lastTs = offlineManager.getLastUpdateTimestamp()
                 val fresh = offlineManager.isCacheFresh(15)
@@ -62,6 +64,7 @@ fun OfflineManagerScreen(
                 questionsPostsCount = qposts?.size
                 relatedPostsCount = relatedPosts?.size
                 addendumsCount = addendums?.size
+                exercisesCount = exercises?.size
                 lastUpdateFormatted = last
                 lastUpdateTimestamp = lastTs
                 cacheFresh15 = fresh
@@ -72,6 +75,7 @@ fun OfflineManagerScreen(
                 questionsPostsCount = null
                 relatedPostsCount = null
                 addendumsCount = null
+                exercisesCount = null
                 lastUpdateFormatted = null
                 cacheFresh15 = null
             }
@@ -146,6 +150,11 @@ fun OfflineManagerScreen(
                         Text(text = "Dodatky")
                         Text(text = addendumsCount?.toString() ?: "—")
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Cvičení")
+                        Text(text = exercisesCount?.toString() ?: "—")
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Column {
@@ -193,6 +202,11 @@ fun OfflineManagerScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = "Dodatky")
                         Text(text = addendumsCount?.toString() ?: "—")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Cvičení")
+                        Text(text = exercisesCount?.toString() ?: "—")
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))

@@ -23,6 +23,7 @@ class OfflineDataManager(private val context: Context) {
             private const val KEY_EVENTS = "events_json"
             private const val KEY_EVENTS_LAST_UPDATE = "events_last_update_timestamp"
         private const val KEY_ADDENDUMS = "addendums_json"
+        private const val KEY_EXERCISES = "exercises_json"
     }
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -56,7 +57,8 @@ class OfflineDataManager(private val context: Context) {
         questions: List<Question>, 
         questionsPosts: List<Post>,
         relatedPosts: List<RelatedPost> = emptyList(),
-        addendums: List<Addendum> = emptyList()
+        addendums: List<Addendum> = emptyList(),
+        exercises: List<InteractiveExerciseResponse> = emptyList()
     ) = withContext(Dispatchers.IO) {
         val currentTime = System.currentTimeMillis()
         val formatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", Locale.Builder().setLanguage("cs").setRegion("CZ").build())
@@ -69,12 +71,13 @@ class OfflineDataManager(private val context: Context) {
             putString(KEY_QUESTIONS_POSTS, gson.toJson(questionsPosts))
             putString(KEY_RELATED_POSTS, gson.toJson(relatedPosts))
             putString(KEY_ADDENDUMS, gson.toJson(addendums))
+            putString(KEY_EXERCISES, gson.toJson(exercises))
             putLong(KEY_LAST_UPDATE, currentTime)
             putString(KEY_LAST_UPDATE_FORMATTED, formattedTime)
             apply()
         }
         
-        println("DEBUG: Offline data saved - Categories: ${categories.size}, Posts: ${posts.size}, Questions: ${questions.size}, Questions Posts: ${questionsPosts.size}, Related Posts: ${relatedPosts.size}, Addendums: ${addendums.size}, Time: $formattedTime")
+        println("DEBUG: Offline data saved - Categories: ${categories.size}, Posts: ${posts.size}, Questions: ${questions.size}, Questions Posts: ${questionsPosts.size}, Related Posts: ${relatedPosts.size}, Addendums: ${addendums.size}, Exercises: ${exercises.size}, Time: $formattedTime")
     }
     
     /**
@@ -330,6 +333,57 @@ class OfflineDataManager(private val context: Context) {
             println("DEBUG: Addendums saved to cache - Count: ${addendums.size}")
         } catch (e: Exception) {
             println("DEBUG: Error saving addendums: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Načtení všech uložených cvičení
+     */
+    suspend fun getCachedExercises(): List<InteractiveExerciseResponse>? = withContext(Dispatchers.IO) {
+        val json = prefs.getString(KEY_EXERCISES, null)
+        return@withContext if (json != null) {
+            try {
+                val exercisesArray = gson.fromJson(json, Array<InteractiveExerciseResponse>::class.java)
+                exercisesArray?.toList()
+            } catch (e: Exception) {
+                println("DEBUG: Error loading cached exercises: ${e.message}")
+                e.printStackTrace()
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Načtení cvičení pro konkrétní post z cache
+     */
+    suspend fun getCachedExercisesByPostId(postId: Int): List<InteractiveExerciseResponse>? = withContext(Dispatchers.IO) {
+        getCachedExercises()?.filter { exercise ->
+            exercise.postIds?.contains(postId) == true
+        }
+    }
+
+    /**
+     * Načtení konkrétního cvičení z cache
+     */
+    suspend fun getCachedExercise(exerciseId: Int): InteractiveExerciseResponse? = withContext(Dispatchers.IO) {
+        getCachedExercises()?.find { it.id == exerciseId }
+    }
+
+    /**
+     * Uložení cvičení (samostatně)
+     */
+    suspend fun saveExercises(exercises: List<InteractiveExerciseResponse>) = withContext(Dispatchers.IO) {
+        try {
+            prefs.edit().apply {
+                putString(KEY_EXERCISES, gson.toJson(exercises))
+                apply()
+            }
+            println("DEBUG: Exercises saved to cache - Count: ${exercises.size}")
+        } catch (e: Exception) {
+            println("DEBUG: Error saving exercises: ${e.message}")
             e.printStackTrace()
         }
     }
