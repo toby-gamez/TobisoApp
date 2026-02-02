@@ -141,7 +141,7 @@ fun parseContentToElements(
             content.replace(imageRegex) {
                 val alt = it.groups[1]?.value ?: ""
                 val path = it.groups[2]?.value ?: ""
-                "![${alt}](https://tobiso.com/${path})"
+                "![${alt}](https://files.tobiso.com/${path})"
             }
         } else {
             content.replace(imageRegex) {
@@ -707,7 +707,7 @@ fun PostDetailScreen(
                                                                         val fullUrl = if (url.startsWith("http")) {
                                                                             url
                                                                         } else {
-                                                                            "https://tobiso.com/" + url.removePrefix("/")
+                                                                            "https://files.tobiso.com/" + url.removePrefix("/")
                                                                         }
                                                                         val intent = android.content.Intent(
                                                                             android.content.Intent.ACTION_VIEW,
