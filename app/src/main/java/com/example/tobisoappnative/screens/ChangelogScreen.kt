@@ -70,6 +70,7 @@ fun ChangelogScreen(navController: NavController) {
             "přidána podpora pro obrázky z nového serveru",
             "přidáno renderování pro šipky a zlomky v textu",
             "přidána podpora pro interaktivní cvičení ve článcích",
+            "přidáno pomatování stavu na hlavní obrazovce",
         )),
         VersionInfo("2.6.1", listOf(
             "zpětná vazba je nově nativní a nepoužívá Formspree",

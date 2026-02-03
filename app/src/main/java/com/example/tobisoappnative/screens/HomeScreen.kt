@@ -109,6 +109,24 @@ fun formatDateOnly(millis: Long?): String {
     }
 }
 
+private const val HOME_PREFS = "home_prefs"
+private const val KEY_SORT_MODE = "home_sort_mode"
+
+fun loadSortMode(context: Context): SortMode {
+    val prefs = context.getSharedPreferences(HOME_PREFS, Context.MODE_PRIVATE)
+    val saved = prefs.getString(KEY_SORT_MODE, null)
+    return when (saved) {
+        SortMode.NEWEST.name -> SortMode.NEWEST
+        SortMode.SUBJECTS.name -> SortMode.SUBJECTS
+        else -> SortMode.SUBJECTS
+    }
+}
+
+fun saveSortMode(context: Context, mode: SortMode) {
+    val prefs = context.getSharedPreferences(HOME_PREFS, Context.MODE_PRIVATE)
+    prefs.edit().putString(KEY_SORT_MODE, mode.name).apply()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostListItem(
@@ -252,7 +270,7 @@ fun HomeScreen(navController: NavHostController) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyGridState()
     val viewModel: MainViewModel = viewModel()
-    var sortMode by remember { mutableStateOf(SortMode.SUBJECTS) }
+    var sortMode by remember { mutableStateOf(loadSortMode(context)) }
     var dropdownExpanded by remember { mutableStateOf(false) }
     val posts by viewModel.posts.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -299,6 +317,7 @@ fun HomeScreen(navController: NavHostController) {
                             text = { Text("Podle předmětů") },
                             onClick = {
                                 sortMode = SortMode.SUBJECTS
+                                saveSortMode(context, SortMode.SUBJECTS)
                                 dropdownExpanded = false
                             }
                         )
@@ -306,6 +325,7 @@ fun HomeScreen(navController: NavHostController) {
                             text = { Text("Nejnovější") },
                             onClick = {
                                 sortMode = SortMode.NEWEST
+                                saveSortMode(context, SortMode.NEWEST)
                                 dropdownExpanded = false
                             }
                         )
