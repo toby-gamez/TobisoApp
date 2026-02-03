@@ -54,6 +54,9 @@ fun TimelineExerciseScreen(
     var availableEvents by remember { mutableStateOf<List<TimelineEvent>>(emptyList()) }
     var showResult by remember { mutableStateOf(false) }
     var parseError by remember { mutableStateOf<String?>(null) }
+    val slotYears = remember(timelineConfig) {
+        timelineConfig?.events?.mapNotNull { it.year }?.sorted() ?: emptyList()
+    }
 
     LaunchedEffect(exerciseId) {
         viewModel.loadExercise(exerciseId)
@@ -193,16 +196,67 @@ fun TimelineExerciseScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        // Jednoduchá vizuální linie
-                        Box(
+                        // Jednoduchá vizuální linie + kolečka podle letopočtů
+                        val timeRange = (config.timeRange.end - config.timeRange.start).coerceAtLeast(1)
+                        val assignedSlotYears = orderedEvents.mapIndexedNotNull { index, _ ->
+                            slotYears.getOrNull(index)
+                        }
+
+                        BoxWithConstraints(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(4.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primary,
-                                    RoundedCornerShape(2.dp)
+                                .height(28.dp)
+                        ) {
+                            val dotSize = 10.dp
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .align(Alignment.Center)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary,
+                                        RoundedCornerShape(2.dp)
+                                    )
+                            )
+
+                            assignedSlotYears.forEach { year ->
+                                val fraction = ((year - config.timeRange.start).toFloat() / timeRange)
+                                    .coerceIn(0f, 1f)
+                                val xOffset = (maxWidth - dotSize) * fraction
+                                Box(
+                                    modifier = Modifier
+                                        .size(dotSize)
+                                        .offset(x = xOffset)
+                                        .align(Alignment.CenterStart)
+                                        .background(
+                                            MaterialTheme.colorScheme.secondary,
+                                            RoundedCornerShape(50)
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.onSecondary,
+                                            shape = RoundedCornerShape(50)
+                                        )
                                 )
-                        )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = config.timeRange.start.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = config.timeRange.end.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -216,51 +270,60 @@ fun TimelineExerciseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "Seřazené události (kliknutím vrátíte zpět):",
+                        "Přiřazené události k rokům (kliknutím zrušíte):",
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    if (orderedEvents.isEmpty()) {
-                        Text(
-                            "Zatím žádné události nejsou seřazeny.\nPřetáhněte události sem.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(orderedEvents) { eventId ->
-                                val event = availableEvents.find { it.id == eventId }
-                                event?.let {
-                                    OutlinedCard(
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(slotYears.size) { index ->
+                            val year = slotYears[index]
+                            val eventId = orderedEvents.getOrNull(index)
+                            val event = eventId?.let { id -> availableEvents.find { it.id == id } }
+                            val isAssigned = event != null
+                            if (isAssigned) {
+                                OutlinedCard(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            orderedEvents = orderedEvents.filter { id -> id != eventId }
+                                            showResult = false
+                                        }
+                                ) {
+                                    Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable {
-                                                // Vrátit zpět do availableEvents
-                                                orderedEvents = orderedEvents.filter { id -> id != eventId }
-                                                showResult = false
-                                            }
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(12.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = "${orderedEvents.indexOf(eventId) + 1}. ${it.label}",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
+                                        Text(
+                                            text = "$year:",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = event?.label ?: "(nepřiřazeno)",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.weight(1f)
+                                        )
                                     }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "$year:",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
@@ -290,9 +353,11 @@ fun TimelineExerciseScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        // Přidat do orderedEvents
-                                        orderedEvents = orderedEvents + event.id
-                                        showResult = false
+                                        // Přidat do orderedEvents (přiřadí se do dalšího volného roku)
+                                        if (orderedEvents.size < slotYears.size) {
+                                            orderedEvents = orderedEvents + event.id
+                                            showResult = false
+                                        }
                                     }
                             ) {
                                 Text(
