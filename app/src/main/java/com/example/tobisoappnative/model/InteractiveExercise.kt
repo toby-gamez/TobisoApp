@@ -126,3 +126,27 @@ data class CircuitConnection(
     @SerialName("from") val from: String,
     @SerialName("to") val to: String
 )
+
+// Optional config shapes for prebuilt circuits
+@Serializable
+data class CircuitConfig(
+    @SerialName("components") val components: List<CircuitComponentInstance> = emptyList(),
+    @SerialName("connections") val connections: List<CircuitConnectionInstance> = emptyList()
+)
+
+@Serializable
+data class CircuitComponentInstance(
+    @SerialName("id") val id: String,
+    @SerialName("type") val type: String,
+    @SerialName("label") val label: String,
+    @SerialName("value") val value: Double = 0.0,
+    @SerialName("x") val x: Double = 0.0,
+    @SerialName("y") val y: Double = 0.0
+)
+
+@Serializable
+data class CircuitConnectionInstance(
+    @SerialName("id") val id: String,
+    @SerialName("from") val from: String,
+    @SerialName("to") val to: String
+)

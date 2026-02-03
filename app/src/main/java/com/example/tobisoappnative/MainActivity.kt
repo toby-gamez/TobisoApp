@@ -388,6 +388,11 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("shop") ||
                                                     route.startsWith("backpack") ||
                                                     route.startsWith("plainText") ||
+                                                    // Hide bottom bar on interactive exercise screens
+                                                    route.startsWith("exerciseTimeline") ||
+                                                    route.startsWith("exerciseDragDrop") ||
+                                                    route.startsWith("exerciseMatching") ||
+                                                    route.startsWith("exerciseCircuit") ||
                                                     route.startsWith("offlineManager"))
                                             ),
                                     enter = slideInVertically(
@@ -796,6 +801,44 @@ class MainActivity : ComponentActivity() {
                                         Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
                                     }
                                 }
+                                composable(
+                                    "exerciseCircuit/{exerciseId}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val exerciseId = backStackEntry.arguments?.getString("exerciseId")?.toIntOrNull()
+                                    if (exerciseId != null) {
+                                        com.example.tobisoappnative.screens.CircuitExerciseScreen(
+                                            exerciseId = exerciseId,
+                                            navController = navController,
+                                            viewModel = mainViewModel
+                                        )
+                                    } else {
+                                        Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
                                 // Plain text selectable view for markdown (used via long-press -> FAB)
                                 composable(
                                     "plainText/{postId}",
@@ -1084,21 +1127,26 @@ class MainActivity : ComponentActivity() {
                         // continues across navigation.
                         val ttsManagerInstance = mainViewModel.getTtsManager()
                         val bottomBarVisible = (route == null ||
-                                !(route.startsWith("postDetail") ||
-                                        route.startsWith("about") ||
-                                        route.startsWith("feedback") ||
-                                        route.startsWith("changelog") ||
-                                        route.startsWith("videoPlayer") ||
-                                        route.startsWith("streak") ||
-                                        route.startsWith("favorites") ||
-                                        route.startsWith("updater") ||
-                                        route.startsWith("questions") ||
-                                        route.startsWith("mixedQuiz") ||
-                                        route.startsWith("eventDetail") ||
-                                        route.startsWith("shop") ||
-                                        route.startsWith("backpack") ||
-                                        route.startsWith("plainText")
-                                )
+                            !(route.startsWith("postDetail") ||
+                                route.startsWith("about") ||
+                                route.startsWith("feedback") ||
+                                route.startsWith("changelog") ||
+                                route.startsWith("videoPlayer") ||
+                                route.startsWith("streak") ||
+                                route.startsWith("favorites") ||
+                                route.startsWith("updater") ||
+                                route.startsWith("questions") ||
+                                route.startsWith("mixedQuiz") ||
+                                route.startsWith("eventDetail") ||
+                                route.startsWith("shop") ||
+                                route.startsWith("backpack") ||
+                                route.startsWith("plainText") ||
+                                // Hide bottom bar on interactive exercise screens
+                                route.startsWith("exerciseTimeline") ||
+                                route.startsWith("exerciseDragDrop") ||
+                                route.startsWith("exerciseMatching") ||
+                                route.startsWith("exerciseCircuit")
+                            )
                         )
 
                         if (ttsManagerInstance != null) {

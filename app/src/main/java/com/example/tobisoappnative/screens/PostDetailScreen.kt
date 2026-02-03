@@ -1007,55 +1007,79 @@ fun PostDetailScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)
                                 ) {
                                     if (hasExercises || exercisesLoading) {
-                                        Button(
-                                            onClick = {
-                                                // Načteme cvičení pro tento post a navigujeme na první
-                                                coroutineScope.launch {
-                                                    try {
-                                                        if (exercisesLoading) {
+                                        val exerciseLabel: (String) -> String = { type ->
+                                            when (type) {
+                                                "timeline" -> "Cvičení na časovou osu"
+                                                "circuit" -> "Cvičení: obvod"
+                                                "drag-drop" -> "Cvičení: přetahování"
+                                                "matching" -> "Cvičení: párování"
+                                                else -> "Cvičení"
+                                            }
+                                        }
+
+                                        if (exercisesLoading) {
+                                            Button(
+                                                onClick = {},
+                                                enabled = false,
+                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                                            ) { Text("Cvičení…") }
+                                        } else if (exercises.isEmpty()) {
+                                            Button(
+                                                onClick = {
+                                                    coroutineScope.launch {
+                                                        try {
+                                                            val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
+                                                                ?: postDetail?.categoryId
+                                                            viewModel.loadExercisesByPostId(postId, postCategoryId)
                                                             android.widget.Toast.makeText(
                                                                 context,
                                                                 "Načítám cvičení…",
                                                                 android.widget.Toast.LENGTH_SHORT
                                                             ).show()
-                                                            return@launch
-                                                        }
-
-                                                        val firstExercise = exercises.firstOrNull()
-                                                        if (firstExercise != null) {
-                                                            // Navigujeme na cvičení podle typu
-                                                            when (firstExercise.type) {
-                                                                "timeline" -> navController.navigate("exerciseTimeline/${firstExercise.id}")
-                                                                "drag-drop" -> navController.navigate("exerciseDragDrop/${firstExercise.id}")
-                                                                "matching" -> navController.navigate("exerciseMatching/${firstExercise.id}")
-                                                                else -> android.widget.Toast.makeText(
-                                                                    context,
-                                                                    "Nepodporovaný typ cvičení: ${firstExercise.type}",
-                                                                    android.widget.Toast.LENGTH_SHORT
-                                                                ).show()
-                                                            }
-                                                        } else {
+                                                        } catch (e: Exception) {
+                                                            android.util.Log.e("PostDetailScreen", "Error loading exercises", e)
                                                             android.widget.Toast.makeText(
                                                                 context,
-                                                                if (isOffline) "Žádné cvičení pro tento článek není v offline cache" else "Žádné cvičení pro tento článek",
+                                                                "Chyba při načítání cvičení",
                                                                 android.widget.Toast.LENGTH_SHORT
                                                             ).show()
                                                         }
-                                                    } catch (e: Exception) {
-                                                        android.util.Log.e("PostDetailScreen", "Error loading exercises", e)
-                                                        android.widget.Toast.makeText(
-                                                            context,
-                                                            "Chyba při načítání cvičení",
-                                                            android.widget.Toast.LENGTH_SHORT
-                                                        ).show()
                                                     }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                                            ) { Text("Cvičení") }
+                                        } else {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                exercises.forEach { ex ->
+                                                    Button(
+                                                        onClick = {
+                                                            coroutineScope.launch {
+                                                                try {
+                                                                    when (ex.type) {
+                                                                        "timeline" -> navController.navigate("exerciseTimeline/${ex.id}")
+                                                                        "drag-drop" -> navController.navigate("exerciseDragDrop/${ex.id}")
+                                                                        "matching" -> navController.navigate("exerciseMatching/${ex.id}")
+                                                                        "circuit" -> navController.navigate("exerciseCircuit/${ex.id}")
+                                                                        else -> android.widget.Toast.makeText(
+                                                                            context,
+                                                                            "Nepodporovaný typ cvičení: ${ex.type}",
+                                                                            android.widget.Toast.LENGTH_SHORT
+                                                                        ).show()
+                                                                    }
+                                                                } catch (e: Exception) {
+                                                                    android.util.Log.e("PostDetailScreen", "Error opening exercise", e)
+                                                                    android.widget.Toast.makeText(
+                                                                        context,
+                                                                        "Chyba při otevírání cvičení",
+                                                                        android.widget.Toast.LENGTH_SHORT
+                                                                    ).show()
+                                                                }
+                                                            }
+                                                        },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                                                    ) { Text(exerciseLabel(ex.type)) }
                                                 }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.tertiary
-                                            )
-                                        ) {
-                                            Text(if (exercisesLoading) "Cvičení…" else "Cvičení")
+                                            }
                                         }
                                     }
                                     
@@ -1236,11 +1260,25 @@ fun PostDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End),
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
-                        Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    try {
-                                        if (!exercisesLoading && exercises.isEmpty()) {
+                        val exerciseLabel: (String) -> String = { type ->
+                            when (type) {
+                                "timeline" -> "Cvičení na časovou osu"
+                                "circuit" -> "Cvičení: obvod"
+                                "drag-drop" -> "Cvičení: přetahování"
+                                "matching" -> "Cvičení: párování"
+                                else -> "Cvičení"
+                            }
+                        }
+
+                        if (exercisesLoading) {
+                            Button(onClick = {}, enabled = false, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
+                                Text("Cvičení…")
+                            }
+                        } else if (exercises.isEmpty()) {
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        try {
                                             val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
                                                 ?: postDetail?.categoryId
                                             viewModel.loadExercisesByPostId(postId, postCategoryId)
@@ -1249,59 +1287,50 @@ fun PostDetailScreen(
                                                 "Načítám cvičení…",
                                                 android.widget.Toast.LENGTH_SHORT
                                             ).show()
-                                            return@launch
-                                        }
-
-                                        if (exercisesLoading) {
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("PostDetailScreen", "Error loading exercises", e)
                                             android.widget.Toast.makeText(
                                                 context,
-                                                "Načítám cvičení…",
-                                                android.widget.Toast.LENGTH_SHORT
-                                            ).show()
-                                            return@launch
-                                        }
-
-                                        val firstExercise = exercises.firstOrNull()
-                                        if (firstExercise != null) {
-                                            when (firstExercise.type) {
-                                                "timeline" -> navController.navigate("exerciseTimeline/${firstExercise.id}")
-                                                "drag-drop" -> navController.navigate("exerciseDragDrop/${firstExercise.id}")
-                                                "matching" -> navController.navigate("exerciseMatching/${firstExercise.id}")
-                                                else -> android.widget.Toast.makeText(
-                                                    context,
-                                                    "Nepodporovaný typ cvičení: ${firstExercise.type}",
-                                                    android.widget.Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        } else {
-                                            android.widget.Toast.makeText(
-                                                context,
-                                                "Žádné cvičení pro tento článek",
+                                                "Chyba při načítání cvičení",
                                                 android.widget.Toast.LENGTH_SHORT
                                             ).show()
                                         }
-                                    } catch (e: Exception) {
-                                        android.util.Log.e("PostDetailScreen", "Error starting exercise", e)
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            "Chyba při otevírání cvičení",
-                                            android.widget.Toast.LENGTH_SHORT
-                                        ).show()
                                     }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                            ) { Text("Cvičení") }
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                exercises.forEach { ex ->
+                                    Button(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                try {
+                                                    when (ex.type) {
+                                                        "timeline" -> navController.navigate("exerciseTimeline/${ex.id}")
+                                                        "drag-drop" -> navController.navigate("exerciseDragDrop/${ex.id}")
+                                                        "matching" -> navController.navigate("exerciseMatching/${ex.id}")
+                                                        "circuit" -> navController.navigate("exerciseCircuit/${ex.id}")
+                                                        else -> android.widget.Toast.makeText(
+                                                            context,
+                                                            "Nepodporovaný typ cvičení: ${ex.type}",
+                                                            android.widget.Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                } catch (e: Exception) {
+                                                    android.util.Log.e("PostDetailScreen", "Error starting exercise", e)
+                                                    android.widget.Toast.makeText(
+                                                        context,
+                                                        "Chyba při otevírání cvičení",
+                                                        android.widget.Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                                    ) { Text(exerciseLabel(ex.type)) }
                                 }
-                            },
-                            enabled = !exercisesLoading,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiary
-                            )
-                        ) {
-                            Text(
-                                text = when {
-                                    exercisesLoading -> "Cvičení…"
-                                    exercises.isNotEmpty() -> "Cvičení (${exercises.size})"
-                                    else -> "Cvičení"
-                                }
-                            )
+                            }
                         }
 
                         if (hasQuestions) {
