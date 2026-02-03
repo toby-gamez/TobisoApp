@@ -68,7 +68,8 @@ fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
         VersionInfo("2.7", listOf(
             "přidána podpora pro obrázky z nového serveru",
-            "přidáno renderování pro šipky a zlomky v textu", // todo: circuit support, zkontrolovat další cvičení
+            "přidáno renderování pro šipky a zlomky v textu",
+            "přidána podpora pro interaktivní cvičení ve článcích",
         )),
         VersionInfo("2.6.1", listOf(
             "zpětná vazba je nově nativní a nepoužívá Formspree",
