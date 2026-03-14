@@ -44,3 +44,5 @@ proguard-mapping.txt
 app/release/output-metadata.json
 app/release/baselineProfiles/0/app-release.dm
 app/release/*
+.kotlin/sessions/*
+gradle/gradle-daemon-jvm.properties

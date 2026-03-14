@@ -452,6 +452,7 @@ fun PostDetailScreen(
     val exercises by viewModel.exercises.collectAsState()
     val exercisesLoading by viewModel.exercisesLoading.collectAsState()
     val exercisesError by viewModel.exercisesError.collectAsState()
+    val questions by viewModel.questions.collectAsState()
     val relatedPosts by viewModel.relatedPosts.collectAsState()
     val relatedPostsError by viewModel.relatedPostsError.collectAsState()
     val relatedPostsLoading by viewModel.relatedPostsLoading.collectAsState()
@@ -999,14 +1000,19 @@ fun PostDetailScreen(
                                 }
                             }
                             Spacer(modifier = Modifier.height(16.dp))
-                            
-                            // Tlačítka Prověrka a Cvičení
-                            if (hasQuestions || hasExercises || exercisesLoading) {
+
+                            // Placeholder spacer to prevent content being hidden behind sticky bar
+                            if (hasQuestions || questions.isNotEmpty() || hasExercises || exercisesLoading || exercises.isNotEmpty() || exercisesError != null) {
+                                Spacer(modifier = Modifier.height(64.dp))
+                            }
+
+                            // Tlačítka Prověrka a Cvičení — ONLY INLINE FALLBACK (primary is sticky bar below)
+                            if (false) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)
                                 ) {
-                                    if (hasExercises || exercisesLoading) {
+                                    if (hasExercises || exercisesLoading || exercises.isNotEmpty()) {
                                         val exerciseLabel: (String) -> String = { type ->
                                             when (type) {
                                                 "timeline" -> "Cvičení na časovou osu"
@@ -1077,7 +1083,10 @@ fun PostDetailScreen(
                                                             }
                                                         },
                                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                                                    ) { Text(exerciseLabel(ex.type)) }
+                                                    ) {
+                                                        val exLabel = ex.title.takeIf { it.isNotBlank() } ?: exerciseLabel(ex.type)
+                                                        Text(exLabel)
+                                                    }
                                                 }
                                             }
                                         }
@@ -1232,7 +1241,8 @@ fun PostDetailScreen(
             }
         }
 
-        val showActionsBar = hasQuestions || exercisesLoading || exercises.isNotEmpty() || exercisesError != null
+        // Sticky bottom action bar — Prověrka + Cvičení
+        val showActionsBar = hasQuestions || questions.isNotEmpty() || exercisesLoading || exercises.isNotEmpty() || exercisesError != null
         if (showActionsBar) {
             Surface(
                 tonalElevation = 6.dp,
@@ -1271,10 +1281,13 @@ fun PostDetailScreen(
                         }
 
                         if (exercisesLoading) {
-                            Button(onClick = {}, enabled = false, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
-                                Text("Cvičení…")
-                            }
-                        } else if (exercises.isEmpty()) {
+                            Button(
+                                onClick = {},
+                                enabled = false,
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                            ) { Text("Cvičení…") }
+                        } else if (exercises.isEmpty() && hasExercises) {
+                            // exercises not yet fetched but we know they exist
                             Button(
                                 onClick = {
                                     coroutineScope.launch {
@@ -1282,18 +1295,8 @@ fun PostDetailScreen(
                                             val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
                                                 ?: postDetail?.categoryId
                                             viewModel.loadExercisesByPostId(postId, postCategoryId)
-                                            android.widget.Toast.makeText(
-                                                context,
-                                                "Načítám cvičení…",
-                                                android.widget.Toast.LENGTH_SHORT
-                                            ).show()
                                         } catch (e: Exception) {
                                             android.util.Log.e("PostDetailScreen", "Error loading exercises", e)
-                                            android.widget.Toast.makeText(
-                                                context,
-                                                "Chyba při načítání cvičení",
-                                                android.widget.Toast.LENGTH_SHORT
-                                            ).show()
                                         }
                                     }
                                 },
@@ -1318,36 +1321,32 @@ fun PostDetailScreen(
                                                         ).show()
                                                     }
                                                 } catch (e: Exception) {
-                                                    android.util.Log.e("PostDetailScreen", "Error starting exercise", e)
-                                                    android.widget.Toast.makeText(
-                                                        context,
-                                                        "Chyba při otevírání cvičení",
-                                                        android.widget.Toast.LENGTH_SHORT
-                                                    ).show()
+                                                    android.util.Log.e("PostDetailScreen", "Error opening exercise", e)
                                                 }
                                             }
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                                    ) { Text(exerciseLabel(ex.type)) }
+                                    ) {
+                                        val exLabel = ex.title.takeIf { it.isNotBlank() } ?: exerciseLabel(ex.type)
+                                        Text(exLabel)
+                                    }
                                 }
                             }
                         }
 
-                        if (hasQuestions) {
+                        if (hasQuestions || questions.isNotEmpty()) {
                             Button(
                                 onClick = { navController.navigate("questions/$postId") },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.secondary
                                 )
-                            ) {
-                                Text("Prověrka")
-                            }
+                            ) { Text("Prověrka") }
                         }
                     }
                 }
             }
         }
-        
+
         // Dialog pro vysvětlení permission
         if (showPermissionDialog) {
             AlertDialog(
