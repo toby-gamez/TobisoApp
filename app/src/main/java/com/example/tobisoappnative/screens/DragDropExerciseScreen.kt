@@ -227,15 +227,24 @@ fun DragDropExerciseScreen(
                                     itemsInCategory.forEach { (itemId, _) ->
                                         val item = config.items.find { it.id == itemId }
                                         item?.let {
+                                            val itemResult = if (showResult) validationResult?.detailedResults?.get(itemId) else null
+                                            val cardColor = when (itemResult) {
+                                                true -> Color(0xFFE8F5E9)
+                                                false -> MaterialTheme.colorScheme.errorContainer
+                                                null -> MaterialTheme.colorScheme.surface
+                                            }
                                             OutlinedCard(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(vertical = 4.dp)
                                                     .clickable {
-                                                        // Odebrat položku z kategorie
-                                                        placements = placements - itemId
-                                                        showResult = false
-                                                    }
+                                                        if (!showResult) {
+                                                            placements = placements - itemId
+                                                        }
+                                                    },
+                                                colors = CardDefaults.outlinedCardColors(
+                                                    containerColor = cardColor
+                                                )
                                             ) {
                                                 Text(
                                                     text = it.text,

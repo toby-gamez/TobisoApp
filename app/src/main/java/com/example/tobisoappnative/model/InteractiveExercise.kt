@@ -30,7 +30,7 @@ data class ExerciseValidationResult(
     @SerialName("score") val score: Int,
     @SerialName("feedback") val feedback: String,
     @SerialName("explanation") val explanation: String? = null,
-    @SerialName("detailedResults") val detailedResults: String? = null
+    @SerialName("detailedResults") val detailedResults: Map<String, Boolean>? = null
 )
 
 // Config modely pro jednotlivé typy cvičení

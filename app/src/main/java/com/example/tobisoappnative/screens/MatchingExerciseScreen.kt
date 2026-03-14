@@ -201,17 +201,26 @@ fun MatchingExerciseScreen(
                     items(pairs) { pair ->
                         val leftItem = matchingConfig?.left?.find { it.id == pair.leftId }
                         val rightItem = matchingConfig?.right?.find { it.id == pair.rightId }
-                        
+                        val pairResult = if (showResult) validationResult?.detailedResults?.get(pair.leftId) else null
+                        val pairColor = when (pairResult) {
+                            true -> Color(0xFFE8F5E9)
+                            false -> MaterialTheme.colorScheme.errorContainer
+                            null -> MaterialTheme.colorScheme.surface
+                        }
+
                         OutlinedCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    // Odstranit pár
-                                    pairs = pairs.filter { 
-                                        it.leftId != pair.leftId || it.rightId != pair.rightId 
+                                    if (!showResult) {
+                                        pairs = pairs.filter {
+                                            it.leftId != pair.leftId || it.rightId != pair.rightId
+                                        }
                                     }
-                                    showResult = false
-                                }
+                                },
+                            colors = CardDefaults.outlinedCardColors(
+                                containerColor = pairColor
+                            )
                         ) {
                             Row(
                                 modifier = Modifier
