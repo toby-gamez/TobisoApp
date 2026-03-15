@@ -21,7 +21,10 @@ import com.halilibo.richtext.commonmark.Markdown
 import com.halilibo.richtext.ui.material3.RichText
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.example.tobisoappnative.model.*
+import com.example.tobisoappnative.PointsManager
+import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +39,32 @@ fun MatchingExerciseScreen(
     )
     val state by vm.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val context = LocalContext.current
+    val totalPoints by PointsManager.totalPoints.collectAsState()
+    var pointsAwarded by rememberSaveable { mutableStateOf(false) }
+    var showPointsOverlay by rememberSaveable { mutableStateOf(false) }
+    var awardedPoints by rememberSaveable { mutableStateOf(0) }
+
+    LaunchedEffect(state.showResult) {
+        if (state.showResult && !pointsAwarded) {
+            val score = state.validationResult?.score ?: 0
+            if (score > 0) {
+                val points = score / 10
+                PointsManager.addPoints(context, points)
+                awardedPoints = points
+                pointsAwarded = true
+                showPointsOverlay = true
+            }
+        }
+    }
+
+    LaunchedEffect(showPointsOverlay) {
+        if (showPointsOverlay) {
+            kotlinx.coroutines.delay(2500)
+            showPointsOverlay = false
+        }
+    }
 
     // Load exercise on first composition
     LaunchedEffect(exerciseId) {
@@ -54,6 +83,7 @@ fun MatchingExerciseScreen(
         }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -153,8 +183,8 @@ fun MatchingExerciseScreen(
                         val pairResult = if (state.showResult)
                             state.validationResult?.detailedResults?.get(pair.leftId) else null
                         val pairColor = when (pairResult) {
-                            true -> Color(0xFFE8F5E9)
-                            false -> MaterialTheme.colorScheme.errorContainer
+                            true -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+                            false -> Color(0xFFFF5722).copy(alpha = 0.1f)
                             null -> MaterialTheme.colorScheme.surface
                         }
 
@@ -303,27 +333,24 @@ fun MatchingExerciseScreen(
             if (state.showResult && state.validationResult != null) {
                 val result = state.validationResult!!
                 val isCorrect = result.isCorrect
-                val successContainer = Color(0xFFE8F5E9)
-                val onSuccessContainer = Color(0xFF1B5E20)
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isCorrect) successContainer
-                        else MaterialTheme.colorScheme.errorContainer
+                        containerColor = if (isCorrect) Color(0xFF4CAF50).copy(alpha = 0.1f)
+                        else Color(0xFFFF5722).copy(alpha = 0.1f)
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = if (isCorrect) "Správně!" else "Nesprávně",
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (isCorrect) onSuccessContainer
-                            else MaterialTheme.colorScheme.onErrorContainer
+                            color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Skóre: ${result.score}",
+                            text = "Skóre: ${result.score}%",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         if (result.feedback.isNotBlank()) {
@@ -345,4 +372,12 @@ fun MatchingExerciseScreen(
             }
         }
     }
+
+    if (showPointsOverlay && awardedPoints > 0) {
+        FullScreenPointsOverlay(
+            points = awardedPoints,
+            totalPoints = totalPoints
+        )
+    }
+    } // Box
 }

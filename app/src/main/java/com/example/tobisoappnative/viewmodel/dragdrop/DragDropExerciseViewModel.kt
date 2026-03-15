@@ -45,7 +45,9 @@ class DragDropExerciseViewModel(
                         val raw = exercise.configJson
                         if (raw.isBlank() || raw == "null") null
                         else json.decodeFromString<DragDropConfig>(raw)
-                    }.getOrNull()
+                    }.getOrNull()?.let { c ->
+                        c.copy(items = c.items.shuffled())
+                    }
                     setState {
                         copy(
                             isLoading = false,

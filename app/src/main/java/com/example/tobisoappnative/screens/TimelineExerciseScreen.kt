@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,6 +21,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.tobisoappnative.PointsManager
+import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import com.example.tobisoappnative.viewmodel.timeline.TimelineExerciseIntent
 import com.example.tobisoappnative.viewmodel.timeline.TimelineExerciseViewModel
 import com.halilibo.richtext.commonmark.Markdown
@@ -35,10 +38,37 @@ fun TimelineExerciseScreen(
     val vm: TimelineExerciseViewModel = viewModel(factory = TimelineExerciseViewModel.Factory(application))
     val state by vm.uiState.collectAsState()
 
+    val context = LocalContext.current
+    val totalPoints by PointsManager.totalPoints.collectAsState()
+    var pointsAwarded by rememberSaveable { mutableStateOf(false) }
+    var showPointsOverlay by rememberSaveable { mutableStateOf(false) }
+    var awardedPoints by rememberSaveable { mutableStateOf(0) }
+
+    LaunchedEffect(state.showResult) {
+        if (state.showResult && !pointsAwarded) {
+            val score = state.validationResult?.score ?: 0
+            if (score > 0) {
+                val points = score / 10
+                PointsManager.addPoints(context, points)
+                awardedPoints = points
+                pointsAwarded = true
+                showPointsOverlay = true
+            }
+        }
+    }
+
+    LaunchedEffect(showPointsOverlay) {
+        if (showPointsOverlay) {
+            kotlinx.coroutines.delay(2500)
+            showPointsOverlay = false
+        }
+    }
+
     LaunchedEffect(exerciseId) {
         vm.onIntent(TimelineExerciseIntent.Load(exerciseId))
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -340,7 +370,7 @@ fun TimelineExerciseScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Skóre: ${state.validationResult?.score ?: 0}",
+                            text = "Skóre: ${state.validationResult?.score ?: 0}%",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         state.validationResult?.feedback?.let { feedback ->
@@ -362,4 +392,12 @@ fun TimelineExerciseScreen(
             }
         }
     }
+
+    if (showPointsOverlay && awardedPoints > 0) {
+        FullScreenPointsOverlay(
+            points = awardedPoints,
+            totalPoints = totalPoints
+        )
+    }
+    } // Box
 }

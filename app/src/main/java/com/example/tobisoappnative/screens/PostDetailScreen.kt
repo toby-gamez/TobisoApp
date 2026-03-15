@@ -1004,7 +1004,7 @@ fun PostDetailScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             // Placeholder spacer to prevent content being hidden behind sticky bar
-                            if (hasQuestions || questions.isNotEmpty() || hasExercises || exercisesLoading || exercises.isNotEmpty() || exercisesError != null) {
+                            if (loaded && (hasQuestions || questions.isNotEmpty() || hasExercises || exercisesLoading || exercises.isNotEmpty() || exercisesError != null)) {
                                 Spacer(modifier = Modifier.height(64.dp))
                             }
 
@@ -1244,7 +1244,8 @@ fun PostDetailScreen(
         }
 
         // Sticky bottom action bar — Prověrka + Cvičení
-        val showActionsBar = hasQuestions || questions.isNotEmpty() || exercisesLoading || exercises.isNotEmpty() || exercisesError != null
+        // Nezobrazujeme bar dokud se nedokončí úvodní načítání (loaded=true), aby neprobliknul
+        val showActionsBar = loaded && (hasQuestions || questions.isNotEmpty() || exercisesLoading || exercises.isNotEmpty() || exercisesError != null)
         if (showActionsBar) {
             Surface(
                 tonalElevation = 6.dp,

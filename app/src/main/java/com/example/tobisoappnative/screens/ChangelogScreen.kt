@@ -68,7 +68,10 @@ fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
         VersionInfo("2.8", listOf(
             "opraveno načítání prověrek a cvičení",
-            "kompletní implementace kontroly cvičení"
+            "kompletní implementace kontroly cvičení",
+            "opraveny bugy a zrychlena aplikace",
+            "modernější práce s daty aplikace",
+            "integrace cvičení do systému bodů",
         )),
         VersionInfo("2.7", listOf(
             "přidána podpora pro obrázky z nového serveru",

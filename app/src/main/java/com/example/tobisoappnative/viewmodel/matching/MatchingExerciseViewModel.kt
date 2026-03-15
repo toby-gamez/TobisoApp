@@ -53,7 +53,9 @@ class MatchingExerciseViewModel(
                         val raw = exercise.configJson
                         if (raw.isBlank() || raw == "null") null
                         else json.decodeFromString<MatchingConfig>(raw)
-                    }.getOrNull()
+                    }.getOrNull()?.let { c ->
+                        c.copy(right = c.right.shuffled())
+                    }
                     setState {
                         copy(
                             isLoading = false,
