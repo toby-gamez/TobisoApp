@@ -653,6 +653,14 @@ fun PostDetailScreen(
         hasExercises = exercises.isNotEmpty()
     }
 
+    // Re-načteme související články jakmile je postDetail dostupný,
+    // protože první volání loadRelatedPosts proběhlo před načtením postDetail/posts.
+    LaunchedEffect(postDetail?.id) {
+        if (postDetail != null && postDetail!!.id == postId) {
+            vm.loadRelatedPosts(postId)
+        }
+    }
+
     var showFloatingSelectButton by remember { mutableStateOf(false) }
     
     // Scroll behavior pro nested scrolling
@@ -997,7 +1005,6 @@ fun PostDetailScreen(
                                                 }
                                             }
                                         }
-                                        }
                                     }
                                 }
                             }
@@ -1131,31 +1138,31 @@ fun PostDetailScreen(
                                         )
                                         
                                         relatedPosts.forEach { relatedPost ->
-                                            val relatedPostData = posts.find { it.id == relatedPost.relatedPostId }
-                                            if (relatedPostData != null) {
-                                                Card(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(vertical = 4.dp),
-                                                    onClick = {
-                                                        navController.navigate("postDetail/${relatedPost.relatedPostId}")
-                                                    }
+                                            val title = posts.find { it.id == relatedPost.relatedPostId }?.title
+                                                ?: relatedPost.relatedPostTitle
+                                                ?: return@forEach
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
+                                                onClick = {
+                                                    navController.navigate("postDetail/${relatedPost.relatedPostId}")
+                                                }
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.padding(12.dp)
                                                 ) {
-                                                    Column(
-                                                        modifier = Modifier.padding(12.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = relatedPostData.title,
-                                                            style = MaterialTheme.typography.titleSmall,
-                                                            color = MaterialTheme.colorScheme.onSurface
-                                                        )
-                                                        Spacer(modifier = Modifier.height(4.dp))
-                                                        Text(
-                                                            text = relatedPost.text,
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
+                                                    Text(
+                                                        text = title,
+                                                        style = MaterialTheme.typography.titleSmall,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = relatedPost.text,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
                                                 }
                                             }
                                         }
@@ -1211,6 +1218,7 @@ fun PostDetailScreen(
                     }
                 }
             }
+        }
             // Long-press now only shows floating button; plain-text navigation is handled by the FAB.
             // Floating select button (levitující) — zobrazuje se po podržení
             androidx.compose.animation.AnimatedVisibility(
