@@ -1,93 +1,48 @@
 package com.example.tobisoappnative.screens
 
+import android.app.Application
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.timeline.TimelineExerciseIntent
+import com.example.tobisoappnative.viewmodel.timeline.TimelineExerciseViewModel
 import com.halilibo.richtext.commonmark.Markdown
 import com.halilibo.richtext.ui.material3.RichText
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import androidx.compose.foundation.border
-
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.Color
-import com.example.tobisoappnative.model.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineExerciseScreen(
     exerciseId: Int,
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val currentExercise by viewModel.currentExercise.collectAsState()
-    val exerciseLoading by viewModel.exercisesLoading.collectAsState()
-    val validationResult by viewModel.validationResult.collectAsState()
-    val validationLoading by viewModel.validationLoading.collectAsState()
-    val isOffline by viewModel.isOffline.collectAsState()
-
-    val json = remember {
-        Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            coerceInputValues = true
-        }
-    }
-
-    var timelineConfig by remember { mutableStateOf<TimelineConfig?>(null) }
-    var orderedEvents by remember { mutableStateOf<List<String>>(emptyList()) }
-    var availableEvents by remember { mutableStateOf<List<TimelineEvent>>(emptyList()) }
-    var showResult by remember { mutableStateOf(false) }
-    var parseError by remember { mutableStateOf<String?>(null) }
-    val slotYears = remember(timelineConfig) {
-        timelineConfig?.events?.mapNotNull { it.year }?.sorted() ?: emptyList()
-    }
+    val application = LocalContext.current.applicationContext as Application
+    val vm: TimelineExerciseViewModel = viewModel(factory = TimelineExerciseViewModel.Factory(application))
+    val state by vm.uiState.collectAsState()
 
     LaunchedEffect(exerciseId) {
-        viewModel.loadExercise(exerciseId)
-    }
-
-    LaunchedEffect(currentExercise) {
-        currentExercise?.let { exercise ->
-            timelineConfig = null
-            parseError = null
-            try {
-                val raw = exercise.configJson
-                if (raw.isBlank() || raw == "null") {
-                    parseError = "Konfigurace cvičení je prázdná"
-                    return@let
-                }
-
-                val config = json.decodeFromString<TimelineConfig>(raw)
-                timelineConfig = config
-                availableEvents = config.events
-                orderedEvents = emptyList()
-            } catch (e: Exception) {
-                android.util.Log.e("TimelineExercise", "Error parsing config", e)
-                parseError = e.message ?: "Neznámá chyba při parsování konfigurace"
-            }
-        }
+        vm.onIntent(TimelineExerciseIntent.Load(exerciseId))
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(currentExercise?.title ?: "Timeline cvičení") },
+                title = { Text(state.exerciseTitle.ifEmpty { "Timeline cvičení" }) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -102,7 +57,7 @@ fun TimelineExerciseScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            if (exerciseLoading && currentExercise == null) {
+            if (state.isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -113,7 +68,7 @@ fun TimelineExerciseScreen(
                 }
             }
 
-            if (isOffline) {
+            if (state.isOffline) {
                 Text(
                     text = "Offline režim: cvičení lze vyplnit, ale kontrola vyžaduje internet.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -122,7 +77,7 @@ fun TimelineExerciseScreen(
                 )
             }
 
-            if (!parseError.isNullOrBlank()) {
+            if (!state.error.isNullOrBlank()) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -139,37 +94,16 @@ fun TimelineExerciseScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = parseError ?: "",
+                            text = state.error ?: "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
-
-                        currentExercise?.type?.let { t ->
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Typ: $t",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-
-                        currentExercise?.configJson?.let { raw ->
-                            val preview = raw.take(220)
-                            if (preview.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = "Config (začátek): $preview",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
                     }
                 }
             }
 
             // Instrukce
-            currentExercise?.instructionsMarkdown?.let { instructions ->
+            state.instructionsMarkdown?.let { instructions ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -184,7 +118,7 @@ fun TimelineExerciseScreen(
             }
 
             // Časová osa (vizualizace rozsahu let)
-            timelineConfig?.let { config ->
+            state.config?.let { config ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -196,10 +130,9 @@ fun TimelineExerciseScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        // Jednoduchá vizuální linie + kolečka podle letopočtů
                         val timeRange = (config.timeRange.end - config.timeRange.start).coerceAtLeast(1)
-                        val assignedSlotYears = orderedEvents.mapIndexedNotNull { index, _ ->
-                            slotYears.getOrNull(index)
+                        val assignedSlotYears = state.orderedEvents.mapIndexedNotNull { index, _ ->
+                            state.slotYears.getOrNull(index)
                         }
 
                         BoxWithConstraints(
@@ -278,18 +211,19 @@ fun TimelineExerciseScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(slotYears.size) { index ->
-                            val year = slotYears[index]
-                            val eventId = orderedEvents.getOrNull(index)
-                            val event = eventId?.let { id -> availableEvents.find { it.id == id } }
+                        items(state.slotYears.size) { index ->
+                            val year = state.slotYears[index]
+                            val eventId = state.orderedEvents.getOrNull(index)
+                            val event = eventId?.let { id -> state.config?.events?.find { it.id == id } }
                             val isAssigned = event != null
                             if (isAssigned) {
                                 OutlinedCard(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            orderedEvents = orderedEvents.filter { id -> id != eventId }
-                                            showResult = false
+                                            if (eventId != null) {
+                                                vm.onIntent(TimelineExerciseIntent.RemoveEvent(eventId))
+                                            }
                                         }
                                 ) {
                                     Row(
@@ -348,16 +282,12 @@ fun TimelineExerciseScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(availableEvents.filter { !orderedEvents.contains(it.id) }) { event ->
+                        items(state.availableEvents.filter { !state.orderedEvents.contains(it.id) }) { event ->
                             OutlinedCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        // Přidat do orderedEvents (přiřadí se do dalšího volného roku)
-                                        if (orderedEvents.size < slotYears.size) {
-                                            orderedEvents = orderedEvents + event.id
-                                            showResult = false
-                                        }
+                                        vm.onIntent(TimelineExerciseIntent.AddEvent(event.id))
                                     }
                             ) {
                                 Text(
@@ -373,24 +303,13 @@ fun TimelineExerciseScreen(
 
             // Tlačítko kontroly
             Button(
-                onClick = {
-                    if (orderedEvents.isNotEmpty()) {
-                        val solution = TimelineSolution(orderedEvents)
-                        val solutionJson = json.encodeToString(solution)
-                        viewModel.validateExercise(
-                            exerciseId = exerciseId,
-                            userSolutionJson = solutionJson,
-                            onSuccess = { showResult = true },
-                            onError = { showResult = true }
-                        )
-                    }
-                },
+                onClick = { vm.onIntent(TimelineExerciseIntent.Validate(exerciseId)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                enabled = orderedEvents.isNotEmpty() && !validationLoading && !isOffline
+                enabled = state.orderedEvents.isNotEmpty() && !state.isValidating && !state.isOffline
             ) {
-                if (validationLoading) {
+                if (state.isValidating) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp
@@ -401,8 +320,8 @@ fun TimelineExerciseScreen(
             }
 
             // Výsledek validace
-            if (showResult && validationResult != null) {
-                val isCorrect = validationResult?.isCorrect == true
+            if (state.showResult && state.validationResult != null) {
+                val isCorrect = state.validationResult?.isCorrect == true
                 val successContainer = Color(0xFFE8F5E9)
                 val onSuccessContainer = Color(0xFF1B5E20)
                 Card(
@@ -421,17 +340,17 @@ fun TimelineExerciseScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Skóre: ${validationResult?.score ?: 0}",
+                            text = "Skóre: ${state.validationResult?.score ?: 0}",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        validationResult?.feedback?.let { feedback ->
+                        state.validationResult?.feedback?.let { feedback ->
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = feedback,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        validationResult?.explanation?.let { explanation ->
+                        state.validationResult?.explanation?.let { explanation ->
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = explanation,

@@ -12,9 +12,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import android.app.Application
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.dragdrop.DragDropExerciseIntent
+import com.example.tobisoappnative.viewmodel.dragdrop.DragDropExerciseViewModel
 import com.halilibo.richtext.commonmark.Markdown
 import com.halilibo.richtext.ui.material3.RichText
 import kotlinx.serialization.decodeFromString
@@ -28,58 +31,20 @@ import com.example.tobisoappnative.model.*
 @Composable
 fun DragDropExerciseScreen(
     exerciseId: Int,
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val currentExercise by viewModel.currentExercise.collectAsState()
-    val exerciseLoading by viewModel.exercisesLoading.collectAsState()
-    val validationResult by viewModel.validationResult.collectAsState()
-    val validationLoading by viewModel.validationLoading.collectAsState()
-    val isOffline by viewModel.isOffline.collectAsState()
-
-    val json = remember {
-        Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            coerceInputValues = true
-        }
-    }
-
-    var dragDropConfig by remember { mutableStateOf<DragDropConfig?>(null) }
-    var placements by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    var selectedItem by remember { mutableStateOf<String?>(null) }
-    var showResult by remember { mutableStateOf(false) }
-    var parseError by remember { mutableStateOf<String?>(null) }
+    val application = LocalContext.current.applicationContext as Application
+    val vm: DragDropExerciseViewModel = viewModel(factory = DragDropExerciseViewModel.Factory(application))
+    val state by vm.uiState.collectAsState()
 
     LaunchedEffect(exerciseId) {
-        viewModel.loadExercise(exerciseId)
-    }
-
-    LaunchedEffect(currentExercise) {
-        currentExercise?.let { exercise ->
-            dragDropConfig = null
-            parseError = null
-            try {
-                val raw = exercise.configJson
-                if (raw.isBlank() || raw == "null") {
-                    parseError = "Konfigurace cvičení je prázdná"
-                    return@let
-                }
-
-                val config = json.decodeFromString<DragDropConfig>(raw)
-                dragDropConfig = config
-                placements = emptyMap()
-            } catch (e: Exception) {
-                android.util.Log.e("DragDropExercise", "Error parsing config", e)
-                parseError = e.message ?: "Neznámá chyba při parsování konfigurace"
-            }
-        }
+        vm.onIntent(DragDropExerciseIntent.Load(exerciseId))
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(currentExercise?.title ?: "Drag & Drop cvičení") },
+                title = { Text(state.exerciseTitle.ifEmpty { "Drag & Drop cvičení" }) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -94,7 +59,7 @@ fun DragDropExerciseScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            if (exerciseLoading && currentExercise == null) {
+            if (state.isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -105,7 +70,7 @@ fun DragDropExerciseScreen(
                 }
             }
 
-            if (isOffline) {
+            if (state.isOffline) {
                 Text(
                     text = "Offline režim: cvičení lze vyplnit, ale kontrola vyžaduje internet.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -114,7 +79,7 @@ fun DragDropExerciseScreen(
                 )
             }
 
-            if (!parseError.isNullOrBlank()) {
+            if (!state.error.isNullOrBlank()) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -131,37 +96,16 @@ fun DragDropExerciseScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = parseError ?: "",
+                            text = state.error ?: "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
-
-                        currentExercise?.type?.let { t ->
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Typ: $t",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-
-                        currentExercise?.configJson?.let { raw ->
-                            val preview = raw.take(220)
-                            if (preview.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = "Config (začátek): $preview",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
                     }
                 }
             }
 
             // Instrukce
-            currentExercise?.instructionsMarkdown?.let { instructions ->
+            state.instructionsMarkdown?.let { instructions ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -176,7 +120,7 @@ fun DragDropExerciseScreen(
             }
 
             // Kategorie (koše)
-            dragDropConfig?.let { config ->
+            state.config?.let { config ->
                 Text(
                     "Kategorie:",
                     style = MaterialTheme.typography.titleMedium,
@@ -194,15 +138,10 @@ fun DragDropExerciseScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    // Pokud je vybraná položka, přiřaď ji do této kategorie
-                                    selectedItem?.let { itemId ->
-                                        placements = placements + (itemId to category.id)
-                                        selectedItem = null
-                                        showResult = false
-                                    }
+                                    vm.onIntent(DragDropExerciseIntent.PlaceInCategory(category.id))
                                 },
                             colors = CardDefaults.cardColors(
-                                containerColor = if (selectedItem != null)
+                                containerColor = if (state.selectedItem != null)
                                     MaterialTheme.colorScheme.primaryContainer
                                 else
                                     MaterialTheme.colorScheme.surface
@@ -216,7 +155,7 @@ fun DragDropExerciseScreen(
                                 )
                                 
                                 // Položky v této kategorii
-                                val itemsInCategory = placements.filter { it.value == category.id }
+                                val itemsInCategory = state.placements.filter { it.value == category.id }
                                 if (itemsInCategory.isEmpty()) {
                                     Text(
                                         "Prázdné",
@@ -227,7 +166,7 @@ fun DragDropExerciseScreen(
                                     itemsInCategory.forEach { (itemId, _) ->
                                         val item = config.items.find { it.id == itemId }
                                         item?.let {
-                                            val itemResult = if (showResult) validationResult?.detailedResults?.get(itemId) else null
+                                            val itemResult = if (state.showResult) state.validationResult?.detailedResults?.get(itemId) else null
                                             val cardColor = when (itemResult) {
                                                 true -> Color(0xFFE8F5E9)
                                                 false -> MaterialTheme.colorScheme.errorContainer
@@ -238,9 +177,7 @@ fun DragDropExerciseScreen(
                                                     .fillMaxWidth()
                                                     .padding(vertical = 4.dp)
                                                     .clickable {
-                                                        if (!showResult) {
-                                                            placements = placements - itemId
-                                                        }
+                                                        vm.onIntent(DragDropExerciseIntent.RemoveFromCategory(itemId))
                                                     },
                                                 colors = CardDefaults.outlinedCardColors(
                                                     containerColor = cardColor
@@ -275,15 +212,15 @@ fun DragDropExerciseScreen(
                         .weight(0.6f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(config.items.filter { !placements.containsKey(it.id) }) { item ->
+                    items(config.items.filter { !state.placements.containsKey(it.id) }) { item ->
                         OutlinedCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    selectedItem = if (selectedItem == item.id) null else item.id
+                                    vm.onIntent(DragDropExerciseIntent.SelectItem(item.id))
                                 },
                             colors = CardDefaults.outlinedCardColors(
-                                containerColor = if (selectedItem == item.id)
+                                containerColor = if (state.selectedItem == item.id)
                                     MaterialTheme.colorScheme.secondaryContainer
                                 else
                                     MaterialTheme.colorScheme.surface
@@ -303,24 +240,13 @@ fun DragDropExerciseScreen(
 
             // Tlačítko kontroly
             Button(
-                onClick = {
-                    if (placements.isNotEmpty()) {
-                        val solution = DragDropSolution(placements)
-                        val solutionJson = json.encodeToString(solution)
-                        viewModel.validateExercise(
-                            exerciseId = exerciseId,
-                            userSolutionJson = solutionJson,
-                            onSuccess = { showResult = true },
-                            onError = { showResult = true }
-                        )
-                    }
-                },
+                onClick = { vm.onIntent(DragDropExerciseIntent.Validate(exerciseId)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                enabled = placements.isNotEmpty() && !validationLoading && !isOffline
+                enabled = state.placements.isNotEmpty() && !state.isValidating && !state.isOffline
             ) {
-                if (validationLoading) {
+                if (state.isValidating) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp
@@ -331,8 +257,8 @@ fun DragDropExerciseScreen(
             }
 
             // Výsledek validace
-            if (showResult && validationResult != null) {
-                val isCorrect = validationResult?.isCorrect == true
+            if (state.showResult && state.validationResult != null) {
+                val isCorrect = state.validationResult?.isCorrect == true
                 val successContainer = Color(0xFFE8F5E9)
                 val onSuccessContainer = Color(0xFF1B5E20)
                 Card(
@@ -351,17 +277,17 @@ fun DragDropExerciseScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Skóre: ${validationResult?.score ?: 0}",
+                            text = "Skóre: ${state.validationResult?.score ?: 0}",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        validationResult?.feedback?.let { feedback ->
+                        state.validationResult?.feedback?.let { feedback ->
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = feedback,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        validationResult?.explanation?.let { explanation ->
+                        state.validationResult?.explanation?.let { explanation ->
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = explanation,

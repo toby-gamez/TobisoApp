@@ -676,8 +676,7 @@ class MainActivity : ComponentActivity() {
                                     if (postId != null) {
                                         com.example.tobisoappnative.screens.PostDetailScreen(
                                             postId = postId,
-                                            navController = navController,
-                                            viewModel = mainViewModel
+                                            navController = navController
                                         )
                                     } else {
                                         Text(
@@ -718,8 +717,7 @@ class MainActivity : ComponentActivity() {
                                     if (exerciseId != null) {
                                         com.example.tobisoappnative.screens.TimelineExerciseScreen(
                                             exerciseId = exerciseId,
-                                            navController = navController,
-                                            viewModel = mainViewModel
+                                            navController = navController
                                         )
                                     } else {
                                         Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
@@ -756,8 +754,7 @@ class MainActivity : ComponentActivity() {
                                     if (exerciseId != null) {
                                         com.example.tobisoappnative.screens.DragDropExerciseScreen(
                                             exerciseId = exerciseId,
-                                            navController = navController,
-                                            viewModel = mainViewModel
+                                            navController = navController
                                         )
                                     } else {
                                         Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
@@ -794,8 +791,7 @@ class MainActivity : ComponentActivity() {
                                     if (exerciseId != null) {
                                         com.example.tobisoappnative.screens.MatchingExerciseScreen(
                                             exerciseId = exerciseId,
-                                            navController = navController,
-                                            viewModel = mainViewModel
+                                            navController = navController
                                         )
                                     } else {
                                         Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
@@ -832,8 +828,7 @@ class MainActivity : ComponentActivity() {
                                     if (exerciseId != null) {
                                         com.example.tobisoappnative.screens.CircuitExerciseScreen(
                                             exerciseId = exerciseId,
-                                            navController = navController,
-                                            viewModel = mainViewModel
+                                            navController = navController
                                         )
                                     } else {
                                         Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
@@ -871,8 +866,7 @@ class MainActivity : ComponentActivity() {
                                     if (postId != null) {
                                         com.example.tobisoappnative.screens.PlainTextScreen(
                                             postId = postId,
-                                            navController = navController,
-                                            viewModel = mainViewModel
+                                            navController = navController
                                         )
                                     } else {
                                         Text(

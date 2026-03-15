@@ -13,9 +13,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import android.app.Application
 import com.example.tobisoappnative.model.Category
-import com.example.tobisoappnative.viewmodel.MainViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -29,22 +30,25 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.TimeZone
 import com.example.tobisoappnative.components.FloatingSearchBar
+import com.example.tobisoappnative.viewmodel.categorylist.CategoryListViewModel
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun CategoryListScreen(
     parentCategoryName: String,
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val categories by viewModel.categories.collectAsState()
-    val categoryError by viewModel.categoryError.collectAsState()
-    val categoryLoading by viewModel.categoryLoading.collectAsState()
-    val posts by viewModel.posts.collectAsState()
-    val postError by viewModel.postError.collectAsState()
-    val postLoading by viewModel.postLoading.collectAsState()
-    val favoritePosts by viewModel.favoritePosts.collectAsState()
-    LaunchedEffect(Unit) { viewModel.loadCategories() }
+    val application = LocalContext.current.applicationContext as Application
+    val vm: CategoryListViewModel = viewModel(factory = CategoryListViewModel.Factory(application))
+    val state by vm.state.collectAsState()
+    val favoritePosts by vm.favoritePosts.collectAsState()
+    val categories = state.categories
+    val categoryError = state.error
+    val categoryLoading = state.isLoading
+    val posts = state.posts
+    val postError = state.error
+    val postLoading = state.isLoading
+    LaunchedEffect(Unit) { vm.loadCategories() }
 
     val parentCategory = categories.find { it.name == parentCategoryName }
     val filteredCategories = parentCategory?.let { parent ->
@@ -55,7 +59,7 @@ fun CategoryListScreen(
 
     // Načtení postů při změně parentCategory
     LaunchedEffect(parentCategory?.id) {
-        parentCategory?.id?.let { viewModel.loadPosts(it) }
+        parentCategory?.id?.let { vm.loadPosts(it) }
     }
 
     val configuration = LocalConfiguration.current
@@ -204,7 +208,7 @@ fun CategoryListScreen(
                                 }
                                 val isFavorite = favoritePosts.any { it.id == post.id }
                                 IconButton(onClick = {
-                                    if (isFavorite) viewModel.unsavePost(post.id) else viewModel.savePost(post)
+                                    if (isFavorite) vm.unsavePost(post.id) else vm.savePost(post)
                                 }) {
                                     Icon(
                                         imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.Star,

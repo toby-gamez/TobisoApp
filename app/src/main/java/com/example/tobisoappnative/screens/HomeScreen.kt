@@ -28,8 +28,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.app.Application
 import androidx.compose.foundation.isSystemInDarkTheme
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.home.HomeViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -266,28 +267,29 @@ fun HomeScreen(navController: NavHostController) {
         Subject("Zeměpis", Icons.Default.Public, SubjectColorType.SURFACE_VARIANT, "Vše o povrchu, obyvatelstvu, hospodářství a ochraně přírody ČR"),
     )
     val context = LocalContext.current
+    val application = context.applicationContext as Application
     val columnCount = getColumnCount()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyGridState()
-    val viewModel: MainViewModel = viewModel()
+    val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application))
     var sortMode by remember { mutableStateOf(loadSortMode(context)) }
     var dropdownExpanded by remember { mutableStateOf(false) }
-    val posts by viewModel.posts.collectAsState()
-    val categories by viewModel.categories.collectAsState()
+    val posts by vm.posts.collectAsState()
+    val categories by vm.categories.collectAsState()
     var selectedSubjectId by remember { mutableStateOf<Int?>(null) }
     
     LaunchedEffect(Unit) { 
-        viewModel.loadCategories()
-        viewModel.loadPosts()
+        vm.loadCategories()
+        vm.loadPosts()
         BackpackManager.init(context)
         IconPackManager.init(context)
     }
     
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
-    val offlineDownloading by viewModel.offlineDownloading.collectAsState()
-    val offlineProgress by viewModel.offlineDownloadProgress.collectAsState()
-    val toastMessage by viewModel.toastMessage.collectAsState()
+    val offlineDownloading by vm.offlineDownloading.collectAsState()
+    val offlineProgress by vm.offlineDownloadProgress.collectAsState()
+    val toastMessage by vm.toastMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -534,7 +536,7 @@ fun HomeScreen(navController: NavHostController) {
         ) {
             toastMessage?.let { msg ->
                 snackbarHostState.showSnackbar(msg)
-                viewModel.clearToast()
+                vm.clearToast()
             }
         }
 

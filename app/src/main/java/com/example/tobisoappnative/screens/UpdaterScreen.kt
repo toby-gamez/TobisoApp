@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.tobisoappnative.utils.NetworkUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -36,8 +37,7 @@ data class ReleaseInfo(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdaterScreen(
-    navController: NavController,
-    mainViewModel: com.example.tobisoappnative.viewmodel.MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    navController: NavController
 ) {
     val context = LocalContext.current
     val packageInfo = remember {
@@ -52,9 +52,10 @@ fun UpdaterScreen(
     var releaseInfo by remember { mutableStateOf<ReleaseInfo?>(null) }
     var isUpToDate by remember { mutableStateOf<Boolean?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
-    val isOfflineMode by mainViewModel.isOffline.collectAsState()
+    var isOfflineMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        isOfflineMode = !NetworkUtils.isOnline(context)
         if (!isOfflineMode) {
             try {
                 val info = fetchLatestVersionFromGithub()

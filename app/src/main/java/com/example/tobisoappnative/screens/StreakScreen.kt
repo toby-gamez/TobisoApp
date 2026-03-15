@@ -27,9 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.tobisoappnative.viewmodel.MainViewModel
 import com.example.tobisoappnative.StreakFreezeManager
 import com.example.tobisoappnative.utils.StreakUtils
 import java.text.SimpleDateFormat
@@ -41,8 +39,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StreakScreen(
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current

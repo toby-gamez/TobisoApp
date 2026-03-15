@@ -11,32 +11,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tobisoappnative.viewmodel.MainViewModel
-import com.example.tobisoappnative.model.Post
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Whatshot
-import androidx.compose.material.icons.outlined.ShoppingBag
-import androidx.compose.material.icons.filled.Stars
-import androidx.compose.material.icons.filled.Work
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.font.FontWeight
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import com.example.tobisoappnative.PointsManager
-import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
-import com.example.tobisoappnative.components.MultiplierIndicator
-import com.example.tobisoappnative.BackpackManager
-import androidx.compose.material.icons.filled.FormatQuote
-import kotlinx.coroutines.delay
+import android.app.Application
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.material.icons.outlined.ShoppingBag
+import com.example.tobisoappnative.viewmodel.profile.ProfileViewModel
+import com.example.tobisoappnative.model.Post
 import androidx.compose.material.icons.outlined.Backpack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
@@ -127,18 +108,20 @@ fun getCurrentStreakProfile(context: android.content.Context): Int {
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewModel()) {
+fun ProfileScreen(navController: NavController) {
+    val application = LocalContext.current.applicationContext as Application
+    val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.Factory(application))
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val postsState = viewModel.posts.collectAsState()
+    val postsState = vm.posts.collectAsState()
     val posts: List<Post> = postsState.value
-    val postLoading by viewModel.postLoading.collectAsState()
+    val postLoading by vm.postLoading.collectAsState()
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
     val otherCategoryId = 42
     val filteredPosts = posts.filter { it.categoryId == otherCategoryId }
 
     LaunchedEffect(Unit) {
-        viewModel.loadPosts(otherCategoryId)
+        vm.loadPosts(otherCategoryId)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -240,8 +223,8 @@ fun ProfileScreen(navController: NavController, viewModel: MainViewModel = viewM
                         )
                     }
                     // Offline download progress indicator (small circle)
-                    val offlineDownloading by viewModel.offlineDownloading.collectAsState()
-                    val offlineProgress by viewModel.offlineDownloadProgress.collectAsState()
+                    val offlineDownloading by vm.offlineDownloading.collectAsState()
+                    val offlineProgress by vm.offlineDownloadProgress.collectAsState()
                     if (offlineDownloading) {
                         Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(

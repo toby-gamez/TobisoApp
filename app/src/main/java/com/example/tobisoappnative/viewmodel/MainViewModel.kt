@@ -25,12 +25,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.map
+import com.example.tobisoappnative.data.savedPostsDataStore
 import com.example.tobisoappnative.tts.TtsManager
 import kotlinx.coroutines.withContext
-
-private val Context.dataStore by preferencesDataStore(name = "saved_posts")
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
@@ -140,7 +138,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var isFirstLoad = true
     
     private val offlineDataManager = OfflineDataManager(application)
-    private val dataStore = application.dataStore
+    private val dataStore = application.savedPostsDataStore
     private val FAVORITE_POSTS_KEY = stringSetPreferencesKey("favorite_posts_json")
     private val gson = Gson()
     

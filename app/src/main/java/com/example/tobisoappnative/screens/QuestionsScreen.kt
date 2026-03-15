@@ -24,9 +24,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
+import android.app.Application
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.questions.QuestionsViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
@@ -40,13 +41,14 @@ import com.example.tobisoappnative.utils.normalizeText
 @Composable
 fun QuestionsScreen(
     postId: Int,
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val questions by viewModel.questions.collectAsState()
-    val questionsError by viewModel.questionsError.collectAsState()
-    val questionsLoading by viewModel.questionsLoading.collectAsState()
-    val postDetail by viewModel.postDetail.collectAsState()
+    val application = LocalContext.current.applicationContext as Application
+    val vm: QuestionsViewModel = viewModel(factory = QuestionsViewModel.Factory(application))
+    val questions by vm.questions.collectAsState()
+    val questionsError by vm.questionsError.collectAsState()
+    val questionsLoading by vm.questionsLoading.collectAsState()
+    val postDetail by vm.postDetail.collectAsState()
     
     var isRefreshing by rememberSaveable { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
@@ -69,16 +71,16 @@ fun QuestionsScreen(
     
     
     // Načtení dat při startu (nyní funguje v online i offline režimu)
-    val isOffline by viewModel.isOffline.collectAsState()
+    val isOffline by vm.isOffline.collectAsState()
     LaunchedEffect(postId, isOffline) {
-        viewModel.loadPostDetail(postId)
-        viewModel.loadQuestions(postId)
+        vm.loadPostDetail(postId)
+        vm.loadQuestions(postId)
     }
     
     // Vyčištění stavu při opuštění obrazovky
     DisposableEffect(Unit) {
         onDispose {
-            viewModel.clearQuestions()
+            vm.clearQuestions()
         }
     }
     
@@ -133,7 +135,7 @@ fun QuestionsScreen(
                 if (!isOffline) {
                     isRefreshing = true
                     coroutineScope.launch {
-                        viewModel.loadQuestions(postId)
+                        vm.loadQuestions(postId)
                         isRefreshing = false
                     }
                 } else {

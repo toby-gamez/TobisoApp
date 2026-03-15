@@ -1,5 +1,6 @@
 package com.example.tobisoappnative.screens
 
+import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,86 +10,55 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.matching.MatchingExerciseIntent
+import com.example.tobisoappnative.viewmodel.matching.MatchingExerciseEffect
+import com.example.tobisoappnative.viewmodel.matching.MatchingExerciseViewModel
 import com.halilibo.richtext.commonmark.Markdown
 import com.halilibo.richtext.ui.material3.RichText
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Color
 import com.example.tobisoappnative.model.*
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchingExerciseScreen(
     exerciseId: Int,
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val currentExercise by viewModel.currentExercise.collectAsState()
-    val exerciseLoading by viewModel.exercisesLoading.collectAsState()
-    val validationResult by viewModel.validationResult.collectAsState()
-    val validationLoading by viewModel.validationLoading.collectAsState()
-    val isOffline by viewModel.isOffline.collectAsState()
+    val application = LocalContext.current.applicationContext as Application
+    val vm: MatchingExerciseViewModel = viewModel(
+        factory = MatchingExerciseViewModel.Factory(application)
+    )
+    val state by vm.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    val json = remember {
-        Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            coerceInputValues = true
-        }
-    }
-
-    var matchingConfig by remember { mutableStateOf<MatchingConfig?>(null) }
-    var pairs by remember { mutableStateOf<List<MatchingPair>>(emptyList()) }
-    var selectedLeft by remember { mutableStateOf<String?>(null) }
-    var selectedRight by remember { mutableStateOf<String?>(null) }
-    var showResult by remember { mutableStateOf(false) }
-    var parseError by remember { mutableStateOf<String?>(null) }
-
+    // Load exercise on first composition
     LaunchedEffect(exerciseId) {
-        viewModel.loadExercise(exerciseId)
+        vm.onIntent(MatchingExerciseIntent.Load(exerciseId))
     }
 
-    LaunchedEffect(currentExercise) {
-        currentExercise?.let { exercise ->
-            matchingConfig = null
-            parseError = null
-            try {
-                val raw = exercise.configJson
-                if (raw.isBlank() || raw == "null") {
-                    parseError = "Konfigurace cvičení je prázdná"
-                    return@let
-                }
-
-                val config = json.decodeFromString<MatchingConfig>(raw)
-                matchingConfig = config
-                pairs = emptyList()
-            } catch (e: Exception) {
-                android.util.Log.e("MatchingExercise", "Error parsing config", e)
-                parseError = e.message ?: "Neznámá chyba při parsování konfigurace"
+    // Collect one-shot effects
+    LaunchedEffect(Unit) {
+        vm.effect.collectLatest { effect ->
+            when (effect) {
+                is MatchingExerciseEffect.ShowSnackbar ->
+                    snackbarHostState.showSnackbar(effect.message)
+                MatchingExerciseEffect.NavigateBack ->
+                    navController.popBackStack()
             }
         }
     }
 
-    // Pomocná funkce pro vytvoření páru
-    fun tryCreatePair() {
-        if (selectedLeft != null && selectedRight != null) {
-            pairs = pairs + MatchingPair(selectedLeft!!, selectedRight!!)
-            selectedLeft = null
-            selectedRight = null
-            showResult = false
-        }
-    }
-
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(currentExercise?.title ?: "Matching cvičení") },
+                title = { Text(state.exerciseTitle.ifBlank { "Matching cvičení" }) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -103,7 +73,7 @@ fun MatchingExerciseScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            if (exerciseLoading && currentExercise == null) {
+            if (state.isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -114,7 +84,7 @@ fun MatchingExerciseScreen(
                 }
             }
 
-            if (isOffline) {
+            if (state.isOffline) {
                 Text(
                     text = "Offline režim: cvičení lze vyplnit, ale kontrola vyžaduje internet.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -123,7 +93,7 @@ fun MatchingExerciseScreen(
                 )
             }
 
-            if (!parseError.isNullOrBlank()) {
+            if (!state.error.isNullOrBlank()) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -140,37 +110,16 @@ fun MatchingExerciseScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = parseError ?: "",
+                            text = state.error ?: "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
-
-                        currentExercise?.type?.let { t ->
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Typ: $t",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-
-                        currentExercise?.configJson?.let { raw ->
-                            val preview = raw.take(220)
-                            if (preview.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = "Config (začátek): $preview",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
                     }
                 }
             }
 
             // Instrukce
-            currentExercise?.instructionsMarkdown?.let { instructions ->
+            state.instructionsMarkdown?.let { instructions ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -185,7 +134,7 @@ fun MatchingExerciseScreen(
             }
 
             // Vytvořené páry
-            if (pairs.isNotEmpty()) {
+            if (state.pairs.isNotEmpty()) {
                 Text(
                     "Vytvořené páry (kliknutím odstraníte):",
                     style = MaterialTheme.typography.titleSmall,
@@ -198,10 +147,11 @@ fun MatchingExerciseScreen(
                         .padding(bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(pairs) { pair ->
-                        val leftItem = matchingConfig?.left?.find { it.id == pair.leftId }
-                        val rightItem = matchingConfig?.right?.find { it.id == pair.rightId }
-                        val pairResult = if (showResult) validationResult?.detailedResults?.get(pair.leftId) else null
+                    items(state.pairs) { pair ->
+                        val leftItem = state.config?.left?.find { it.id == pair.leftId }
+                        val rightItem = state.config?.right?.find { it.id == pair.rightId }
+                        val pairResult = if (state.showResult)
+                            state.validationResult?.detailedResults?.get(pair.leftId) else null
                         val pairColor = when (pairResult) {
                             true -> Color(0xFFE8F5E9)
                             false -> MaterialTheme.colorScheme.errorContainer
@@ -212,15 +162,9 @@ fun MatchingExerciseScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    if (!showResult) {
-                                        pairs = pairs.filter {
-                                            it.leftId != pair.leftId || it.rightId != pair.rightId
-                                        }
-                                    }
+                                    vm.onIntent(MatchingExerciseIntent.RemovePair(pair))
                                 },
-                            colors = CardDefaults.outlinedCardColors(
-                                containerColor = pairColor
-                            )
+                            colors = CardDefaults.outlinedCardColors(containerColor = pairColor)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -250,7 +194,7 @@ fun MatchingExerciseScreen(
             }
 
             // Levé a pravé položky
-            matchingConfig?.let { config ->
+            state.config?.let { config ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -268,21 +212,18 @@ fun MatchingExerciseScreen(
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(config.left.filter { leftItem ->
-                                pairs.none { it.leftId == leftItem.id }
+                                state.pairs.none { it.leftId == leftItem.id }
                             }) { item ->
                                 OutlinedCard(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            selectedLeft = if (selectedLeft == item.id) null else item.id
-                                            tryCreatePair()
+                                            vm.onIntent(MatchingExerciseIntent.SelectLeft(item.id))
                                         },
                                     colors = CardDefaults.outlinedCardColors(
-                                        containerColor = if (selectedLeft == item.id)
+                                        containerColor = if (state.selectedLeft == item.id)
                                             MaterialTheme.colorScheme.primaryContainer
                                         else
                                             MaterialTheme.colorScheme.surface
@@ -309,21 +250,18 @@ fun MatchingExerciseScreen(
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(config.right.filter { rightItem ->
-                                pairs.none { it.rightId == rightItem.id }
+                                state.pairs.none { it.rightId == rightItem.id }
                             }) { item ->
                                 OutlinedCard(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            selectedRight = if (selectedRight == item.id) null else item.id
-                                            tryCreatePair()
+                                            vm.onIntent(MatchingExerciseIntent.SelectRight(item.id))
                                         },
                                     colors = CardDefaults.outlinedCardColors(
-                                        containerColor = if (selectedRight == item.id)
+                                        containerColor = if (state.selectedRight == item.id)
                                             MaterialTheme.colorScheme.secondaryContainer
                                         else
                                             MaterialTheme.colorScheme.surface
@@ -345,24 +283,13 @@ fun MatchingExerciseScreen(
 
             // Tlačítko kontroly
             Button(
-                onClick = {
-                    if (pairs.isNotEmpty()) {
-                        val solution = MatchingSolution(pairs)
-                        val solutionJson = json.encodeToString(solution)
-                        viewModel.validateExercise(
-                            exerciseId = exerciseId,
-                            userSolutionJson = solutionJson,
-                            onSuccess = { showResult = true },
-                            onError = { showResult = true }
-                        )
-                    }
-                },
+                onClick = { vm.onIntent(MatchingExerciseIntent.Validate(exerciseId)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                enabled = pairs.isNotEmpty() && !validationLoading && !isOffline
+                enabled = state.pairs.isNotEmpty() && !state.isValidating && !state.isOffline
             ) {
-                if (validationLoading) {
+                if (state.isValidating) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp
@@ -373,8 +300,9 @@ fun MatchingExerciseScreen(
             }
 
             // Výsledek validace
-            if (showResult && validationResult != null) {
-                val isCorrect = validationResult?.isCorrect == true
+            if (state.showResult && state.validationResult != null) {
+                val result = state.validationResult!!
+                val isCorrect = result.isCorrect
                 val successContainer = Color(0xFFE8F5E9)
                 val onSuccessContainer = Color(0xFF1B5E20)
                 Card(
@@ -382,28 +310,30 @@ fun MatchingExerciseScreen(
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isCorrect) successContainer else MaterialTheme.colorScheme.errorContainer
+                        containerColor = if (isCorrect) successContainer
+                        else MaterialTheme.colorScheme.errorContainer
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = if (isCorrect) "Správně!" else "Nesprávně",
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (isCorrect) onSuccessContainer else MaterialTheme.colorScheme.onErrorContainer
+                            color = if (isCorrect) onSuccessContainer
+                            else MaterialTheme.colorScheme.onErrorContainer
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Skóre: ${validationResult?.score ?: 0}",
+                            text = "Skóre: ${result.score}",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        validationResult?.feedback?.let { feedback ->
+                        if (result.feedback.isNotBlank()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = feedback,
+                                text = result.feedback,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        validationResult?.explanation?.let { explanation ->
+                        result.explanation?.let { explanation ->
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = explanation,
