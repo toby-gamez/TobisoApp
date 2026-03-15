@@ -279,8 +279,7 @@ fun HomeScreen(navController: NavHostController) {
     var selectedSubjectId by remember { mutableStateOf<Int?>(null) }
     
     LaunchedEffect(Unit) { 
-        vm.loadCategories()
-        vm.loadPosts()
+        vm.load()
         BackpackManager.init(context)
         IconPackManager.init(context)
     }

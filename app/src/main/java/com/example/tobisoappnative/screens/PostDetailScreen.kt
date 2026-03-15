@@ -705,7 +705,7 @@ fun PostDetailScreen(
                             IconButton(onClick = {
                                 val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content)
                                 if (plainText.isNotEmpty()) {
-                                    vm.speakText(plainText)
+                                    vm.getTtsManager().speak(plainText)
                                 }
                             }) {
                                 Icon(

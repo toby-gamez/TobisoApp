@@ -53,7 +53,27 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.text.style.TextAlign
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.filled.Stars
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.delay
+import com.example.tobisoappnative.PointsManager
+import com.example.tobisoappnative.BackpackManager
+import com.example.tobisoappnative.components.MultiplierIndicator
+import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.items
 import com.example.tobisoappnative.components.ImageCropperDialog
 import com.example.tobisoappnative.components.FloatingSearchBar
 

@@ -110,8 +110,7 @@ fun CalendarScreen(
     
     // Načtení dat pro FloatingSearchBar
     LaunchedEffect(Unit) {
-        homeVm.loadCategories()
-        homeVm.loadPosts()
+        homeVm.load()
     }
 
     // Hlavní Box pro celou obrazovku
