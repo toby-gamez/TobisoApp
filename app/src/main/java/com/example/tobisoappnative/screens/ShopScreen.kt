@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.ShopManager
@@ -34,51 +35,55 @@ import com.example.tobisoappnative.data.ShopData
 import com.example.tobisoappnative.components.MultiplierIndicator
 import com.example.tobisoappnative.model.*
 import com.example.tobisoappnative.IconPackManager
+import com.example.tobisoappnative.viewmodel.shop.ShopViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShopScreen(navController: NavController) {
+fun ShopScreen(
+    navController: NavController,
+    vm: ShopViewModel = viewModel(factory = ShopViewModel.Factory())
+) {
     val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()
     val purchasedItemIds by ShopManager.purchasedItems.collectAsState()
     val activeMultiplier by PointsManager.activeMultiplier.collectAsState()
     val availableFreezes by StreakFreezeManager.availableFreezes.collectAsState()
-    
-    var showPurchaseDialog by remember { mutableStateOf(false) }
-    var selectedItem by remember { mutableStateOf<ShopItem?>(null) }
-    var showSuccessMessage by remember { mutableStateOf(false) }
-    var showErrorMessage by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-    var showUsePowerUpDialog by remember { mutableStateOf(false) }
-    
+
+    val selectedItem by vm.selectedItem.collectAsState()
+    val showPurchaseDialog by vm.showPurchaseDialog.collectAsState()
+    val showUsePowerUpDialog by vm.showUsePowerUpDialog.collectAsState()
+    val showSuccessMessage by vm.showSuccessMessage.collectAsState()
+    val showErrorMessage by vm.showErrorMessage.collectAsState()
+    val errorMessage by vm.errorMessage.collectAsState()
+
     // Pro scroll k sekcím - trackování pozic nadpisů
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val headerPositions = remember { mutableMapOf<ShopCategory, Int>() }
-    
+
     // Sledování aktivní kategorie na základě scroll pozice - jednoduše!
     val activeCategory by remember {
         derivedStateOf {
             val visibleItems = listState.layoutInfo.visibleItemsInfo
             val firstIndex = if (visibleItems.isNotEmpty()) visibleItems.first().index else 0
-            
+
             // Použij uložené pozice headerů a najdi nejbližší
             val sortedPositions = headerPositions.toList().sortedBy { it.second }
-            
+
             for (i in sortedPositions.indices.reversed()) {
                 if (firstIndex >= sortedPositions[i].second) {
                     return@derivedStateOf sortedPositions[i].first
                 }
             }
-            
+
             // Default
             ShopCategory.STREAK
         }
     }
-    
+
     // Inicializace ShopManageru a StreakFreezeManageru
     LaunchedEffect(Unit) {
         ShopManager.init(context)
@@ -230,30 +235,7 @@ fun ShopScreen(navController: NavController) {
                         isOnCooldown = ShopManager.isOnCooldown(context, item.id),
                         cooldownTimeLeft = ShopManager.getCooldownTimeLeft(context, item.id),
                         onClick = {
-                            selectedItem = item
-                            when (item.type) {
-                                ShopItemType.POINTS_MULTIPLIER -> {
-                                    if (ShopManager.isOnCooldown(context, item.id)) {
-                                        // Na cooldownu - nezobrazuj dialog
-                                        return@ShopItemCard
-                                    } else if (purchasedItemIds.contains(item.id)) {
-                                        showUsePowerUpDialog = true
-                                    } else {
-                                        showPurchaseDialog = true
-                                    }
-                                }
-                                ShopItemType.STREAK_FREEZE -> {
-                                    if (ShopManager.canPurchaseStreakFreeze()) {
-                                        showPurchaseDialog = true
-                                    } else {
-                                        // Už má maximum zmražení - možná zobraz info dialog
-                                        showPurchaseDialog = true
-                                    }
-                                }
-                                else -> {
-                                    showPurchaseDialog = true
-                                }
-                            }
+                            vm.selectItem(context, item, purchasedItemIds)
                         }
                     )
                 }
@@ -281,65 +263,35 @@ fun ShopScreen(navController: NavController) {
             item = selectedItem!!,
             totalPoints = totalPoints,
             isPurchased = purchasedItemIds.contains(selectedItem!!.id),
-            onConfirm = {
-                val success = ShopManager.purchaseItem(context, selectedItem!!)
-                if (success) {
-                    showSuccessMessage = true
-                } else {
-                    errorMessage = "Nedostatek bodů pro nákup tohoto itemu!"
-                    showErrorMessage = true
-                }
-                showPurchaseDialog = false
-                selectedItem = null
-            },
-            onDismiss = {
-                showPurchaseDialog = false
-                selectedItem = null
-            }
+            onConfirm = { vm.confirmPurchase(context) },
+            onDismiss = { vm.dismissPurchaseDialog() }
         )
     }
-    
+
     // Use Power-Up Dialog
     if (showUsePowerUpDialog && selectedItem != null) {
         UsePowerUpDialog(
             item = selectedItem!!,
             isOnCooldown = ShopManager.isOnCooldown(context, selectedItem!!.id),
             cooldownTimeLeft = ShopManager.getCooldownTimeLeft(context, selectedItem!!.id),
-            onConfirm = {
-                val success = ShopManager.usePowerUp(context, selectedItem!!)
-                if (success) {
-                    showSuccessMessage = true
-                } else {
-                    if (ShopManager.isOnCooldown(context, selectedItem!!.id)) {
-                        errorMessage = "Power-up je na cooldownu!"
-                    } else {
-                        errorMessage = "Chyba při aktivaci power-upu!"
-                    }
-                    showErrorMessage = true
-                }
-                showUsePowerUpDialog = false
-                selectedItem = null
-            },
-            onDismiss = {
-                showUsePowerUpDialog = false
-                selectedItem = null
-            }
+            onConfirm = { vm.confirmUsePowerUp(context) },
+            onDismiss = { vm.dismissUsePowerUpDialog() }
         )
     }
-    
+
     // Success Snackbar
     LaunchedEffect(showSuccessMessage) {
         if (showSuccessMessage) {
             delay(2000)
-            showSuccessMessage = false
+            vm.clearSuccessMessage()
         }
     }
-    
+
     // Error Snackbar
     LaunchedEffect(showErrorMessage) {
         if (showErrorMessage) {
             delay(3000)
-            showErrorMessage = false
+            vm.clearErrorMessage()
         }
     }
     

@@ -1,3 +1,5 @@
+package com.example.tobisoappnative.screens
+
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

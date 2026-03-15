@@ -8,51 +8,25 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.tobisoappnative.model.ApiClient
-import com.example.tobisoappnative.model.FeedbackDto
+import com.example.tobisoappnative.viewmodel.feedback.FeedbackViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedbackScreen(navController: NavController) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var isSuccess by remember { mutableStateOf(false) }
-    var isError by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-
-    fun resetStates() {
-        isSuccess = false
-        isError = false
-    }
-
-    suspend fun sendFeedback(name: String, email: String, message: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val feedbackDto = FeedbackDto(
-                    name = name,
-                    email = email,
-                    message = message,
-                    platform = "Aplikace"
-                )
-                ApiClient.apiService.sendFeedback(feedbackDto)
-                true
-            } catch (e: Exception) {
-                android.util.Log.e("FeedbackScreen", "Error sending feedback", e)
-                false
-            }
-        }
-    }
+fun FeedbackScreen(
+    navController: NavController,
+    vm: FeedbackViewModel = viewModel(factory = FeedbackViewModel.Factory())
+) {
+    val name by vm.name.collectAsState()
+    val email by vm.email.collectAsState()
+    val message by vm.message.collectAsState()
+    val isLoading by vm.isLoading.collectAsState()
+    val isSuccess by vm.isSuccess.collectAsState()
+    val isError by vm.isError.collectAsState()
 
     // ✅ Odstraněn Scaffold - padding se aplikuje z MainActivity
     Column(
@@ -82,10 +56,7 @@ fun FeedbackScreen(navController: NavController) {
             } else {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = {
-                        name = it
-                        resetStates()
-                    },
+                    onValueChange = { vm.onNameChange(it) },
                     label = { Text("Vaše jméno") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -93,10 +64,7 @@ fun FeedbackScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = email,
-                    onValueChange = {
-                        email = it.trim()
-                        resetStates()
-                    },
+                    onValueChange = { vm.onEmailChange(it) },
                     label = { Text("Váš e-mail") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -104,31 +72,14 @@ fun FeedbackScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = message,
-                    onValueChange = {
-                        message = it
-                        resetStates()
-                    },
+                    onValueChange = { vm.onMessageChange(it) },
                     label = { Text("Zde napište svou zpětnou vazbu") },
                     modifier = Modifier.fillMaxWidth().height(120.dp),
                     maxLines = 5
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = {
-                        resetStates()
-                        isLoading = true
-                        isError = false
-                        isSuccess = false
-                        coroutineScope.launch {
-                            val result = sendFeedback(name, email, message)
-                            isLoading = false
-                            if (result) {
-                                isSuccess = true
-                            } else {
-                                isError = true
-                            }
-                        }
-                    },
+                    onClick = { vm.sendFeedback() },
                     enabled = !isLoading && name.isNotBlank() && email.isNotBlank() && message.isNotBlank(),
                     modifier = Modifier.fillMaxWidth()
                 ) {

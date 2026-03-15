@@ -1,5 +1,6 @@
 package com.example.tobisoappnative.screens
 
+import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
@@ -21,15 +22,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.StreakFreezeManager
-import com.example.tobisoappnative.utils.StreakUtils
+import com.example.tobisoappnative.viewmodel.streak.StreakViewModel
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -42,31 +43,33 @@ fun StreakScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
+    val application = context.applicationContext as Application
+    val vm: StreakViewModel = viewModel(factory = StreakViewModel.Factory(application))
+
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    val today = remember { Calendar.getInstance() }
-    var calendarMonth by remember { mutableIntStateOf(today.get(Calendar.MONTH)) }
-    var calendarYear by remember { mutableIntStateOf(today.get(Calendar.YEAR)) }
+    val calendarMonth by vm.calendarMonth.collectAsState()
+    val calendarYear by vm.calendarYear.collectAsState()
+    val streakDays by vm.streakDays.collectAsState()
+    val currentStreak by vm.currentStreak.collectAsState()
+    val maxStreak by vm.maxStreak.collectAsState()
 
-    val streakDays by remember(calendarMonth, calendarYear) {
-        mutableStateOf(getStreakDays(context))
-    }
-    
     // Sledování změn v Streak Freeze pro přepočítání
     val usedFreezes by StreakFreezeManager.usedFreezes.collectAsState()
-    val currentDateString = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(today.time)
+    val today = remember { Calendar.getInstance() }
+    val currentDateString = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(today.time) }
 
-    // --- NOVÝ A EFEKTIVNÍ VÝPOČET S FREEZE PODPOROU ---
-    val (currentStreak, maxStreak) = remember(streakDays, usedFreezes) {
-        StreakUtils.calculateStreaks(context)
-    }
-    
     // Inicializace a sledování Streak Freezes
     val availableFreezes by StreakFreezeManager.availableFreezes.collectAsState()
-    
+
     LaunchedEffect(Unit) {
-        StreakFreezeManager.init(context)
+        vm.init()
+    }
+
+    // Přepočítat streak při změně usedFreezes
+    LaunchedEffect(usedFreezes) {
+        vm.refreshStreakData()
     }
 
     Column(
@@ -114,10 +117,7 @@ fun StreakScreen(
                         calendarMonth = calendarMonth,
                         calendarYear = calendarYear,
                         currentDateString = currentDateString,
-                        onMonthChange = { month, year ->
-                            calendarMonth = month
-                            calendarYear = year
-                        }
+                        onMonthChange = { month, year -> vm.changeMonth(month, year) }
                     )
                     
                     // Zobrazení Streak Freezes pokud nějaké má
@@ -145,10 +145,7 @@ fun StreakScreen(
                     calendarMonth = calendarMonth,
                     calendarYear = calendarYear,
                     currentDateString = currentDateString,
-                    onMonthChange = { month, year ->
-                        calendarMonth = month
-                        calendarYear = year
-                    }
+                    onMonthChange = { month, year -> vm.changeMonth(month, year) }
                 )
                 
                 // Zobrazení Streak Freezes pokud nějaké má
@@ -323,15 +320,6 @@ fun addTodayToStreak(context: Context) {
     // 7. Uložíme nový, rozšířený seznam zpět do paměti.
     sharedPreferences.edit().putStringSet("streak_days", newDays).apply()
     println("Today ($today) was added to streak. Total days: ${newDays.size}")
-}
-
-
-// --- ZMĚNA: Načítání z reálného úložiště telefonu ---
-@RequiresApi(Build.VERSION_CODES.O)
-fun getStreakDays(context: Context): Set<String> {
-    val sharedPreferences = context.getSharedPreferences("StreakData", Context.MODE_PRIVATE)
-    // Jednoduše načteme a vrátíme uložená data. Pokud žádná nejsou, vrátí se prázdný seznam.
-    return sharedPreferences.getStringSet("streak_days", emptySet()) ?: emptySet()
 }
 
 fun denDnyDni(count: Int): String {
