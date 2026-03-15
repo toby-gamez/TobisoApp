@@ -9,13 +9,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -23,6 +28,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -70,10 +76,16 @@ fun FloatingSearchBar(
     viewModel: MainViewModel,
     modifier: Modifier = Modifier,
     initialExpanded: Boolean = true,
-    collapsedHeight: Dp = 20.dp
+    collapsedHeight: Dp = 20.dp,
+    onAiClick: () -> Unit = {},
+    onAiPostSelected: (Post) -> Unit = {},
+    onAiSend: (Post, String) -> Unit = { _, _ -> }
 ) {
     var searchText by remember { mutableStateOf("") }
     var debouncedSearchText by remember { mutableStateOf("") }
+    var aiMode by remember { mutableStateOf(false) }
+    var attachedPost by remember { mutableStateOf<Post?>(null) }
+    val focusRequester = remember { FocusRequester() }
     val expanded by viewModel.searchBarExpanded.collectAsState(initial = initialExpanded)
     val posts by viewModel.posts.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -85,20 +97,35 @@ fun FloatingSearchBar(
         debouncedSearchText = searchText.trim()
     }
 
+    // Aktivovat klávesnici při zapnutí AI modu
+    LaunchedEffect(aiMode) {
+        if (aiMode) {
+            delay(100) // počkáme na animaci
+            focusRequester.requestFocus()
+        }
+    }
+
+    // Refokusovat klávesnici po připojení článku
+    LaunchedEffect(attachedPost) {
+        if (attachedPost != null) {
+            delay(100)
+            focusRequester.requestFocus()
+        }
+    }
+
     // Filtrování výsledků
     val normQuery = normalizeText(debouncedSearchText.trim())
-    val filteredCategories = if (debouncedSearchText.isBlank()) emptyList() else {
+    val filteredCategories = if (aiMode || debouncedSearchText.isBlank() || attachedPost != null) emptyList() else {
         categories.filter {
             normalizeText(it.name).contains(normQuery)
         }
     }
-    val filteredPosts = if (debouncedSearchText.isBlank()) emptyList() else {
+    val filteredPosts = if (debouncedSearchText.isBlank() || attachedPost != null) emptyList() else {
         posts.filter {
-            // Vyfiltrujeme články s categoryId 42 nebo bez kategorie
             val hasValidCategory = it.categoryId != null && it.categoryId != 42
             hasValidCategory && (
                 normalizeText(it.title).contains(normQuery) ||
-                normalizeText(it.content).contains(normQuery)
+                (!aiMode && normalizeText(it.content).contains(normQuery))
             )
         }
     }
@@ -125,7 +152,7 @@ fun FloatingSearchBar(
         ) {
             // Výsledky hledání (jen když je rozbaleno)
             AnimatedVisibility(
-                visible = expanded && debouncedSearchText.isNotBlank() && 
+                visible = expanded && debouncedSearchText.isNotBlank() && attachedPost == null &&
                           (filteredCategories.isNotEmpty() || filteredPosts.isNotEmpty()),
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
@@ -188,8 +215,14 @@ fun FloatingSearchBar(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            searchText = ""
-                                            navController?.navigate("postDetail/${post.id}")
+                                            if (aiMode) {
+                                                attachedPost = post
+                                                searchText = ""
+                                                onAiPostSelected(post)
+                                            } else {
+                                                searchText = ""
+                                                navController?.navigate("postDetail/${post.id}")
+                                            }
                                         },
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(
@@ -218,8 +251,8 @@ fun FloatingSearchBar(
 
             // Žádné výsledky
             AnimatedVisibility(
-                visible = expanded && debouncedSearchText.isNotBlank() && 
-                          filteredCategories.isEmpty() && 
+                visible = expanded && debouncedSearchText.isNotBlank() && attachedPost == null &&
+                          filteredCategories.isEmpty() &&
                           filteredPosts.isEmpty(),
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
@@ -269,35 +302,125 @@ fun FloatingSearchBar(
             }
 
             AnimatedVisibility(visible = expanded) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(28.dp),
-                    elevation = CardDefaults.cardElevation(8.dp)
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    TextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
-                        placeholder = { Text("Prohledat celý svět vědění...") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = "Hledat")
-                        },
-                        trailingIcon = {
-                                if (searchText.isNotEmpty()) {
-                                IconButton(onClick = { searchText = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Smazat")
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(28.dp),
+                        elevation = CardDefaults.cardElevation(8.dp)
+                    ) {
+                        Column {
+                            if (aiMode && attachedPost != null) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AttachFile,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = attachedPost!!.title,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = { attachedPost = null },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Clear,
+                                            contentDescription = "Odpojit článek",
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
                                 }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(0.5.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+                            }
+                            TextField(
+                                value = searchText,
+                                onValueChange = { searchText = it },
+                                placeholder = {
+                                    Text(
+                                        when {
+                                            aiMode && attachedPost != null -> "Napište dotaz..."
+                                            aiMode -> "Připojit článek..."
+                                            else -> "Najít cokoliv..."
+                                        }
+                                    )
+                                },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = if (aiMode) Icons.Filled.AutoAwesome else Icons.Default.Search,
+                                    contentDescription = if (aiMode) "AI mod" else "Hledat",
+                                    tint = if (aiMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                                )
+                            },
+                            trailingIcon = {
+                                    if (searchText.isNotEmpty()) {
+                                    IconButton(onClick = { searchText = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Smazat")
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
+                            singleLine = !aiMode,
+                            maxLines = if (aiMode) 5 else 1,
+                            colors = TextFieldDefaults.colors(
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent
+                            )
+                        )
+                        } // Column
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    SmallFloatingActionButton(
+                        onClick = {
+                            when {
+                                aiMode && attachedPost != null && searchText.isNotEmpty() -> {
+                                    onAiSend(attachedPost!!, searchText)
+                                    searchText = ""
+                                }
+                                aiMode -> { aiMode = false; searchText = ""; attachedPost = null }
+                                else -> { aiMode = true; searchText = ""; onAiClick() }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent
+                        containerColor = if (aiMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = if (aiMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                aiMode && attachedPost != null && searchText.isNotEmpty() -> Icons.Default.Send
+                                aiMode -> Icons.Default.Search
+                                else -> Icons.Filled.AutoAwesome
+                            },
+                            contentDescription = when {
+                                aiMode && attachedPost != null && searchText.isNotEmpty() -> "Odeslat"
+                                aiMode -> "Přepnout na vyhledávání"
+                                else -> "AI vyhledávání"
+                            }
                         )
-                    )
+                    }
                 }
             }
         }
