@@ -17,9 +17,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.TopAppBarDefaults
+import android.app.Application
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.plaintext.PlainTextViewModel
 import com.example.tobisoappnative.model.Snippet
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -43,23 +44,24 @@ import com.example.tobisoappnative.utils.TextUtils
 @Composable
 fun PlainTextScreen(
     postId: Int,
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val postDetail by viewModel.postDetail.collectAsState()
-    val postDetailError by viewModel.postDetailError.collectAsState()
-    val isOffline by viewModel.isOffline.collectAsState()
-    val ttsManager = viewModel.getTtsManager()
+    val application = LocalContext.current.applicationContext as Application
+    val vm: PlainTextViewModel = viewModel(factory = PlainTextViewModel.Factory(application))
+    val postDetail by vm.postDetail.collectAsState()
+    val postDetailError by vm.postDetailError.collectAsState()
+    val isOffline by vm.isOffline.collectAsState()
+    val ttsManager = vm.getTtsManager()
 
     var isLoading by remember { mutableStateOf(false) }
     LaunchedEffect(postId) {
         // Ensure detail is loaded (ViewModel handles offline/online)
-        viewModel.loadPostDetail(postId)
+        vm.loadPostDetail(postId)
         isLoading = true
     }
 
     // Clipboard/snippet states moved here
-    val lastHandledClipboard by viewModel.lastHandledClipboard.collectAsState()
+    val lastHandledClipboard by vm.lastHandledClipboard.collectAsState()
     var showCopyDialog by remember { mutableStateOf(false) }
     var copiedText by remember { mutableStateOf("") }
     var showSavedSnackbar by remember { mutableStateOf(false) }
@@ -105,7 +107,7 @@ fun PlainTextScreen(
 
                                 if (!isTextMime) return@launch
 
-                                val lastHandled = try { viewModel.lastHandledClipboard.value } catch (e: Exception) { null }
+                                val lastHandled = lastHandledClipboard
 
                                 // avoid reacting to the same clipboard repeatedly
                                 if (clipboardText != lastHandled && clipboardText != lastDetectedClipboard) {
@@ -180,7 +182,7 @@ fun PlainTextScreen(
                         IconButton(onClick = {
                             val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content)
                             if (plainText.isNotEmpty()) {
-                                viewModel.speakText(plainText)
+                                vm.speakText(plainText)
                             }
                         }) {
                             Icon(
@@ -267,9 +269,9 @@ fun PlainTextScreen(
                                 content = copiedText,
                                 createdAt = System.currentTimeMillis()
                             )
-                            viewModel.addSnippet(snippet)
+                            vm.addSnippet(snippet)
                             // mark this clipboard text as handled so we won't ask again
-                            viewModel.markClipboardHandled(copiedText)
+                            vm.markClipboardHandled(copiedText)
                             showCopyDialog = false
                             showSavedSnackbar = true
                             showSaveFab = false
@@ -280,7 +282,7 @@ fun PlainTextScreen(
                     dismissButton = {
                         TextButton(onClick = {
                             // mark this clipboard text as handled (dismissed) so we won't ask again
-                            viewModel.markClipboardHandled(copiedText)
+                            vm.markClipboardHandled(copiedText)
                             showCopyDialog = false
                             showSaveFab = false
                         }) {

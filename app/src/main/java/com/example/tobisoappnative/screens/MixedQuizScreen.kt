@@ -1,5 +1,6 @@
 package com.example.tobisoappnative.screens
 
+import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,11 +13,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,89 +27,42 @@ import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
 import com.example.tobisoappnative.components.CustomNumericKeyboard
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.components.MultiplierIndicator
 import com.example.tobisoappnative.utils.normalizeText
+import com.example.tobisoappnative.viewmodel.mixedquiz.MixedQuizIntent
+import com.example.tobisoappnative.viewmodel.mixedquiz.MixedQuizViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import kotlinx.coroutines.launch
-import com.example.tobisoappnative.components.MultiplierIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MixedQuizScreen(
     questionIds: String,
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val allQuestions by viewModel.allQuestions.collectAsState()
-    val allQuestionsLoading by viewModel.allQuestionsLoading.collectAsState()
-    val allQuestionsError by viewModel.allQuestionsError.collectAsState()
-    val isOffline by viewModel.isOffline.collectAsState()
-    val questionsPosts by viewModel.questionsPosts.collectAsState()
-    
-    // Parse question IDs
-    val questionIdsList = remember(questionIds) {
-        questionIds.split(",").mapNotNull { it.toIntOrNull() }
-    }
-    
-    // Filter questions by IDs
-    val mixedQuestions = remember(allQuestions, questionIdsList) {
-        allQuestions.filter { it.id in questionIdsList }
-    }
-    
-    // Quiz state - using rememberSaveable to survive configuration changes
-    var currentQuestionIndex by rememberSaveable { mutableStateOf(0) }
-    var selectedAnswers by rememberSaveable { mutableStateOf<Map<Int, Int>>(emptyMap()) }
-    var textAnswers by rememberSaveable { mutableStateOf<Map<Int, String>>(emptyMap()) }
-    var showResults by rememberSaveable { mutableStateOf(false) }
-    var quizStarted by rememberSaveable { mutableStateOf(false) }
-    var pointsAwarded by rememberSaveable { mutableStateOf(false) }
-    var showPointsOverlay by rememberSaveable { mutableStateOf(false) }
-    var awardedPoints by rememberSaveable { mutableStateOf(0) }
-    var shuffledQuestions by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
-    
-    val context = LocalContext.current
+    val application = LocalContext.current.applicationContext as Application
+    val vm: MixedQuizViewModel = viewModel(factory = MixedQuizViewModel.Factory(application))
+    val state by vm.uiState.collectAsState()
     val totalPoints by PointsManager.totalPoints.collectAsState()
 
-    // Using shared normalizeText for diacritics-insensitive comparisons
-    
-    // Load questions if not available (nyní funguje v online i offline režimu)
-    LaunchedEffect(isOffline) {
-        if (allQuestions.isEmpty()) {
-            viewModel.loadAllQuestions()
-        }
+    LaunchedEffect(questionIds) {
+        vm.onIntent(MixedQuizIntent.Load(questionIds))
     }
 
-    // Clear state when leaving screen
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.clearAllQuestions()
-        }
-    }
-
-    val totalQuestions = mixedQuestions.size
-    val currentQuestion = if (quizStarted && shuffledQuestions.isNotEmpty() && currentQuestionIndex < shuffledQuestions.size) {
-        val questionIndex = shuffledQuestions[currentQuestionIndex]
-        if (questionIndex < mixedQuestions.size) mixedQuestions[questionIndex] else null
+    val totalQuestions = state.mixedQuestions.size
+    val currentQuestion = if (state.quizStarted && state.shuffledIndices.isNotEmpty() && state.currentQuestionIndex < state.shuffledIndices.size) {
+        val questionIndex = state.shuffledIndices[state.currentQuestionIndex]
+        if (questionIndex < state.mixedQuestions.size) state.mixedQuestions[questionIndex] else null
     } else null
 
-    var isRefreshing by rememberSaveable { mutableStateOf(false) }
-    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
-    val coroutineScope = rememberCoroutineScope()
+    val swipeRefreshState = rememberSwipeRefreshState(state.isRefreshing)
 
     Box(modifier = Modifier.fillMaxSize()) {
         SwipeRefresh(
             state = swipeRefreshState,
             onRefresh = {
-                if (!isOffline) {
-                    isRefreshing = true
-                    coroutineScope.launch {
-                        viewModel.loadAllQuestions()
-                        isRefreshing = false
-                    }
-                } else {
-                    // V offline režimu jen resetujeme refresh state
-                    isRefreshing = false
+                if (!state.isOffline) {
+                    vm.onIntent(MixedQuizIntent.Refresh)
                 }
             }
         ) {
@@ -118,10 +70,10 @@ fun MixedQuizScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 TopAppBar(
-                    title = { 
+                    title = {
                         Text(
-                            text = if (showResults) "Výsledky procvičování"
-                            else if (quizStarted) "Procvičování (${currentQuestionIndex + 1}/$totalQuestions)"
+                            text = if (state.showResults) "Výsledky procvičování"
+                            else if (state.quizStarted) "Procvičování (${state.currentQuestionIndex + 1}/$totalQuestions)"
                             else "Procvičování",
                             style = MaterialTheme.typography.headlineLarge,
                             maxLines = 1
@@ -133,20 +85,10 @@ fun MixedQuizScreen(
                         }
                     },
                     actions = {
-                        // Zobrazení aktivního multiplikátoru
                         MultiplierIndicator()
-                        
-                        if (showResults) {
-                            IconButton(onClick = { 
-                                // Restart quiz
-                                currentQuestionIndex = 0
-                                selectedAnswers = emptyMap()
-                                textAnswers = emptyMap()
-                                showResults = false
-                                quizStarted = false
-                                pointsAwarded = false
-                                shuffledQuestions = emptyList()
-                            }) {
+
+                        if (state.showResults) {
+                            IconButton(onClick = { vm.onIntent(MixedQuizIntent.RestartQuiz) }) {
                                 Icon(Icons.Filled.Refresh, contentDescription = "Znovu")
                             }
                         }
@@ -154,7 +96,7 @@ fun MixedQuizScreen(
                 )
 
                 when {
-                    allQuestionsError != null -> {
+                    state.error != null -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -168,7 +110,7 @@ fun MixedQuizScreen(
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    allQuestionsError ?: "Neznámá chyba",
+                                    state.error ?: "Neznámá chyba",
                                     color = MaterialTheme.colorScheme.error,
                                     textAlign = TextAlign.Center
                                 )
@@ -176,7 +118,7 @@ fun MixedQuizScreen(
                         }
                     }
 
-                    allQuestionsLoading -> {
+                    state.isLoading -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -189,7 +131,7 @@ fun MixedQuizScreen(
                         }
                     }
 
-                    mixedQuestions.isEmpty() -> {
+                    state.mixedQuestions.isEmpty() -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -207,7 +149,7 @@ fun MixedQuizScreen(
                                     style = MaterialTheme.typography.headlineSmall,
                                     textAlign = TextAlign.Center
                                 )
-                                if (isOffline) {
+                                if (state.isOffline) {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         "V offline režimu jsou dostupné pouze dříve stažené otázky",
@@ -224,25 +166,24 @@ fun MixedQuizScreen(
                         }
                     }
 
-                    showResults -> {
-                        // Results screen
+                    state.showResults -> {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Results summary
                             item {
-                                val correctAnswers = shuffledQuestions.mapIndexed { displayIndex, questionIndex ->
-                                    val question = mixedQuestions[questionIndex]
+                                val correctAnswers = state.shuffledIndices.mapIndexed { displayIndex, questionIndex ->
+                                    if (questionIndex >= state.mixedQuestions.size) return@mapIndexed false
+                                    val question = state.mixedQuestions[questionIndex]
                                     if (question.isTextQuestion) {
-                                        val userText = textAnswers[displayIndex]?.trim() ?: ""
+                                        val userText = state.textAnswers[displayIndex]?.trim() ?: ""
                                         val correctText = question.correctTextAnswer?.trim() ?: ""
                                         normalizeText(userText) == normalizeText(correctText)
                                     } else {
-                                        val selectedAnswer = selectedAnswers[displayIndex]
-                                        selectedAnswer != null && 
-                                            selectedAnswer >= 0 && 
+                                        val selectedAnswer = state.selectedAnswers[displayIndex]
+                                        selectedAnswer != null &&
+                                            selectedAnswer >= 0 &&
                                             selectedAnswer < question.options.size &&
                                             selectedAnswer == question.correctAnswer
                                     }
@@ -267,55 +208,44 @@ fun MixedQuizScreen(
                                             fontWeight = FontWeight.Bold
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            "$correctAnswers z $totalQuestions správně"
-                                        )
+                                        Text("$correctAnswers z $totalQuestions správně")
                                         Text(
                                             "${(correctAnswers.toFloat() / totalQuestions * 100).toInt()}%",
                                             style = MaterialTheme.typography.headlineSmall,
-                                            color = if (correctAnswers.toFloat() / totalQuestions >= 0.7f) {
-                                                Color(0xFF4CAF50)
-                                            } else {
-                                                Color(0xFFFF5722)
-                                            }
+                                            color = if (correctAnswers.toFloat() / totalQuestions >= 0.7f) Color(0xFF4CAF50) else Color(0xFFFF5722)
                                         )
                                     }
                                 }
                             }
 
-                            // Individual results
-                            items(shuffledQuestions.size) { displayIndex ->
-                                val questionIndex = shuffledQuestions[displayIndex]
-                                val question = mixedQuestions[questionIndex]
-                                
+                            items(state.shuffledIndices.size) { displayIndex ->
+                                if (displayIndex >= state.shuffledIndices.size) return@items
+                                val questionIndex = state.shuffledIndices[displayIndex]
+                                if (questionIndex >= state.mixedQuestions.size) return@items
+                                val question = state.mixedQuestions[questionIndex]
+
                                 val isCorrect = if (question.isTextQuestion) {
-                                    val userText = textAnswers[displayIndex]?.trim() ?: ""
+                                    val userText = state.textAnswers[displayIndex]?.trim() ?: ""
                                     val correctText = question.correctTextAnswer?.trim() ?: ""
                                     normalizeText(userText) == normalizeText(correctText)
                                 } else {
-                                    val selectedAnswer = selectedAnswers[displayIndex]
-                                    selectedAnswer != null && 
-                                        selectedAnswer >= 0 && 
+                                    val selectedAnswer = state.selectedAnswers[displayIndex]
+                                    selectedAnswer != null &&
+                                        selectedAnswer >= 0 &&
                                         selectedAnswer < question.options.size &&
                                         selectedAnswer == question.correctAnswer
                                 }
-                                
+
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(vertical = 4.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = if (isCorrect) {
-                                            Color(0xFF4CAF50).copy(alpha = 0.1f)
-                                        } else {
-                                            Color(0xFFFF5722).copy(alpha = 0.1f)
-                                        }
+                                        containerColor = if (isCorrect) Color(0xFF4CAF50).copy(alpha = 0.1f) else Color(0xFFFF5722).copy(alpha = 0.1f)
                                     )
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp)) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
                                                 imageVector = if (isCorrect) Icons.Filled.CheckCircle else Icons.Filled.Close,
                                                 contentDescription = if (isCorrect) "Správně" else "Špatně",
@@ -328,26 +258,19 @@ fun MixedQuizScreen(
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
-                                        
+
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            question.text,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        
+                                        Text(question.text, style = MaterialTheme.typography.bodyMedium)
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        
+
                                         if (question.isTextQuestion) {
-                                            // Show text answers
-                                            val userText = textAnswers[displayIndex] ?: ""
+                                            val userText = state.textAnswers[displayIndex] ?: ""
                                             val correctText = question.correctTextAnswer ?: ""
-                                            
                                             Text(
                                                 "Vaše odpověď: $userText",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
                                             )
-                                            
                                             if (!isCorrect) {
                                                 Text(
                                                     "Správná odpověď: $correctText",
@@ -356,8 +279,7 @@ fun MixedQuizScreen(
                                                 )
                                             }
                                         } else {
-                                            // Show multiple choice answers
-                                            val selectedAnswer = selectedAnswers[displayIndex]
+                                            val selectedAnswer = state.selectedAnswers[displayIndex]
                                             if (selectedAnswer != null && selectedAnswer >= 0 && selectedAnswer < question.options.size) {
                                                 Text(
                                                     "Vaše odpověď: ${question.options[selectedAnswer]}",
@@ -365,7 +287,6 @@ fun MixedQuizScreen(
                                                     color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
                                                 )
                                             }
-                                            
                                             if (!isCorrect && question.correctAnswer >= 0 && question.correctAnswer < question.options.size) {
                                                 Text(
                                                     "Správná odpověď: ${question.options[question.correctAnswer]}",
@@ -375,7 +296,6 @@ fun MixedQuizScreen(
                                             }
                                         }
 
-                                        // Show explanation if available
                                         val explanationText = question.explanation
                                         if (!explanationText.isNullOrEmpty()) {
                                             Spacer(modifier = Modifier.height(8.dp))
@@ -409,8 +329,7 @@ fun MixedQuizScreen(
                         }
                     }
 
-                    !quizStarted -> {
-                        // Quiz start screen
+                    !state.quizStarted -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -418,55 +337,35 @@ fun MixedQuizScreen(
                                 .verticalScroll(rememberScrollState()),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Info cards with icons
-                            val hasTextQuestions = mixedQuestions.any { it.isTextQuestion }
-                            val hasMultipleChoice = mixedQuestions.any { !it.isTextQuestion }
-                            val uniquePostIds = mixedQuestions.map { it.postId }.distinct()
+                            val hasTextQuestions = state.mixedQuestions.any { it.isTextQuestion }
+                            val hasMultipleChoice = state.mixedQuestions.any { !it.isTextQuestion }
+                            val uniquePostIds = state.mixedQuestions.map { it.postId }.distinct()
                             val articleNames = uniquePostIds.mapNotNull { postId ->
-                                questionsPosts.find { it.id == postId }?.title
+                                state.questionsPosts.find { it.id == postId }?.title
                             }
-                            
-                            // Questions count card
+
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                )
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        Icons.Filled.Quiz,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
+                                    Icon(Icons.Filled.Quiz, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
-                                        Text(
-                                            "Počet otázek",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                        )
-                                        Text(
-                                            "${mixedQuestions.size}",
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
+                                        Text("Počet otázek", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                                        Text("${state.mixedQuestions.size}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                     }
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
-                            // Question types card
+
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                                )
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(16.dp),
@@ -482,11 +381,7 @@ fun MixedQuizScreen(
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
-                                        Text(
-                                            "Typ otázek",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                                        )
+                                        Text("Typ otázek", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
                                         Text(
                                             when {
                                                 hasTextQuestions && hasMultipleChoice -> "Smíšené"
@@ -500,100 +395,57 @@ fun MixedQuizScreen(
                                     }
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
-                            // Articles card
+
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                                )
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(16.dp),
                                     verticalAlignment = Alignment.Top
                                 ) {
-                                    Icon(
-                                        Icons.Filled.Article,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
+                                    Icon(Icons.Filled.Article, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
-                                        Text(
-                                            "Články (${uniquePostIds.size})",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                                        )
+                                        Text("Články (${uniquePostIds.size})", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f))
                                         if (articleNames.isNotEmpty()) {
-                                            val displayText = if (articleNames.size > 5) {
-                                                "${articleNames.take(5).joinToString(", ")}..."
-                                            } else {
-                                                articleNames.joinToString(", ")
-                                            }
-                                            Text(
-                                                displayText,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                                            )
+                                            val displayText = if (articleNames.size > 5) "${articleNames.take(5).joinToString(", ")}..." else articleNames.joinToString(", ")
+                                            Text(displayText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                         } else {
-                                            Text(
-                                                "Různé články",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                                            )
+                                            Text("Různé články", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                         }
                                     }
                                 }
                             }
-                            
-                            // Offline mode indicator
-                            if (isOffline) {
+
+                            if (state.isOffline) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                                    )
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.WifiOff,
-                                            contentDescription = "Offline režim",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(20.dp)
-                                        )
+                                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Filled.WifiOff, contentDescription = "Offline režim", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            "Offline režim — používají se uložené otázky",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Text("Offline režim — používají se uložené otázky", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(32.dp))
-                            
+
                             Button(
-                                onClick = { 
-                                    quizStarted = true
-                                    shuffledQuestions = mixedQuestions.indices.shuffled()
-                                },
+                                onClick = { vm.onIntent(MixedQuizIntent.StartQuiz) },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Začít procvičování")
                             }
                         }
                     }
-                    
+
                     else -> {
-                        // Quiz in progress
                         currentQuestion?.let { question ->
                             Column(
                                 modifier = Modifier
@@ -601,169 +453,104 @@ fun MixedQuizScreen(
                                     .padding(16.dp)
                                     .verticalScroll(rememberScrollState())
                             ) {
-                                // Progress bar
                                 LinearProgressIndicator(
-                                    progress = (currentQuestionIndex + 1).toFloat() / totalQuestions,
+                                    progress = (state.currentQuestionIndex + 1).toFloat() / totalQuestions,
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                
+
                                 Spacer(modifier = Modifier.height(24.dp))
-                                
-                                // Question
+
                                 Card {
                                     Column(modifier = Modifier.padding(16.dp)) {
                                         Text(
-                                            "Otázka ${currentQuestionIndex + 1} z $totalQuestions",
+                                            "Otázka ${state.currentQuestionIndex + 1} z $totalQuestions",
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            question.text,
-                                            style = MaterialTheme.typography.headlineSmall
-                                        )
+                                        Text(question.text, style = MaterialTheme.typography.headlineSmall)
                                     }
                                 }
-                                
+
                                 Spacer(modifier = Modifier.height(24.dp))
-                                
-                                // Answer options or text field
+
                                 if (question.isTextQuestion) {
-                                    // Detekce typu klávesnice na základě správné odpovědi
                                     val isNumericAnswer = remember(question.correctTextAnswer) {
                                         val correctAnswer = question.correctTextAnswer?.trim() ?: ""
-                                        // Pokud odpověď neobsahuje písmena (pouze číslice a jiné znaky)
                                         correctAnswer.matches(Regex("^[^a-zA-ZáčďéěíňóřšťůúýžÁČĎÉĚÍŇÓŘŠŤŮÚÝŽ]*$")) && correctAnswer.isNotEmpty()
                                     }
-                                    
-                                    // Text field for text questions
+
                                     OutlinedTextField(
-                                        value = textAnswers[currentQuestionIndex] ?: "",
+                                        value = state.textAnswers[state.currentQuestionIndex] ?: "",
                                         onValueChange = { newText ->
-                                            textAnswers = textAnswers.toMutableMap().apply {
-                                                put(currentQuestionIndex, newText)
-                                            }
+                                            vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, newText))
                                         },
                                         label = { Text("Zadejte vaši odpověď...") },
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true,
-                                        readOnly = isNumericAnswer, // Pokud je číselná odpověď, pole bude jen pro čtení
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Text
-                                        )
+                                        readOnly = isNumericAnswer,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                                     )
-                                    
-                                    // Vlastní číselná klávesnice pro číselné odpovědi
+
                                     if (isNumericAnswer) {
                                         Spacer(modifier = Modifier.height(16.dp))
                                         CustomNumericKeyboard(
-                                            // Show ":" on the keyboard when the expected answer contains a colon (e.g. time)
                                             alternateSymbol = if ((question.correctTextAnswer ?: "").contains(":")) ":" else "%",
                                             onKeyPress = { key ->
-                                                val currentText = textAnswers[currentQuestionIndex] ?: ""
-                                                textAnswers = textAnswers.toMutableMap().apply {
-                                                    put(currentQuestionIndex, currentText + key)
-                                                }
+                                                val currentText = state.textAnswers[state.currentQuestionIndex] ?: ""
+                                                vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, currentText + key))
                                             },
                                             onBackspace = {
-                                                val currentText = textAnswers[currentQuestionIndex] ?: ""
+                                                val currentText = state.textAnswers[state.currentQuestionIndex] ?: ""
                                                 if (currentText.isNotEmpty()) {
-                                                    textAnswers = textAnswers.toMutableMap().apply {
-                                                        put(currentQuestionIndex, currentText.dropLast(1))
-                                                    }
+                                                    vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, currentText.dropLast(1)))
                                                 }
                                             }
                                         )
                                     }
                                 } else {
-                                    // Radio buttons for multiple choice
-                                    Column(
-                                        modifier = Modifier.selectableGroup()
-                                    ) {
+                                    Column(modifier = Modifier.selectableGroup()) {
                                         question.options.forEachIndexed { index, option ->
                                             Row(
                                                 Modifier
                                                     .fillMaxWidth()
                                                     .selectable(
-                                                        selected = (selectedAnswers[currentQuestionIndex] == index),
-                                                        onClick = {
-                                                            selectedAnswers = selectedAnswers.toMutableMap().apply {
-                                                                put(currentQuestionIndex, index)
-                                                            }
-                                                        }
+                                                        selected = (state.selectedAnswers[state.currentQuestionIndex] == index),
+                                                        onClick = { vm.onIntent(MixedQuizIntent.SelectAnswer(state.currentQuestionIndex, index)) }
                                                     )
                                                     .padding(horizontal = 16.dp, vertical = 8.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 RadioButton(
-                                                    selected = (selectedAnswers[currentQuestionIndex] == index),
+                                                    selected = (state.selectedAnswers[state.currentQuestionIndex] == index),
                                                     onClick = null
                                                 )
-                                                Text(
-                                                    text = option,
-                                                    style = MaterialTheme.typography.bodyLarge,
-                                                    modifier = Modifier.padding(start = 16.dp)
-                                                )
+                                                Text(text = option, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
                                             }
                                         }
                                     }
                                 }
-                                
+
                                 Spacer(modifier = Modifier.height(32.dp))
-                                
-                                // Navigation buttons
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    if (currentQuestionIndex > 0) {
-                                        OutlinedButton(
-                                            onClick = { currentQuestionIndex-- }
-                                        ) {
+                                    if (state.currentQuestionIndex > 0) {
+                                        OutlinedButton(onClick = { vm.onIntent(MixedQuizIntent.PreviousQuestion) }) {
                                             Text("Předchozí")
                                         }
                                     } else {
                                         Spacer(modifier = Modifier.weight(1f))
                                     }
-                                    
-                                    if (currentQuestionIndex < totalQuestions - 1) {
-                                        Button(
-                                            onClick = { currentQuestionIndex++ }
-                                        ) {
+
+                                    if (state.currentQuestionIndex < totalQuestions - 1) {
+                                        Button(onClick = { vm.onIntent(MixedQuizIntent.NextQuestion) }) {
                                             Text("Další")
                                         }
                                     } else {
-                                        Button(
-                                            onClick = {
-                                                showResults = true
-                                                
-                                                // Award points if not already awarded
-                                                if (!pointsAwarded) {
-                                                    val correctAnswers = shuffledQuestions.mapIndexed { displayIndex, questionIndex ->
-                                                        val q = mixedQuestions[questionIndex]
-                                                        if (q.isTextQuestion) {
-                                                            val userText = textAnswers[displayIndex]?.trim() ?: ""
-                                                            val correctText = q.correctTextAnswer?.trim() ?: ""
-                                                            normalizeText(userText) == normalizeText(correctText)
-                                                        } else {
-                                                            val selectedAnswer = selectedAnswers[displayIndex]
-                                                            selectedAnswer != null && 
-                                                                selectedAnswer >= 0 && 
-                                                                selectedAnswer < q.options.size &&
-                                                                selectedAnswer == q.correctAnswer
-                                                        }
-                                                    }.count { it }
-                                                    
-                                                    val points = correctAnswers * 2 // 2 body za správnou odpověď
-                                                    if (points > 0) {
-                                                        PointsManager.addPoints(context, points)
-                                                        awardedPoints = points
-                                                        showPointsOverlay = true
-                                                    }
-                                                    pointsAwarded = true
-                                                }
-                                            }
-                                        ) {
+                                        Button(onClick = { vm.onIntent(MixedQuizIntent.FinishQuiz) }) {
                                             Text("Dokončit")
                                         }
                                     }
@@ -775,15 +562,14 @@ fun MixedQuizScreen(
             }
         }
 
-        // Points overlay
-        if (showPointsOverlay) {
+        if (state.showPointsOverlay) {
             FullScreenPointsOverlay(
-                points = awardedPoints,
+                points = state.awardedPoints,
                 totalPoints = totalPoints
             )
-            LaunchedEffect(showPointsOverlay) {
+            LaunchedEffect(state.showPointsOverlay) {
                 kotlinx.coroutines.delay(2500)
-                showPointsOverlay = false
+                vm.onIntent(MixedQuizIntent.DismissPointsOverlay)
             }
         }
     }

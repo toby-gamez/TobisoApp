@@ -9,9 +9,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import android.app.Application
 import androidx.navigation.NavController
 import com.example.tobisoappnative.model.OfflineDataManager
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.offlinemanager.OfflineManagerViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,11 +23,12 @@ import java.util.concurrent.TimeUnit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OfflineManagerScreen(
-    navController: NavController,
-    mainViewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
+    val application = LocalContext.current.applicationContext as Application
+    val vm: OfflineManagerViewModel = viewModel(factory = OfflineManagerViewModel.Factory(application))
     val context = LocalContext.current
-    val isOfflineMode by mainViewModel.isOffline.collectAsState()
+    val isOfflineMode by vm.isOffline.collectAsState()
 
     var categoriesCount by remember { mutableStateOf<Int?>(null) }
     var postsCount by remember { mutableStateOf<Int?>(null) }
@@ -39,10 +41,10 @@ fun OfflineManagerScreen(
     var lastUpdateTimestamp by remember { mutableStateOf<Long?>(null) }
     var cacheFresh15 by remember { mutableStateOf<Boolean?>(null) }
     val offlineManager = OfflineDataManager(context)
-    val toastMessage by mainViewModel.toastMessage.collectAsState()
+    val toastMessage by vm.toastMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val offlineDownloading by mainViewModel.offlineDownloading.collectAsState()
-    val offlineProgress by mainViewModel.offlineDownloadProgress.collectAsState()
+    val offlineDownloading by vm.offlineDownloading.collectAsState()
+    val offlineProgress by vm.offlineDownloadProgress.collectAsState()
 
     suspend fun loadCacheInfo() {
         withContext(Dispatchers.IO) {
@@ -239,8 +241,7 @@ fun OfflineManagerScreen(
                         }
 
                         Button(onClick = {
-                            // spustit manuální stažení přes viewModel
-                            mainViewModel.downloadAllOfflineData(context)
+                            vm.downloadAllOfflineData()
                         }) {
                             Text("Stáhnout offline data")
                         }
@@ -255,7 +256,7 @@ fun OfflineManagerScreen(
         LaunchedEffect(toastMessage) {
             toastMessage?.let { msg ->
                 snackbarHostState.showSnackbar(msg)
-                mainViewModel.clearToast()
+                vm.clearToast()
             }
         }
 
@@ -267,7 +268,7 @@ fun OfflineManagerScreen(
                 // if viewModel didn't emit a toast, show local snackbar
                 // (check current toastMessage after a small delay to allow VM to set it)
                 kotlinx.coroutines.delay(300)
-                if (mainViewModel.toastMessage.value == null) {
+                if (vm.toastMessage.value == null) {
                     snackbarHostState.showSnackbar("Offline obsah byl aktualizován")
                 }
             }

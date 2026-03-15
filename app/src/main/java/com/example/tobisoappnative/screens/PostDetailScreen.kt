@@ -20,7 +20,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import android.app.Application
+import com.example.tobisoappnative.viewmodel.postdetail.PostDetailViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.Composable
 import com.halilibo.richtext.ui.material3.RichText
@@ -441,29 +442,30 @@ fun parseContentToElements(
 @Composable
 fun PostDetailScreen(
     postId: Int,
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val postDetail by viewModel.postDetail.collectAsState()
-    val postDetailError by viewModel.postDetailError.collectAsState()
-    val favoritePosts by viewModel.favoritePosts.collectAsState()
-    val posts by viewModel.posts.collectAsState()
-    val isOffline by viewModel.isOffline.collectAsState()
-    val exercises by viewModel.exercises.collectAsState()
-    val exercisesLoading by viewModel.exercisesLoading.collectAsState()
-    val exercisesError by viewModel.exercisesError.collectAsState()
-    val questions by viewModel.questions.collectAsState()
-    val relatedPosts by viewModel.relatedPosts.collectAsState()
-    val relatedPostsError by viewModel.relatedPostsError.collectAsState()
-    val relatedPostsLoading by viewModel.relatedPostsLoading.collectAsState()
+    val application = LocalContext.current.applicationContext as Application
+    val vm: PostDetailViewModel = viewModel(factory = PostDetailViewModel.Factory(application))
+    val postDetail by vm.postDetail.collectAsState()
+    val postDetailError by vm.postDetailError.collectAsState()
+    val favoritePosts by vm.favoritePosts.collectAsState()
+    val posts by vm.posts.collectAsState()
+    val isOffline by vm.isOffline.collectAsState()
+    val exercises by vm.exercises.collectAsState()
+    val exercisesLoading by vm.exercisesLoading.collectAsState()
+    val exercisesError by vm.exercisesError.collectAsState()
+    val questions by vm.questions.collectAsState()
+    val relatedPosts by vm.relatedPosts.collectAsState()
+    val relatedPostsError by vm.relatedPostsError.collectAsState()
+    val relatedPostsLoading by vm.relatedPostsLoading.collectAsState()
     var isRefreshing by remember { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
     val coroutineScope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(false) }
     var hasQuestions by remember { mutableStateOf(false) }
     var hasExercises by remember { mutableStateOf(false) }
-    val ttsManager = viewModel.getTtsManager()
-    val addendums by viewModel.addendums.collectAsState()
+    val ttsManager = vm.getTtsManager()
+    val addendums by vm.addendums.collectAsState()
     var selectedAddendum by remember { mutableStateOf<Addendum?>(null) }
     var showAddendumDialog by remember { mutableStateOf(false) }
     var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
@@ -476,7 +478,7 @@ fun PostDetailScreen(
         coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 android.util.Log.d("PostDetailScreen", "Stahování PDF pro post ID: $id")
-                val responseBody = viewModel.downloadPostPdf(id)
+                val responseBody = vm.downloadPostPdf(id)
                 val pdfBytes = responseBody.bytes()
                 android.util.Log.d("PostDetailScreen", "PDF staženo, velikost: ${pdfBytes.size} bytes")
                 
@@ -576,27 +578,27 @@ fun PostDetailScreen(
         try {
             android.util.Log.d("PostDetailScreen", "LaunchedEffect started for post $postId")
             // Načteme detail (ViewModel má logiku pro offline i online režim)
-            viewModel.loadPostDetail(postId)
+            vm.loadPostDetail(postId)
             android.util.Log.d("PostDetailScreen", "Post detail loaded")
             
             // Načteme všechny posts pro vyhledávání odkazů a zobrazení souvisejících článků
             if (posts.isEmpty()) {
-                viewModel.loadPosts()
+                vm.loadPosts()
                 android.util.Log.d("PostDetailScreen", "Posts loaded")
             }
             // Načteme související články (funguje v online i offline režimu)
-            viewModel.loadRelatedPosts(postId)
+            vm.loadRelatedPosts(postId)
             android.util.Log.d("PostDetailScreen", "Related posts loaded")
             
             // Načteme dodatky
             if (addendums.isEmpty()) {
-                viewModel.loadAddendums()
+                vm.loadAddendums()
                 android.util.Log.d("PostDetailScreen", "Addendums loaded")
             }
             
             // Kontrola otázek pro tento příspěvek (nyní funguje v online i offline režimu)
             hasQuestions = try {
-                viewModel.checkHasQuestions(postId)
+                vm.checkHasQuestions(postId)
             } catch (e: Exception) {
                 android.util.Log.e("PostDetailScreen", "Error checking questions", e)
                 false
@@ -605,7 +607,7 @@ fun PostDetailScreen(
             // Kontrola cvičení pro tento příspěvek (pouze v online režimu)
             hasExercises = try {
                 val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId ?: postDetail?.categoryId
-                viewModel.checkHasExercises(postId, postCategoryId)
+                vm.checkHasExercises(postId, postCategoryId)
             } catch (e: Exception) {
                 android.util.Log.e("PostDetailScreen", "Error checking exercises", e)
                 false
@@ -614,7 +616,7 @@ fun PostDetailScreen(
             // Přednačteme cvičení (online i offline), aby se tlačítko zobrazilo spolehlivě
             try {
                 val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId ?: postDetail?.categoryId
-                viewModel.loadExercisesByPostId(postId, postCategoryId)
+                vm.loadExercisesByPostId(postId, postCategoryId)
             } catch (e: Exception) {
                 android.util.Log.e("PostDetailScreen", "Error preloading exercises", e)
             }
@@ -633,7 +635,7 @@ fun PostDetailScreen(
         if (postCategoryId == null && postDetail?.id != postId) return@LaunchedEffect
 
         hasExercises = try {
-            viewModel.checkHasExercises(postId, postCategoryId)
+            vm.checkHasExercises(postId, postCategoryId)
         } catch (e: Exception) {
             android.util.Log.e("PostDetailScreen", "Error re-checking exercises", e)
             hasExercises
@@ -641,7 +643,7 @@ fun PostDetailScreen(
 
         // Jakmile známe categoryId, dotáhneme cvičení (kvůli category-based přiřazení)
         try {
-            viewModel.loadExercisesByPostId(postId, postCategoryId)
+            vm.loadExercisesByPostId(postId, postCategoryId)
         } catch (e: Exception) {
             android.util.Log.e("PostDetailScreen", "Error reloading exercises", e)
         }
@@ -663,8 +665,8 @@ fun PostDetailScreen(
                 if (!isOffline) {
                     isRefreshing = true
                     coroutineScope.launch {
-                        viewModel.loadPostDetail(postId)
-                        viewModel.loadRelatedPosts(postId)
+                        vm.loadPostDetail(postId)
+                        vm.loadRelatedPosts(postId)
                         isRefreshing = false
                     }
                 } else {
@@ -703,7 +705,7 @@ fun PostDetailScreen(
                             IconButton(onClick = {
                                 val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content)
                                 if (plainText.isNotEmpty()) {
-                                    viewModel.speakText(plainText)
+                                    vm.speakText(plainText)
                                 }
                             }) {
                                 Icon(
@@ -718,7 +720,7 @@ fun PostDetailScreen(
                         // HVĚZDIČKA - první vpravo
                         IconButton(onClick = {
                             postDetail?.let {
-                                if (isFavorite) viewModel.unsavePost(it.id) else viewModel.savePost(it)
+                                if (isFavorite) vm.unsavePost(it.id) else vm.savePost(it)
                             }
                         }) {
                             Icon(
@@ -1036,7 +1038,7 @@ fun PostDetailScreen(
                                                         try {
                                                             val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
                                                                 ?: postDetail?.categoryId
-                                                            viewModel.loadExercisesByPostId(postId, postCategoryId)
+                                                            vm.loadExercisesByPostId(postId, postCategoryId)
                                                             android.widget.Toast.makeText(
                                                                 context,
                                                                 "Načítám cvičení…",
@@ -1294,7 +1296,7 @@ fun PostDetailScreen(
                                         try {
                                             val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
                                                 ?: postDetail?.categoryId
-                                            viewModel.loadExercisesByPostId(postId, postCategoryId)
+                                            vm.loadExercisesByPostId(postId, postCategoryId)
                                         } catch (e: Exception) {
                                             android.util.Log.e("PostDetailScreen", "Error loading exercises", e)
                                         }

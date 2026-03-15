@@ -1,5 +1,6 @@
 package com.example.tobisoappnative.screens
 
+import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.viewmodel.CalendarViewModel
+import com.example.tobisoappnative.viewmodel.home.HomeViewModel
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.AddEditEventDialog
@@ -43,7 +45,6 @@ import androidx.annotation.RequiresApi
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.*
-import com.example.tobisoappnative.components.FloatingSearchBar
 
 // Enum pro filtrování událostí
 enum class EventFilter(val displayName: String) {
@@ -64,15 +65,16 @@ fun CalendarScreen(
     navController: NavHostController? = null,
     viewModel: CalendarViewModel = viewModel(),
     initialYear: Int? = null,
-    initialMonth: Int? = null,
-    mainViewModel: com.example.tobisoappnative.viewmodel.MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    initialMonth: Int? = null
 ) {
+    val application = LocalContext.current.applicationContext as Application
+    val homeVm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application))
     val events by viewModel.events.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val selectedDateEvents by viewModel.selectedDateEvents.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
-    val isOfflineMode by mainViewModel.isOffline.collectAsState()
+    val isOfflineMode by homeVm.isOffline.collectAsState()
 
     var currentMonth by remember { 
         mutableStateOf(initialMonth ?: Calendar.getInstance().get(Calendar.MONTH)) 
@@ -108,8 +110,8 @@ fun CalendarScreen(
     
     // Načtení dat pro FloatingSearchBar
     LaunchedEffect(Unit) {
-        mainViewModel.loadCategories()
-        mainViewModel.loadPosts()
+        homeVm.loadCategories()
+        homeVm.loadPosts()
     }
 
     // Hlavní Box pro celou obrazovku
@@ -242,8 +244,8 @@ fun CalendarScreen(
                         )
                     }
                     // Offline download progress indicator (small circle)
-                    val offlineDownloading by mainViewModel.offlineDownloading.collectAsState()
-                    val offlineProgress by mainViewModel.offlineDownloadProgress.collectAsState()
+                    val offlineDownloading by homeVm.offlineDownloading.collectAsState()
+                    val offlineProgress by homeVm.offlineDownloadProgress.collectAsState()
                     if (offlineDownloading) {
                         Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(

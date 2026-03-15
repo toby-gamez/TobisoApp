@@ -31,11 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import android.app.Application
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.MultiplierIndicator
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.allquestions.AllQuestionsViewModel
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post  
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -55,17 +56,18 @@ fun getCurrentStreakAllQuestions(context: Context): Int {
 @Composable
 fun AllQuestionsScreen(
     navController: NavController,
-    viewModel: MainViewModel = viewModel()
 ) {
-    val allQuestions by viewModel.allQuestions.collectAsState()
-    val filteredQuestions by viewModel.filteredQuestions.collectAsState()
-    val allQuestionsError by viewModel.allQuestionsError.collectAsState()
-    val allQuestionsLoading by viewModel.allQuestionsLoading.collectAsState()
-    val isOffline by viewModel.isOffline.collectAsState()
-    val categories by viewModel.categories.collectAsState()
-    val questionsPosts by viewModel.questionsPosts.collectAsState()
-    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
-    val selectedPostId by viewModel.selectedPostId.collectAsState()
+    val application = LocalContext.current.applicationContext as Application
+    val vm: AllQuestionsViewModel = viewModel(factory = AllQuestionsViewModel.Factory(application))
+    val allQuestions by vm.allQuestions.collectAsState()
+    val filteredQuestions by vm.filteredQuestions.collectAsState()
+    val allQuestionsError by vm.allQuestionsError.collectAsState()
+    val allQuestionsLoading by vm.allQuestionsLoading.collectAsState()
+    val isOffline by vm.isOffline.collectAsState()
+    val categories by vm.categories.collectAsState()
+    val questionsPosts by vm.questionsPosts.collectAsState()
+    val selectedCategoryId by vm.selectedCategoryId.collectAsState()
+    val selectedPostId by vm.selectedPostId.collectAsState()
     
     var isRefreshing by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
@@ -86,14 +88,14 @@ fun AllQuestionsScreen(
 
     // Načtení dat při startu (nyní funguje v online i offline režimu)
     LaunchedEffect(isOffline) {
-        viewModel.loadCategories() // Načteme kategorie pro filtry
-        viewModel.loadAllQuestions() // Načteme otázky (offline/online se řeší v ViewModelu)
+        vm.loadCategories() // Načteme kategorie pro filtry
+        vm.loadAllQuestions() // Načteme otázky (offline/online se řeší v ViewModelu)
     }
 
     // Vyčištění stavu při opuštění obrazovky
     DisposableEffect(Unit) {
         onDispose {
-            viewModel.clearAllQuestions()
+            vm.clearAllQuestions()
         }
     }
 
@@ -195,8 +197,8 @@ fun AllQuestionsScreen(
                         )
                     }
                     // Offline download progress indicator (small circle)
-                    val offlineDownloading by viewModel.offlineDownloading.collectAsState()
-                    val offlineProgress by viewModel.offlineDownloadProgress.collectAsState()
+                    val offlineDownloading by vm.offlineDownloading.collectAsState()
+                    val offlineProgress by vm.offlineDownloadProgress.collectAsState()
                     if (offlineDownloading) {
                         Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
@@ -231,13 +233,13 @@ fun AllQuestionsScreen(
                 selectedPostId = selectedPostId,
                 expandedCategories = expandedCategories,
                 onCategorySelected = { categoryId ->
-                    viewModel.setQuestionsFilter(categoryId = categoryId)
+                    vm.setQuestionsFilter(categoryId = categoryId)
                 },
                 onPostSelected = { postId ->
-                    viewModel.setQuestionsFilter(postId = postId)
+                    vm.setQuestionsFilter(postId = postId)
                 },
                 onClearFilter = {
-                    viewModel.clearQuestionsFilter()
+                    vm.clearQuestionsFilter()
                 },
                 onCategoryExpanded = { categoryId ->
                     expandedCategories = if (expandedCategories.contains(categoryId)) {
@@ -255,7 +257,7 @@ fun AllQuestionsScreen(
                 if (!isOffline) {
                     isRefreshing = true
                     coroutineScope.launch {
-                        viewModel.loadAllQuestions()
+                        vm.loadAllQuestions()
                         isRefreshing = false
                     }
                 } else {
@@ -287,7 +289,7 @@ fun AllQuestionsScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(onClick = { 
-                                viewModel.loadAllQuestions()
+                                vm.loadAllQuestions()
                             }) {
                                 Text("Zkusit znovu")
                             }
@@ -343,7 +345,7 @@ fun AllQuestionsScreen(
                         selectedCategoryId = selectedCategoryId,
                         selectedPostId = selectedPostId,
                         navController = navController,
-                        onClearFilter = { viewModel.clearQuestionsFilter() },
+                        onClearFilter = { vm.clearQuestionsFilter() },
                         listState = listState
                     )
                 }

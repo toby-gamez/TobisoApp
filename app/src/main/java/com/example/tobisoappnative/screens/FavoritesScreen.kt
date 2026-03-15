@@ -9,11 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.app.Application
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.platform.LocalContext
 import com.example.tobisoappnative.ui.theme.poppins
 import com.example.tobisoappnative.ui.theme.poppins_regular
-import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.favorites.FavoritesViewModel
 import com.example.tobisoappnative.components.MultiplierIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,17 +30,18 @@ import com.example.tobisoappnative.model.ApiClient
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
-    navController: NavController,
-    viewModel: MainViewModel = viewModel()
+    navController: NavController
 ) {
-    val posts by viewModel.posts.collectAsState()
-    val favoritePosts by viewModel.favoritePosts.collectAsState()
-    val snippets by viewModel.snippets.collectAsState()
+    val application = LocalContext.current.applicationContext as Application
+    val vm: FavoritesViewModel = viewModel(factory = FavoritesViewModel.Factory(application))
+    val posts by vm.fetchedPosts.collectAsState()
+    val favoritePosts by vm.favoritePosts.collectAsState()
+    val snippets by vm.snippets.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
 
     LaunchedEffect(selectedTab) {
         if (selectedTab == 0) {
-            viewModel.loadSnippets()
+            vm.loadSnippets()
         }
     }
 
@@ -113,7 +116,7 @@ fun FavoritesScreen(
                 text = { Text(if (deleteType == 0) "Tímto smažete všechny uložené útržky." else "Tímto smažete všechny oblíbené články.") },
                 confirmButton = {
                     TextButton(onClick = {
-                        if (deleteType == 0) viewModel.clearSnippets() else viewModel.clearFavoritePosts()
+                        if (deleteType == 0) vm.clearSnippets() else vm.clearFavoritePosts()
                         showDeleteDialog = false
                     }) {
                         Text("Ano")
@@ -147,7 +150,7 @@ fun FavoritesScreen(
                             // If the title is not yet available but we have an ID, try fetching the post
                             LaunchedEffect(postTitle, snippet.postId) {
                                 if (postTitle == null && snippet.postId != 0) {
-                                    viewModel.fetchAndCachePost(snippet.postId)
+                                    vm.fetchAndCachePost(snippet.postId)
                                 }
                             }
                             Card(
@@ -182,7 +185,7 @@ fun FavoritesScreen(
                                         )
                                     }
                                     IconButton(
-                                        onClick = { viewModel.removeSnippet(snippet) },
+                                        onClick = { vm.removeSnippet(snippet) },
                                         modifier = Modifier.padding(8.dp)
                                     ) {
                                         Icon(
@@ -242,7 +245,7 @@ fun FavoritesScreen(
                                             Text(text = "Upraveno: $formatted", style = MaterialTheme.typography.bodySmall)
                                         }
                                     }
-                                    IconButton(onClick = { viewModel.unsavePost(post.id) }) {
+                                    IconButton(onClick = { vm.unsavePost(post.id) }) {
                                         Icon(
                                             imageVector = Icons.Filled.Star,
                                             contentDescription = "Odebrat z oblíbených",

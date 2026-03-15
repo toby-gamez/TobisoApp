@@ -19,60 +19,64 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.BackpackManager
 import com.example.tobisoappnative.IconPackManager
 import com.example.tobisoappnative.model.*
 import com.example.tobisoappnative.components.MultiplierIndicator
+import com.example.tobisoappnative.viewmodel.backpack.BackpackViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BackpackScreen(navController: NavController) {
+fun BackpackScreen(
+    navController: NavController,
+    vm: BackpackViewModel = viewModel(factory = BackpackViewModel.Factory())
+) {
     val context = LocalContext.current
     val backpackItems by BackpackManager.backpackItems.collectAsState()
     val equippedQuote by BackpackManager.equippedQuote.collectAsState()
     val equippedPet by BackpackManager.equippedPet.collectAsState()
-    
-    var selectedItem by remember { mutableStateOf<BackpackItem?>(null) }
-    var showItemDialog by remember { mutableStateOf(false) }
-    var showSuccessMessage by remember { mutableStateOf(false) }
-    var successMessage by remember { mutableStateOf("") }
-    
+
+    val selectedItem by vm.selectedItem.collectAsState()
+    val showItemDialog by vm.showItemDialog.collectAsState()
+    val showSuccessMessage by vm.showSuccessMessage.collectAsState()
+    val successMessage by vm.successMessage.collectAsState()
+
     // Pro scroll k sekcím
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val headerPositions = remember { mutableMapOf<BackpackCategory, Int>() }
-    
+
     // Sledování aktivní kategorie na základě scroll pozice - jednoduše!
     val activeCategory by remember {
         derivedStateOf {
             val visibleItems = listState.layoutInfo.visibleItemsInfo
             val firstIndex = if (visibleItems.isNotEmpty()) visibleItems.first().index else 0
-            
+
             // Použij uložené pozice headerů a najdi nejbližší
             val sortedPositions = headerPositions.toList().sortedBy { it.second }
-            
+
             for (i in sortedPositions.indices.reversed()) {
                 if (firstIndex >= sortedPositions[i].second) {
                     return@derivedStateOf sortedPositions[i].first
                 }
             }
-            
+
             // Default - první kategorie s obsahem
             BackpackCategory.entries.firstOrNull { category ->
                 BackpackManager.getItemsByCategory(category).isNotEmpty()
             } ?: BackpackCategory.QUOTES
         }
     }
-    
+
     // Inicializace BackpackManageru
     LaunchedEffect(Unit) {
         BackpackManager.init(context)
@@ -213,8 +217,7 @@ fun BackpackScreen(navController: NavController) {
                                     else -> false
                                 },
                                 onClick = {
-                                    selectedItem = backpackItem
-                                    showItemDialog = true
+                                    vm.selectItem(backpackItem)
                                 }
                             )
                         }
@@ -246,60 +249,17 @@ fun BackpackScreen(navController: NavController) {
                 ShopItemType.ICON_PACK -> BackpackManager.equippedIconPack.collectAsState().value?.id == selectedItem!!.shopItem.id
                 else -> false
             },
-            onEquip = {
-                when (selectedItem!!.shopItem.type) {
-                    ShopItemType.PROFILE_QUOTE -> {
-                        BackpackManager.equipQuote(context, selectedItem!!.shopItem)
-                        successMessage = "Citát byl nasazen!"
-                    }
-                    ShopItemType.PET -> {
-                        BackpackManager.equipPet(context, selectedItem!!.shopItem)
-                        successMessage = "Zvířátko bylo nasazeno!"
-                    }
-                    ShopItemType.ICON_PACK -> {
-                        BackpackManager.equipIconPack(context, selectedItem!!.shopItem)
-                        successMessage = "Balíček ikon byl aktivován!"
-                    }
-                    else -> {
-                        successMessage = "Item byl použit!"
-                    }
-                }
-                showSuccessMessage = true
-                showItemDialog = false
-            },
-            onUnequip = {
-                when (selectedItem!!.shopItem.type) {
-                    ShopItemType.PROFILE_QUOTE -> {
-                        BackpackManager.equipQuote(context, null)
-                        successMessage = "Citát byl odstraněn"
-                    }
-                    ShopItemType.PET -> {
-                        BackpackManager.equipPet(context, null)
-                        successMessage = "Zvířátko bylo odstraněno"
-                    }
-                    ShopItemType.ICON_PACK -> {
-                        BackpackManager.equipIconPack(context, null)
-                        successMessage = "Balíček ikon byl deaktivován"
-                    }
-                    else -> {
-                        successMessage = "Item byl odstraněn"
-                    }
-                }
-                showSuccessMessage = true
-                showItemDialog = false
-            },
-            onDismiss = {
-                showItemDialog = false
-                selectedItem = null
-            }
+            onEquip = { vm.equipItem(context, selectedItem!!) },
+            onUnequip = { vm.unequipItem(context, selectedItem!!) },
+            onDismiss = { vm.dismissDialog() }
         )
     }
-    
+
     // Success Snackbar
     LaunchedEffect(showSuccessMessage) {
         if (showSuccessMessage) {
             delay(2000)
-            showSuccessMessage = false
+            vm.clearSuccessMessage()
         }
     }
     
