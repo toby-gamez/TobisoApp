@@ -54,6 +54,10 @@ import com.example.tobisoappnative.components.MultiplierIndicator
 import com.example.tobisoappnative.components.TtsPlayer
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import com.example.tobisoappnative.utils.TextUtils
 import java.io.File
 import java.io.FileOutputStream
@@ -64,6 +68,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import android.provider.MediaStore
 import android.content.ContentValues
 import android.os.Environment
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Clear
 import kotlin.getOrElse
 import coil.compose.AsyncImage
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -662,6 +668,8 @@ fun PostDetailScreen(
     }
 
     var showFloatingSelectButton by remember { mutableStateOf(false) }
+    var aiInputText by remember { mutableStateOf("") }
+    var aiInputExpanded by remember { mutableStateOf(false) }
     
     // Scroll behavior pro nested scrolling
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -732,7 +740,7 @@ fun PostDetailScreen(
                             }
                         }) {
                             Icon(
-                                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
+                                imageVector = if (isFavorite) Icons.Filled.AutoAwesome else Icons.Default.AutoAwesome,
                                 contentDescription = if (isFavorite) "Odebrat z oblíbených" else "Uložit do oblíbených",
                                 tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1010,16 +1018,16 @@ fun PostDetailScreen(
                             }
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Placeholder spacer to prevent content being hidden behind sticky bar
-                            if (loaded && (hasQuestions || questions.isNotEmpty() || hasExercises || exercisesLoading || exercises.isNotEmpty() || exercisesError != null)) {
-                                Spacer(modifier = Modifier.height(64.dp))
+                            // Placeholder spacer to prevent content being hidden behind sticky bar (AI input bar only)
+                            if (loaded) {
+                                Spacer(modifier = Modifier.height(20.dp))
                             }
 
-                            // Tlačítka Prověrka a Cvičení — ONLY INLINE FALLBACK (primary is sticky bar below)
-                            if (false) {
+                            // Tlačítka Prověrka a Cvičení — inline v obsahu (pod body, nad souvisejícími články)
+                            if (hasExercises || exercisesLoading || exercises.isNotEmpty() || hasQuestions || questions.isNotEmpty() || !exercisesError.isNullOrBlank()) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     if (hasExercises || exercisesLoading || exercises.isNotEmpty()) {
                                         val exerciseLabel: (String) -> String = { type ->
@@ -1038,7 +1046,7 @@ fun PostDetailScreen(
                                                 enabled = false,
                                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                                             ) { Text("Cvičení…") }
-                                        } else if (exercises.isEmpty()) {
+                        } else if (exercises.isEmpty() && hasExercises) {
                                             Button(
                                                 onClick = {
                                                     coroutineScope.launch {
@@ -1101,11 +1109,9 @@ fun PostDetailScreen(
                                         }
                                     }
                                     
-                                    if (hasQuestions) {
+                                    if (hasQuestions || questions.isNotEmpty()) {
                                         Button(
-                                            onClick = {
-                                                navController.navigate("questions/$postId")
-                                            },
+                                            onClick = { navController.navigate("questions/$postId") },
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = MaterialTheme.colorScheme.secondary
                                             )
@@ -1251,9 +1257,9 @@ fun PostDetailScreen(
             }
         }
 
-        // Sticky bottom action bar — Prověrka + Cvičení
+        // Sticky bottom action bar — AI + Prověrka + Cvičení
         // Nezobrazujeme bar dokud se nedokončí úvodní načítání (loaded=true), aby neprobliknul
-        val showActionsBar = loaded && (hasQuestions || questions.isNotEmpty() || exercisesLoading || exercises.isNotEmpty() || exercisesError != null)
+        val showActionsBar = loaded
         if (showActionsBar) {
             Surface(
                 tonalElevation = 6.dp,
@@ -1265,93 +1271,77 @@ fun PostDetailScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    if (!exercisesError.isNullOrBlank()) {
-                        Text(
-                            text = exercisesError ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                    }
-
+                    // AI vstupní řádek
+                    val postTitle = postDetail?.title ?: ""
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End),
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
-                        val exerciseLabel: (String) -> String = { type ->
-                            when (type) {
-                                "timeline" -> "Cvičení na časovou osu"
-                                "circuit" -> "Cvičení: obvod"
-                                "drag-drop" -> "Cvičení: přetahování"
-                                "matching" -> "Cvičení: párování"
-                                else -> "Cvičení"
-                            }
-                        }
-
-                        if (exercisesLoading) {
-                            Button(
-                                onClick = {},
-                                enabled = false,
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                            ) { Text("Cvičení…") }
-                        } else if (exercises.isEmpty() && hasExercises) {
-                            // exercises not yet fetched but we know they exist
-                            Button(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        try {
-                                            val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
-                                                ?: postDetail?.categoryId
-                                            vm.loadExercisesByPostId(postId, postCategoryId)
-                                        } catch (e: Exception) {
-                                            android.util.Log.e("PostDetailScreen", "Error loading exercises", e)
-                                        }
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                            ) { Text("Cvičení") }
-                        } else {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                exercises.forEach { ex ->
-                                    Button(
-                                        onClick = {
-                                            coroutineScope.launch {
-                                                try {
-                                                    when (ex.type) {
-                                                        "timeline" -> navController.navigate("exerciseTimeline/${ex.id}")
-                                                        "drag-drop" -> navController.navigate("exerciseDragDrop/${ex.id}")
-                                                        "matching" -> navController.navigate("exerciseMatching/${ex.id}")
-                                                        "circuit" -> navController.navigate("exerciseCircuit/${ex.id}")
-                                                        else -> android.widget.Toast.makeText(
-                                                            context,
-                                                            "Nepodporovaný typ cvičení: ${ex.type}",
-                                                            android.widget.Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    }
-                                                } catch (e: Exception) {
-                                                    android.util.Log.e("PostDetailScreen", "Error opening exercise", e)
-                                                }
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                                    ) {
-                                        val exLabel = ex.title.takeIf { it.isNotBlank() } ?: exerciseLabel(ex.type)
-                                        Text(exLabel)
+                        OutlinedTextField(
+                            value = aiInputText,
+                            onValueChange = { aiInputText = it; if (!aiInputExpanded) aiInputExpanded = true },
+                            modifier = Modifier.weight(1f),
+                            placeholder = {
+                                Text(
+                                    "Zeptej se...",
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            trailingIcon = if (aiInputText.isNotBlank()) {{
+                                IconButton(onClick = { aiInputText = ""; aiInputExpanded = false }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Smazat")
+                                }
+                            }} else null,
+                            singleLine = !aiInputExpanded,
+                            maxLines = if (aiInputExpanded) 4 else 1,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(
+                                onSend = {
+                                    if (aiInputText.isNotBlank()) {
+                                        navController.navigate(
+                                            "aiChat/$postId/${android.net.Uri.encode(postTitle)}/${android.net.Uri.encode(aiInputText)}"
+                                        )
+                                        aiInputText = ""
+                                        aiInputExpanded = false
                                     }
                                 }
-                            }
-                        }
-
-                        if (hasQuestions || questions.isNotEmpty()) {
-                            Button(
-                                onClick = { navController.navigate("questions/$postId") },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary
-                                )
-                            ) { Text("Prověrka") }
+                            ),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                if (aiInputText.isNotBlank()) {
+                                    navController.navigate(
+                                        "aiChat/$postId/${android.net.Uri.encode(postTitle)}/${android.net.Uri.encode(aiInputText)}"
+                                    )
+                                    aiInputText = ""
+                                    aiInputExpanded = false
+                                }
+                            },
+                            enabled = aiInputText.isNotBlank()
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "Odeslat",
+                                tint = if (aiInputText.isNotBlank())
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            )
                         }
                     }
                 }
