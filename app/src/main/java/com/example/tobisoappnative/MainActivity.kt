@@ -393,7 +393,8 @@ class MainActivity : ComponentActivity() {
                                                     route.startsWith("exerciseDragDrop") ||
                                                     route.startsWith("exerciseMatching") ||
                                                     route.startsWith("exerciseCircuit") ||
-                                                    route.startsWith("offlineManager"))
+                                                    route.startsWith("offlineManager") ||
+                                                    route.startsWith("aiChat"))
                                             ),
                                     enter = slideInVertically(
                                         initialOffsetY = { it }, // přichází zdola
@@ -1114,6 +1115,47 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     BackpackScreen(navController = navController)
                                 }
+                                composable(
+                                    "aiChat/{postId}/{postTitle}/{firstUserMessage}",
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { -it },
+                                            animationSpec = tween(400)
+                                        )
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = tween(400)
+                                        )
+                                    }
+                                ) { backStackEntry ->
+                                    val postId = backStackEntry.arguments?.getString("postId")?.toIntOrNull()
+                                    val postTitle = backStackEntry.arguments?.getString("postTitle") ?: ""
+                                    val firstUserMessage = backStackEntry.arguments?.getString("firstUserMessage") ?: ""
+                                    if (postId != null) {
+                                        com.example.tobisoappnative.screens.AiChatScreen(
+                                            postId = postId,
+                                            postTitle = postTitle,
+                                            firstUserMessage = firstUserMessage,
+                                            navController = navController
+                                        )
+                                    } else {
+                                        Text("Chybný postId", color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
                             }
                         }
                         // Persistent TTS player shown above other content (bottom-aligned).
@@ -1139,7 +1181,8 @@ class MainActivity : ComponentActivity() {
                                 route.startsWith("exerciseTimeline") ||
                                 route.startsWith("exerciseDragDrop") ||
                                 route.startsWith("exerciseMatching") ||
-                                route.startsWith("exerciseCircuit")
+                                route.startsWith("exerciseCircuit") ||
+                                route.startsWith("aiChat")
                             )
                         )
 
@@ -1189,7 +1232,12 @@ class MainActivity : ComponentActivity() {
                                 viewModel = mainViewModel,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = if (bottomBarVisible) 100.dp else 16.dp)
+                                    .padding(bottom = if (bottomBarVisible) 100.dp else 16.dp),
+                                onAiSend = { post, message ->
+                                    navController.navigate(
+                                        "aiChat/${post.id}/${android.net.Uri.encode(post.title)}/${android.net.Uri.encode(message)}"
+                                    )
+                                }
                             )
                         }
                     }

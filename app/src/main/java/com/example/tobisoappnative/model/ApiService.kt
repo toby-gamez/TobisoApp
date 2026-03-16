@@ -80,4 +80,11 @@ interface ApiService {
         @Path("id") id: Int,
         @Body request: ValidateSolutionRequest
     ): ExerciseValidationResult
+
+    // AI chat endpoint
+    @POST("ai/ask")
+    suspend fun askAi(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @Body request: AiChatRequest
+    ): AiChatResponse
 }
