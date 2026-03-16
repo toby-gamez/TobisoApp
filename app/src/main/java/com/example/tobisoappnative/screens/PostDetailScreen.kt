@@ -261,6 +261,7 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 6.dp)
+                                    .background(androidx.compose.ui.graphics.Color.White)
                             )
                             return
                         }
@@ -478,7 +479,19 @@ fun PostDetailScreen(
     var pendingPdfDownload by rememberSaveable { mutableStateOf(false) }
     
     val context = LocalContext.current
-    
+
+    // Skutečná kontrola připojení (stejně jako v MainActivity)
+    var isConnected by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+                    as android.net.ConnectivityManager
+            val caps = cm.activeNetwork?.let { cm.getNetworkCapabilities(it) }
+            isConnected = caps?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+            delay(2000)
+        }
+    }
+
     // Funkce pro stažení PDF
     val downloadPdf: (Int) -> Unit = { id ->
         coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -1258,8 +1271,8 @@ fun PostDetailScreen(
         }
 
         // Sticky bottom action bar — AI + Prověrka + Cvičení
-        // Nezobrazujeme bar dokud se nedokončí úvodní načítání (loaded=true), aby neprobliknul
-        val showActionsBar = loaded
+        // Nezobrazujeme bar dokud se nedokončí úvodní načítání (loaded=true) a nemáme internet
+        val showActionsBar = loaded && isConnected
         if (showActionsBar) {
             Surface(
                 tonalElevation = 6.dp,

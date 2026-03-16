@@ -1233,6 +1233,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = if (bottomBarVisible) 100.dp else 16.dp),
+                                isOffline = !isConnected.value,
                                 onAiSend = { post, message ->
                                     navController.navigate(
                                         "aiChat/${post.id}/${android.net.Uri.encode(post.title)}/${android.net.Uri.encode(message)}"

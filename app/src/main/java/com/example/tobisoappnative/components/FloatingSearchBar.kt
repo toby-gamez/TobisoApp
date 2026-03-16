@@ -77,6 +77,7 @@ fun FloatingSearchBar(
     modifier: Modifier = Modifier,
     initialExpanded: Boolean = true,
     collapsedHeight: Dp = 20.dp,
+    isOffline: Boolean = false,
     onAiClick: () -> Unit = {},
     onAiPostSelected: (Post) -> Unit = {},
     onAiSend: (Post, String) -> Unit = { _, _ -> }
@@ -303,7 +304,7 @@ fun FloatingSearchBar(
 
             AnimatedVisibility(visible = expanded) {
                 Row(
-                    verticalAlignment = Alignment.Bottom,
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Card(
@@ -394,32 +395,52 @@ fun FloatingSearchBar(
                         } // Column
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    SmallFloatingActionButton(
-                        onClick = {
-                            when {
-                                aiMode && attachedPost != null && searchText.isNotEmpty() -> {
-                                    onAiSend(attachedPost!!, searchText)
-                                    searchText = ""
+                    Box {
+                        SmallFloatingActionButton(
+                            onClick = {
+                                if (isOffline && !aiMode) return@SmallFloatingActionButton
+                                when {
+                                    aiMode && attachedPost != null && searchText.isNotEmpty() -> {
+                                        onAiSend(attachedPost!!, searchText)
+                                        searchText = ""
+                                    }
+                                    aiMode -> { aiMode = false; searchText = ""; attachedPost = null }
+                                    else -> { aiMode = true; searchText = ""; onAiClick() }
                                 }
-                                aiMode -> { aiMode = false; searchText = ""; attachedPost = null }
-                                else -> { aiMode = true; searchText = ""; onAiClick() }
-                            }
-                        },
-                        containerColor = if (aiMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = if (aiMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
-                    ) {
-                        Icon(
-                            imageVector = when {
-                                aiMode && attachedPost != null && searchText.isNotEmpty() -> Icons.Default.Send
-                                aiMode -> Icons.Default.Search
-                                else -> Icons.Filled.AutoAwesome
                             },
-                            contentDescription = when {
-                                aiMode && attachedPost != null && searchText.isNotEmpty() -> "Odeslat"
-                                aiMode -> "Přepnout na vyhledávání"
-                                else -> "AI vyhledávání"
-                            }
-                        )
+                            containerColor = if (isOffline && !aiMode)
+                                MaterialTheme.colorScheme.surfaceVariant
+                            else if (aiMode) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = if (isOffline && !aiMode)
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            else if (aiMode) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onPrimaryContainer
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    aiMode && attachedPost != null && searchText.isNotEmpty() -> Icons.Default.Send
+                                    aiMode -> Icons.Default.Search
+                                    else -> Icons.Filled.AutoAwesome
+                                },
+                                contentDescription = when {
+                                    isOffline && !aiMode -> "AI nedostupné (offline)"
+                                    aiMode && attachedPost != null && searchText.isNotEmpty() -> "Odeslat"
+                                    aiMode -> "Přepnout na vyhledávání"
+                                    else -> "AI vyhledávání"
+                                }
+                            )
+                        }
+                        if (isOffline && !aiMode) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 2.dp, y = (-2).dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(MaterialTheme.colorScheme.error)
+                            )
+                        }
                     }
                 }
             }
