@@ -67,7 +67,7 @@ private val _posts = MutableStateFlow<List<Post>>(emptyList())
 // ... dalších 20 StateFlow
 ```
 
-#### 1.3 Duplicitní logika
+#### 1.3 Duplicitní logika - DONE
 
 `downloadAllOfflineData()` je **zkopírována celá** do `MainViewModel` a zároveň existuje v `HomeViewModel` (který volá `offlineRepo.downloadAllData()`). Totéž platí pro:
 - `getCurrentStreak()` v `HomeScreen.kt` a `getCurrentStreakCalendar()` v `CalendarScreen.kt` – stejná funkce, jiný název
