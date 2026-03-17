@@ -62,6 +62,7 @@ class MainViewModel(application: Application) :
                 try {
                     val categories = ApiClient.apiService.getCategories().toList()
                     val posts = ApiClient.apiService.getPosts().toList()
+                    offlineDataManager.saveCategoriesAndPosts(categories, posts)
                     setState { copy(categories = categories, posts = posts, categoryError = null, isOffline = false) }
                     if (isFirstLoad) {
                         emitEffect(MainEffect.ShowToast("Offline obsah byl aktualizován"))

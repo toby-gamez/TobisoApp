@@ -82,6 +82,7 @@ import com.example.tobisoappnative.screens.StreakScreen
 import com.example.tobisoappnative.screens.ShopScreen
 import com.example.tobisoappnative.screens.addTodayToStreak
 import com.example.tobisoappnative.screens.checkPointsAchievements
+import com.example.tobisoappnative.utils.NetworkUtils
 import com.example.tobisoappnative.utils.StreakUtils
 import com.example.tobisoappnative.components.FloatingSearchBar
 import java.util.*
@@ -204,7 +205,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MyApp() {
         val context = androidx.compose.ui.platform.LocalContext.current
-        val isConnected = remember { mutableStateOf(checkInternetConnection(context)) }
+        val isConnected = remember { mutableStateOf(NetworkUtils.isOnline(context)) }
         val mainViewModel: MainViewModel = viewModel()
         val ttsViewModel: TtsViewModel = viewModel()
         val mainState by mainViewModel.uiState.collectAsState()
@@ -230,14 +231,14 @@ class MainActivity : ComponentActivity() {
         // periodická kontrola připojení
         LaunchedEffect(context) {
             while (true) {
-                isConnected.value = checkInternetConnection(context)
+                isConnected.value = NetworkUtils.isOnline(context)
                 delay(2000)
             }
         }
 
         // callback pro ruční obnovu
         val onRetry = {
-            isConnected.value = checkInternetConnection(context)
+            isConnected.value = NetworkUtils.isOnline(context)
             if (isConnected.value) {
                 mainViewModel.onIntent(MainIntent.ResetNoInternetDismiss)
             }
@@ -1325,14 +1326,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun checkInternetConnection(context: Context): Boolean {
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-    }
-    
     private fun recordAppOpen() {
         val prefs = getSharedPreferences("app_usage_prefs", Context.MODE_PRIVATE)
         val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())

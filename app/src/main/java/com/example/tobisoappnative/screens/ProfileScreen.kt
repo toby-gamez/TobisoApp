@@ -119,12 +119,6 @@ fun copyImageToInternalStorage(context: android.content.Context, uri: android.ne
     }
 }
 
-// Helper funkce pro získání aktuální řady (nyní s freeze podporou)
-@RequiresApi(Build.VERSION_CODES.O)
-fun getCurrentStreakProfile(context: android.content.Context): Int {
-    return com.example.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
-}
-
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -218,7 +212,7 @@ fun ProfileScreen(navController: NavController) {
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            currentStreak.value = getCurrentStreakProfile(context)
+                            currentStreak.value = com.example.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
                         }
                     }
                     

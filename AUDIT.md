@@ -53,7 +53,7 @@
 
 Tento soubor má přes 600 řádků a desítky `StateFlow`. Je to přesný opak Single Responsibility. **Každá z těchto domén si zaslouží vlastní ViewModel.**
 
-#### 1.2 MVI infrastruktura existuje, ale NIKDE se nepoužívá
+#### 1.2 MVI infrastruktura existuje, ale NIKDE se nepoužívá - DONE
 
 `BaseViewModel` a `MviContract` jsou krásně připraveny, ale `MainViewModel`, `CalendarViewModel`, `AiChatViewModel` a `HomeViewModel` je **nevyužívají**. Místo toho přímo manipulují `MutableStateFlow`. Architekturní rozhodnutí tak platí jen na papíře.
 

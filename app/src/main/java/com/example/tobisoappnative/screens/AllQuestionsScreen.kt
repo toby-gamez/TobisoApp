@@ -46,12 +46,6 @@ import java.time.LocalDate
 import com.example.tobisoappnative.utils.StreakUtils
 import com.example.tobisoappnative.components.FloatingSearchBar
 
-// Helper funkce pro získání aktuální řady (nyní s freeze podporou)
-@RequiresApi(Build.VERSION_CODES.O)
-fun getCurrentStreakAllQuestions(context: Context): Int {
-    return StreakUtils.getCurrentStreak(context)
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllQuestionsScreen(
@@ -170,7 +164,7 @@ fun AllQuestionsScreen(
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            currentStreak.value = getCurrentStreakAllQuestions(context)
+                            currentStreak.value = StreakUtils.getCurrentStreak(context)
                         }
                     }
                     

@@ -57,12 +57,6 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Helper funkce pro získání aktuální řady (nyní s freeze podporou)
-@RequiresApi(Build.VERSION_CODES.O)
-fun getCurrentStreak(context: Context): Int {
-    return StreakUtils.getCurrentStreak(context)
-}
-
 // Pomocné funkce pro parsování a formát data
 fun parseDateToMillis(dateStr: String?): Long? {
     if (dateStr.isNullOrBlank()) return null
@@ -392,7 +386,7 @@ fun HomeScreen(navController: NavHostController) {
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            currentStreak.value = getCurrentStreak(context)
+                            currentStreak.value = StreakUtils.getCurrentStreak(context)
                         }
                     }
                     

@@ -56,12 +56,6 @@ enum class EventFilter(val displayName: String) {
     REMOTE("Vzdálené")
 }
 
-// Helper funkce pro získání aktuální řady (nyní s freeze podporou)
-@RequiresApi(Build.VERSION_CODES.O)
-fun getCurrentStreakCalendar(context: Context): Int {
-    return com.example.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
@@ -252,7 +246,7 @@ fun CalendarScreen(
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            currentStreak.value = getCurrentStreakCalendar(context)
+                            currentStreak.value = com.example.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
                         }
                     }
                     
