@@ -753,7 +753,7 @@ fun PostDetailScreen(
                             }
                         }) {
                             Icon(
-                                imageVector = if (isFavorite) Icons.Filled.AutoAwesome else Icons.Default.AutoAwesome,
+                                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
                                 contentDescription = if (isFavorite) "Odebrat z oblíbených" else "Uložit do oblíbených",
                                 tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
