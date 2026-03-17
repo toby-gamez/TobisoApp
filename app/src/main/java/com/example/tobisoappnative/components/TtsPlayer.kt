@@ -12,8 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.tobisoappnative.viewmodel.MainViewModel
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,8 +34,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 @Composable
 fun TtsPlayer(
     ttsManager: TtsManager,
-    modifier: Modifier = Modifier,
-    viewModel: MainViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
     val ttsStatus by ttsManager.status.collectAsState()
     
@@ -181,7 +178,7 @@ fun TtsPlayer(
                         // Previous segment button
                         if (ttsStatus.totalSegments > 1) {
                             IconButton(
-                                onClick = { viewModel.skipToPreviousSegment() },
+                                onClick = { ttsManager.skipToPrevious() },
                                 enabled = ttsStatus.currentSegment > 1
                             ) {
                                 Icon(
@@ -245,7 +242,7 @@ fun TtsPlayer(
                         // Next segment button
                         if (ttsStatus.totalSegments > 1) {
                             IconButton(
-                                onClick = { viewModel.skipToNextSegment() },
+                                onClick = { ttsManager.skipToNext() },
                                 enabled = ttsStatus.currentSegment < ttsStatus.totalSegments
                             ) {
                                 Icon(

@@ -62,6 +62,7 @@ import com.example.tobisoappnative.screens.FavoritesScreen
 import com.example.tobisoappnative.screens.NoInternetScreen
 import com.example.tobisoappnative.screens.UpdaterScreen
 import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.tts.TtsViewModel
 import kotlinx.coroutines.delay
 import androidx.work.*
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -203,6 +204,7 @@ class MainActivity : ComponentActivity() {
         val context = androidx.compose.ui.platform.LocalContext.current
         val isConnected = remember { mutableStateOf(checkInternetConnection(context)) }
         val mainViewModel: MainViewModel = viewModel()
+        val ttsViewModel: TtsViewModel = viewModel()
         val categories by mainViewModel.categories.collectAsState()
         val categoryError by mainViewModel.categoryError.collectAsState()
         val isOffline by mainViewModel.isOffline.collectAsState()
@@ -1161,7 +1163,7 @@ class MainActivity : ComponentActivity() {
                         // Persistent TTS player shown above other content (bottom-aligned).
                         // It uses the single TtsManager instance from the MainViewModel so playback
                         // continues across navigation.
-                        val ttsManagerInstance = mainViewModel.getTtsManager()
+                        val ttsManagerInstance = ttsViewModel.ttsManager
                         val bottomBarVisible = (route == null ||
                             !(route.startsWith("postDetail") ||
                                 route.startsWith("about") ||
