@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import android.app.Application
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.example.tobisoappnative.viewmodel.home.HomeViewModel
+import com.example.tobisoappnative.viewmodel.home.HomeIntent
+import com.example.tobisoappnative.viewmodel.home.HomeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -274,22 +276,31 @@ fun HomeScreen(navController: NavHostController) {
     val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application))
     var sortMode by remember { mutableStateOf(loadSortMode(context)) }
     var dropdownExpanded by remember { mutableStateOf(false) }
-    val posts by vm.posts.collectAsState()
-    val categories by vm.categories.collectAsState()
+    val state by vm.uiState.collectAsState()
+    val posts = state.posts
+    val categories = state.categories
     var selectedSubjectId by remember { mutableStateOf<Int?>(null) }
     
     LaunchedEffect(Unit) { 
-        vm.load()
+        vm.onIntent(HomeIntent.Load)
         BackpackManager.init(context)
         IconPackManager.init(context)
     }
     
     val totalPoints by PointsManager.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
-    val offlineDownloading by vm.offlineDownloading.collectAsState()
-    val offlineProgress by vm.offlineDownloadProgress.collectAsState()
-    val toastMessage by vm.toastMessage.collectAsState()
+    val offlineDownloading = state.offlineDownloading
+    val offlineProgress = state.offlineDownloadProgress
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Collect one-shot effects
+    LaunchedEffect(Unit) {
+        vm.effect.collect { effect ->
+            when (effect) {
+                is HomeEffect.ShowToast -> snackbarHostState.showSnackbar(effect.message)
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -527,15 +538,6 @@ fun HomeScreen(navController: NavHostController) {
             LaunchedEffect(showTotalOverlay) {
                 delay(2200)
                 showTotalOverlay = false
-            }
-        }
-
-        // Snackbar pro toastMessage z ViewModel
-        LaunchedEffect(toastMessage
-        ) {
-            toastMessage?.let { msg ->
-                snackbarHostState.showSnackbar(msg)
-                vm.clearToast()
             }
         }
 

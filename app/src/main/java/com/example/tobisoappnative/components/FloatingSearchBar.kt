@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.utils.normalizeText
+import com.example.tobisoappnative.viewmodel.MainIntent
 import com.example.tobisoappnative.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
 
@@ -87,9 +88,10 @@ fun FloatingSearchBar(
     var aiMode by remember { mutableStateOf(false) }
     var attachedPost by remember { mutableStateOf<Post?>(null) }
     val focusRequester = remember { FocusRequester() }
-    val expanded by viewModel.searchBarExpanded.collectAsState(initial = initialExpanded)
-    val posts by viewModel.posts.collectAsState()
-    val categories by viewModel.categories.collectAsState()
+    val state by viewModel.uiState.collectAsState()
+    val expanded = state.searchBarExpanded
+    val posts = state.posts
+    val categories = state.categories
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
 
     // Debounce pro vyhledávání
@@ -144,9 +146,9 @@ fun FloatingSearchBar(
                     detectDragGestures { _, dragAmount ->
                         // dragAmount.y > 0 => dragging down; < 0 => dragging up
                         if (dragAmount.y > 20f && expanded) {
-                            viewModel.setSearchBarExpanded(false)
+                            viewModel.onIntent(MainIntent.SetSearchBarExpanded(false))
                         } else if (dragAmount.y < -20f && !expanded) {
-                            viewModel.setSearchBarExpanded(true)
+                            viewModel.onIntent(MainIntent.SetSearchBarExpanded(true))
                         }
                     }
                 }
@@ -287,7 +289,7 @@ fun FloatingSearchBar(
                         modifier = Modifier
                             .offset(y = 15.dp)
                             .size(width = 48.dp, height = 28.dp)
-                            .clickable { viewModel.setSearchBarExpanded(true) },
+                            .clickable { viewModel.onIntent(MainIntent.SetSearchBarExpanded(true)) },
                         contentAlignment = Alignment.Center
                     ) {
                         // Vlastní vizuální tenký pruh

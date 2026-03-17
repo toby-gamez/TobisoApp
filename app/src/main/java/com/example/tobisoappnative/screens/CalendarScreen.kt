@@ -33,7 +33,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.viewmodel.CalendarViewModel
+import com.example.tobisoappnative.viewmodel.CalendarIntent
+import com.example.tobisoappnative.viewmodel.CalendarEffect
 import com.example.tobisoappnative.viewmodel.home.HomeViewModel
+import com.example.tobisoappnative.viewmodel.home.HomeIntent
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.AddEditEventDialog
@@ -69,12 +72,14 @@ fun CalendarScreen(
 ) {
     val application = LocalContext.current.applicationContext as Application
     val homeVm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application))
-    val events by viewModel.events.collectAsState()
-    val selectedDate by viewModel.selectedDate.collectAsState()
-    val selectedDateEvents by viewModel.selectedDateEvents.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val isOfflineMode by homeVm.isOffline.collectAsState()
+    val state by viewModel.uiState.collectAsState()
+    val events = state.events
+    val selectedDate = state.selectedDate
+    val selectedDateEvents = state.selectedDateEvents
+    val isLoading = state.isLoading
+    val error = state.error
+    val homeState by homeVm.uiState.collectAsState()
+    val isOfflineMode = homeState.isOffline
 
     var currentMonth by remember { 
         mutableStateOf(initialMonth ?: Calendar.getInstance().get(Calendar.MONTH)) 
@@ -105,12 +110,41 @@ fun CalendarScreen(
     var showFilterDropdown by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentMonth, currentYear) {
-        viewModel.loadEventsForMonth(currentYear, currentMonth)
+        viewModel.onIntent(CalendarIntent.LoadEventsForMonth(currentYear, currentMonth))
     }
     
     // Načtení dat pro FloatingSearchBar
     LaunchedEffect(Unit) {
-        homeVm.load()
+        homeVm.onIntent(HomeIntent.Load)
+    }
+
+    // Zpracování one-shot efektů z CalendarViewModel
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is CalendarEffect.EventAdded -> {
+                    if (effect.success) {
+                        showAddEventDialog = false
+                        selectedDateForNewEvent = null
+                    }
+                }
+                is CalendarEffect.EventUpdated -> {
+                    if (effect.success) {
+                        showAddEventDialog = false
+                        editingEvent = null
+                        selectedDate?.let { viewModel.onIntent(CalendarIntent.SelectDate(it)) }
+                    }
+                }
+                is CalendarEffect.EventDeleted -> {
+                    isDeleting = false
+                    if (effect.success) {
+                        showDeleteDialog = false
+                        eventToDelete = null
+                        selectedDate?.let { viewModel.onIntent(CalendarIntent.SelectDate(it)) }
+                    }
+                }
+            }
+        }
     }
 
     // Hlavní Box pro celou obrazovku
@@ -243,8 +277,8 @@ fun CalendarScreen(
                         )
                     }
                     // Offline download progress indicator (small circle)
-                    val offlineDownloading by homeVm.offlineDownloading.collectAsState()
-                    val offlineProgress by homeVm.offlineDownloadProgress.collectAsState()
+                    val offlineDownloading = homeState.offlineDownloading
+                    val offlineProgress = homeState.offlineDownloadProgress
                     if (offlineDownloading) {
                         Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
@@ -317,7 +351,7 @@ fun CalendarScreen(
                         viewModel = viewModel,
                         eventFilter = currentFilter,
                         onDateClick = { date ->
-                            viewModel.selectDate(date)
+                            viewModel.onIntent(CalendarIntent.SelectDate(date))
                             showDateDetail = true
                         },
                         onDateLongClick = { date ->
@@ -347,7 +381,7 @@ fun CalendarScreen(
                         navController = navController,
                         onClose = {
                             showDateDetail = false
-                            viewModel.clearSelectedDate()
+                            viewModel.onIntent(CalendarIntent.ClearSelectedDate)
                         },
                         onEditEvent = { event ->
                             editingEvent = event
@@ -417,29 +451,9 @@ fun CalendarScreen(
         },
         onSave = { event ->
             if (editingEvent != null) {
-                // Úprava existujícího eventu
-                viewModel.updateLocalEvent(event) { result ->
-                    if (result != null) {
-                        showAddEventDialog = false
-                        editingEvent = null
-                        // Refresh celého měsíce pro aktualizaci kalendáře
-                        viewModel.loadEventsForMonth(currentYear, currentMonth)
-                        // Aktualizuj vybraný den pokud je některý vybraný
-                        selectedDate?.let { date ->
-                            viewModel.selectDate(date)
-                        }
-                    }
-                }
+                viewModel.onIntent(CalendarIntent.UpdateLocalEvent(event))
             } else {
-                // Přidání nového eventu
-                viewModel.addLocalEvent(event) { result ->
-                    if (result != null) {
-                        showAddEventDialog = false
-                        selectedDateForNewEvent = null
-                        // Refresh celého měsíce pro aktualizaci kalendáře
-                        viewModel.loadEventsForMonth(currentYear, currentMonth)
-                    }
-                }
+                viewModel.onIntent(CalendarIntent.AddLocalEvent(event))
             }
         },
         initialEvent = editingEvent,
@@ -461,19 +475,7 @@ fun CalendarScreen(
                 TextButton(
                     onClick = {
                         isDeleting = true
-                        viewModel.deleteLocalEvent(eventToDelete!!.id) { success ->
-                            isDeleting = false
-                            if (success) {
-                                showDeleteDialog = false
-                                eventToDelete = null
-                                // Refresh celého měsíce pro aktualizaci kalendáře
-                                viewModel.loadEventsForMonth(currentYear, currentMonth)
-                                // Aktualizuj seznam eventů pro vybraný den
-                                selectedDate?.let { date ->
-                                    viewModel.selectDate(date)
-                                }
-                            }
-                        }
+                        viewModel.onIntent(CalendarIntent.DeleteLocalEvent(eventToDelete!!.id))
                     },
                     enabled = !isDeleting
                 ) {
@@ -544,7 +546,8 @@ fun CalendarGrid(
     onDateClick: (Date) -> Unit,
     onDateLongClick: (Date) -> Unit = {}
 ) {
-    val selectedDate by viewModel.selectedDate.collectAsState()
+    val state by viewModel.uiState.collectAsState()
+    val selectedDate = state.selectedDate
     val dayNames = arrayOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
     
     Column {

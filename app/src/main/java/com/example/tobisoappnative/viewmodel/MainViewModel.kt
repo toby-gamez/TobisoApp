@@ -1,16 +1,12 @@
 package com.example.tobisoappnative.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tobisoappnative.base.BaseAndroidViewModel
 import com.example.tobisoappnative.model.ApiClient
-import com.example.tobisoappnative.model.Category
 import com.example.tobisoappnative.model.OfflineDataManager
-import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.utils.NetworkUtils
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -18,80 +14,44 @@ import kotlinx.coroutines.launch
  *  – Categories and posts list (navigation + FloatingSearchBar)
  *  – Network / offline state and NoInternet overlay control
  *  – Search bar expanded/collapsed state
- *  – Global toast messages
  *
  * All per-screen concerns (post detail, questions, exercises, favourites, TTS,
  * offline download management, etc.) are handled by dedicated ViewModels.
  */
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-
-    // ── Categories & Posts ────────────────────────────────────────────────────
-
-    private val _categories = MutableStateFlow<List<Category>>(emptyList())
-    val categories: StateFlow<List<Category>> = _categories
-
-    private val _posts = MutableStateFlow<List<Post>>(emptyList())
-    val posts: StateFlow<List<Post>> = _posts
-
-    private val _categoryError = MutableStateFlow<String?>(null)
-    val categoryError: StateFlow<String?> = _categoryError
-
-    private val _categoryLoading = MutableStateFlow(false)
-    val categoryLoading: StateFlow<Boolean> = _categoryLoading
-
-    // ── Network / Offline state ───────────────────────────────────────────────
-
-    private val _isOffline = MutableStateFlow(false)
-    val isOffline: StateFlow<Boolean> = _isOffline
-
-    /** True once the user has dismissed the NoInternet screen and confirmed offline mode. */
-    private val _hasUserDismissedNoInternet = MutableStateFlow(false)
-    val hasUserDismissedNoInternet: StateFlow<Boolean> = _hasUserDismissedNoInternet
-
-    // ── Search bar ────────────────────────────────────────────────────────────
-
-    private val _searchBarExpanded = MutableStateFlow(true)
-    val searchBarExpanded: StateFlow<Boolean> = _searchBarExpanded
-
-    fun setSearchBarExpanded(expanded: Boolean) {
-        _searchBarExpanded.value = expanded
-    }
-
-    // ── Toast ─────────────────────────────────────────────────────────────────
-
-    private val _toastMessage = MutableStateFlow<String?>(null)
-    val toastMessage: StateFlow<String?> = _toastMessage
-
-    fun showToast(message: String) {
-        _toastMessage.value = message
-    }
-
-    fun clearToast() {
-        _toastMessage.value = null
-    }
-
-    // ── Internal helpers ──────────────────────────────────────────────────────
+class MainViewModel(application: Application) :
+    BaseAndroidViewModel<MainState, MainIntent, MainEffect>(application, MainState()) {
 
     private val offlineDataManager = OfflineDataManager(application)
     private var isFirstLoad = true
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            _isOffline.value = !NetworkUtils.isOnline(getApplication())
+            setState { copy(isOffline = !NetworkUtils.isOnline(getApplication())) }
         }
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    override fun onIntent(intent: MainIntent) {
+        when (intent) {
+            MainIntent.LoadCategories -> loadCategories()
+            MainIntent.EnableOfflineMode -> viewModelScope.launch(Dispatchers.IO) { loadOfflineData() }
+            MainIntent.ConfirmOfflineModeTransition -> setState { copy(hasUserDismissedNoInternet = true) }
+            MainIntent.ResetNoInternetDismiss -> setState { copy(hasUserDismissedNoInternet = false) }
+            MainIntent.RefreshNetworkState -> viewModelScope.launch(Dispatchers.IO) {
+                setState { copy(isOffline = !NetworkUtils.isOnline(getApplication())) }
+            }
+            is MainIntent.SetSearchBarExpanded -> setState { copy(searchBarExpanded = intent.expanded) }
+        }
+    }
 
-    fun loadCategories() {
+    private fun loadCategories() {
         viewModelScope.launch(Dispatchers.IO) {
-            _categoryLoading.value = true
+            setState { copy(categoryLoading = true) }
             val isOnline = NetworkUtils.isOnline(getApplication())
 
             try {
                 if (offlineDataManager.isCacheFresh(15)) {
                     loadOfflineData()
-                    _categoryLoading.value = false
+                    setState { copy(categoryLoading = false) }
                     return@launch
                 }
             } catch (e: Exception) {
@@ -102,20 +62,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 try {
                     val categories = ApiClient.apiService.getCategories().toList()
                     val posts = ApiClient.apiService.getPosts().toList()
-                    _categories.value = categories
-                    _posts.value = posts
-                    _categoryError.value = null
-                    _isOffline.value = false
+                    setState { copy(categories = categories, posts = posts, categoryError = null, isOffline = false) }
                     if (isFirstLoad) {
-                        showToast("Offline obsah byl aktualizován")
+                        emitEffect(MainEffect.ShowToast("Offline obsah byl aktualizován"))
                         isFirstLoad = false
                     }
                 } catch (e: Exception) {
                     val stillOnline = NetworkUtils.isOnline(getApplication())
                     if (stillOnline) {
-                        _categoryError.value = "Chyba serveru: ${e.message}"
-                        _isOffline.value = false
-                        showToast("Problém s připojením k serveru. Zkuste to později.")
+                        setState { copy(categoryError = "Chyba serveru: ${e.message}", isOffline = false) }
+                        emitEffect(MainEffect.ShowToast("Problém s připojením k serveru. Zkuste to později."))
                     } else {
                         loadOfflineData()
                     }
@@ -123,44 +79,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 loadOfflineData()
             }
-            _categoryLoading.value = false
+            setState { copy(categoryLoading = false) }
         }
     }
-
-    fun enableOfflineMode() {
-        viewModelScope.launch(Dispatchers.IO) { loadOfflineData() }
-    }
-
-    fun confirmOfflineModeTransition() {
-        _hasUserDismissedNoInternet.value = true
-    }
-
-    fun resetNoInternetDismiss() {
-        _hasUserDismissedNoInternet.value = false
-    }
-
-    fun refreshNetworkState() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _isOffline.value = !NetworkUtils.isOnline(getApplication())
-        }
-    }
-
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     private suspend fun loadOfflineData() {
         val cachedCategories = offlineDataManager.getCachedCategories()
         val cachedPosts = offlineDataManager.getCachedPosts()
         if (cachedCategories != null && cachedPosts != null) {
-            _categories.value = cachedCategories
-            _posts.value = cachedPosts
-            _categoryError.value = null
-            _isOffline.value = true
+            setState { copy(categories = cachedCategories, posts = cachedPosts, categoryError = null, isOffline = true) }
         } else {
-            _categories.value = emptyList()
-            _posts.value = emptyList()
-            _categoryError.value = "Žádná offline data k dispozici"
-            _isOffline.value = true
-            showToast("Žádná offline data. Připojte se k internetu.")
+            setState { copy(categories = emptyList(), posts = emptyList(), categoryError = "Žádná offline data k dispozici", isOffline = true) }
+            emitEffect(MainEffect.ShowToast("Žádná offline data. Připojte se k internetu."))
         }
     }
 }

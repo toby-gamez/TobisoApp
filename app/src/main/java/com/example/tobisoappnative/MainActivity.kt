@@ -62,6 +62,8 @@ import com.example.tobisoappnative.screens.FavoritesScreen
 import com.example.tobisoappnative.screens.NoInternetScreen
 import com.example.tobisoappnative.screens.UpdaterScreen
 import com.example.tobisoappnative.viewmodel.MainViewModel
+import com.example.tobisoappnative.viewmodel.MainIntent
+import com.example.tobisoappnative.viewmodel.MainEffect
 import com.example.tobisoappnative.viewmodel.tts.TtsViewModel
 import kotlinx.coroutines.delay
 import androidx.work.*
@@ -205,10 +207,11 @@ class MainActivity : ComponentActivity() {
         val isConnected = remember { mutableStateOf(checkInternetConnection(context)) }
         val mainViewModel: MainViewModel = viewModel()
         val ttsViewModel: TtsViewModel = viewModel()
-        val categories by mainViewModel.categories.collectAsState()
-        val categoryError by mainViewModel.categoryError.collectAsState()
-        val isOffline by mainViewModel.isOffline.collectAsState()
-        val hasUserDismissedNoInternet by mainViewModel.hasUserDismissedNoInternet.collectAsState()
+        val mainState by mainViewModel.uiState.collectAsState()
+        val categories = mainState.categories
+        val categoryError = mainState.categoryError
+        val isOffline = mainState.isOffline
+        val hasUserDismissedNoInternet = mainState.hasUserDismissedNoInternet
         val lastAddedPoints by PointsManager.lastAddedPoints.collectAsState()
         val lastMilestone by PointsManager.lastMilestone.collectAsState()
         val lastAchievement by PointsManager.lastAchievement.collectAsState()
@@ -236,7 +239,7 @@ class MainActivity : ComponentActivity() {
         val onRetry = {
             isConnected.value = checkInternetConnection(context)
             if (isConnected.value) {
-                mainViewModel.resetNoInternetDismiss()
+                mainViewModel.onIntent(MainIntent.ResetNoInternetDismiss)
             }
         }
 
@@ -256,7 +259,18 @@ class MainActivity : ComponentActivity() {
 
         // načtení kategorií při startu
         LaunchedEffect(Unit) {
-            mainViewModel.loadCategories()
+            mainViewModel.onIntent(MainIntent.LoadCategories)
+        }
+
+        // Zpracování one-shot efektů z MainViewModel
+        LaunchedEffect(Unit) {
+            mainViewModel.effect.collect { effect ->
+                when (effect) {
+                    is MainEffect.ShowToast -> {
+                        android.widget.Toast.makeText(context, effect.message, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
 
         // Inicializace bodů a obchodu při startu aplikace
@@ -362,8 +376,8 @@ class MainActivity : ComponentActivity() {
                         NoInternetScreen(
                             onRetry = onRetry,
                             onOfflineMode = { 
-                                mainViewModel.enableOfflineMode()
-                                mainViewModel.confirmOfflineModeTransition()
+                                mainViewModel.onIntent(MainIntent.EnableOfflineMode)
+                                mainViewModel.onIntent(MainIntent.ConfirmOfflineModeTransition)
                             }
                         )
                     } else if (categories.isEmpty() && categoryError == null && !isOffline) {

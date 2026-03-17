@@ -1,59 +1,41 @@
 package com.example.tobisoappnative.viewmodel.ai
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.ViewModelProvider
+import com.example.tobisoappnative.base.BaseViewModel
 import com.example.tobisoappnative.model.AiChatMessageDto
 import com.example.tobisoappnative.model.AiChatRequest
 import com.example.tobisoappnative.model.ApiClient
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-
-data class ChatMessage(
-    val role: String, // "user" nebo "assistant"
-    val content: String
-)
 
 class AiChatViewModel(
     private val postId: Int,
     private val firstUserMessage: String
-) : ViewModel() {
-
-    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
-    val messages: StateFlow<List<ChatMessage>> = _messages
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
-    private val _remainingQuestions = MutableStateFlow<Int?>(null)
-    val remainingQuestions: StateFlow<Int?> = _remainingQuestions
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
-
-    private val _limitReached = MutableStateFlow(false)
-    val limitReached: StateFlow<Boolean> = _limitReached
+) : BaseViewModel<AiChatState, AiChatIntent, AiChatEffect>(AiChatState()) {
 
     init {
         if (firstUserMessage.isNotBlank()) {
-            sendMessage(firstUserMessage)
+            onIntent(AiChatIntent.SendMessage(firstUserMessage))
         }
     }
 
-    fun sendMessage(text: String) {
-        val trimmed = text.trim()
-        if (trimmed.isBlank() || _isLoading.value) return
+    override fun onIntent(intent: AiChatIntent) {
+        when (intent) {
+            is AiChatIntent.SendMessage -> sendMessage(intent.text)
+        }
+    }
 
-        _messages.value = _messages.value + ChatMessage("user", trimmed)
-        _error.value = null
-        _isLoading.value = true
+    private fun sendMessage(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isBlank() || currentState.isLoading) return
+
+        setState { copy(messages = messages + ChatMessage("user", trimmed), error = null, isLoading = true) }
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val history = _messages.value.dropLast(1).map {
+                val history = currentState.messages.dropLast(1).map {
                     AiChatMessageDto(it.role, it.content)
                 }
                 val request = AiChatRequest(
@@ -62,21 +44,23 @@ class AiChatViewModel(
                     conversationHistory = history
                 )
                 val response = ApiClient.apiService.askAi("tobiso-android", request)
-                _messages.value = _messages.value + ChatMessage("assistant", response.answer)
-                _remainingQuestions.value = response.remainingQuestions
+                setState {
+                    copy(
+                        messages = messages + ChatMessage("assistant", response.answer),
+                        remainingQuestions = response.remainingQuestions,
+                        isLoading = false
+                    )
+                }
             } catch (e: HttpException) {
                 if (e.code() == 429) {
-                    _limitReached.value = true
-                    _error.value = "Dosáhl jsi denního limitu dotazů. Zkus to zítra."
+                    setState { copy(limitReached = true, error = "Dosáhl jsi denního limitu dotazů. Zkus to zítra.", isLoading = false) }
                 } else {
-                    _error.value = "Chyba serveru (${e.code()}). Zkus to znovu."
+                    setState { copy(error = "Chyba serveru (${e.code()}). Zkus to znovu.", isLoading = false) }
                 }
                 android.util.Log.e("AiChatViewModel", "HTTP error ${e.code()}", e)
             } catch (e: Exception) {
-                _error.value = "Nepodařilo se spojit se serverem."
+                setState { copy(error = "Nepodařilo se spojit se serverem.", isLoading = false) }
                 android.util.Log.e("AiChatViewModel", "Error asking AI", e)
-            } finally {
-                _isLoading.value = false
             }
         }
     }
@@ -86,7 +70,7 @@ class AiChatViewModel(
         private val firstUserMessage: String
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
             AiChatViewModel(postId, firstUserMessage) as T
     }
 }

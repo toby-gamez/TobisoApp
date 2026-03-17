@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.ai.AiChatViewModel
+import com.example.tobisoappnative.viewmodel.ai.AiChatIntent
 import com.example.tobisoappnative.viewmodel.ai.ChatMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -40,11 +41,12 @@ fun AiChatScreen(
         factory = AiChatViewModel.Factory(postId, Uri.decode(firstUserMessage))
     )
 ) {
-    val messages by vm.messages.collectAsState()
-    val isLoading by vm.isLoading.collectAsState()
-    val error by vm.error.collectAsState()
-    val remainingQuestions by vm.remainingQuestions.collectAsState()
-    val limitReached by vm.limitReached.collectAsState()
+    val state by vm.uiState.collectAsState()
+    val messages = state.messages
+    val isLoading = state.isLoading
+    val error = state.error
+    val remainingQuestions = state.remainingQuestions
+    val limitReached = state.limitReached
 
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -185,7 +187,7 @@ fun AiChatScreen(
                     keyboardActions = KeyboardActions(
                         onSend = {
                             if (inputText.isNotBlank()) {
-                                vm.sendMessage(inputText)
+                                vm.onIntent(AiChatIntent.SendMessage(inputText))
                                 inputText = ""
                             }
                         }
@@ -196,7 +198,7 @@ fun AiChatScreen(
                 IconButton(
                     onClick = {
                         if (inputText.isNotBlank()) {
-                            vm.sendMessage(inputText)
+                            vm.onIntent(AiChatIntent.SendMessage(inputText))
                             inputText = ""
                         }
                     },

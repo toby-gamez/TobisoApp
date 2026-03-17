@@ -36,7 +36,7 @@
 
 ### Kritické problémy ❌
 
-#### 1.1 `MainViewModel` je God-objekt
+#### 1.1 `MainViewModel` je God-objekt - DONE
 
 `MainViewModel.kt` spravuje *vše najednou*:
 - kategorie, posty, detaily postů

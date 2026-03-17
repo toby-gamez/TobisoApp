@@ -21,6 +21,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.viewmodel.CalendarViewModel
+import com.example.tobisoappnative.viewmodel.CalendarIntent
+import com.example.tobisoappnative.viewmodel.CalendarEffect
 import com.example.tobisoappnative.components.AddEditEventDialog
 import java.text.SimpleDateFormat
 import java.util.*
@@ -33,31 +35,44 @@ fun EventDetailScreen(
     navController: NavHostController,
     viewModel: CalendarViewModel = viewModel()
 ) {
-    var event by remember { mutableStateOf<Event?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    val state by viewModel.uiState.collectAsState()
+    val event = state.detailEvent
+    val isLoading = state.detailEventLoading
     var error by remember { mutableStateOf<String?>(null) }
-    
+
     // Stavy pro editaci a mazání
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
-    var shouldNavigateBack by remember { mutableStateOf(false) }
 
     LaunchedEffect(eventId) {
-        viewModel.loadEventDetail(eventId) { result ->
-            event = result
-            isLoading = false
-            if (result == null) {
-                error = "Nepodařilo se načíst detail události"
+        viewModel.onIntent(CalendarIntent.LoadEventDetail(eventId))
+    }
+
+    // Zpracování one-shot efektů z CalendarViewModel
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is CalendarEffect.EventDeleted -> {
+                    isDeleting = false
+                    if (effect.success && effect.eventId == eventId) {
+                        navController.popBackStack()
+                    }
+                }
+                is CalendarEffect.EventUpdated -> {
+                    if (effect.success) {
+                        showEditDialog = false
+                        // state.detailEvent is already updated by the ViewModel
+                    }
+                }
+                is CalendarEffect.EventAdded -> { /* not triggered from here */ }
             }
         }
     }
-    
-    // LaunchedEffect pro navigaci zpět po smazání
-    LaunchedEffect(shouldNavigateBack) {
-        if (shouldNavigateBack) {
-            navController.popBackStack()
-        }
+
+    // Show error if event could not be loaded
+    if (!isLoading && event == null && error == null) {
+        error = "Nepodařilo se načíst detail události"
     }
 
     Column(
@@ -146,20 +161,7 @@ fun EventDetailScreen(
                 isVisible = showEditDialog,
                 onDismiss = { showEditDialog = false },
                 onSave = { updatedEvent ->
-                    viewModel.updateLocalEvent(updatedEvent) { result ->
-                        if (result != null) {
-                            event = result
-                            showEditDialog = false
-                            // Refresh eventi pro aktualizaci kalendáře
-                            val eventCalendar = Calendar.getInstance().apply { 
-                                time = result.getStartDateSafe() 
-                            }
-                            viewModel.loadEventsForMonth(
-                                eventCalendar.get(Calendar.YEAR),
-                                eventCalendar.get(Calendar.MONTH)
-                            )
-                        }
-                    }
+                    viewModel.onIntent(CalendarIntent.UpdateLocalEvent(updatedEvent))
                 },
                 initialEvent = currentEvent
             )
@@ -177,16 +179,7 @@ fun EventDetailScreen(
                 TextButton(
                     onClick = {
                         isDeleting = true
-                        viewModel.deleteLocalEvent(eventId) { success ->
-                            android.util.Log.d("EventDetailScreen", "Delete result: $success for eventId: $eventId")
-                            if (success) {
-                                showDeleteDialog = false
-                                shouldNavigateBack = true
-                            } else {
-                                android.util.Log.e("EventDetailScreen", "Failed to delete event $eventId")
-                                isDeleting = false
-                            }
-                        }
+                        viewModel.onIntent(CalendarIntent.DeleteLocalEvent(eventId))
                     },
                     enabled = !isDeleting
                 ) {
