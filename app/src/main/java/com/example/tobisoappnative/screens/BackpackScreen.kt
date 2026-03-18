@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,7 +39,6 @@ fun BackpackScreen(
     navController: NavController,
     vm: BackpackViewModel = viewModel(factory = BackpackViewModel.Factory())
 ) {
-    val context = LocalContext.current
     val backpackItems by BackpackManager.backpackItems.collectAsState()
     val equippedQuote by BackpackManager.equippedQuote.collectAsState()
     val equippedPet by BackpackManager.equippedPet.collectAsState()
@@ -77,10 +75,7 @@ fun BackpackScreen(
         }
     }
 
-    // Inicializace BackpackManageru
-    LaunchedEffect(Unit) {
-        BackpackManager.init(context)
-    }
+
     
     Column(
         modifier = Modifier.fillMaxSize()
@@ -249,8 +244,8 @@ fun BackpackScreen(
                 ShopItemType.ICON_PACK -> BackpackManager.equippedIconPack.collectAsState().value?.id == selectedItem!!.shopItem.id
                 else -> false
             },
-            onEquip = { vm.equipItem(context, selectedItem!!) },
-            onUnequip = { vm.unequipItem(context, selectedItem!!) },
+            onEquip = { vm.equipItem(selectedItem!!) },
+            onUnequip = { vm.unequipItem(selectedItem!!) },
             onDismiss = { vm.dismissDialog() }
         )
     }

@@ -36,7 +36,6 @@ class StreakViewModel(application: Application) : AndroidViewModel(application) 
     @RequiresApi(Build.VERSION_CODES.O)
     fun init() {
         viewModelScope.launch(Dispatchers.IO) {
-            StreakFreezeManager.init(getApplication())
             refreshStreakData()
         }
     }

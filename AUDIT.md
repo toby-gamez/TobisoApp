@@ -73,7 +73,7 @@ private val _posts = MutableStateFlow<List<Post>>(emptyList())
 - `getCurrentStreak()` v `HomeScreen.kt` a `getCurrentStreakCalendar()` v `CalendarScreen.kt` – stejná funkce, jiný název
 - logika connectivity check je na dvou místech současně
 
-#### 1.4 `MainActivity` dělá příliš mnoho
+#### 1.4 `MainActivity` dělá příliš mnoho - DONE
 
 `MainActivity.onCreate()` zodpovídá za:
 1. Inicializaci Streak/Points/Backpack managerů
@@ -84,16 +84,26 @@ private val _posts = MutableStateFlow<List<Post>>(emptyList())
 
 Celý `MyApp()` composable (400+ řádků) žije uvnitř `MainActivity` – navigace, overlaye, connectivity, šablona obrazovky.
 
-#### 1.5 Manageři jako globální singletony s Context
+#### ~~1.5 Manageři jako globální singletony s Context~~ ✅ OPRAVENO
 
 ```kotlin
+// PŘED:
 object PointsManager {
     fun addPoints(context: Context, amount: Int) { ... }
     fun init(context: Context) { ... }
 }
+
+// PO:
+class PointsManager private constructor(context: Context) : IPointsManager {
+    private val appContext = context.applicationContext
+    override fun addPoints(amount: Int) { ... }
+    companion object { fun initialize(context: Context) { ... } }
+}
 ```
 
-`PointsManager`, `ShopManager`, `BackpackManager`, `StreakFreezeManager` jsou `object` singletony. Přijímají `Context` jako parametr na každé volaní, nemají rozhraní, nedají se testovat ani nahradit. Správný přístup: třídy s rozhraním, injektované přes DI.
+~~`PointsManager`, `ShopManager`, `BackpackManager`, `StreakFreezeManager` jsou `object` singletony. Přijímají `Context` jako parametr na každé volaní, nemají rozhraní, nedají se testovat ani nahradit. Správný přístup: třídy s rozhraním, injektované přes DI.~~
+
+**Opraveno:** Všichni 4 manageři (+ IconPackManager) převedeni na třídy s rozhraním. Context uložen jednou při inicializaci v `TobisoApplication`. Přidána rozhraní `IPointsManager`, `IShopManager`, `IBackpackManager`, `IStreakFreezeManager`.
 
 ---
 

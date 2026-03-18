@@ -113,7 +113,7 @@ fun QuestionsScreen(
     LaunchedEffect(showResults) {
         if (showResults && !pointsAwarded && scorePercentage > 0) {
             val points = scorePercentage / 10 // Procenta vydělená 10
-            PointsManager.addPoints(context, points)
+            PointsManager.addPoints(points)
             awardedPoints = points
             pointsAwarded = true
             showPointsOverlay = true

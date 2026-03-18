@@ -3,19 +3,19 @@ package com.example.tobisoappnative
 import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.tobisoappnative.data.ShopData
 import com.example.tobisoappnative.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-object IconPackManager {
-    private const val PREFS_NAME = "backpack_prefs"
-    private const val KEY_ACTIVE_ICON_PACK = "equipped_icon_pack"
-    
+class IconPackManager private constructor(context: Context) {
+
+    private val appContext = context.applicationContext
+    private val prefs get() = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
     private val _activeIconPack = MutableStateFlow<ShopItem?>(null)
     val activeIconPack: StateFlow<ShopItem?> = _activeIconPack
-    
+
     // Defaultní Material Icons pro každý předmět
     private val defaultIcons = mapOf(
         "Mluvnice" to Icons.Default.Spellcheck,
@@ -28,7 +28,7 @@ object IconPackManager {
         "Přírodopis" to Icons.Default.Eco,
         "Zeměpis" to Icons.Default.Public
     )
-    
+
     // Mapování názvů Material ikon na skutečné ikony
     private val materialIconsMap = mapOf(
         "edit" to Icons.Default.Edit,
@@ -40,7 +40,6 @@ object IconPackManager {
         "bolt" to Icons.Default.Bolt,
         "local_florist" to Icons.Default.LocalFlorist,
         "language" to Icons.Default.Language,
-        // Přidáno mapování pro klasické ikony
         "spellcheck" to Icons.Default.Spellcheck,
         "menu_book" to Icons.Default.MenuBook,
         "description" to Icons.Default.Description,
@@ -51,56 +50,40 @@ object IconPackManager {
         "eco" to Icons.Default.Eco,
         "public" to Icons.Default.Public
     )
-    
-    fun init(context: Context) {
-        loadActiveIconPack(context)
+
+    init {
+        loadActiveIconPack()
     }
-    
-    private fun loadActiveIconPack(context: Context) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private fun loadActiveIconPack() {
         val activePackId = prefs.getInt(KEY_ACTIVE_ICON_PACK, -1)
-        
         if (activePackId != -1) {
             _activeIconPack.value = ShopData.getItemById(activePackId)
         } else {
-            // Pokud nemá žádný aktivní balíček, nastav "Klasické ikony" jako výchozí
-            val classicIconPack = ShopData.getItemById(23) // ID 23 = Klasické ikony
-            if (classicIconPack != null) {
-                setActiveIconPack(context, classicIconPack)
-            }
+            ShopData.getItemById(CLASSIC_ICON_PACK_ID)?.let { setActiveIconPack(it) }
         }
     }
-    
-    // Nastavení aktivního balíčku ikon
-    fun setActiveIconPack(context: Context, iconPack: ShopItem?) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    fun setActiveIconPack(iconPack: ShopItem?) {
         prefs.edit().putInt(KEY_ACTIVE_ICON_PACK, iconPack?.id ?: -1).apply()
         _activeIconPack.value = iconPack
     }
-    
-    // Získání ikony pro předmět podle aktivního balíčku
+
     fun getSubjectIcon(subjectName: String): Any {
         val activePack = _activeIconPack.value
-        
         if (activePack?.subjectIcons != null) {
             val subjectIcon = activePack.subjectIcons.find { it.subjectName == subjectName }
             if (subjectIcon != null) {
                 return when (subjectIcon.iconType) {
-                    IconPackType.EMOJI -> subjectIcon.icon // Vrátí emoji string
-                    IconPackType.MATERIAL_ICONS -> {
-                        // Vrátí Material Icon
-                        materialIconsMap[subjectIcon.icon] ?: defaultIcons[subjectName] ?: Icons.Default.Book
-                    }
-                    IconPackType.CUSTOM_ICONS -> subjectIcon.icon // Pro budoucí custom ikony
+                    IconPackType.EMOJI -> subjectIcon.icon
+                    IconPackType.MATERIAL_ICONS -> materialIconsMap[subjectIcon.icon] ?: defaultIcons[subjectName] ?: Icons.Default.Book
+                    IconPackType.CUSTOM_ICONS -> subjectIcon.icon
                 }
             }
         }
-        
-        // Fallback na defaultní Material ikonu
         return defaultIcons[subjectName] ?: Icons.Default.Book
     }
-    
-    // Zkontroluje, zda je typ ikony emoji
+
     fun isEmojiIcon(subjectName: String): Boolean {
         val activePack = _activeIconPack.value
         if (activePack?.subjectIcons != null) {
@@ -109,18 +92,42 @@ object IconPackManager {
         }
         return false
     }
-    
-    // Získá všechny dostupné balíčky ikon (koupené)
+
     fun getAvailableIconPacks(): List<ShopItem> {
-        val purchasedItems = ShopManager.purchasedItems.value
-        return purchasedItems.mapNotNull { itemId ->
-            val item = ShopData.getItemById(itemId)
-            if (item?.type == ShopItemType.ICON_PACK) item else null
+        return ShopManager.purchasedItems.value.mapNotNull { itemId ->
+            ShopData.getItemById(itemId)?.takeIf { it.type == ShopItemType.ICON_PACK }
         }
     }
-    
-    // Zkontroluje, zda je balíček ikon aktivní
-    fun isIconPackActive(iconPackId: Int): Boolean {
-        return _activeIconPack.value?.id == iconPackId
+
+    fun isIconPackActive(iconPackId: Int): Boolean = _activeIconPack.value?.id == iconPackId
+
+    companion object {
+        private const val PREFS_NAME = "backpack_prefs"
+        private const val KEY_ACTIVE_ICON_PACK = "equipped_icon_pack"
+        private const val CLASSIC_ICON_PACK_ID = 23
+
+        @Volatile private var INSTANCE: IconPackManager? = null
+
+        val instance: IconPackManager
+            get() = INSTANCE ?: error("IconPackManager.initialize() must be called before use")
+
+        fun initialize(context: Context) {
+            if (INSTANCE == null) {
+                synchronized(this) {
+                    if (INSTANCE == null) {
+                        INSTANCE = IconPackManager(context.applicationContext)
+                    }
+                }
+            }
+        }
+
+        // Delegations for direct access without .instance
+        val activeIconPack get() = instance.activeIconPack
+
+        fun setActiveIconPack(iconPack: ShopItem?) = instance.setActiveIconPack(iconPack)
+        fun getSubjectIcon(subjectName: String) = instance.getSubjectIcon(subjectName)
+        fun isEmojiIcon(subjectName: String) = instance.isEmojiIcon(subjectName)
+        fun getAvailableIconPacks() = instance.getAvailableIconPacks()
+        fun isIconPackActive(iconPackId: Int) = instance.isIconPackActive(iconPackId)
     }
 }

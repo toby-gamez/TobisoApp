@@ -1022,7 +1022,7 @@ fun checkPointsAchievements(context: android.content.Context) {
                 println("🏆 NEW ACHIEVEMENT UNLOCKED: $requiredPoints points - awarding $rewardPoints points")
                 
                 // Achievement dosažen poprvé - přidat body s informací o achievementu
-                PointsManager.addPointsForAchievement(context, rewardPoints, requiredPoints)
+                PointsManager.addPointsForAchievement(rewardPoints, requiredPoints)
                 
                 // Označit achievement jako dosažený
                 achievementsPrefs.edit().putBoolean(achievementKey, true).apply()

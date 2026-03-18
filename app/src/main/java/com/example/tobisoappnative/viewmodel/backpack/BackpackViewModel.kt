@@ -1,6 +1,5 @@
 package com.example.tobisoappnative.viewmodel.backpack
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.tobisoappnative.BackpackManager
@@ -33,18 +32,18 @@ class BackpackViewModel : ViewModel() {
         _selectedItem.value = null
     }
 
-    fun equipItem(context: Context, item: BackpackItem) {
+    fun equipItem(item: BackpackItem) {
         val message = when (item.shopItem.type) {
             ShopItemType.PROFILE_QUOTE -> {
-                BackpackManager.equipQuote(context, item.shopItem)
+                BackpackManager.equipQuote(item.shopItem)
                 "Citát byl nasazen!"
             }
             ShopItemType.PET -> {
-                BackpackManager.equipPet(context, item.shopItem)
+                BackpackManager.equipPet(item.shopItem)
                 "Zvířátko bylo nasazeno!"
             }
             ShopItemType.ICON_PACK -> {
-                BackpackManager.equipIconPack(context, item.shopItem)
+                BackpackManager.equipIconPack(item.shopItem)
                 "Balíček ikon byl aktivován!"
             }
             else -> "Item byl použit!"
@@ -54,18 +53,18 @@ class BackpackViewModel : ViewModel() {
         _showItemDialog.value = false
     }
 
-    fun unequipItem(context: Context, item: BackpackItem) {
+    fun unequipItem(item: BackpackItem) {
         val message = when (item.shopItem.type) {
             ShopItemType.PROFILE_QUOTE -> {
-                BackpackManager.equipQuote(context, null)
+                BackpackManager.equipQuote(null)
                 "Citát byl odstraněn"
             }
             ShopItemType.PET -> {
-                BackpackManager.equipPet(context, null)
+                BackpackManager.equipPet(null)
                 "Zvířátko bylo odstraněno"
             }
             ShopItemType.ICON_PACK -> {
-                BackpackManager.equipIconPack(context, null)
+                BackpackManager.equipIconPack(null)
                 "Balíček ikon byl deaktivován"
             }
             else -> "Item byl odstraněn"

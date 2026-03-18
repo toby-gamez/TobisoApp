@@ -1,28 +1,29 @@
 package com.example.tobisoappnative
 
 import android.content.Context
+import com.example.tobisoappnative.manager.IShopManager
 import com.example.tobisoappnative.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-object ShopManager {
-    private const val PREFS_NAME = "shop_prefs"
-    private const val KEY_PURCHASED_PREFIX = "purchased_"
-    private const val KEY_COOLDOWN_PREFIX = "cooldown_"
-    
+class ShopManager private constructor(context: Context) : IShopManager {
+
+    private val appContext = context.applicationContext
+    private val prefs get() = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
     private val _purchasedItems = MutableStateFlow<Set<Int>>(emptySet())
-    val purchasedItems: StateFlow<Set<Int>> = _purchasedItems
-    
-    fun init(context: Context) {
-        loadPurchasedItems(context)
+    override val purchasedItems: StateFlow<Set<Int>> = _purchasedItems
+
+    init {
+        loadPurchasedItems()
     }
-    
-    // Načtení koupených itemů (jednoduše jen ID)
-    private fun loadPurchasedItems(context: Context) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    override fun init() {
+        loadPurchasedItems()
+    }
+
+    private fun loadPurchasedItems() {
         val purchasedSet = mutableSetOf<Int>()
-        
-        // Načti všechny koupen items podle klíčů
         for (entry in prefs.all) {
             if (entry.key.startsWith(KEY_PURCHASED_PREFIX) && entry.value == true) {
                 try {
@@ -33,148 +34,123 @@ object ShopManager {
                 }
             }
         }
-        
         // Vždycky automaticky přidat "Klasické ikony" balíček (ID 23) jako vlastněný
-        val classicIconPackId = 23
-        if (!purchasedSet.contains(classicIconPackId)) {
-            purchasedSet.add(classicIconPackId)
-            // Uložit do SharedPreferences pro budoucí použití
-            savePurchasedItem(context, classicIconPackId)
+        if (!purchasedSet.contains(CLASSIC_ICON_PACK_ID)) {
+            purchasedSet.add(CLASSIC_ICON_PACK_ID)
+            savePurchasedItem(CLASSIC_ICON_PACK_ID)
         }
-        
         _purchasedItems.value = purchasedSet
     }
-    
-    // Uložení koupeného itemu
-    private fun savePurchasedItem(context: Context, itemId: Int) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private fun savePurchasedItem(itemId: Int) {
         prefs.edit().putBoolean("${KEY_PURCHASED_PREFIX}$itemId", true).apply()
     }
-    
-    // Odebrání koupeného itemu (pro jednorázové použití power-upů)
-    private fun removePurchasedItem(context: Context, itemId: Int) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private fun removePurchasedItem(itemId: Int) {
         prefs.edit().remove("${KEY_PURCHASED_PREFIX}$itemId").apply()
-        
-        // Aktualizace lokálního state
         val currentItems = _purchasedItems.value.toMutableSet()
         currentItems.remove(itemId)
         _purchasedItems.value = currentItems
     }
-    
-    // Nákup itemu
-    fun purchaseItem(context: Context, item: ShopItem): Boolean {
-        // Odečtení bodů přes PointsManager
-        val success = PointsManager.subtractPoints(context, item.price)
-        if (!success) {
-            return false // Nedostatek bodů
-        }
-        
-        // Speciální logika pro různé typy itemů
-        when (item.type) {
+
+    override fun purchaseItem(item: ShopItem): Boolean {
+        val success = PointsManager.subtractPoints(item.price)
+        if (!success) return false
+
+        return when (item.type) {
             ShopItemType.STREAK_FREEZE -> {
-                // Pro Streak Freeze přidáme do StreakFreezeManager místo označení jako "koupen"
-                val freezeAdded = StreakFreezeManager.addStreakFreeze(context)
+                val freezeAdded = StreakFreezeManager.addStreakFreeze()
                 if (!freezeAdded) {
-                    // Pokud už má maximum freezes, vrátíme body
-                    PointsManager.addPoints(context, item.price)
+                    PointsManager.addPoints(item.price)
                     return false
                 }
-                return true
+                true
             }
             else -> {
-                // Kontrola, zda už není koupen (pouze pro ostatní typy)
                 if (isItemPurchased(item.id)) {
-                    // Vrátíme body, protože item už je koupen
-                    PointsManager.addPoints(context, item.price)
+                    PointsManager.addPoints(item.price)
                     return false
                 }
-                
-                // Označení itemu jako koupeného
                 val currentItems = _purchasedItems.value.toMutableSet()
                 currentItems.add(item.id)
                 _purchasedItems.value = currentItems
-                savePurchasedItem(context, item.id)
-                
-                // Refresh aktovky po nákupu
-                BackpackManager.refreshItems(context)
-                
-                return true
+                savePurchasedItem(item.id)
+                BackpackManager.refreshItems()
+                true
             }
         }
     }
-    
-    // Kontrola, zda je item již koupen
-    fun isItemPurchased(itemId: Int): Boolean {
-        return _purchasedItems.value.contains(itemId)
-    }
-    
-    // Speciální kontrola pro Streak Freeze - zda může koupit další
-    fun canPurchaseStreakFreeze(): Boolean {
-        return StreakFreezeManager.getAvailableFreezes() < 3
-    }
-    
-    // Získání všech koupených itemů (pro budoucí funkcionalitu)
-    fun getPurchasedItemIds(): Set<Int> {
-        return _purchasedItems.value
-    }
-    
-    // Použití power-upu
-    fun usePowerUp(context: Context, item: ShopItem): Boolean {
-        if (!isItemPurchased(item.id)) {
-            return false // Item není koupen
-        }
-        
-        if (isOnCooldown(context, item.id)) {
-            return false // Item je na cooldownu
-        }
-        
-        // Aktivace multiplikátoru bodů
-        if (item.type == ShopItemType.POINTS_MULTIPLIER && 
-            item.multiplier != null && 
-            item.durationMinutes != null) {
-            
-            PointsManager.activateMultiplier(context, item.multiplier, item.durationMinutes)
-            
-            // Odebrání power-upu z vlastněných položek (jednorázové použití)
-            removePurchasedItem(context, item.id)
-            
-            // Nastavení 3hodinového cooldownu (i když už power-up nevlastníme)
-            setCooldown(context, item.id, 180) // 180 minut = 3 hodiny
-            
-            // Refresh aktovky po použití
-            BackpackManager.refreshItems(context)
-            
+
+    override fun isItemPurchased(itemId: Int): Boolean = _purchasedItems.value.contains(itemId)
+
+    override fun canPurchaseStreakFreeze(): Boolean = StreakFreezeManager.getAvailableFreezes() < 3
+
+    override fun getPurchasedItemIds(): Set<Int> = _purchasedItems.value
+
+    override fun usePowerUp(item: ShopItem): Boolean {
+        if (!isItemPurchased(item.id)) return false
+        if (isOnCooldown(item.id)) return false
+
+        if (item.type == ShopItemType.POINTS_MULTIPLIER &&
+            item.multiplier != null &&
+            item.durationMinutes != null
+        ) {
+            PointsManager.activateMultiplier(item.multiplier, item.durationMinutes)
+            removePurchasedItem(item.id)
+            setCooldown(item.id, 180) // 180 minut = 3 hodiny
+            BackpackManager.refreshItems()
             return true
         }
-        
         return false
     }
-    
-    // Nastavení cooldownu pro item
-    private fun setCooldown(context: Context, itemId: Int, cooldownMinutes: Int) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private fun setCooldown(itemId: Int, cooldownMinutes: Int) {
         val cooldownEnd = System.currentTimeMillis() + (cooldownMinutes * 60 * 1000L)
         prefs.edit().putLong("${KEY_COOLDOWN_PREFIX}$itemId", cooldownEnd).apply()
     }
-    
-    // Kontrola, zda je item na cooldownu
-    fun isOnCooldown(context: Context, itemId: Int): Boolean {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    override fun isOnCooldown(itemId: Int): Boolean {
         val cooldownEnd = prefs.getLong("${KEY_COOLDOWN_PREFIX}$itemId", 0)
         return System.currentTimeMillis() < cooldownEnd
     }
-    
-    // Získání zbývajícího času cooldownu v minutách
-    fun getCooldownTimeLeft(context: Context, itemId: Int): Long {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    override fun getCooldownTimeLeft(itemId: Int): Long {
         val cooldownEnd = prefs.getLong("${KEY_COOLDOWN_PREFIX}$itemId", 0)
         val currentTime = System.currentTimeMillis()
-        
-        return if (cooldownEnd > currentTime) {
-            (cooldownEnd - currentTime) / (60 * 1000) // vrátí v minutách
-        } else {
-            0
+        return if (cooldownEnd > currentTime) (cooldownEnd - currentTime) / (60 * 1000) else 0
+    }
+
+    companion object {
+        private const val PREFS_NAME = "shop_prefs"
+        private const val KEY_PURCHASED_PREFIX = "purchased_"
+        private const val KEY_COOLDOWN_PREFIX = "cooldown_"
+        private const val CLASSIC_ICON_PACK_ID = 23
+
+        @Volatile private var INSTANCE: ShopManager? = null
+
+        val instance: ShopManager
+            get() = INSTANCE ?: error("ShopManager.initialize() must be called before use")
+
+        fun initialize(context: Context) {
+            if (INSTANCE == null) {
+                synchronized(this) {
+                    if (INSTANCE == null) {
+                        INSTANCE = ShopManager(context.applicationContext)
+                    }
+                }
+            }
         }
+
+        // Delegations for direct access without .instance
+        val purchasedItems get() = instance.purchasedItems
+
+        fun init() = instance.init()
+        fun purchaseItem(item: ShopItem) = instance.purchaseItem(item)
+        fun isItemPurchased(itemId: Int) = instance.isItemPurchased(itemId)
+        fun canPurchaseStreakFreeze() = instance.canPurchaseStreakFreeze()
+        fun getPurchasedItemIds() = instance.getPurchasedItemIds()
+        fun usePowerUp(item: ShopItem) = instance.usePowerUp(item)
+        fun isOnCooldown(itemId: Int) = instance.isOnCooldown(itemId)
+        fun getCooldownTimeLeft(itemId: Int) = instance.getCooldownTimeLeft(itemId)
     }
 }

@@ -133,7 +133,7 @@ class MixedQuizViewModel(
 
         val points = correctAnswers * 2
         if (points > 0) {
-            PointsManager.addPoints(getApplication(), points)
+            PointsManager.addPoints(points)
         }
         setState { copy(showResults = true, pointsAwarded = true, awardedPoints = points, showPointsOverlay = points > 0) }
     }

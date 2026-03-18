@@ -38,7 +38,7 @@ object StreakMilestoneManager {
                     newMilestonesFound = true
                     println("🎉 NEW MILESTONE ACHIEVED: $days days - awarding $points points")
 
-                    PointsManager.addPointsForMilestone(context, points, days)
+                    PointsManager.addPointsForMilestone(points, days)
                     milestonesPrefs.edit().putBoolean(milestoneKey, true).apply()
 
                     println("Points added and milestone marked as achieved")

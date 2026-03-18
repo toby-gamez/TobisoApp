@@ -133,11 +133,8 @@ fun TobisoApp(navigateTo: String? = null) {
         }
     }
 
-    // Inicializace bodů a obchodu při startu aplikace
+    // Kontrola milníků a achievementů při startu aplikace (po inicializaci UI)
     LaunchedEffect(context) {
-        PointsManager.init(context)
-        ShopManager.init(context)
-        // Kontrola milníků a achievementů až po inicializaci PointsManager a UI
         StreakMilestoneManager.checkStreakMilestones(context)
         checkPointsAchievements(context)
     }

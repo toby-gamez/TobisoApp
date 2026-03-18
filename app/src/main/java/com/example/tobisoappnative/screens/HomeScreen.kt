@@ -44,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import com.example.tobisoappnative.PointsManager
-import com.example.tobisoappnative.BackpackManager
 import com.example.tobisoappnative.IconPackManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.example.tobisoappnative.components.MultiplierIndicator
@@ -277,8 +276,6 @@ fun HomeScreen(navController: NavHostController) {
     
     LaunchedEffect(Unit) { 
         vm.onIntent(HomeIntent.Load)
-        BackpackManager.init(context)
-        IconPackManager.init(context)
     }
     
     val totalPoints by PointsManager.totalPoints.collectAsState()

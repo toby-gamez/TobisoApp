@@ -20,12 +20,8 @@ class MainActivity : ComponentActivity() {
 
         recordAppOpen()
 
-        PointsManager.init(this)
-        StreakFreezeManager.init(this)
-        BackpackManager.init(this)
-
         // DŮLEŽITÉ: Kontrola freeze PŘED přidáním dnešního dne
-        StreakFreezeManager.checkAndAutoUseFreeze(this)
+        StreakFreezeManager.checkAndAutoUseFreeze()
 
         // Přidat dnešní den do řady (pokud už tam není)
         addTodayToStreak(this)

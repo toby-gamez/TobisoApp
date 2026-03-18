@@ -1,6 +1,5 @@
 package com.example.tobisoappnative.viewmodel.shop
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.tobisoappnative.ShopManager
@@ -29,11 +28,11 @@ class ShopViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow("")
     val errorMessage: StateFlow<String> = _errorMessage
 
-    fun selectItem(context: Context, item: ShopItem, purchasedItemIds: Set<Int>) {
+    fun selectItem(item: ShopItem, purchasedItemIds: Set<Int>) {
         _selectedItem.value = item
         when (item.type) {
             ShopItemType.POINTS_MULTIPLIER -> {
-                if (ShopManager.isOnCooldown(context, item.id)) {
+                if (ShopManager.isOnCooldown(item.id)) {
                     // Na cooldownu - nezobrazuj dialog
                     return
                 } else if (purchasedItemIds.contains(item.id)) {
@@ -51,9 +50,9 @@ class ShopViewModel : ViewModel() {
         }
     }
 
-    fun confirmPurchase(context: Context) {
+    fun confirmPurchase() {
         val item = _selectedItem.value ?: return
-        val success = ShopManager.purchaseItem(context, item)
+        val success = ShopManager.purchaseItem(item)
         if (success) {
             _showSuccessMessage.value = true
         } else {
@@ -69,13 +68,13 @@ class ShopViewModel : ViewModel() {
         _selectedItem.value = null
     }
 
-    fun confirmUsePowerUp(context: Context) {
+    fun confirmUsePowerUp() {
         val item = _selectedItem.value ?: return
-        val success = ShopManager.usePowerUp(context, item)
+        val success = ShopManager.usePowerUp(item)
         if (success) {
             _showSuccessMessage.value = true
         } else {
-            _errorMessage.value = if (ShopManager.isOnCooldown(context, item.id))
+            _errorMessage.value = if (ShopManager.isOnCooldown(item.id))
                 "Power-up je na cooldownu!" else "Chyba při aktivaci power-upu!"
             _showErrorMessage.value = true
         }

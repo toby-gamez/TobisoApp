@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,7 +19,6 @@ import kotlinx.coroutines.delay
 @Composable
 fun MultiplierIndicator() {
     val activeMultiplier by PointsManager.activeMultiplier.collectAsState()
-    val context = LocalContext.current
     var showTimeLeft by remember { mutableStateOf(false) }
     var timeLeftSeconds by remember { mutableStateOf(0L) }
     
@@ -28,7 +26,7 @@ fun MultiplierIndicator() {
     LaunchedEffect(activeMultiplier) {
         if (activeMultiplier > 1.0f) {
             while (activeMultiplier > 1.0f) {
-                timeLeftSeconds = PointsManager.getMultiplierTimeLeftInSeconds(context)
+                timeLeftSeconds = PointsManager.getMultiplierTimeLeftInSeconds()
                 delay(1_000) // Aktualizace každou sekundu pro přesný čas
             }
         }
@@ -46,7 +44,7 @@ fun MultiplierIndicator() {
                 .clickable { 
                     showTimeLeft = !showTimeLeft
                     if (showTimeLeft) {
-                        timeLeftSeconds = PointsManager.getMultiplierTimeLeftInSeconds(context)
+                        timeLeftSeconds = PointsManager.getMultiplierTimeLeftInSeconds()
                     }
                 }
                 .padding(horizontal = 8.dp, vertical = 4.dp)

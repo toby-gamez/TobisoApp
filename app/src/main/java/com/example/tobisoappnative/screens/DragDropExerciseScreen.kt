@@ -51,7 +51,7 @@ fun DragDropExerciseScreen(
             val score = state.validationResult?.score ?: 0
             if (score > 0) {
                 val points = score / 10
-                PointsManager.addPoints(context, points)
+                PointsManager.addPoints(points)
                 awardedPoints = points
                 pointsAwarded = true
                 showPointsOverlay = true

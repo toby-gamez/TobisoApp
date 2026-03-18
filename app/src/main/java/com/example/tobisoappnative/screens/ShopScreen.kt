@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.outlined.Backpack
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +45,6 @@ fun ShopScreen(
     navController: NavController,
     vm: ShopViewModel = viewModel(factory = ShopViewModel.Factory())
 ) {
-    val context = LocalContext.current
     val totalPoints by PointsManager.totalPoints.collectAsState()
     val purchasedItemIds by ShopManager.purchasedItems.collectAsState()
     val activeMultiplier by PointsManager.activeMultiplier.collectAsState()
@@ -84,11 +82,7 @@ fun ShopScreen(
         }
     }
 
-    // Inicializace ShopManageru a StreakFreezeManageru
-    LaunchedEffect(Unit) {
-        ShopManager.init(context)
-        StreakFreezeManager.init(context)
-    }
+
     
     Column(
         modifier = Modifier.fillMaxSize()
@@ -232,10 +226,10 @@ fun ShopScreen(
                             else -> purchasedItemIds.contains(item.id)
                         },
                         canAfford = totalPoints >= item.price,
-                        isOnCooldown = ShopManager.isOnCooldown(context, item.id),
-                        cooldownTimeLeft = ShopManager.getCooldownTimeLeft(context, item.id),
+                        isOnCooldown = ShopManager.isOnCooldown(item.id),
+                        cooldownTimeLeft = ShopManager.getCooldownTimeLeft(item.id),
                         onClick = {
-                            vm.selectItem(context, item, purchasedItemIds)
+                            vm.selectItem(item, purchasedItemIds)
                         }
                     )
                 }
@@ -263,7 +257,7 @@ fun ShopScreen(
             item = selectedItem!!,
             totalPoints = totalPoints,
             isPurchased = purchasedItemIds.contains(selectedItem!!.id),
-            onConfirm = { vm.confirmPurchase(context) },
+            onConfirm = { vm.confirmPurchase() },
             onDismiss = { vm.dismissPurchaseDialog() }
         )
     }
@@ -272,9 +266,9 @@ fun ShopScreen(
     if (showUsePowerUpDialog && selectedItem != null) {
         UsePowerUpDialog(
             item = selectedItem!!,
-            isOnCooldown = ShopManager.isOnCooldown(context, selectedItem!!.id),
-            cooldownTimeLeft = ShopManager.getCooldownTimeLeft(context, selectedItem!!.id),
-            onConfirm = { vm.confirmUsePowerUp(context) },
+            isOnCooldown = ShopManager.isOnCooldown(selectedItem!!.id),
+            cooldownTimeLeft = ShopManager.getCooldownTimeLeft(selectedItem!!.id),
+            onConfirm = { vm.confirmUsePowerUp() },
             onDismiss = { vm.dismissUsePowerUpDialog() }
         )
     }
