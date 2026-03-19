@@ -230,16 +230,18 @@ fun getSecurityToken(): String {
 
 **Opraveno:** `getSecurityToken()` nyní generuje skutečný HMAC-SHA256 token ve formátu `{timestampSeconds}.{Base64(HMAC)}`. Tajný klíč pochází z `BuildConfig.SECURITY_TOKEN_SECRET`, který je uložen v `local.properties` (vyloučen z VCS) – žádná pevná hodnota ve zdrojovém kódu. Token je vázán na čas žádosti (replay ochrana) a na package ID aplikace. Server ověří: extrahuje timestamp, zkontroluje okno ±5 minut, a porovná HMAC vypočítaný ze sdíleného tajného klíče.
 
-### 3.6 `Reflection` pro volání funkce – Střední 🟡
+### ~~3.6 `Reflection` pro volání funkce~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 // PointsManager.kt
 val checkPointsAchievements = Class.forName("com.example.tobisoappnative.screens.ProfileScreenKt")
     .getDeclaredMethod("checkPointsAchievements", android.content.Context::class.java)
 checkPointsAchievements.invoke(null, context)
-```
+```~~
 
-Reflection přes `Class.forName()` pro volání funkce z jiné vrstvy. Toto je extrémně křehké (selže při ProGuard obfuskaci), je to obcházení správné architektury a přidává zbytečné bezpečnostní riziko.
+~~Reflection přes `Class.forName()` pro volání funkce z jiné vrstvy. Toto je extrémně křehké (selže při ProGuard obfuskaci), je to obcházení správné architektury a přidává zbytečné bezpečnostní riziko.~~
+
+**Opraveno:** `generatePointsAchievements()` a `checkPointsAchievements()` přesunuty z `ProfileScreen.kt` do `utils/PointsAchievementsHelper.kt`. `PointsManager.addPoints()` nyní volá `checkPointsAchievements(appContext)` přímým importem – žádná reflection. `ProfileScreen.kt` (UI) importuje `generatePointsAchievements` ze utils pro zobrazení achievementů. `TobisoApp.kt` importuje `checkPointsAchievements` ze utils (namísto z packages screens).
 
 ---
 
@@ -497,7 +499,7 @@ implementation("androidx.compose.material:material-icons-extended:1.7.6")
 
 1. **Odstranit hardcoded credentials** (`"secret123"`, `"admin"`) ze zdrojového kódu. Použít `local.properties` + `BuildConfig` pro development, nebo server-side credential rotation pro produkci.
 2. **Znovu aktivovat Certificate Pinning** – rozbalit, vygenerovat správný hash certifikátu Let's Encrypt pro `tobiso.com` a přidat.
-3. **Nahradit Reflection volání** v `PointsManager` přímou závislostí nebo event bus.
+3. ~~**Nahradit Reflection volání** v `PointsManager` přímou závislostí nebo event bus.~~ ✅ OPRAVENO
 
 ### P1 – Vysoké (Architektura)
 

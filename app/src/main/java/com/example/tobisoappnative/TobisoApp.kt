@@ -58,7 +58,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.example.tobisoappnative.components.TtsPlayer
 import com.example.tobisoappnative.screens.StreakScreen
 import com.example.tobisoappnative.screens.ShopScreen
-import com.example.tobisoappnative.screens.checkPointsAchievements
+import com.example.tobisoappnative.utils.checkPointsAchievements
 import com.example.tobisoappnative.utils.NetworkUtils
 import com.example.tobisoappnative.components.FloatingSearchBar
 

@@ -16,6 +16,7 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.material.icons.outlined.ShoppingBag
+import com.example.tobisoappnative.utils.generatePointsAchievements
 import com.example.tobisoappnative.viewmodel.profile.ProfileViewModel
 import com.example.tobisoappnative.model.Post
 import androidx.compose.material.icons.outlined.Backpack
@@ -976,60 +977,7 @@ fun EquippedQuoteSection(navController: NavController) {
     }
 }
 
-// Funkce pro generování achievementů bodů
-fun generatePointsAchievements(): Map<Int, Int> {
-    return mapOf(
-        10 to 5,      // 10 bodů -> 5 bodů odměna
-        20 to 5,
-        50 to 10,
-        75 to 10,
-        100 to 15,
-        150 to 15,
-        200 to 15,
-        300 to 20,
-        400 to 20,
-        500 to 25,
-        600 to 25,
-        700 to 25,
-        800 to 30,
-        900 to 30,
-        1000 to 50,   // speciální odměna za 1000
-        1500 to 75,
-        2000 to 100,
-        3000 to 150,
-        4000 to 200,
-        5000 to 250
-        // můžeme přidat další podle potřeby
-    )
-}
 
-// Funkce pro kontrolu achievementů
-fun checkPointsAchievements(context: android.content.Context) {
-    val totalEarnedPoints = PointsManager.getTotalEarnedPoints()
-    val achievements = generatePointsAchievements()
-    
-    // SharedPreferences pro sledování dosažených achievementů
-    val achievementsPrefs = context.getSharedPreferences("points_achievements", android.content.Context.MODE_PRIVATE)
-    
-    var newAchievementsFound = false
-    achievements.forEach { (requiredPoints, rewardPoints) ->
-        if (totalEarnedPoints >= requiredPoints) {
-            val achievementKey = "achievement_$requiredPoints"
-            val isAlreadyAchieved = achievementsPrefs.getBoolean(achievementKey, false)
-            
-            if (!isAlreadyAchieved) {
-                newAchievementsFound = true
-                println("🏆 NEW ACHIEVEMENT UNLOCKED: $requiredPoints points - awarding $rewardPoints points")
-                
-                // Achievement dosažen poprvé - přidat body s informací o achievementu
-                PointsManager.addPointsForAchievement(rewardPoints, requiredPoints)
-                
-                // Označit achievement jako dosažený
-                achievementsPrefs.edit().putBoolean(achievementKey, true).apply()
-            }
-        }
-    }
-}
 
 // Funkce pro generování streak odznaků podle dní
 fun getStreakBadge(days: Int): AchievementBadge {

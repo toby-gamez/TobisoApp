@@ -2,6 +2,7 @@ package com.example.tobisoappnative
 
 import android.content.Context
 import com.example.tobisoappnative.manager.IPointsManager
+import com.example.tobisoappnative.utils.checkPointsAchievements
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -54,13 +55,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         savePoints()
         saveTotalEarnedPoints()
         // Kontrola achievementů po přidání bodů
-        try {
-            val checkAchievements = Class.forName("com.example.tobisoappnative.screens.ProfileScreenKt")
-                .getDeclaredMethod("checkPointsAchievements", Context::class.java)
-            checkAchievements.invoke(null, appContext)
-        } catch (e: Exception) {
-            // Fallback - pokud se nepodaří načíst funkci, nevadí
-        }
+        checkPointsAchievements(appContext)
     }
 
     override fun addPointsForMilestone(amount: Int, milestoneDay: Int) {
