@@ -20,19 +20,13 @@ object ApiClient {
         val credentials = SecurityConfig.getApiCredentials()
         val builder = OkHttpClient.Builder()
         
-        // Produkční SSL konfigurace - dočasně zakázané certificate pinning
-        // POZOR: Certificate pinning je zakázané kvůli problémům s načítáním médií
-        // TODO: Implementovat správný certificate hash pro tobiso.com
-        /*
-        if (!SecurityConfig.shouldUseTrustAllCerts()) {
-            // Certificate pinning pro produkci
-            val certificatePinner = CertificatePinner.Builder()
-                .add("tobiso.com", "sha256/3AyP+Dm88F+sG9YHECLPbNs2yFmBrrv0KDh2YtN0jDc=")
-                .add("www.tobiso.com", "sha256/amd8nGukdGG6jRvMvAOR/UbnB9OFzlDQFRRseqTy1pk=")
-                .build()
-            builder.certificatePinner(certificatePinner)
-        }
-        */
+        // Certificate pinning – Public Key Pinning pro tobiso.com
+        // Hashi vygenerovány: 2026-03-19 pomocí get_ssl_hash.sh
+        val certificatePinner = CertificatePinner.Builder()
+            .add("tobiso.com", "sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=")
+            .add("www.tobiso.com", "sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg=")
+            .build()
+        builder.certificatePinner(certificatePinner)
         
         // Konfigurace timeouts pro produkci
         builder.connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
