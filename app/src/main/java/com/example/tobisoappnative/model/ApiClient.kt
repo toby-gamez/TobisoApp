@@ -9,7 +9,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import javax.net.ssl.*
 
 object ApiClient {
     private const val BASE_URL = "https://www.tobiso.com/api/"
@@ -63,41 +62,20 @@ object ApiClient {
     }
 
     /**
-     * Nebezpečný client pouze pro development - POUŽÍT POUZE PRO DEBUG!
+     * Debug client – standardní SSL validace, pouze bez certificate pinningu.
+     * SSL ověření zajišťuje systémové CA + debug-overrides v network_security_config.xml.
      */
-    private fun getUnsafeOkHttpClient(): OkHttpClient {
-        // Development credentials z BuildConfig (pochází z local.properties)
+    private fun getDebugOkHttpClient(): OkHttpClient {
         val credential = Credentials.basic(BuildConfig.API_USERNAME, BuildConfig.API_PASSWORD)
-        return try {
-            val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-                override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-                override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-            })
-            
-            // Pro Android 15 - použij TLSv1.3 pokud je dostupný, jinak TLSv1.2
-            val sslContext = try {
-                SSLContext.getInstance("TLSv1.3")
-            } catch (e: Exception) {
-                SSLContext.getInstance("TLSv1.2")
-            }
-            sslContext.init(null, trustAllCerts, java.security.SecureRandom())
-            val trustManager = trustAllCerts[0] as X509TrustManager
-            
-            val builder = OkHttpClient.Builder()
-            builder.sslSocketFactory(sslContext.socketFactory, trustManager)
-            builder.hostnameVerifier { _, _ -> true }
-            
-            // Pro Android 15 - prodluž timeouts a zakáž HTTP/2
-            builder.connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            builder.readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            builder.writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            builder.protocols(listOf(okhttp3.Protocol.HTTP_1_1))
-            
-            builder.addInterceptor { chain ->
+        return OkHttpClient.Builder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .protocols(listOf(okhttp3.Protocol.HTTP_1_1))
+            .addInterceptor { chain ->
                 val request: Request = chain.request().newBuilder()
                     .addHeader("Authorization", credential)
-                    .addHeader("User-Agent", "TobisoApp-Android") // Pro Android 15
+                    .addHeader("User-Agent", "TobisoApp-Android/2.0.1")
                     .build()
                 val response = chain.proceed(request)
                 if (!response.isSuccessful) {
@@ -105,21 +83,7 @@ object ApiClient {
                 }
                 response
             }
-            builder.build()
-        } catch (e: Exception) {
-            android.util.Log.e("ApiClient", "Failed to create unsafe client: ${e.message}")
-            // Fallback na základní OkHttpClient
-            OkHttpClient.Builder()
-                .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-                .addInterceptor { chain ->
-                    val request: Request = chain.request().newBuilder()
-                        .addHeader("Authorization", credential)
-                        .build()
-                    chain.proceed(request)
-                }
-                .build()
-        }
+            .build()
     }
     
     /**
@@ -132,8 +96,8 @@ object ApiClient {
         }
         
         return if (SecurityConfig.shouldUseTrustAllCerts()) {
-            android.util.Log.w("ApiClient", "Používá se nebezpečný SSL client - pouze pro vývoj!")
-            getUnsafeOkHttpClient()
+            android.util.Log.w("ApiClient", "Používá se debug SSL client - certificate pinning vypnut!")
+            getDebugOkHttpClient()
         } else {
             android.util.Log.i("ApiClient", "Používá se produkční bezpečný SSL client")
             getSecureOkHttpClient()

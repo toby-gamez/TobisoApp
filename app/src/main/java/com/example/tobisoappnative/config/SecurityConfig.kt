@@ -1,5 +1,9 @@
 package com.example.tobisoappnative.config
 
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import android.content.pm.Signature
+import android.os.Build
 import android.util.Base64
 import com.example.tobisoappnative.BuildConfig
 import okhttp3.Credentials
@@ -10,7 +14,16 @@ import java.security.MessageDigest
  * Obsahuje všechna produkční bezpečnostní nastavení
  */
 object SecurityConfig {
-    
+
+    private var appContext: android.content.Context? = null
+
+    /**
+     * Musí být zavolán z TobisoApplication.onCreate() před jakýmkoliv použitím.
+     */
+    fun initialize(context: android.content.Context) {
+        appContext = context.applicationContext
+    }
+
     /**
      * Načtení přihlašovacích údajů z prostředí nebo konfigurace
      * V produkci by měly být uloženy v KeyStore nebo získané z secure API
@@ -20,17 +33,77 @@ object SecurityConfig {
         val password = BuildConfig.API_PASSWORD
         return Credentials.basic(username, password)
     }
-    
+
     /**
-     * Kontrola integrity aplikace - jednoduchá ochrana proti tampering
+     * Ověření integrity aplikace porovnáním SHA-256 otisku podpisového certifikátu APK
+     * s očekávanou hodnotou z BuildConfig.
+     *
+     * V debug buildu kontrola není prováděna – místo toho je do logů vytištěn aktuální
+     * otisk certifikátu, aby ho vývojář mohl zkopírovat do local.properties jako
+     * CERT_FINGERPRINT.
      */
     fun verifyAppIntegrity(): Boolean {
-        // Jednoduché kontroly integrity aplikace
-        return try {
-            // Základní kontroly - v produkci by měly být rozšířené
-            true // Dočasně vždy true, dokud není implementován úplný integrity check
+        if (BuildConfig.DEBUG) {
+            logCurrentCertFingerprint()
+            return true
+        }
+        return checkAppSignature()
+    }
+
+    private fun logCurrentCertFingerprint() {
+        try {
+            val ctx = appContext ?: return
+            getCurrentSignatures(ctx)?.forEach { sig ->
+                val digest = MessageDigest.getInstance("SHA-256")
+                val encoded = Base64.encodeToString(digest.digest(sig.toByteArray()), Base64.NO_WRAP)
+                android.util.Log.i("SecurityConfig", "Current cert fingerprint: $encoded")
+            }
         } catch (e: Exception) {
+            android.util.Log.e("SecurityConfig", "Could not read cert fingerprint", e)
+        }
+    }
+
+    private fun checkAppSignature(): Boolean {
+        return try {
+            val ctx = appContext ?: return false.also {
+                android.util.Log.e("SecurityConfig", "SecurityConfig.initialize() not called")
+            }
+            val expected = BuildConfig.CERT_FINGERPRINT
+            if (expected.isBlank()) {
+                android.util.Log.e("SecurityConfig", "CERT_FINGERPRINT not set in local.properties")
+                return false
+            }
+            getCurrentSignatures(ctx)?.any { sig ->
+                val digest = MessageDigest.getInstance("SHA-256")
+                val encoded = Base64.encodeToString(digest.digest(sig.toByteArray()), Base64.NO_WRAP)
+                encoded == expected
+            } ?: false
+        } catch (e: Exception) {
+            android.util.Log.e("SecurityConfig", "App signature verification failed", e)
             false
+        }
+    }
+
+    @SuppressLint("PackageManagerGetSignatures")
+    private fun getCurrentSignatures(context: android.content.Context): Array<Signature>? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val info = context.packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.GET_SIGNING_CERTIFICATES
+                )
+                info.signingInfo?.apkContentsSigners
+            } else {
+                @Suppress("DEPRECATION")
+                val info = context.packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.GET_SIGNATURES
+                )
+                @Suppress("DEPRECATION")
+                info.signatures
+            }
+        } catch (e: Exception) {
+            null
         }
     }
     
@@ -74,13 +147,7 @@ object SecurityConfig {
      * Produkční SSL konfigurace - povoluje pouze validní certifikáty
      */
     fun shouldUseTrustAllCerts(): Boolean {
-        return try {
-            // Pro debug buildy povolíme trust all certs (usnadní vývoj a debugging)
-            // V produkci vždy používej validní certifikáty
-            android.os.Build.TYPE != "user" // true pro debug/eng buildy, false pro release
-        } catch (e: Exception) {
-            // V případě chyby použij trust all certs (bezpečnější pro debugging)
-            true
-        }
+        // Pouze pro debug build variantu – nikdy v release
+        return BuildConfig.DEBUG
     }
 }

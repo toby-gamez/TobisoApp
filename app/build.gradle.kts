@@ -33,7 +33,7 @@ android {
         create("release") {
             val keystorePropertiesFile = rootProject.file("app/keystore.properties")
             if (keystorePropertiesFile.exists()) {
-                val keystoreProperties = java.util.Properties()
+                val keystoreProperties = Properties()
                 keystoreProperties.load(keystorePropertiesFile.inputStream())
                 
                 keyAlias = keystoreProperties["keyAlias"] as String
@@ -62,6 +62,7 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"https://www.tobiso.com/api/\"")
             buildConfigField("String", "API_USERNAME", "\"${localProperties["API_USERNAME"] ?: ""}\"")
             buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
+            buildConfigField("String", "CERT_FINGERPRINT", "\"${localProperties["CERT_FINGERPRINT"] ?: ""}\"")
         }
         debug {
             isDebuggable = true
@@ -74,6 +75,7 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"https://www.tobiso.com/api/\"")
             buildConfigField("String", "API_USERNAME", "\"${localProperties["API_USERNAME"] ?: ""}\"")
             buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
+            buildConfigField("String", "CERT_FINGERPRINT", "\"\"")
         }
     }
     compileOptions {

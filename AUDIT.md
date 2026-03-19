@@ -168,9 +168,9 @@ val credential = Credentials.basic("admin", "secret123")
 
 **Opraveno:** Credentials přesunuty do `local.properties` (který je v `.gitignore` a nikdy se necommituje). `build.gradle.kts` načítá hodnoty z `local.properties` a vystavuje je přes `BuildConfig.API_USERNAME` a `BuildConfig.API_PASSWORD`. `SecurityConfig.getApiCredentials()` a `ApiClient.getUnsafeOkHttpClient()` nyní používají `BuildConfig` – žádné hardcoded hodnoty ve zdrojovém kódu.
 
-### 3.2 Vypnuté Certificate Pinning – Vysoké 🟠
+### ~~3.2 Vypnuté Certificate Pinning~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 // ApiClient.kt
 /*
 if (!SecurityConfig.shouldUseTrustAllCerts()) {
@@ -178,32 +178,43 @@ if (!SecurityConfig.shouldUseTrustAllCerts()) {
         .add("tobiso.com", "sha256/3AyP+Dm88F+sG...")
         ...
 */
-```
+```~~
 
-Certificate pinning je zakomentováno s odůvodněním "problémy s médii". Bez pinningu je aplikace zranitelná vůči MITM útokům. **Toto musí být opraveno.**
+~~Certificate pinning je zakomentováno s odůvodněním "problémy s médii". Bez pinningu je aplikace zranitelná vůči MITM útokům. **Toto musí být opraveno.**~~
 
-### 3.3 Trust-All SSL v debug buildu – Vysoké 🟠
+**Opraveno:** Certificate pinning aktivní v `getSecureOkHttpClient()` s ověřenými SHA-256 hashi (vygenerováno skriptem `get_ssl_hash.sh` dne 2026-03-19). `shouldUseTrustAllCerts()` opraven ze záludného `android.os.Build.TYPE != "user"` na `BuildConfig.DEBUG` – nyní spolehlivě platí: debug build = unsafe client, release build = certificate pinning. Hashi také zapsány do `network_security_config.xml` s expirací 2027-03-19.
 
-`getUnsafeOkHttpClient()` explicitně ignoruje veškerou SSL validaci:
+### ~~3.3 Trust-All SSL v debug buildu~~ ✅ OPRAVENO
 
-```kotlin
+~~`getUnsafeOkHttpClient()` explicitně ignoruje veškerou SSL validaci:~~
+
+~~```kotlin
 builder.sslSocketFactory(sslContext.socketFactory, trustManager)
 builder.hostnameVerifier { _, _ -> true }
-```
+```~~
 
-I přesto, že je určen pro debug, soubor `shouldUseTrustAllCerts()` vrací `true` pro non-release buildy. Pokud tester nebo CI/CD pipeline používá debug build k testování backend komunikace, je celá SSL ochrana nefunkční.
+~~I přesto, že je určen pro debug, soubor `shouldUseTrustAllCerts()` vrací `true` pro non-release buildy. Pokud tester nebo CI/CD pipeline používá debug build k testování backend komunikace, je celá SSL ochrana nefunkční.~~
 
-### 3.4 Falešná integrity check – Střední 🟡
+**Opraveno:** `getUnsafeOkHttpClient()` přejmenován na `getDebugOkHttpClient()` a celý blok trust-all SSL (custom `TrustManager`, `sslSocketFactory`, `hostnameVerifier { _, _ -> true }`) odstraněn. Debug client nyní používá standardní SSL validaci systémových CA – pouze bez certificate pinningu. Debug-overrides v `network_security_config.xml` zajistí uživatelské certifikáty při vývoji.
 
-```kotlin
+### ~~3.4 Falešná integrity check~~ ✅ OPRAVENO
+
+~~```kotlin
 fun verifyAppIntegrity(): Boolean {
     return try {
         true // Dočasně vždy true
     } catch (e: Exception) { false }
 }
-```
+```~~
 
-Funkce která má zajistit bezpečnost vždy vrací `true`. Nikdy neprovede žádnou kontrolu.
+~~Funkce která má zajistit bezpečnost vždy vrací `true`. Nikdy neprovede žádnou kontrolu.~~
+
+**Opraveno:** `verifyAppIntegrity()` nyní skutečně ověřuje integritu aplikace porovnáním SHA-256 otisku podpisového certifikátu APK s očekávanou hodnotou z `BuildConfig.CERT_FINGERPRINT`:
+- `SecurityConfig.initialize(context)` uloží `applicationContext` při startu aplikace (voláno z `TobisoApplication.onCreate()`).
+- V **debug buildu** se kontrola přeskočí a aktuální otisk certifikátu se vytiskne do logcatu (tag `SecurityConfig`) pro snadné získání hodnoty.
+- V **release buildu** se ověří podpisový certifikát APK – pokud neodpovídá `BuildConfig.CERT_FINGERPRINT`, funkce vrátí `false` a `ApiClient` vyhodí `SecurityException`.
+- `CERT_FINGERPRINT` je uložen v `local.properties` (vyloučen z VCS) a dostupný přes `BuildConfig` – v release buildu nutno nastavit na skutečný otisk produkčního podpisového klíče.
+- Implementace správně odlišuje API úrovně: API 28+ používá `GET_SIGNING_CERTIFICATES` + `signingInfo.apkContentsSigners`, API 24–27 používá deprecated `GET_SIGNATURES` (bezpečné pro minSdk ≥ 21).
 
 ### 3.5 Security token z hardcoded stringu – Střední 🟡
 
