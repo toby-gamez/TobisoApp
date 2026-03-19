@@ -3,8 +3,8 @@ package com.example.tobisoappnative.viewmodel
 import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.base.BaseAndroidViewModel
-import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.OfflineDataManager
+import com.example.tobisoappnative.repository.OfflineRepositoryImpl
 import com.example.tobisoappnative.utils.NetworkUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     application: Application,
-    private val offlineDataManager: OfflineDataManager
+    private val offlineDataManager: OfflineDataManager,
+    private val offlineRepo: OfflineRepositoryImpl
 ) : BaseAndroidViewModel<MainState, MainIntent, MainEffect>(application, MainState()) {
 
     private var isFirstLoad = true
@@ -64,13 +65,19 @@ class MainViewModel @Inject constructor(
 
             if (isOnline) {
                 try {
-                    val categories = ApiClient.apiService.getCategories().toList()
-                    val posts = ApiClient.apiService.getPosts().toList()
-                    offlineDataManager.saveCategoriesAndPosts(categories, posts)
-                    setState { copy(categories = categories, posts = posts, categoryError = null, isOffline = false) }
-                    if (isFirstLoad) {
-                        emitEffect(MainEffect.ShowToast("Offline obsah byl aktualizován"))
-                        isFirstLoad = false
+                    // Download everything (categories, posts, questions, related posts,
+                    // addendums, exercises) so offline mode has complete data.
+                    val success = offlineRepo.downloadAllData(onProgress = {})
+                    if (success) {
+                        val categories = offlineDataManager.getCachedCategories() ?: emptyList()
+                        val posts = offlineDataManager.getCachedPosts() ?: emptyList()
+                        setState { copy(categories = categories, posts = posts, categoryError = null, isOffline = false) }
+                        if (isFirstLoad) {
+                            emitEffect(MainEffect.ShowToast("Offline obsah byl aktualizován"))
+                            isFirstLoad = false
+                        }
+                    } else {
+                        loadOfflineData()
                     }
                 } catch (e: Exception) {
                     val stillOnline = NetworkUtils.isOnline(getApplication())
