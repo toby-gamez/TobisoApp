@@ -247,7 +247,7 @@ checkPointsAchievements.invoke(null, context)
 
 ## 4. Modernizace kódu
 
-### Zastaralé závislosti ⚠️
+### ~~Zastaralé závislosti~~ ✅ OPRAVENO
 
 ```toml
 lifecycleRuntimeKtx = "2.6.1"    # Aktuální: 2.9.0
@@ -256,7 +256,7 @@ activityCompose = "1.8.0"        # Aktuální: 1.10.1
 composeBom = "2024.09.00"        # Aktuální: 2025.05.00
 ```
 
-### Zastaralý `accompanist` pro System UI ⚠️
+### ~~Zastaralý `accompanist` pro System UI~~ ✅ OPRAVENO
 
 ```kotlin
 // MainActivity.kt
@@ -272,11 +272,11 @@ enableEdgeToEdge()
 // Barvu status baru řídí systém automaticky dle téma
 ```
 
-### `java.util.Calendar` a `SimpleDateFormat` místo `java.time.*` ⚠️
+### ~~`java.util.Calendar` a `SimpleDateFormat` místo `java.time.*`~~ ✅ OPRAVENO
 
 V projektu se masivně používají `Calendar.getInstance()`, `SimpleDateFormat`, `Date` – starší Java API. Projekt má `minSdk = 24`, tedy je `java.time.*` (Local Date/Time API) plně dostupné. V některých místech (`StreakFreezeManager`, `ProfileScreen`) se `java.time.LocalDate` správně používá, ale v `CalendarViewModel`, `HomeScreen`, `OfflineDataManager` stále žije stará API.
 
-### `OfflineDataManager` ukládá velká JSON data do `SharedPreferences` ❌
+### ~~`OfflineDataManager` ukládá velká JSON data do `SharedPreferences`~~ ✅ OPRAVENO
 
 ```kotlin
 prefs.edit().putString(KEY_CATEGORIES, gson.toJson(categories))
@@ -292,11 +292,11 @@ prefs.edit().putString(KEY_QUESTIONS, gson.toJson(questions)) // všechny otázk
 
 **Správné řešení:** Room s entitami, nebo binární soubory na disku (já.e. JSON do File), ale nikdy ne SharedPreferences pro velká data.
 
-### Chybí Dependency Injection framework ❌
+### ~~Chybí Dependency Injection framework~~ ✅ OPRAVENO (Hilt již nasazen)
 
 Bez Hilt nebo Koin se veškeré závislosti instancují ručně. Pro aplikaci této velikosti je to udržitelnostní problém. Hilt je de-facto standard pro Android a má první třídu podporu s Compose.
 
-### Package namespace ⚠️
+### ~~Package namespace~~ ✅ OPRAVENO
 
 ```
 com.example.tobisoappnative

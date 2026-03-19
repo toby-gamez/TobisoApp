@@ -15,7 +15,7 @@ val localProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.example.tobisoappnative"
+    namespace = "com.tobiso.tobisoappnative"
     compileSdk = 36
 
     defaultConfig {
@@ -114,13 +114,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("androidx.compose.material:material-icons-extended:1.7.6")
-    implementation("androidx.navigation:navigation-compose:2.7.6")
-    implementation("androidx.activity:activity-compose:1.8.0")
-    implementation("androidx.compose.ui:ui:1.5.0")
-    implementation("androidx.navigation:navigation-compose:2.7.5")
-    implementation("androidx.compose.material3:material3:1.1.2")
-    implementation("androidx.activity:activity:1.6.0-alpha05")
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.foundation)
     
     // API dependencies
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
@@ -131,17 +127,13 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("com.halilibo.compose-richtext:richtext-ui-material3:1.0.0-alpha03")
     implementation("com.halilibo.compose-richtext:richtext-commonmark:1.0.0-alpha03")
-    implementation("com.google.accompanist:accompanist-navigation-animation:0.32.0")
     implementation("com.google.android.gms:play-services-oss-licenses:17.0.1")
     implementation("androidx.compose.ui:ui-text-google-fonts:1.8.1")
-    implementation("androidx.media3:media3-exoplayer:1.8.0")
+    implementation(libs.androidx.media3.exoplayer)
     implementation("androidx.media3:media3-ui:1.8.0")
-    implementation("com.google.accompanist:accompanist-swiperefresh:0.33.2-alpha")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation(libs.androidx.compose.foundation)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation(libs.kotlinx.serialization.json)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

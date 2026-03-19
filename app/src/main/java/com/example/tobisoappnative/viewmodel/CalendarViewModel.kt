@@ -1,17 +1,21 @@
-package com.example.tobisoappnative.viewmodel
+package com.tobiso.tobisoappnative.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
-import com.example.tobisoappnative.base.BaseAndroidViewModel
-import com.example.tobisoappnative.model.ApiClient
-import com.example.tobisoappnative.model.Event
-import com.example.tobisoappnative.model.LocalEventManager
-import com.example.tobisoappnative.model.OfflineDataManager
+import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
+import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.Event
+import com.tobiso.tobisoappnative.model.LocalEventManager
+import com.tobiso.tobisoappnative.model.OfflineDataManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Date
 import javax.inject.Inject
 
 @HiltViewModel
@@ -20,12 +24,12 @@ class CalendarViewModel @Inject constructor(
     private val offlineDataManager: OfflineDataManager
 ) : BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(application, CalendarState()) {
 
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+    private val apiDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
     private val context = application.applicationContext
 
     /** The month currently loaded – used for internal reloads after mutations. */
-    private var lastLoadedYear = Calendar.getInstance().get(Calendar.YEAR)
-    private var lastLoadedMonth = Calendar.getInstance().get(Calendar.MONTH)
+    private var lastLoadedYear = LocalDate.now().year
+    private var lastLoadedMonth = LocalDate.now().monthValue - 1  // 0-indexed (Calendar convention)
 
     override fun onIntent(intent: CalendarIntent) {
         when (intent) {
@@ -51,27 +55,18 @@ class CalendarViewModel @Inject constructor(
         val eventStart = event.getStartDateSafe()
         val eventEnd = event.getEndDateSafe()
 
-        val targetDay = Calendar.getInstance().apply {
-            set(year, month, day, 0, 0, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.time
+        // month is 0-indexed (Calendar convention), LocalDate uses 1-indexed
+        val targetDate = LocalDate.of(year, month + 1, day)
+        val zone = ZoneId.systemDefault()
+        val startOfDayMs = targetDate.atStartOfDay(zone).toInstant().toEpochMilli()
+        val endOfDayMs = targetDate.atTime(23, 59, 59).atZone(zone).toInstant().toEpochMilli()
 
-        val targetDayEnd = Calendar.getInstance().apply {
-            set(year, month, day, 23, 59, 59)
-            set(Calendar.MILLISECOND, 999)
-        }.time
-
-        if (eventStart == eventEnd) {
-            val eventCal = Calendar.getInstance().apply { time = eventStart }
-            val eventDay = Calendar.getInstance().apply {
-                set(eventCal.get(Calendar.YEAR), eventCal.get(Calendar.MONTH), eventCal.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.time
-            return eventDay == targetDay
+        if (eventStart.time == eventEnd.time) {
+            val eventDate = Instant.ofEpochMilli(eventStart.time).atZone(zone).toLocalDate()
+            return eventDate == targetDate
         }
 
-        return (eventStart.before(targetDayEnd) || eventStart == targetDayEnd) &&
-               (eventEnd.after(targetDay) || eventEnd == targetDay)
+        return eventStart.time <= endOfDayMs && eventEnd.time >= startOfDayMs
     }
 
     private fun loadEventsForMonth(year: Int, month: Int) {
@@ -81,19 +76,17 @@ class CalendarViewModel @Inject constructor(
             setState { copy(isLoading = true, error = null) }
 
             try {
-                val calendar = Calendar.getInstance()
+                // month is 0-indexed (Calendar convention), LocalDateTime uses 1-indexed
+                val startOfMonth = LocalDateTime.of(year, month + 1, 1, 0, 0, 0)
+                val endOfMonth = startOfMonth
+                    .withDayOfMonth(startOfMonth.toLocalDate().lengthOfMonth())
+                    .withHour(23).withMinute(59).withSecond(59)
+                val zone = ZoneId.systemDefault()
 
-                calendar.set(year, month, 1, 0, 0, 0)
-                calendar.set(Calendar.MILLISECOND, 0)
-                val startDate = dateFormat.format(calendar.time)
-                val startDateObj = calendar.time
-
-                calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
-                calendar.set(Calendar.HOUR_OF_DAY, 23)
-                calendar.set(Calendar.MINUTE, 59)
-                calendar.set(Calendar.SECOND, 59)
-                val endDate = dateFormat.format(calendar.time)
-                val endDateObj = calendar.time
+                val startDate = startOfMonth.format(apiDateFormatter)
+                val endDate = endOfMonth.format(apiDateFormatter)
+                val startDateObj = Date.from(startOfMonth.atZone(zone).toInstant())
+                val endDateObj = Date.from(endOfMonth.atZone(zone).toInstant())
 
                 try {
                     if (offlineDataManager.isEventsCacheFresh(15)) {
