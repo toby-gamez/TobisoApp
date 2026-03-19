@@ -1,8 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+}
+
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
 }
 
 android {
@@ -53,6 +60,8 @@ android {
             // Přidání build config fields pro rozlišení prostředí
             buildConfigField("boolean", "IS_PRODUCTION", "true")
             buildConfigField("String", "API_BASE_URL", "\"https://www.tobiso.com/api/\"")
+            buildConfigField("String", "API_USERNAME", "\"${localProperties["API_USERNAME"] ?: ""}\"")
+            buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
         }
         debug {
             isDebuggable = true
@@ -63,6 +72,8 @@ android {
             // Debug build config fields
             buildConfigField("boolean", "IS_PRODUCTION", "false")
             buildConfigField("String", "API_BASE_URL", "\"https://www.tobiso.com/api/\"")
+            buildConfigField("String", "API_USERNAME", "\"${localProperties["API_USERNAME"] ?: ""}\"")
+            buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
         }
     }
     compileOptions {

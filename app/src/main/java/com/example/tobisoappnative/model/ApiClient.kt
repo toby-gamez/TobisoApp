@@ -1,6 +1,7 @@
 package com.example.tobisoappnative.model
 
 import com.example.tobisoappnative.config.SecurityConfig
+import com.example.tobisoappnative.BuildConfig
 import com.google.gson.GsonBuilder
 import okhttp3.CertificatePinner
 import okhttp3.Credentials
@@ -65,8 +66,8 @@ object ApiClient {
      * Nebezpečný client pouze pro development - POUŽÍT POUZE PRO DEBUG!
      */
     private fun getUnsafeOkHttpClient(): OkHttpClient {
-        // Development credentials - pouze pro debug buildy
-        val credential = Credentials.basic("admin", "secret123")
+        // Development credentials z BuildConfig (pochází z local.properties)
+        val credential = Credentials.basic(BuildConfig.API_USERNAME, BuildConfig.API_PASSWORD)
         return try {
             val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
                 override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}

@@ -107,7 +107,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
 
 ---
 
-## 2. SOLID Principy
+## 2. SOLID Principy - DONE
 
 ### Single Responsibility Principle (SRP) – Velmi špatné ❌
 
@@ -148,9 +148,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
 ## 3. Bezpečnost (Kritické – OWASP)
 
-### 3.1 Hardcoded Credentials – KRITICKÉ 🔴
+### ~~3.1 Hardcoded Credentials~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 // SecurityConfig.kt
 fun getApiCredentials(): String {
     val username = System.getenv("TOBISO_API_USERNAME") ?: "admin"
@@ -160,11 +160,13 @@ fun getApiCredentials(): String {
 
 // ApiClient.kt – getUnsafeOkHttpClient()
 val credential = Credentials.basic("admin", "secret123")
-```
+```~~
 
-Heslo `secret123` je uloženo ve zdrojovém kódu. Každý, kdo rozbalí APK nebo si přečte kód, má přístup k API. Přihlašovací údaje **nesmí nikdy být ve zdrojovém kódu**.
+~~Heslo `secret123` je uloženo ve zdrojovém kódu. Každý, kdo rozbalí APK nebo si přečte kód, má přístup k API. Přihlašovací údaje **nesmí nikdy být ve zdrojovém kódu**.~~
 
-**Řešení:** Použít `local.properties` + `BuildConfig`, nebo lépe Android KeyStore + runtime fetch z bezpečného endpointu.
+~~**Řešení:** Použít `local.properties` + `BuildConfig`, nebo lépe Android KeyStore + runtime fetch z bezpečného endpointu.~~
+
+**Opraveno:** Credentials přesunuty do `local.properties` (který je v `.gitignore` a nikdy se necommituje). `build.gradle.kts` načítá hodnoty z `local.properties` a vystavuje je přes `BuildConfig.API_USERNAME` a `BuildConfig.API_PASSWORD`. `SecurityConfig.getApiCredentials()` a `ApiClient.getUnsafeOkHttpClient()` nyní používají `BuildConfig` – žádné hardcoded hodnoty ve zdrojovém kódu.
 
 ### 3.2 Vypnuté Certificate Pinning – Vysoké 🟠
 

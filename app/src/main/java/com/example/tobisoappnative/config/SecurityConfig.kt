@@ -1,6 +1,7 @@
 package com.example.tobisoappnative.config
 
 import android.util.Base64
+import com.example.tobisoappnative.BuildConfig
 import okhttp3.Credentials
 import java.security.MessageDigest
 
@@ -15,9 +16,8 @@ object SecurityConfig {
      * V produkci by měly být uloženy v KeyStore nebo získané z secure API
      */
     fun getApiCredentials(): String {
-        // Pro produkci použij Environmental Variables nebo bezpečné úložiště
-        val username = System.getenv("TOBISO_API_USERNAME") ?: "admin"
-        val password = System.getenv("TOBISO_API_PASSWORD") ?: "secret123"
+        val username = BuildConfig.API_USERNAME
+        val password = BuildConfig.API_PASSWORD
         return Credentials.basic(username, password)
     }
     
