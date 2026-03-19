@@ -1,6 +1,5 @@
 package com.example.tobisoappnative.screens
 
-import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,7 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.viewmodel.CalendarViewModel
@@ -60,12 +59,11 @@ enum class EventFilter(val displayName: String) {
 @Composable
 fun CalendarScreen(
     navController: NavHostController? = null,
-    viewModel: CalendarViewModel = viewModel(),
+    viewModel: CalendarViewModel = hiltViewModel(),
     initialYear: Int? = null,
     initialMonth: Int? = null
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val homeVm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application))
+    val homeVm: HomeViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsState()
     val events = state.events
     val selectedDate = state.selectedDate
@@ -535,7 +533,7 @@ fun CalendarHeader(
 fun CalendarGrid(
     currentMonth: Int,
     currentYear: Int,
-    viewModel: CalendarViewModel = viewModel(),
+    viewModel: CalendarViewModel = hiltViewModel(),
     eventFilter: EventFilter = EventFilter.ALL,
     onDateClick: (Date) -> Unit,
     onDateLongClick: (Date) -> Unit = {}

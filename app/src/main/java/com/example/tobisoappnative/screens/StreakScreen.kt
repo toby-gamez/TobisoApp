@@ -1,6 +1,5 @@
 package com.example.tobisoappnative.screens
 
-import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
@@ -27,7 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.StreakFreezeManager
 import com.example.tobisoappnative.viewmodel.streak.StreakViewModel
@@ -43,8 +42,7 @@ fun StreakScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-    val application = context.applicationContext as Application
-    val vm: StreakViewModel = viewModel(factory = StreakViewModel.Factory(application))
+    val vm: StreakViewModel = hiltViewModel()
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE

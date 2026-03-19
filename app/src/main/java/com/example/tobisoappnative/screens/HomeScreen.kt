@@ -28,12 +28,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.app.Application
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.example.tobisoappnative.viewmodel.home.HomeViewModel
 import com.example.tobisoappnative.viewmodel.home.HomeIntent
 import com.example.tobisoappnative.viewmodel.home.HomeEffect
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -262,11 +261,10 @@ fun HomeScreen(navController: NavHostController) {
         Subject("Zeměpis", Icons.Default.Public, SubjectColorType.SURFACE_VARIANT, "Vše o povrchu, obyvatelstvu, hospodářství a ochraně přírody ČR"),
     )
     val context = LocalContext.current
-    val application = context.applicationContext as Application
     val columnCount = getColumnCount()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyGridState()
-    val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application))
+    val vm: HomeViewModel = hiltViewModel()
     var sortMode by remember { mutableStateOf(loadSortMode(context)) }
     var dropdownExpanded by remember { mutableStateOf(false) }
     val state by vm.uiState.collectAsState()

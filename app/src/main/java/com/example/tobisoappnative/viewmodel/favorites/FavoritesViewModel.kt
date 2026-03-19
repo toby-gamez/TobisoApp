@@ -2,21 +2,24 @@ package com.example.tobisoappnative.viewmodel.favorites
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.Snippet
 import com.example.tobisoappnative.repository.FavoritesRepositoryImpl
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class FavoritesViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repo = FavoritesRepositoryImpl(application)
+@HiltViewModel
+class FavoritesViewModel @Inject constructor(
+    application: Application,
+    private val repo: FavoritesRepositoryImpl
+) : AndroidViewModel(application) {
 
     val favoritePosts: StateFlow<List<Post>> = repo.favoritePosts
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -61,11 +64,5 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
             val post = repo.fetchPost(postId) ?: return@launch
             _fetchedPosts.value = _fetchedPosts.value + post
         }
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            FavoritesViewModel(application) as T
     }
 }

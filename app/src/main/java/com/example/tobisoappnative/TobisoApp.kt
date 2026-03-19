@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import androidx.annotation.RequiresApi
 import android.os.Build
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -68,8 +68,8 @@ import com.example.tobisoappnative.components.FloatingSearchBar
 fun TobisoApp(navigateTo: String? = null) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val isConnected = remember { mutableStateOf(NetworkUtils.isOnline(context)) }
-    val mainViewModel: MainViewModel = viewModel()
-    val ttsViewModel: TtsViewModel = viewModel()
+    val mainViewModel: MainViewModel = hiltViewModel()
+    val ttsViewModel: TtsViewModel = hiltViewModel()
     val mainState by mainViewModel.uiState.collectAsState()
     val categories = mainState.categories
     val categoryError = mainState.categoryError

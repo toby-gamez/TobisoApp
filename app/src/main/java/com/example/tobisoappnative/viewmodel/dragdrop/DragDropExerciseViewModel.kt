@@ -1,22 +1,22 @@
 package com.example.tobisoappnative.viewmodel.dragdrop
 
 import android.app.Application
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.base.BaseAndroidViewModel
 import com.example.tobisoappnative.domain.usecase.GetExerciseUseCase
 import com.example.tobisoappnative.domain.usecase.ValidateExerciseUseCase
 import com.example.tobisoappnative.model.DragDropConfig
 import com.example.tobisoappnative.model.DragDropSolution
-import com.example.tobisoappnative.model.OfflineDataManager
-import com.example.tobisoappnative.repository.ExerciseRepositoryImpl
 import com.example.tobisoappnative.utils.NetworkUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
 
-class DragDropExerciseViewModel(
+@HiltViewModel
+class DragDropExerciseViewModel @Inject constructor(
     application: Application,
     private val getExercise: GetExerciseUseCase,
     private val validateExercise: ValidateExerciseUseCase
@@ -110,14 +110,6 @@ class DragDropExerciseViewModel(
     private fun reset() {
         setState {
             copy(placements = emptyMap(), selectedItem = null, showResult = false, validationResult = null, error = null)
-        }
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-            val repo = ExerciseRepositoryImpl(application, OfflineDataManager(application))
-            return DragDropExerciseViewModel(application, GetExerciseUseCase(repo), ValidateExerciseUseCase(repo)) as T
         }
     }
 }

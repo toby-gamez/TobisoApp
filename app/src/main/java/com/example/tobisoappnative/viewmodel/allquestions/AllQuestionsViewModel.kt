@@ -2,26 +2,28 @@ package com.example.tobisoappnative.viewmodel.allquestions
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.model.Category
-import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.Question
 import com.example.tobisoappnative.repository.OfflineRepositoryImpl
-import com.example.tobisoappnative.repository.PostsRepositoryImpl
-import com.example.tobisoappnative.repository.QuestionsRepositoryImpl
+import com.example.tobisoappnative.repository.PostsRepository
+import com.example.tobisoappnative.repository.QuestionsRepository
 import com.example.tobisoappnative.utils.NetworkUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class AllQuestionsViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val questionsRepo = QuestionsRepositoryImpl(application, OfflineDataManager(application))
-    private val postsRepo = PostsRepositoryImpl(application, OfflineDataManager(application))
-    private val offlineRepo = OfflineRepositoryImpl(application, OfflineDataManager(application))
+@HiltViewModel
+class AllQuestionsViewModel @Inject constructor(
+    application: Application,
+    private val questionsRepo: QuestionsRepository,
+    private val postsRepo: PostsRepository,
+    private val offlineRepo: OfflineRepositoryImpl
+) : AndroidViewModel(application) {
 
     private val _allQuestions = MutableStateFlow<List<Question>>(emptyList())
     val allQuestions: StateFlow<List<Question>> = _allQuestions
@@ -133,11 +135,5 @@ class AllQuestionsViewModel(application: Application) : AndroidViewModel(applica
         categories.filter { it.parentId == categoryId }
             .forEach { result.addAll(getAllSubcategoryIds(it.id, categories)) }
         return result
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            AllQuestionsViewModel(application) as T
     }
 }

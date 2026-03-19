@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.BackpackManager
 import com.example.tobisoappnative.IconPackManager
@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun BackpackScreen(
     navController: NavController,
-    vm: BackpackViewModel = viewModel(factory = BackpackViewModel.Factory())
+    vm: BackpackViewModel = hiltViewModel()
 ) {
     val backpackItems by BackpackManager.backpackItems.collectAsState()
     val equippedQuote by BackpackManager.equippedQuote.collectAsState()

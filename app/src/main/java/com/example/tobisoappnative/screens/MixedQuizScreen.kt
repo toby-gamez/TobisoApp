@@ -1,6 +1,5 @@
 package com.example.tobisoappnative.screens
 
-import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,7 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenPointsOverlay
@@ -40,8 +39,7 @@ fun MixedQuizScreen(
     questionIds: String,
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: MixedQuizViewModel = viewModel(factory = MixedQuizViewModel.Factory(application))
+    val vm: MixedQuizViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
     val totalPoints by PointsManager.totalPoints.collectAsState()
 

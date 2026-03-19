@@ -9,8 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import android.app.Application
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.compose.ui.platform.LocalContext
 import com.example.tobisoappnative.ui.theme.poppins
@@ -32,8 +31,7 @@ import com.example.tobisoappnative.model.ApiClient
 fun FavoritesScreen(
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: FavoritesViewModel = viewModel(factory = FavoritesViewModel.Factory(application))
+    val vm: FavoritesViewModel = hiltViewModel()
     val posts by vm.fetchedPosts.collectAsState()
     val favoritePosts by vm.favoritePosts.collectAsState()
     val snippets by vm.snippets.collectAsState()

@@ -1,20 +1,20 @@
 package com.example.tobisoappnative.viewmodel.circuit
 
 import android.app.Application
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.base.BaseAndroidViewModel
 import com.example.tobisoappnative.domain.usecase.GetExerciseUseCase
 import com.example.tobisoappnative.model.CircuitConnection
 import com.example.tobisoappnative.model.CircuitConfig
-import com.example.tobisoappnative.model.OfflineDataManager
-import com.example.tobisoappnative.repository.ExerciseRepositoryImpl
 import com.example.tobisoappnative.utils.NetworkUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
 
-class CircuitExerciseViewModel(
+@HiltViewModel
+class CircuitExerciseViewModel @Inject constructor(
     application: Application,
     private val getExercise: GetExerciseUseCase
 ) : BaseAndroidViewModel<CircuitExerciseState, CircuitExerciseIntent, CircuitExerciseEffect>(
@@ -291,14 +291,6 @@ class CircuitExerciseViewModel(
             "bulb" -> if (comp.value <= 0.0) 0.0 else (metrics.power / comp.value).coerceIn(0.0, 2.0)
             "led", "motor", "buzzer" -> (metrics.current / 0.2).coerceIn(0.0, 1.5)
             else -> 0.0
-        }
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-            val repo = ExerciseRepositoryImpl(application, OfflineDataManager(application))
-            return CircuitExerciseViewModel(application, GetExerciseUseCase(repo)) as T
         }
     }
 }

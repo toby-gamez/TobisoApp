@@ -2,18 +2,17 @@ package com.example.tobisoappnative.viewmodel.postdetail
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.model.Addendum
 import com.example.tobisoappnative.model.InteractiveExerciseResponse
-import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.Question
 import com.example.tobisoappnative.model.RelatedPost
 import com.example.tobisoappnative.repository.FavoritesRepositoryImpl
-import com.example.tobisoappnative.repository.PostDetailRepositoryImpl
-import com.example.tobisoappnative.repository.PostsRepositoryImpl
+import com.example.tobisoappnative.repository.PostDetailRepository
+import com.example.tobisoappnative.repository.PostsRepository
 import com.example.tobisoappnative.tts.TtsManager
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,12 +20,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.ResponseBody
+import javax.inject.Inject
 
-class PostDetailViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class PostDetailViewModel @Inject constructor(
+    application: Application,
+    private val detailRepo: PostDetailRepository,
+    private val postsRepo: PostsRepository,
+    private val favoritesRepo: FavoritesRepositoryImpl
+) : AndroidViewModel(application) {
 
-    private val detailRepo = PostDetailRepositoryImpl(application, OfflineDataManager(application))
-    private val postsRepo = PostsRepositoryImpl(application, OfflineDataManager(application))
-    private val favoritesRepo = FavoritesRepositoryImpl(application)
     private val ttsManager = TtsManager(application)
 
     val favoritePosts: StateFlow<List<Post>> = favoritesRepo.favoritePosts
@@ -163,11 +166,5 @@ class PostDetailViewModel(application: Application) : AndroidViewModel(applicati
     override fun onCleared() {
         super.onCleared()
         ttsManager.stop()
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            PostDetailViewModel(application) as T
     }
 }

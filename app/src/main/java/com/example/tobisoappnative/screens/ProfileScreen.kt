@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.app.Application
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -56,7 +55,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.Stars
@@ -124,8 +123,7 @@ fun copyImageToInternalStorage(context: android.content.Context, uri: android.ne
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: ProfileViewModel = viewModel(factory = ProfileViewModel.Factory(application))
+    val vm: ProfileViewModel = hiltViewModel()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val postsState = vm.posts.collectAsState()
     val posts: List<Post> = postsState.value

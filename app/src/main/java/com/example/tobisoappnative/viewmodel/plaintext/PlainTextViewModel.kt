@@ -2,23 +2,26 @@ package com.example.tobisoappnative.viewmodel.plaintext
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.Snippet
 import com.example.tobisoappnative.repository.FavoritesRepositoryImpl
-import com.example.tobisoappnative.repository.PostDetailRepositoryImpl
+import com.example.tobisoappnative.repository.PostDetailRepository
 import com.example.tobisoappnative.tts.TtsManager
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class PlainTextViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class PlainTextViewModel @Inject constructor(
+    application: Application,
+    private val repo: PostDetailRepository,
+    private val favoritesRepo: FavoritesRepositoryImpl
+) : AndroidViewModel(application) {
 
-    private val repo = PostDetailRepositoryImpl(application, OfflineDataManager(application))
-    private val favoritesRepo = FavoritesRepositoryImpl(application)
     private val ttsManager = TtsManager(application)
 
     private val _postDetail = MutableStateFlow<Post?>(null)
@@ -66,11 +69,5 @@ class PlainTextViewModel(application: Application) : AndroidViewModel(applicatio
     override fun onCleared() {
         super.onCleared()
         ttsManager.stop()
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            PlainTextViewModel(application) as T
     }
 }

@@ -20,9 +20,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import android.app.Application
 import com.example.tobisoappnative.viewmodel.postdetail.PostDetailViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.Composable
 import com.halilibo.richtext.ui.material3.RichText
 import androidx.compose.foundation.rememberScrollState
@@ -451,8 +450,7 @@ fun PostDetailScreen(
     postId: Int,
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: PostDetailViewModel = viewModel(factory = PostDetailViewModel.Factory(application))
+    val vm: PostDetailViewModel = hiltViewModel()
     val postDetail by vm.postDetail.collectAsState()
     val postDetailError by vm.postDetailError.collectAsState()
     val favoritePosts by vm.favoritePosts.collectAsState()

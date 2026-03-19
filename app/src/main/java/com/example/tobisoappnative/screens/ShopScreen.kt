@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.ShopManager
@@ -43,7 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 @Composable
 fun ShopScreen(
     navController: NavController,
-    vm: ShopViewModel = viewModel(factory = ShopViewModel.Factory())
+    vm: ShopViewModel = hiltViewModel()
 ) {
     val totalPoints by PointsManager.totalPoints.collectAsState()
     val purchasedItemIds by ShopManager.purchasedItems.collectAsState()

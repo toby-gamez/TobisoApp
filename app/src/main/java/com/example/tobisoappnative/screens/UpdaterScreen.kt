@@ -1,6 +1,5 @@
 package com.example.tobisoappnative.screens
 
-import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -16,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.updater.ReleaseInfo
 import com.example.tobisoappnative.viewmodel.updater.UpdaterViewModel
@@ -27,8 +26,7 @@ fun UpdaterScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-    val application = context.applicationContext as Application
-    val vm: UpdaterViewModel = viewModel(factory = UpdaterViewModel.Factory(application))
+    val vm: UpdaterViewModel = hiltViewModel()
 
     val currentVersion by vm.currentVersion.collectAsState()
     val latestVersion by vm.latestVersion.collectAsState()

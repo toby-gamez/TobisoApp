@@ -12,9 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import android.app.Application
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.dragdrop.DragDropExerciseIntent
 import com.example.tobisoappnative.viewmodel.dragdrop.DragDropExerciseViewModel
@@ -36,8 +35,7 @@ fun DragDropExerciseScreen(
     exerciseId: Int,
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: DragDropExerciseViewModel = viewModel(factory = DragDropExerciseViewModel.Factory(application))
+    val vm: DragDropExerciseViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
 
     val context = LocalContext.current

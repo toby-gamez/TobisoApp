@@ -3,7 +3,9 @@ package com.example.tobisoappnative
 import android.app.Application
 import android.os.Build
 import androidx.annotation.RequiresApi
+import dagger.hilt.android.HiltAndroidApp
 
+@HiltAndroidApp
 class TobisoApplication : Application() {
 
     @RequiresApi(Build.VERSION_CODES.O)

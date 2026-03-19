@@ -1,14 +1,16 @@
 package com.example.tobisoappnative.viewmodel.backpack
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.example.tobisoappnative.BackpackManager
 import com.example.tobisoappnative.model.BackpackItem
 import com.example.tobisoappnative.model.ShopItemType
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import javax.inject.Inject
 
-class BackpackViewModel : ViewModel() {
+@HiltViewModel
+class BackpackViewModel @Inject constructor() : ViewModel() {
 
     private val _selectedItem = MutableStateFlow<BackpackItem?>(null)
     val selectedItem: StateFlow<BackpackItem?> = _selectedItem
@@ -76,11 +78,5 @@ class BackpackViewModel : ViewModel() {
 
     fun clearSuccessMessage() {
         _showSuccessMessage.value = false
-    }
-
-    class Factory : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            BackpackViewModel() as T
     }
 }

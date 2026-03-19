@@ -2,9 +2,9 @@ package com.example.tobisoappnative.viewmodel.updater
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.utils.NetworkUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import javax.inject.Inject
 
 data class ReleaseInfo(
     val version: String,
@@ -24,7 +25,8 @@ data class ReleaseInfo(
     val htmlUrl: String
 )
 
-class UpdaterViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class UpdaterViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
 
     private val _currentVersion = MutableStateFlow("?")
     val currentVersion: StateFlow<String> = _currentVersion
@@ -109,11 +111,5 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
             downloadCount = downloadCount,
             htmlUrl = htmlUrl
         )
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            UpdaterViewModel(application) as T
     }
 }

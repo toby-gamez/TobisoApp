@@ -29,9 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import android.app.Application
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.components.FullScreenTotalPointsOverlay
@@ -51,8 +50,7 @@ import com.example.tobisoappnative.components.FloatingSearchBar
 fun AllQuestionsScreen(
     navController: NavController,
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: AllQuestionsViewModel = viewModel(factory = AllQuestionsViewModel.Factory(application))
+    val vm: AllQuestionsViewModel = hiltViewModel()
     val allQuestions by vm.allQuestions.collectAsState()
     val filteredQuestions by vm.filteredQuestions.collectAsState()
     val allQuestionsError by vm.allQuestionsError.collectAsState()

@@ -9,7 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.tooling.preview.Preview
@@ -19,7 +19,7 @@ import com.example.tobisoappnative.viewmodel.feedback.FeedbackViewModel
 @Composable
 fun FeedbackScreen(
     navController: NavController,
-    vm: FeedbackViewModel = viewModel(factory = FeedbackViewModel.Factory())
+    vm: FeedbackViewModel = hiltViewModel()
 ) {
     val name by vm.name.collectAsState()
     val email by vm.email.collectAsState()

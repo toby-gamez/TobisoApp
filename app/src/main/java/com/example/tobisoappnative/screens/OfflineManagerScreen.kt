@@ -9,11 +9,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import android.app.Application
 import androidx.navigation.NavController
 import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.viewmodel.offlinemanager.OfflineManagerViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -25,8 +24,7 @@ import java.util.concurrent.TimeUnit
 fun OfflineManagerScreen(
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: OfflineManagerViewModel = viewModel(factory = OfflineManagerViewModel.Factory(application))
+    val vm: OfflineManagerViewModel = hiltViewModel()
     val context = LocalContext.current
     val isOfflineMode by vm.isOffline.collectAsState()
 

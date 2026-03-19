@@ -1,19 +1,19 @@
 package com.example.tobisoappnative.viewmodel.mixedquiz
 
 import android.app.Application
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.PointsManager
 import com.example.tobisoappnative.base.BaseAndroidViewModel
 import com.example.tobisoappnative.domain.usecase.GetAllQuestionsUseCase
-import com.example.tobisoappnative.model.OfflineDataManager
-import com.example.tobisoappnative.repository.QuestionsRepositoryImpl
 import com.example.tobisoappnative.utils.NetworkUtils
 import com.example.tobisoappnative.utils.normalizeText
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MixedQuizViewModel(
+@HiltViewModel
+class MixedQuizViewModel @Inject constructor(
     application: Application,
     private val getAllQuestions: GetAllQuestionsUseCase
 ) : BaseAndroidViewModel<MixedQuizState, MixedQuizIntent, MixedQuizEffect>(
@@ -151,14 +151,6 @@ class MixedQuizViewModel(
                 showPointsOverlay = false,
                 awardedPoints = 0
             )
-        }
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-            val repo = QuestionsRepositoryImpl(application, OfflineDataManager(application))
-            return MixedQuizViewModel(application, GetAllQuestionsUseCase(repo)) as T
         }
     }
 }

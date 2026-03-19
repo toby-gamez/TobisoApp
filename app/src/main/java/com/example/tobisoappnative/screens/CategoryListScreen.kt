@@ -15,9 +15,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import android.app.Application
 import com.example.tobisoappnative.model.Category
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.compose.material.icons.Icons
@@ -38,8 +37,7 @@ fun CategoryListScreen(
     parentCategoryName: String,
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: CategoryListViewModel = viewModel(factory = CategoryListViewModel.Factory(application))
+    val vm: CategoryListViewModel = hiltViewModel()
     val state by vm.state.collectAsState()
     val favoritePosts by vm.favoritePosts.collectAsState()
     val categories = state.categories

@@ -2,21 +2,23 @@ package com.example.tobisoappnative.viewmodel.profile
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.repository.OfflineRepositoryImpl
-import com.example.tobisoappnative.repository.PostsRepositoryImpl
+import com.example.tobisoappnative.repository.PostsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ProfileViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val postsRepo = PostsRepositoryImpl(application, OfflineDataManager(application))
-    private val offlineRepo = OfflineRepositoryImpl(application, OfflineDataManager(application))
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    application: Application,
+    private val postsRepo: PostsRepository,
+    private val offlineRepo: OfflineRepositoryImpl
+) : AndroidViewModel(application) {
 
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> = _posts
@@ -55,11 +57,5 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             offlineRepo.downloadAllData { progress -> _offlineDownloadProgress.value = progress }
             _offlineDownloading.value = false
         }
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            ProfileViewModel(application) as T
     }
 }

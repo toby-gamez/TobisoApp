@@ -24,8 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
-import android.app.Application
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.questions.QuestionsViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -43,8 +42,7 @@ fun QuestionsScreen(
     postId: Int,
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: QuestionsViewModel = viewModel(factory = QuestionsViewModel.Factory(application))
+    val vm: QuestionsViewModel = hiltViewModel()
     val questions by vm.questions.collectAsState()
     val questionsError by vm.questionsError.collectAsState()
     val questionsLoading by vm.questionsLoading.collectAsState()

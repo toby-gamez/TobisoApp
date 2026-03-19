@@ -1,6 +1,5 @@
 package com.example.tobisoappnative.screens
 
-import android.app.Application
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,7 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.circuit.CircuitComponent
 import com.example.tobisoappnative.viewmodel.circuit.CircuitExerciseIntent
@@ -39,8 +38,7 @@ fun CircuitExerciseScreen(
     exerciseId: Int,
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: CircuitExerciseViewModel = viewModel(factory = CircuitExerciseViewModel.Factory(application))
+    val vm: CircuitExerciseViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
 
     LaunchedEffect(exerciseId) {

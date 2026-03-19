@@ -2,10 +2,12 @@ package com.example.tobisoappnative.viewmodel.tts
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.example.tobisoappnative.tts.TtsManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class TtsViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class TtsViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
 
     val ttsManager: TtsManager = TtsManager(application)
 
@@ -19,11 +21,5 @@ class TtsViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         ttsManager.destroy()
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            TtsViewModel(application) as T
     }
 }

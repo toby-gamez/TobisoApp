@@ -6,8 +6,10 @@ import com.example.tobisoappnative.base.BaseAndroidViewModel
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.utils.NetworkUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Lean ViewModel for cross-cutting state shared across the entire app:
@@ -18,10 +20,12 @@ import kotlinx.coroutines.launch
  * All per-screen concerns (post detail, questions, exercises, favourites, TTS,
  * offline download management, etc.) are handled by dedicated ViewModels.
  */
-class MainViewModel(application: Application) :
-    BaseAndroidViewModel<MainState, MainIntent, MainEffect>(application, MainState()) {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    application: Application,
+    private val offlineDataManager: OfflineDataManager
+) : BaseAndroidViewModel<MainState, MainIntent, MainEffect>(application, MainState()) {
 
-    private val offlineDataManager = OfflineDataManager(application)
     private var isFirstLoad = true
 
     init {

@@ -2,19 +2,19 @@ package com.example.tobisoappnative.viewmodel.categorylist
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.model.Category
-import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.repository.FavoritesRepositoryImpl
-import com.example.tobisoappnative.repository.PostsRepositoryImpl
+import com.example.tobisoappnative.repository.PostsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class CategoryListState(
     val categories: List<Category> = emptyList(),
@@ -25,10 +25,12 @@ data class CategoryListState(
     val error: String? = null
 )
 
-class CategoryListViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val postsRepo = PostsRepositoryImpl(application, OfflineDataManager(application))
-    private val favoritesRepo = FavoritesRepositoryImpl(application)
+@HiltViewModel
+class CategoryListViewModel @Inject constructor(
+    application: Application,
+    private val postsRepo: PostsRepository,
+    private val favoritesRepo: FavoritesRepositoryImpl
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(CategoryListState())
     val state: StateFlow<CategoryListState> = _state
@@ -79,11 +81,5 @@ class CategoryListViewModel(application: Application) : AndroidViewModel(applica
 
     fun unsavePost(postId: Int) {
         viewModelScope.launch(Dispatchers.IO) { favoritesRepo.unsavePost(postId) }
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            CategoryListViewModel(application) as T
     }
 }

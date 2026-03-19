@@ -1,16 +1,18 @@
 package com.example.tobisoappnative.viewmodel.feedback
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.FeedbackDto
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class FeedbackViewModel : ViewModel() {
+@HiltViewModel
+class FeedbackViewModel @Inject constructor() : ViewModel() {
 
     private val _name = MutableStateFlow("")
     val name: StateFlow<String> = _name
@@ -70,11 +72,5 @@ class FeedbackViewModel : ViewModel() {
                 _isLoading.value = false
             }
         }
-    }
-
-    class Factory : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            FeedbackViewModel() as T
     }
 }

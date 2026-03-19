@@ -1,7 +1,6 @@
 package com.example.tobisoappnative.viewmodel.matching
 
 import android.app.Application
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.base.BaseAndroidViewModel
 import com.example.tobisoappnative.domain.usecase.GetExerciseUseCase
@@ -9,15 +8,16 @@ import com.example.tobisoappnative.domain.usecase.ValidateExerciseUseCase
 import com.example.tobisoappnative.model.MatchingConfig
 import com.example.tobisoappnative.model.MatchingPair
 import com.example.tobisoappnative.model.MatchingSolution
-import com.example.tobisoappnative.model.OfflineDataManager
-import com.example.tobisoappnative.repository.ExerciseRepositoryImpl
 import com.example.tobisoappnative.utils.NetworkUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
 
-class MatchingExerciseViewModel(
+@HiltViewModel
+class MatchingExerciseViewModel @Inject constructor(
     application: Application,
     private val getExercise: GetExerciseUseCase,
     private val validateExercise: ValidateExerciseUseCase
@@ -146,18 +146,6 @@ class MatchingExerciseViewModel(
     }
 
     // ──────────────────────────────────────
-    // Factory
+    // Factory removed – injected via @HiltViewModel
     // ──────────────────────────────────────
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-            val offlineDataManager = OfflineDataManager(application)
-            val repo = ExerciseRepositoryImpl(application, offlineDataManager)
-            return MatchingExerciseViewModel(
-                application,
-                GetExerciseUseCase(repo),
-                ValidateExerciseUseCase(repo)
-            ) as T
-        }
-    }
 }

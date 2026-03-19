@@ -17,7 +17,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.viewmodel.CalendarViewModel
@@ -33,7 +33,7 @@ import com.example.tobisoappnative.components.MultiplierIndicator
 fun EventDetailScreen(
     eventId: Int,
     navController: NavHostController,
-    viewModel: CalendarViewModel = viewModel()
+    viewModel: CalendarViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val event = state.detailEvent

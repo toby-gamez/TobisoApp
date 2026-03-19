@@ -2,19 +2,20 @@ package com.example.tobisoappnative.viewmodel.home
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.ViewModelProvider
 import com.example.tobisoappnative.base.BaseAndroidViewModel
-import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.repository.OfflineRepositoryImpl
-import com.example.tobisoappnative.repository.PostsRepositoryImpl
+import com.example.tobisoappnative.repository.PostsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class HomeViewModel(application: Application) :
-    BaseAndroidViewModel<HomeState, HomeIntent, HomeEffect>(application, HomeState()) {
-
-    private val postsRepo = PostsRepositoryImpl(application, OfflineDataManager(application))
-    private val offlineRepo = OfflineRepositoryImpl(application, OfflineDataManager(application))
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    application: Application,
+    private val postsRepo: PostsRepository,
+    private val offlineRepo: OfflineRepositoryImpl
+) : BaseAndroidViewModel<HomeState, HomeIntent, HomeEffect>(application, HomeState()) {
 
     override fun onIntent(intent: HomeIntent) {
         when (intent) {
@@ -50,11 +51,5 @@ class HomeViewModel(application: Application) :
                 load()
             }
         }
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(application) as T
     }
 }

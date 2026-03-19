@@ -1,6 +1,5 @@
 package com.example.tobisoappnative.screens
 
-import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.matching.MatchingExerciseIntent
 import com.example.tobisoappnative.viewmodel.matching.MatchingExerciseEffect
@@ -33,10 +32,7 @@ fun MatchingExerciseScreen(
     exerciseId: Int,
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: MatchingExerciseViewModel = viewModel(
-        factory = MatchingExerciseViewModel.Factory(application)
-    )
+    val vm: MatchingExerciseViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 

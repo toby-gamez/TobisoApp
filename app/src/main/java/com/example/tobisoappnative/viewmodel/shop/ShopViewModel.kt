@@ -1,14 +1,16 @@
 package com.example.tobisoappnative.viewmodel.shop
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.example.tobisoappnative.ShopManager
 import com.example.tobisoappnative.model.ShopItem
 import com.example.tobisoappnative.model.ShopItemType
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import javax.inject.Inject
 
-class ShopViewModel : ViewModel() {
+@HiltViewModel
+class ShopViewModel @Inject constructor() : ViewModel() {
 
     private val _selectedItem = MutableStateFlow<ShopItem?>(null)
     val selectedItem: StateFlow<ShopItem?> = _selectedItem
@@ -93,11 +95,5 @@ class ShopViewModel : ViewModel() {
 
     fun clearErrorMessage() {
         _showErrorMessage.value = false
-    }
-
-    class Factory : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            ShopViewModel() as T
     }
 }

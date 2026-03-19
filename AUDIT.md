@@ -503,7 +503,7 @@ implementation("androidx.compose.material:material-icons-extended:1.7.6")
 
 ### P1 – Vysoké (Architektura)
 
-4. **Nasadit Hilt** pro dependency injection – eliminuje globální singletony a manuální instancování.
+4. ~~**Nasadit Hilt** pro dependency injection – eliminuje globální singletony a manuální instancování.~~ ✅ OPRAVENO
 5. **Rozdělit `MainViewModel`** na minimálně 5 menších ViewModelů: `CategoryViewModel`, `FavoritesViewModel`, `OfflineViewModel`, `TtsViewModel`, `QuestionsViewModel`.
 6. **Přejít na MVI pattern** použitím existující `BaseViewModel` infrastruktury.
 7. **Přejít na Type-Safe Navigation** (Compose Navigation 2.8+).

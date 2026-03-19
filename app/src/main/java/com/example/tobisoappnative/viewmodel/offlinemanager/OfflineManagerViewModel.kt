@@ -2,19 +2,21 @@ package com.example.tobisoappnative.viewmodel.offlinemanager
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.repository.OfflineRepositoryImpl
 import com.example.tobisoappnative.utils.NetworkUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class OfflineManagerViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val offlineRepo = OfflineRepositoryImpl(application, OfflineDataManager(application))
+@HiltViewModel
+class OfflineManagerViewModel @Inject constructor(
+    application: Application,
+    private val offlineRepo: OfflineRepositoryImpl
+) : AndroidViewModel(application) {
 
     private val _isOffline = MutableStateFlow(false)
     val isOffline: StateFlow<Boolean> = _isOffline
@@ -46,11 +48,5 @@ class OfflineManagerViewModel(application: Application) : AndroidViewModel(appli
 
     fun clearToast() {
         _toastMessage.value = null
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            OfflineManagerViewModel(application) as T
     }
 }

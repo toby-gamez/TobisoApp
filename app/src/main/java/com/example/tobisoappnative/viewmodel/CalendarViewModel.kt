@@ -7,17 +7,21 @@ import com.example.tobisoappnative.model.ApiClient
 import com.example.tobisoappnative.model.Event
 import com.example.tobisoappnative.model.LocalEventManager
 import com.example.tobisoappnative.model.OfflineDataManager
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
-class CalendarViewModel(application: Application) :
-    BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(application, CalendarState()) {
+@HiltViewModel
+class CalendarViewModel @Inject constructor(
+    application: Application,
+    private val offlineDataManager: OfflineDataManager
+) : BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(application, CalendarState()) {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
     private val context = application.applicationContext
-    private val offlineDataManager = OfflineDataManager(application)
 
     /** The month currently loaded – used for internal reloads after mutations. */
     private var lastLoadedYear = Calendar.getInstance().get(Calendar.YEAR)

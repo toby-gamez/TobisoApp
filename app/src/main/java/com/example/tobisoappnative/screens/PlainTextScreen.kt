@@ -17,8 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.TopAppBarDefaults
-import android.app.Application
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.tobisoappnative.viewmodel.plaintext.PlainTextViewModel
 import com.example.tobisoappnative.model.Snippet
@@ -46,8 +45,7 @@ fun PlainTextScreen(
     postId: Int,
     navController: NavController
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val vm: PlainTextViewModel = viewModel(factory = PlainTextViewModel.Factory(application))
+    val vm: PlainTextViewModel = hiltViewModel()
     val postDetail by vm.postDetail.collectAsState()
     val postDetailError by vm.postDetailError.collectAsState()
     val isOffline by vm.isOffline.collectAsState()

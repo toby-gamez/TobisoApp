@@ -4,17 +4,19 @@ import android.app.Application
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tobisoappnative.StreakFreezeManager
 import com.example.tobisoappnative.utils.StreakUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import javax.inject.Inject
 
-class StreakViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class StreakViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
 
     private val today = Calendar.getInstance()
 
@@ -53,11 +55,5 @@ class StreakViewModel(application: Application) : AndroidViewModel(application) 
     fun changeMonth(month: Int, year: Int) {
         _calendarMonth.value = month
         _calendarYear.value = year
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            StreakViewModel(application) as T
     }
 }

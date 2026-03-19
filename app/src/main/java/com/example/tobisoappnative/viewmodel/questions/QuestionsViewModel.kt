@@ -2,21 +2,23 @@ package com.example.tobisoappnative.viewmodel.questions
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.tobisoappnative.model.OfflineDataManager
 import com.example.tobisoappnative.model.Post
 import com.example.tobisoappnative.model.Question
-import com.example.tobisoappnative.repository.PostDetailRepositoryImpl
+import com.example.tobisoappnative.repository.PostDetailRepository
 import com.example.tobisoappnative.utils.NetworkUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class QuestionsViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repo = PostDetailRepositoryImpl(application, OfflineDataManager(application))
+@HiltViewModel
+class QuestionsViewModel @Inject constructor(
+    application: Application,
+    private val repo: PostDetailRepository
+) : AndroidViewModel(application) {
 
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions
@@ -62,11 +64,5 @@ class QuestionsViewModel(application: Application) : AndroidViewModel(applicatio
     fun clearQuestions() {
         _questions.value = emptyList()
         _questionsError.value = null
-    }
-
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            QuestionsViewModel(application) as T
     }
 }
