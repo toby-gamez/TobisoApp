@@ -108,16 +108,34 @@ object SecurityConfig {
     }
     
     /**
-     * Získání bezpečnostního tokenu pro lokální operace
+     * Vygeneruje HMAC-SHA256 token pro ověření požadavku.
+     *
+     * Formát: "{timestampSeconds}.{Base64(HMAC-SHA256(packageId:timestampSeconds, secret))}"
+     *
+     * Server ověří token takto:
+     *  1. Rozdělí hodnotu na timestamp a HMAC část.
+     *  2. Zkontroluje, že timestamp je v přijatelném okně (±5 minut).
+     *  3. Vypočítá HMAC ze stejných dat a porovná konstantním způsobem (timing-safe).
+     *
+     * Tajný klíč pochází z BuildConfig.SECURITY_TOKEN_SECRET, který je načten
+     * z local.properties a nikdy není součástí zdrojového kódu ani VCS.
      */
     fun getSecurityToken(): String {
-        val baseString = "com.tobiso.tobisoapp_2.0.1"
+        val secret = BuildConfig.SECURITY_TOKEN_SECRET
+        if (secret.isBlank()) return ""
         return try {
-            val digest = MessageDigest.getInstance("SHA-256")
-            val hash = digest.digest(baseString.toByteArray())
-            Base64.encodeToString(hash, Base64.NO_WRAP)
+            val timestamp = (System.currentTimeMillis() / 1000L).toString()
+            val data = "${BuildConfig.APPLICATION_ID}:$timestamp"
+            val mac = javax.crypto.Mac.getInstance("HmacSHA256")
+            val keySpec = javax.crypto.spec.SecretKeySpec(
+                secret.toByteArray(Charsets.UTF_8), "HmacSHA256"
+            )
+            mac.init(keySpec)
+            val hmac = mac.doFinal(data.toByteArray(Charsets.UTF_8))
+            "$timestamp.${Base64.encodeToString(hmac, Base64.NO_WRAP)}"
         } catch (e: Exception) {
-            baseString // Fallback
+            android.util.Log.e("SecurityConfig", "Failed to generate security token", e)
+            ""
         }
     }
     

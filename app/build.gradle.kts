@@ -63,6 +63,7 @@ android {
             buildConfigField("String", "API_USERNAME", "\"${localProperties["API_USERNAME"] ?: ""}\"")
             buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
             buildConfigField("String", "CERT_FINGERPRINT", "\"${localProperties["CERT_FINGERPRINT"] ?: ""}\"")
+            buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"${localProperties["SECURITY_TOKEN_SECRET"] ?: ""}\"")
         }
         debug {
             isDebuggable = true
@@ -76,6 +77,7 @@ android {
             buildConfigField("String", "API_USERNAME", "\"${localProperties["API_USERNAME"] ?: ""}\"")
             buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
             buildConfigField("String", "CERT_FINGERPRINT", "\"\"")
+            buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"${localProperties["SECURITY_TOKEN_SECRET"] ?: ""}\"")
         }
     }
     compileOptions {

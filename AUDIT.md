@@ -216,17 +216,19 @@ fun verifyAppIntegrity(): Boolean {
 - `CERT_FINGERPRINT` je uložen v `local.properties` (vyloučen z VCS) a dostupný přes `BuildConfig` – v release buildu nutno nastavit na skutečný otisk produkčního podpisového klíče.
 - Implementace správně odlišuje API úrovně: API 28+ používá `GET_SIGNING_CERTIFICATES` + `signingInfo.apkContentsSigners`, API 24–27 používá deprecated `GET_SIGNATURES` (bezpečné pro minSdk ≥ 21).
 
-### 3.5 Security token z hardcoded stringu – Střední 🟡
+### ~~3.5 Security token z hardcoded stringu~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 fun getSecurityToken(): String {
     val baseString = "com.tobiso.tobisoapp_2.0.1"
     val hash = digest.digest(baseString.toByteArray())
     return Base64.encodeToString(hash, Base64.NO_WRAP)
 }
-```
+```~~
 
-Hash deterministicky vypočítaný z pevného řetězce není bezpečnostní token – je to statická konstanta zakódovaná jako hash. Útočník triviálně zjistí jeho hodnotu.
+~~Hash deterministicky vypočítaný z pevného řetězce není bezpečnostní token – je to statická konstanta zakódovaná jako hash. Útočník triviálně zjistí jeho hodnotu.~~
+
+**Opraveno:** `getSecurityToken()` nyní generuje skutečný HMAC-SHA256 token ve formátu `{timestampSeconds}.{Base64(HMAC)}`. Tajný klíč pochází z `BuildConfig.SECURITY_TOKEN_SECRET`, který je uložen v `local.properties` (vyloučen z VCS) – žádná pevná hodnota ve zdrojovém kódu. Token je vázán na čas žádosti (replay ochrana) a na package ID aplikace. Server ověří: extrahuje timestamp, zkontroluje okno ±5 minut, a porovná HMAC vypočítaný ze sdíleného tajného klíče.
 
 ### 3.6 `Reflection` pro volání funkce – Střední 🟡
 
