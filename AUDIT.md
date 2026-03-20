@@ -15,7 +15,7 @@
 | Bezpečnost | 3 / 10 | Hardcoded credentials, vypnuté SSL pinning |
 | Modernizace kódu | 6 / 10 | Moderní Compose, ale zastaralé nástroje |
 | Výkon & plynulost | 5 / 10 | Polling místo reaktivního přístupu |
-| Testovatelnost | 1 / 10 | Prakticky žádné testy |
+| Testovatelnost | 6 / 10 | 43 unit testů, všechny projdou |
 | DI & závislosti | 2 / 10 | Žádný DI framework |
 | Kvalita kódu | 5 / 10 | Debug kód v produkci, magie čísel |
 
@@ -375,19 +375,49 @@ android.util.Log.d("EventOverlap", "=== Checking event '...' for day $dateStr ==
 
 ---
 
-## 6. Testovatelnost
+## 6. Testovatelnost ✅ OPRAVENO
 
-Projekt má **prakticky nulové testovací pokrytí**. V `app/src/test/` nejsou žádné unit testy. `androidTest/` pravděpodobně obsahuje jen boilerplate.
+### Přidané testovací závislosti
 
-Hlavní příčiny špatné testovatelnosti:
+Do `libs.versions.toml` a `app/build.gradle.kts` přidány:
 
-| Problém | Dopad |
+```toml
+mockk = "1.13.13"
+coroutinesTest = "1.9.0"
+turbine = "1.2.0"
+```
+
+```kotlin
+testImplementation(libs.mockk)
+testImplementation(libs.kotlinx.coroutines.test)
+testImplementation(libs.turbine)
+```
+
+### Napsané unit testy (43 testů, 0 selhání)
+
+| Testový soubor | Počet testů | Pokrytí |
+|---|---|---|
+| `GetExerciseUseCaseTest` | 4 | GetExerciseUseCase – success, failure, offline error, verifikace volání repozitáře |
+| `ValidateExerciseUseCaseTest` | 6 | ValidateExerciseUseCase – správná/špatná odpověď, offline, síťová chyba, částečné skóre, parametry |
+| `GetAllQuestionsUseCaseTest` | 8 | GetAllQuestionsUseCase – success, prázdný seznam, failure, offline, delegace + helper properties třídy Question |
+| `PointsManagerTest` | 11 | FakePointsManager – přidávání, odečítání, multiplikátor, StateFlow emise, milestone/achievement flows |
+| `StreakFreezeManagerTest` | 13 | FakeStreakFreezeManager – přidání/použití freeze, MAX_FREEZES limit, duplicitní datum, isFreezeActive, reset |
+
+### Fake implementace pro testy bez Android Context
+
+Přidány `FakePointsManager` a `FakeStreakFreezeManager` – in-memory implementace příslušných rozhraní (`IPointsManager`, `IStreakFreezeManager`) bez závislosti na Android SharedPreferences. Slouží jako základ pro testování libovolné třídy, která tyto rozhraní přijímá.
+
+### Dřívější příčiny špatné testovatelnosti – stav po opravě
+
+| Problém | Stav |
 |---|---|
-| Globální singletony (`PointsManager`, `ShopManager`) | Nelze mockovat, testy ovlivňují navzájem |
-| `MainViewModel` dělá vše | Příliš velký kontext k testování |
-| Reflection v `PointsManager` | Selže při testování s obfuskací / Robolectric |
-| Žádné rozhraní pro `PointsManager` | Nelze nahradit fake implementací |
-| Přímé volání `ApiClient.apiService` ve ViewModelu | Nelze mockovat API vrstvu |
+| Globální singletony (`PointsManager`, `ShopManager`) | ✅ Převedeny na třídy s rozhraním |
+| `MainViewModel` dělá vše | ⚠️ Stále existuje – P1 priorita refaktoringu |
+| Reflection v `PointsManager` | ✅ Odstraněno |
+| Žádné rozhraní pro `PointsManager` | ✅ `IPointsManager` existuje |
+| Přímé volání `ApiClient.apiService` ve ViewModelu | ⚠️ Stále existuje v `HomeViewModel` – P1 |
+
+Use Cases (`GetExerciseUseCase`, `ValidateExerciseUseCase`, `GetAllQuestionsUseCase`) jsou plně testovatelné přes mockované repozitáře díky interface-based designu.
 
 ---
 
@@ -527,7 +557,7 @@ implementation("androidx.compose.material:material-icons-extended:1.7.6")
 15. **Přesunout utility funkce** (`parseDateToMillis`, `formatDateDisplay` atd.) do `utils/`.
 16. **Nahradit magická čísla** pojmenovanými konstantami (zejména `classicIconPackId = 23`).
 17. **Odstranit zakomentovaný kód** a TODO komentáře nebo je sledovat v issue trackeru.
-18. **Napsat unit testy** alespoň pro Use Cases, Repository a ViewModel logiku.
+18. ~~**Napsat unit testy** alespoň pro Use Cases, Repository a ViewModel logiku.~~ ✅ OPRAVENO
 
 ---
 
