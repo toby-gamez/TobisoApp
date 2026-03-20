@@ -35,6 +35,7 @@ fun OfflineManagerScreen(
     val relatedPostsCount = cacheInfo.relatedPostsCount
     val addendumsCount = cacheInfo.addendumsCount
     val exercisesCount = cacheInfo.exercisesCount
+    val eventsCount = cacheInfo.eventsCount
     val lastUpdateFormatted = cacheInfo.lastUpdateFormatted
     val lastUpdateTimestamp = cacheInfo.lastUpdateTimestamp
     val cacheFresh15 = cacheInfo.cacheFresh15
@@ -110,6 +111,11 @@ fun OfflineManagerScreen(
                         Text(text = "Cvičení")
                         Text(text = exercisesCount?.toString() ?: "—")
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Události")
+                        Text(text = eventsCount?.toString() ?: "—")
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Column {
@@ -162,6 +168,11 @@ fun OfflineManagerScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = "Cvičení")
                         Text(text = exercisesCount?.toString() ?: "—")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Události")
+                        Text(text = eventsCount?.toString() ?: "—")
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))

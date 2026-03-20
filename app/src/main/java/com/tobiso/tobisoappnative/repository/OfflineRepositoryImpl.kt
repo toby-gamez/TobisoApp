@@ -145,16 +145,25 @@ class OfflineRepositoryImpl(
                     exercises.addAll(ApiClient.apiService.getExercisesByPostId(post.id).toList())
                 } catch (_: Exception) { /* one post failing is OK */ }
                 if (idx % 10 == 0) {
-                    onProgress(startProgress + span * (0.75f + 0.2f * (idx.toFloat() / posts.size)))
+                    onProgress(startProgress + span * (0.75f + 0.18f * (idx.toFloat() / posts.size)))
                 }
             }
-            onProgress(startProgress + span * 0.95f)
+            onProgress(startProgress + span * 0.93f)
+
+            val events = try {
+                ApiClient.apiService.getEvents().toList()
+            } catch (e: Exception) {
+                android.util.Log.w("OfflineRepo", "getEvents failed: ${e.message}")
+                emptyList()
+            }
+            onProgress(startProgress + span * 0.97f)
 
             offlineDataManager.saveRemainingData(
                 categories, posts,
                 questions, questionsPosts,
                 relatedPosts, addendums, exercises
             )
+            if (events.isNotEmpty()) offlineDataManager.saveEvents(events)
             onProgress(1f)
             true
         } catch (e: Exception) {

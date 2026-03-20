@@ -21,6 +21,7 @@ data class CacheInfo(
     val relatedPostsCount: Int? = null,
     val addendumsCount: Int? = null,
     val exercisesCount: Int? = null,
+    val eventsCount: Int? = null,
     val lastUpdateFormatted: String? = null,
     val lastUpdateTimestamp: Long? = null,
     val cacheFresh15: Boolean? = null
@@ -65,6 +66,7 @@ class OfflineManagerViewModel @Inject constructor(
                     relatedPostsCount = offlineDataManager.getCachedRelatedPosts()?.size,
                     addendumsCount = offlineDataManager.getCachedAddendums()?.size,
                     exercisesCount = offlineDataManager.getCachedExercises()?.size,
+                    eventsCount = offlineDataManager.getCachedEvents()?.size,
                     lastUpdateFormatted = offlineDataManager.getLastUpdateFormatted(),
                     lastUpdateTimestamp = offlineDataManager.getLastUpdateTimestamp(),
                     cacheFresh15 = offlineDataManager.isCacheFresh(15)
