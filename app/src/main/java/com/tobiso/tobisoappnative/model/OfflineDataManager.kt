@@ -2,7 +2,17 @@ package com.tobiso.tobisoappnative.model
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.google.gson.Gson
+import com.tobiso.tobisoappnative.db.dao.AddendumDao
+import com.tobiso.tobisoappnative.db.dao.CategoryDao
+import com.tobiso.tobisoappnative.db.dao.EventDao
+import com.tobiso.tobisoappnative.db.dao.ExerciseDao
+import com.tobiso.tobisoappnative.db.dao.PostDao
+import com.tobiso.tobisoappnative.db.dao.QuestionDao
+import com.tobiso.tobisoappnative.db.dao.QuestionPostDao
+import com.tobiso.tobisoappnative.db.dao.RelatedPostDao
+import com.tobiso.tobisoappnative.db.entity.toDomain
+import com.tobiso.tobisoappnative.db.entity.toEntity
+import com.tobiso.tobisoappnative.db.entity.toQuestionPostEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -12,12 +22,22 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Spravuje offline cache. Velká JSON data jsou ukládána jako soubory na disk
- * (filesDir/offline_cache/), nikoli do SharedPreferences – čímž se zabrání
- * potenciálním ANR způsobeným synchronním načítáním velikých SharedPreferences souborů.
- * Malá metadata (časová razítka) zůstávají ve SharedPreferences.
+ * Spravuje offline cache pomocí Room databáze.
+ * Metadata (časová razítka) zůstávají ve SharedPreferences (jsou malá).
+ * Velká data jsou uložena v Room – Room garantuje přístup pouze z vláken IO
+ * a vyhazuje výjimku při volání z hlavního vlákna, čímž zcela eliminuje ANR riziko.
  */
-class OfflineDataManager(context: Context) {
+class OfflineDataManager(
+    context: Context,
+    private val categoryDao: CategoryDao,
+    private val postDao: PostDao,
+    private val questionPostDao: QuestionPostDao,
+    private val questionDao: QuestionDao,
+    private val eventDao: EventDao,
+    private val addendumDao: AddendumDao,
+    private val relatedPostDao: RelatedPostDao,
+    private val exerciseDao: ExerciseDao
+) {
 
     companion object {
         private const val META_PREFS = "offline_meta"
@@ -25,78 +45,69 @@ class OfflineDataManager(context: Context) {
         private const val KEY_LAST_UPDATE_FORMATTED = "last_update_formatted"
         private const val KEY_EVENTS_LAST_UPDATE = "events_last_update_timestamp"
 
-        private const val FILE_CATEGORIES = "categories.json"
-        private const val FILE_POSTS = "posts.json"
-        private const val FILE_QUESTIONS = "questions.json"
-        private const val FILE_QUESTIONS_POSTS = "questions_posts.json"
-        private const val FILE_RELATED_POSTS = "related_posts.json"
-        private const val FILE_EVENTS = "events.json"
-        private const val FILE_ADDENDUMS = "addendums.json"
-        private const val FILE_EXERCISES = "exercises.json"
-
         private val csTimeFormatter = DateTimeFormatter.ofPattern(
             "dd. MM. yyyy 'v' HH:mm", Locale.forLanguageTag("cs-CZ")
         )
     }
 
     private val appContext = context.applicationContext
-    private val cacheDir = File(appContext.filesDir, "offline_cache")
     private val metaPrefs: SharedPreferences =
         appContext.getSharedPreferences(META_PREFS, Context.MODE_PRIVATE)
-    private val gson = Gson()
 
     init {
-        cacheDir.mkdirs()
+        // Clean up legacy file cache from the previous file-based implementation.
+        val legacyCacheDir = File(appContext.filesDir, "offline_cache")
+        if (legacyCacheDir.exists()) {
+            legacyCacheDir.deleteRecursively()
+        }
     }
-
-    // ── Private helpers ────────────────────────────────────────────────────────
-
-    private fun writeJson(fileName: String, json: String) {
-        File(cacheDir, fileName).writeText(json)
-    }
-
-    private fun readJson(fileName: String): String? {
-        val file = File(cacheDir, fileName)
-        return if (file.exists()) file.readText() else null
-    }
-
-    private fun fileExists(fileName: String) = File(cacheDir, fileName).exists()
 
     // ── Zápis dat ─────────────────────────────────────────────────────────────
 
-    suspend fun saveCategoriesAndPosts(categories: List<Category>, posts: List<Post>) = withContext(Dispatchers.IO) {
-        val currentTime = System.currentTimeMillis()
-        val formattedTime = Instant.ofEpochMilli(currentTime)
-            .atZone(ZoneId.systemDefault()).format(csTimeFormatter)
+    suspend fun saveCategoriesAndPosts(categories: List<Category>, posts: List<Post>) =
+        withContext(Dispatchers.IO) {
+            categoryDao.deleteAll()
+            categoryDao.insertAll(categories.map { it.toEntity() })
+            postDao.deleteAll()
+            postDao.insertAll(posts.map { it.toEntity() })
+            // Záměrně NENASTAVUJEME KEY_LAST_UPDATE – ten nastavuje jen saveRemainingData
+            // po stažení kompletních dat. Jinak by isCacheFresh(15) blokoval Phase 2.
+        }
 
-        writeJson(FILE_CATEGORIES, gson.toJson(categories))
-        writeJson(FILE_POSTS, gson.toJson(posts))
-        metaPrefs.edit()
-            .putLong(KEY_LAST_UPDATE, currentTime)
-            .putString(KEY_LAST_UPDATE_FORMATTED, formattedTime)
-            .apply()
-    }
-
-    suspend fun saveCategoriesPostsAndQuestions(
+    /**
+     * Uloží zbývající data (otázky, related posts, addenda, cvičení) a nastaví timestamp.
+     * Kategorie a posty jsou už v DB z předchozí saveCategoriesAndPosts — nemazat je znovu.
+     */
+    suspend fun saveRemainingData(
         categories: List<Category>,
         posts: List<Post>,
         questions: List<Question>,
         questionsPosts: List<Post>,
-        relatedPosts: List<RelatedPost> = emptyList(),
-        addendums: List<Addendum> = emptyList(),
-        exercises: List<InteractiveExerciseResponse> = emptyList()
+        relatedPosts: List<RelatedPost>,
+        addendums: List<Addendum>,
+        exercises: List<InteractiveExerciseResponse>
     ) = withContext(Dispatchers.IO) {
         val currentTime = System.currentTimeMillis()
         val formattedTime = Instant.ofEpochMilli(currentTime)
             .atZone(ZoneId.systemDefault()).format(csTimeFormatter)
 
-        writeJson(FILE_CATEGORIES, gson.toJson(categories))
-        writeJson(FILE_POSTS, gson.toJson(posts))
-        writeJson(FILE_QUESTIONS, gson.toJson(questions))
-        writeJson(FILE_QUESTIONS_POSTS, gson.toJson(questionsPosts))
-        writeJson(FILE_RELATED_POSTS, gson.toJson(relatedPosts))
-        writeJson(FILE_ADDENDUMS, gson.toJson(addendums))
-        writeJson(FILE_EXERCISES, gson.toJson(exercises))
+        // Kategorie a posty znovu uložit (pro případ přímého volání z OfflineManagerScreen)
+        categoryDao.deleteAll()
+        categoryDao.insertAll(categories.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip category ${it.id}: ${e.message}"); null } })
+        postDao.deleteAll()
+        postDao.insertAll(posts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip post ${it.id}: ${e.message}"); null } })
+
+        questionPostDao.deleteAll()
+        questionPostDao.insertAll(questionsPosts.mapNotNull { runCatching { it.toQuestionPostEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip questionPost ${it.id}: ${e.message}"); null } })
+        questionDao.deleteAll()
+        questionDao.insertAll(questions.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip question ${it.id}: ${e.message}"); null } })
+        relatedPostDao.deleteAll()
+        relatedPostDao.insertAll(relatedPosts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip relatedPost ${it.id}: ${e.message}"); null } })
+        addendumDao.deleteAll()
+        addendumDao.insertAll(addendums.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip addendum ${it.id}: ${e.message}"); null } })
+        exerciseDao.deleteAll()
+        exerciseDao.insertAll(exercises.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip exercise ${it.id}: ${e.message}"); null } })
+
         metaPrefs.edit()
             .putLong(KEY_LAST_UPDATE, currentTime)
             .putString(KEY_LAST_UPDATE_FORMATTED, formattedTime)
@@ -105,7 +116,8 @@ class OfflineDataManager(context: Context) {
 
     suspend fun saveEvents(events: List<Event>) = withContext(Dispatchers.IO) {
         try {
-            writeJson(FILE_EVENTS, gson.toJson(events))
+            eventDao.deleteRemoteEvents()
+            eventDao.insertAll(events.map { it.toEntity() })
             metaPrefs.edit().putLong(KEY_EVENTS_LAST_UPDATE, System.currentTimeMillis()).apply()
         } catch (e: Exception) {
             android.util.Log.e("OfflineDataManager", "Error saving events", e)
@@ -114,97 +126,162 @@ class OfflineDataManager(context: Context) {
 
     suspend fun saveAddendums(addendums: List<Addendum>) = withContext(Dispatchers.IO) {
         try {
-            writeJson(FILE_ADDENDUMS, gson.toJson(addendums))
+            addendumDao.deleteAll()
+            addendumDao.insertAll(addendums.map { it.toEntity() })
         } catch (e: Exception) {
             android.util.Log.e("OfflineDataManager", "Error saving addendums", e)
-        }
-    }
-
-    suspend fun saveExercises(exercises: List<InteractiveExerciseResponse>) = withContext(Dispatchers.IO) {
-        try {
-            writeJson(FILE_EXERCISES, gson.toJson(exercises))
-        } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error saving exercises", e)
         }
     }
 
     // ── Čtení dat ─────────────────────────────────────────────────────────────
 
     suspend fun getCachedCategories(): List<Category>? = withContext(Dispatchers.IO) {
-        val json = readJson(FILE_CATEGORIES) ?: return@withContext null
-        try { gson.fromJson(json, Array<Category>::class.java)?.toList() }
-        catch (e: Exception) { android.util.Log.e("OfflineDataManager", "Error loading categories", e); null }
+        try {
+            val entities = categoryDao.getAll()
+            if (entities.isEmpty()) null else entities.map { it.toDomain() }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading categories", e)
+            null
+        }
     }
 
     suspend fun getCachedPosts(): List<Post>? = withContext(Dispatchers.IO) {
-        val json = readJson(FILE_POSTS) ?: return@withContext null
-        try { gson.fromJson(json, Array<Post>::class.java)?.toList() }
-        catch (e: Exception) { android.util.Log.e("OfflineDataManager", "Error loading posts", e); null }
+        try {
+            val entities = postDao.getAll()
+            if (entities.isEmpty()) null else entities.map { it.toDomain() }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading posts", e)
+            null
+        }
     }
 
-    suspend fun getCachedPostsByCategory(categoryId: Int): List<Post>? = withContext(Dispatchers.IO) {
-        getCachedPosts()?.filter { it.categoryId == categoryId }
-    }
+    suspend fun getCachedPostsByCategory(categoryId: Int): List<Post>? =
+        withContext(Dispatchers.IO) {
+            try {
+                val entities = postDao.getByCategory(categoryId)
+                if (entities.isEmpty()) null else entities.map { it.toDomain() }
+            } catch (e: Exception) {
+                android.util.Log.e("OfflineDataManager", "Error loading posts by category", e)
+                null
+            }
+        }
 
     suspend fun getCachedPost(postId: Int): Post? = withContext(Dispatchers.IO) {
-        getCachedPosts()?.find { it.id == postId }
+        try {
+            postDao.getById(postId)?.toDomain()
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading post", e)
+            null
+        }
     }
 
     suspend fun getCachedQuestions(): List<Question>? = withContext(Dispatchers.IO) {
-        val json = readJson(FILE_QUESTIONS) ?: return@withContext null
-        try { gson.fromJson(json, Array<Question>::class.java)?.toList() }
-        catch (e: Exception) { android.util.Log.e("OfflineDataManager", "Error loading questions", e); null }
+        try {
+            val entities = questionDao.getAll()
+            if (entities.isEmpty()) null else entities.map { it.toDomain() }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading questions", e)
+            null
+        }
     }
 
-    suspend fun getCachedQuestionsByPostId(postId: Int): List<Question>? = withContext(Dispatchers.IO) {
-        getCachedQuestions()?.filter { it.postId == postId }
-    }
+    suspend fun getCachedQuestionsByPostId(postId: Int): List<Question>? =
+        withContext(Dispatchers.IO) {
+            try {
+                val entities = questionDao.getByPostId(postId)
+                if (entities.isEmpty()) null else entities.map { it.toDomain() }
+            } catch (e: Exception) {
+                android.util.Log.e("OfflineDataManager", "Error loading questions by post", e)
+                null
+            }
+        }
 
     suspend fun getCachedQuestionsPosts(): List<Post>? = withContext(Dispatchers.IO) {
-        val json = readJson(FILE_QUESTIONS_POSTS) ?: return@withContext null
-        try { gson.fromJson(json, Array<Post>::class.java)?.toList() }
-        catch (e: Exception) { android.util.Log.e("OfflineDataManager", "Error loading questions posts", e); null }
+        try {
+            val entities = questionPostDao.getAll()
+            if (entities.isEmpty()) null else entities.map { it.toDomain() }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading questions posts", e)
+            null
+        }
     }
 
     suspend fun getCachedRelatedPosts(): List<RelatedPost>? = withContext(Dispatchers.IO) {
-        val json = readJson(FILE_RELATED_POSTS) ?: return@withContext null
-        try { gson.fromJson(json, Array<RelatedPost>::class.java)?.toList() }
-        catch (e: Exception) { android.util.Log.e("OfflineDataManager", "Error loading related posts", e); null }
+        try {
+            val entities = relatedPostDao.getAll()
+            if (entities.isEmpty()) null else entities.map { it.toDomain() }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading related posts", e)
+            null
+        }
     }
 
-    suspend fun getCachedRelatedPostsByPostId(postId: Int): List<RelatedPost>? = withContext(Dispatchers.IO) {
-        getCachedRelatedPosts()?.filter { it.postId == postId }
-    }
+    suspend fun getCachedRelatedPostsByPostId(postId: Int): List<RelatedPost>? =
+        withContext(Dispatchers.IO) {
+            try {
+                val entities = relatedPostDao.getByPostId(postId)
+                if (entities.isEmpty()) null else entities.map { it.toDomain() }
+            } catch (e: Exception) {
+                android.util.Log.e("OfflineDataManager", "Error loading related posts by post", e)
+                null
+            }
+        }
 
     suspend fun getCachedEvents(): List<Event>? = withContext(Dispatchers.IO) {
-        val json = readJson(FILE_EVENTS) ?: return@withContext null
-        try { gson.fromJson(json, Array<Event>::class.java)?.toList() }
-        catch (e: Exception) { android.util.Log.e("OfflineDataManager", "Error loading events", e); null }
+        try {
+            val entities = eventDao.getAll()
+            if (entities.isEmpty()) null else entities.map { it.toDomain() }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading events", e)
+            null
+        }
     }
 
     suspend fun getCachedAddendums(): List<Addendum>? = withContext(Dispatchers.IO) {
-        val json = readJson(FILE_ADDENDUMS) ?: return@withContext null
-        try { gson.fromJson(json, Array<Addendum>::class.java)?.toList() }
-        catch (e: Exception) { android.util.Log.e("OfflineDataManager", "Error loading addendums", e); null }
+        try {
+            val entities = addendumDao.getAll()
+            if (entities.isEmpty()) null else entities.map { it.toDomain() }
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading addendums", e)
+            null
+        }
     }
 
     suspend fun getCachedAddendum(addendumId: Int): Addendum? = withContext(Dispatchers.IO) {
-        getCachedAddendums()?.find { it.id == addendumId }
+        try {
+            addendumDao.getById(addendumId)?.toDomain()
+        } catch (e: Exception) {
+            android.util.Log.e("OfflineDataManager", "Error loading addendum", e)
+            null
+        }
     }
 
-    suspend fun getCachedExercises(): List<InteractiveExerciseResponse>? = withContext(Dispatchers.IO) {
-        val json = readJson(FILE_EXERCISES) ?: return@withContext null
-        try { gson.fromJson(json, Array<InteractiveExerciseResponse>::class.java)?.toList() }
-        catch (e: Exception) { android.util.Log.e("OfflineDataManager", "Error loading exercises", e); null }
-    }
+    suspend fun getCachedExercises(): List<InteractiveExerciseResponse>? =
+        withContext(Dispatchers.IO) {
+            try {
+                val entities = exerciseDao.getAll()
+                if (entities.isEmpty()) null else entities.map { it.toDomain() }
+            } catch (e: Exception) {
+                android.util.Log.e("OfflineDataManager", "Error loading exercises", e)
+                null
+            }
+        }
 
-    suspend fun getCachedExercisesByPostId(postId: Int): List<InteractiveExerciseResponse>? = withContext(Dispatchers.IO) {
-        getCachedExercises()?.filter { it.postIds?.contains(postId) == true }
-    }
+    suspend fun getCachedExercisesByPostId(postId: Int): List<InteractiveExerciseResponse>? =
+        withContext(Dispatchers.IO) {
+            // postIds is stored as JSON string; filter in-memory after loading all exercises.
+            getCachedExercises()?.filter { it.postIds?.contains(postId) == true }
+        }
 
-    suspend fun getCachedExercise(exerciseId: Int): InteractiveExerciseResponse? = withContext(Dispatchers.IO) {
-        getCachedExercises()?.find { it.id == exerciseId }
-    }
+    suspend fun getCachedExercise(exerciseId: Int): InteractiveExerciseResponse? =
+        withContext(Dispatchers.IO) {
+            try {
+                exerciseDao.getById(exerciseId)?.toDomain()
+            } catch (e: Exception) {
+                android.util.Log.e("OfflineDataManager", "Error loading exercise", e)
+                null
+            }
+        }
 
     // ── Metadata ──────────────────────────────────────────────────────────────
 
@@ -226,9 +303,9 @@ class OfflineDataManager(context: Context) {
         return (System.currentTimeMillis() - ts) <= minutes * 60 * 1000L
     }
 
-    fun hasCachedData(): Boolean = fileExists(FILE_CATEGORIES) && fileExists(FILE_POSTS)
+    fun hasCachedData(): Boolean = getLastUpdateTimestamp() != null
 
-    fun hasCachedQuestions(): Boolean = fileExists(FILE_QUESTIONS) && fileExists(FILE_QUESTIONS_POSTS)
+    fun hasCachedQuestions(): Boolean = getLastUpdateTimestamp() != null
 }
 
 

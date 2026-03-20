@@ -178,7 +178,7 @@ fun PlainTextScreen(
                     // TTS button
                     if (ttsManager != null && postDetail?.content != null) {
                         IconButton(onClick = {
-                            val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content)
+                            val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content ?: "")
                             if (plainText.isNotEmpty()) {
                                 vm.speakText(plainText)
                             }

@@ -2,6 +2,14 @@ package com.tobiso.tobisoappnative.di
 
 import android.app.Application
 import android.content.Context
+import com.tobiso.tobisoappnative.db.dao.AddendumDao
+import com.tobiso.tobisoappnative.db.dao.CategoryDao
+import com.tobiso.tobisoappnative.db.dao.EventDao
+import com.tobiso.tobisoappnative.db.dao.ExerciseDao
+import com.tobiso.tobisoappnative.db.dao.PostDao
+import com.tobiso.tobisoappnative.db.dao.QuestionDao
+import com.tobiso.tobisoappnative.db.dao.QuestionPostDao
+import com.tobiso.tobisoappnative.db.dao.RelatedPostDao
 import com.tobiso.tobisoappnative.domain.usecase.GetAllQuestionsUseCase
 import com.tobiso.tobisoappnative.domain.usecase.GetExerciseUseCase
 import com.tobiso.tobisoappnative.domain.usecase.ValidateExerciseUseCase
@@ -29,8 +37,20 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOfflineDataManager(@ApplicationContext context: Context): OfflineDataManager =
-        OfflineDataManager(context)
+    fun provideOfflineDataManager(
+        @ApplicationContext context: Context,
+        categoryDao: CategoryDao,
+        postDao: PostDao,
+        questionPostDao: QuestionPostDao,
+        questionDao: QuestionDao,
+        eventDao: EventDao,
+        addendumDao: AddendumDao,
+        relatedPostDao: RelatedPostDao,
+        exerciseDao: ExerciseDao
+    ): OfflineDataManager = OfflineDataManager(
+        context, categoryDao, postDao, questionPostDao,
+        questionDao, eventDao, addendumDao, relatedPostDao, exerciseDao
+    )
 
     @Provides
     @Singleton

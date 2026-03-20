@@ -308,9 +308,9 @@ Produkční aplikace `com.tobiso.tobisoapp` (viz `applicationId`) stále použí
 
 ## 5. Výkon a plynulost
 
-### 5.1 Polling připojení každé 2 sekundy ❌
+### ~~5.1 Polling připojení každé 2 sekundy~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 // MainActivity.kt - MyApp()
 LaunchedEffect(context) {
     while (true) {
@@ -318,31 +318,31 @@ LaunchedEffect(context) {
         delay(2000)
     }
 }
-```
+```~~
 
-Každé 2 sekundy se volí systémová služba `ConnectivityManager`. Přitom `NetworkUtils.observeConnectivityAsFlow()` (správný reaktivní přístup) je **již implementován** v projektu, ale vůbec se nepoužívá. Polling spotřebovává CPU a baterii zbytečně.
+~~Každé 2 sekundy se volí systémová služba `ConnectivityManager`. Přitom `NetworkUtils.observeConnectivityAsFlow()` (správný reaktivní přístup) je **již implementován** v projektu, ale vůbec se nepoužívá. Polling spotřebovává CPU a baterii zbytečně.~~
 
-**Oprava:**
-```kotlin
-val isConnected by NetworkUtils.observeConnectivityAsFlow(context)
-    .collectAsState(initial = NetworkUtils.isOnline(context))
-```
+**Opraveno:** Polling `LaunchedEffect` odstraněn. `isConnected` je nyní `State<Boolean>` napájený přímo z `NetworkUtils.observeConnectivityAsFlow(context).collectAsState(initial = NetworkUtils.isOnline(context))`. Connectivity manager reaguje na změny sítě okamžitě přes `NetworkCallback` – žádné zbytečné CPU/baterie.
 
-### 5.2 O(n) API volání při stahování offline dat ❌
+### ~~5.2 O(n) API volání při stahování offline dat~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 // MainViewModel.kt
 postsArray.forEach { post ->
     val exercisesForPost = ApiClient.apiService.getExercisesByPostId(post.id)
     allExercises.addAll(exercisesForPost)
 }
-```
+```~~
 
-Pro každý post se volá samostatně API `/InteractiveExercises/post/{id}`. Pokud existuje 100 článků, je to 100 HTTP volání sekvenčně. **Backend by měl mít endpoint pro bulk fetch** nebo by se volání měla paralelizovat přes `async/await`.
+~~Pro každý post se volá samostatně API `/InteractiveExercises/post/{id}`. Pokud existuje 100 článků, je to 100 HTTP volání sekvenčně. **Backend by měl mít endpoint pro bulk fetch** nebo by se volání měla paralelizovat přes `async/await`.~~
 
-### 5.3 `OfflineDataManager` – potenciální ANR ⚠️
+**Opraveno:** Sekvenční `forEach` smyčka v `OfflineRepositoryImpl.downloadAllData()` nahrazena paralelním `coroutineScope { map { async { ... } }.awaitAll().flatten() }`. Všechna volání `getExercisesByPostId()` se nyní spouštějí souběžně – při 100 postech klesne čekání z ~100× latence na ~1× latenci (čas nejpomalejšího požadavku). Chyba při stahování jednoho postu je izolována (vrátí `emptyList()`) a nebrzdí ostatní.
 
-Metody jako `getCachedCategories()`, `getCachedPosts()` čtou `SharedPreferences` a deserializují JSON. Pokud by byly volány na hlavním vlákně (byť ViewModely používají `Dispatchers.IO`), způsobí ANR. Použití Room by tento problém eliminovalo.
+### ~~5.3 `OfflineDataManager` – potenciální ANR~~ ✅ OPRAVENO
+
+~~Metody jako `getCachedCategories()`, `getCachedPosts()` čtou `SharedPreferences` a deserializují JSON. Pokud by byly volány na hlavním vlákně (byť ViewModely používají `Dispatchers.IO`), způsobí ANR. Použití Room by tento problém eliminovalo.~~
+
+**Opraveno:** `OfflineDataManager` migrován na Room databázi (`tobiso_offline.db`). Vytvořeny entity pro všechny 8 datových typů (`CategoryEntity`, `PostEntity`, `QuestionPostEntity`, `QuestionEntity`, `EventEntity`, `AddendumEntity`, `RelatedPostEntity`, `ExerciseEntity`), příslušná DAO rozhraní a `AppDatabase`. Room je registrován v `DatabaseModule` jako Hilt singleton; DAO závislosti jsou injektovány do `OfflineDataManager` přes `AppModule`. Room garantuje přístup k DB výhradně z vláken IO – volání z hlavního vlákna vyhodí výjimku a tím zcela eliminuje ANR riziko. Staré soubory JSON z `filesDir/offline_cache/` jsou automaticky smazány při prvním startu nové verze. Jako bonus přinesla migrace SQL indexy na sloupce `categoryId` a `postId`, takže dotazy jako `getCachedPostsByCategory()` či `getCachedQuestionsByPostId()` již neprocházejí celou tabulku v paměti.
 
 ### 5.4 `material-icons-extended` jako plná závislost ⚠️
 

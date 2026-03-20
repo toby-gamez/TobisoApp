@@ -7,16 +7,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.viewmodel.offlinemanager.OfflineManagerViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,68 +19,29 @@ fun OfflineManagerScreen(
     navController: NavController
 ) {
     val vm: OfflineManagerViewModel = hiltViewModel()
-    val context = LocalContext.current
     val isOfflineMode by vm.isOffline.collectAsState()
-
-    var categoriesCount by remember { mutableStateOf<Int?>(null) }
-    var postsCount by remember { mutableStateOf<Int?>(null) }
-    var questionsCount by remember { mutableStateOf<Int?>(null) }
-    var questionsPostsCount by remember { mutableStateOf<Int?>(null) }
-    var relatedPostsCount by remember { mutableStateOf<Int?>(null) }
-    var addendumsCount by remember { mutableStateOf<Int?>(null) }
-    var exercisesCount by remember { mutableStateOf<Int?>(null) }
-    var lastUpdateFormatted by remember { mutableStateOf<String?>(null) }
-    var lastUpdateTimestamp by remember { mutableStateOf<Long?>(null) }
-    var cacheFresh15 by remember { mutableStateOf<Boolean?>(null) }
-    val offlineManager = OfflineDataManager(context)
+    val cacheInfo by vm.cacheInfo.collectAsState()
     val toastMessage by vm.toastMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val offlineDownloading by vm.offlineDownloading.collectAsState()
     val offlineProgress by vm.offlineDownloadProgress.collectAsState()
+    // Guard to skip the initial composition where offlineDownloading is already false
+    var downloadEverStarted by remember { mutableStateOf(false) }
 
-    suspend fun loadCacheInfo() {
-        withContext(Dispatchers.IO) {
-            try {
-                val cats = offlineManager.getCachedCategories()
-                val posts = offlineManager.getCachedPosts()
-                val questions = offlineManager.getCachedQuestions()
-                val qposts = offlineManager.getCachedQuestionsPosts()
-                val relatedPosts = offlineManager.getCachedRelatedPosts()
-                val addendums = offlineManager.getCachedAddendums()
-                val exercises = offlineManager.getCachedExercises()
-                val last = offlineManager.getLastUpdateFormatted()
-                val lastTs = offlineManager.getLastUpdateTimestamp()
-                val fresh = offlineManager.isCacheFresh(15)
-
-                categoriesCount = cats?.size
-                postsCount = posts?.size
-                questionsCount = questions?.size
-                questionsPostsCount = qposts?.size
-                relatedPostsCount = relatedPosts?.size
-                addendumsCount = addendums?.size
-                exercisesCount = exercises?.size
-                lastUpdateFormatted = last
-                lastUpdateTimestamp = lastTs
-                cacheFresh15 = fresh
-            } catch (e: Exception) {
-                categoriesCount = null
-                postsCount = null
-                questionsCount = null
-                questionsPostsCount = null
-                relatedPostsCount = null
-                addendumsCount = null
-                exercisesCount = null
-                lastUpdateFormatted = null
-                cacheFresh15 = null
-            }
-        }
-    }
+    val categoriesCount = cacheInfo.categoriesCount
+    val postsCount = cacheInfo.postsCount
+    val questionsCount = cacheInfo.questionsCount
+    val questionsPostsCount = cacheInfo.questionsPostsCount
+    val relatedPostsCount = cacheInfo.relatedPostsCount
+    val addendumsCount = cacheInfo.addendumsCount
+    val exercisesCount = cacheInfo.exercisesCount
+    val lastUpdateFormatted = cacheInfo.lastUpdateFormatted
+    val lastUpdateTimestamp = cacheInfo.lastUpdateTimestamp
+    val cacheFresh15 = cacheInfo.cacheFresh15
 
     LaunchedEffect(Unit) {
-        loadCacheInfo()
+        vm.loadCacheInfo()
     }
-
-    val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -232,13 +187,13 @@ fun OfflineManagerScreen(
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         Button(onClick = {
-                            // refresh view of cache info
-                            coroutineScope.launch { loadCacheInfo() }
+                            vm.loadCacheInfo()
                         }) {
                             Text("Obnovit")
                         }
 
                         Button(onClick = {
+                            downloadEverStarted = true
                             vm.downloadAllOfflineData()
                         }) {
                             Text("Stáhnout offline data")
@@ -258,13 +213,12 @@ fun OfflineManagerScreen(
             }
         }
 
-        // When background offline download finishes, refresh cached info here and show feedback
+        // When download finishes, reload cache info
+        // downloadEverStarted guard prevents this from firing on initial composition
         LaunchedEffect(offlineDownloading) {
-            if (!offlineDownloading) {
-                // reload cache info to refresh timestamps/counts
-                coroutineScope.launch { loadCacheInfo() }
-                // if viewModel didn't emit a toast, show local snackbar
-                // (check current toastMessage after a small delay to allow VM to set it)
+            if (!offlineDownloading && downloadEverStarted) {
+                vm.loadCacheInfo()
+                // if viewModel didn't emit a toast (e.g. background download), show feedback
                 kotlinx.coroutines.delay(300)
                 if (vm.toastMessage.value == null) {
                     snackbarHostState.showSnackbar("Offline obsah byl aktualizován")

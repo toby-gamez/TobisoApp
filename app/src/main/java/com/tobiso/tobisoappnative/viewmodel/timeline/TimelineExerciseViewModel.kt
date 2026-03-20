@@ -42,15 +42,15 @@ class TimelineExerciseViewModel @Inject constructor(
                 .onSuccess { exercise ->
                     val config = runCatching {
                         val raw = exercise.configJson
-                        if (raw.isBlank() || raw == "null") null
-                        else json.decodeFromString<TimelineConfig>(raw)
+                        if (raw.isNullOrBlank() || raw == "null") null
+                        else json.decodeFromString<TimelineConfig>(raw!!)
                     }.getOrNull()
                     val slotYears = config?.events?.mapNotNull { it.year }?.sorted() ?: emptyList()
                     setState {
                         copy(
                             isLoading = false,
                             isOffline = isOffline,
-                            exerciseTitle = exercise.title,
+                            exerciseTitle = exercise.title ?: "",
                             instructionsMarkdown = exercise.instructionsMarkdown,
                             config = config,
                             orderedEvents = emptyList(),

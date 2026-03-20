@@ -64,7 +64,8 @@ import com.tobiso.tobisoappnative.components.FloatingSearchBar
 @Composable
 fun TobisoApp(navigateTo: String? = null) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val isConnected = remember { mutableStateOf(NetworkUtils.isOnline(context)) }
+    val isConnected by NetworkUtils.observeConnectivityAsFlow(context)
+        .collectAsState(initial = NetworkUtils.isOnline(context))
     val mainViewModel: MainViewModel = hiltViewModel()
     val ttsViewModel: TtsViewModel = hiltViewModel()
     val mainState by mainViewModel.uiState.collectAsState()
@@ -84,33 +85,10 @@ fun TobisoApp(navigateTo: String? = null) {
     var achievementPoints by remember { mutableStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
 
-    // periodická kontrola připojení
-    LaunchedEffect(context) {
-        while (true) {
-            isConnected.value = NetworkUtils.isOnline(context)
-            delay(2000)
-        }
-    }
-
     // callback pro ruční obnovu
     val onRetry = {
-        isConnected.value = NetworkUtils.isOnline(context)
-        if (isConnected.value) {
+        if (NetworkUtils.isOnline(context)) {
             mainViewModel.onIntent(MainIntent.ResetNoInternetDismiss)
-        }
-    }
-
-    // timeout stav
-    val loadingTimeout = remember { mutableStateOf(false) }
-    LaunchedEffect(isConnected.value) {
-        if (isConnected.value) {
-            loadingTimeout.value = false
-        } else {
-            loadingTimeout.value = false
-            delay(30000)
-            if (!isConnected.value && categories.isEmpty() && categoryError == null) {
-                loadingTimeout.value = true
-            }
         }
     }
 
@@ -213,7 +191,7 @@ fun TobisoApp(navigateTo: String? = null) {
         Surface(color = MaterialTheme.colorScheme.surface) {
             Box(modifier = Modifier.fillMaxSize()) {
                 val searchRequestFocus = remember { mutableStateOf(false) }
-                if (!isConnected.value && !hasUserDismissedNoInternet) {
+                if (!isConnected && !hasUserDismissedNoInternet) {
                     NoInternetScreen(
                         onRetry = onRetry,
                         onOfflineMode = {
@@ -221,8 +199,6 @@ fun TobisoApp(navigateTo: String? = null) {
                             mainViewModel.onIntent(MainIntent.ConfirmOfflineModeTransition)
                         }
                     )
-                } else if (categories.isEmpty() && categoryError == null && !isOffline) {
-                    AppLoadingToast(timeout = loadingTimeout.value)
                 } else {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -642,7 +618,7 @@ fun TobisoApp(navigateTo: String? = null) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = if (bottomBarVisible) 100.dp else 16.dp),
-                            isOffline = !isConnected.value,
+                            isOffline = !isConnected,
                             onAiSend = { post, message ->
                                 navController.navigate(
                                     "aiChat/${post.id}/${android.net.Uri.encode(post.title)}/${android.net.Uri.encode(message)}"

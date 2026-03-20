@@ -43,8 +43,8 @@ class DragDropExerciseViewModel @Inject constructor(
                 .onSuccess { exercise ->
                     val config = runCatching {
                         val raw = exercise.configJson
-                        if (raw.isBlank() || raw == "null") null
-                        else json.decodeFromString<DragDropConfig>(raw)
+                        if (raw.isNullOrBlank() || raw == "null") null
+                        else json.decodeFromString<DragDropConfig>(raw!!)
                     }.getOrNull()?.let { c ->
                         c.copy(items = c.items.shuffled())
                     }
@@ -52,7 +52,7 @@ class DragDropExerciseViewModel @Inject constructor(
                         copy(
                             isLoading = false,
                             isOffline = isOffline,
-                            exerciseTitle = exercise.title,
+                            exerciseTitle = exercise.title ?: "",
                             instructionsMarkdown = exercise.instructionsMarkdown,
                             config = config,
                             placements = emptyMap(),

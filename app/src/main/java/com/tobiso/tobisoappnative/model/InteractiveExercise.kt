@@ -8,9 +8,9 @@ import kotlinx.serialization.json.JsonNames
 @Serializable
 data class InteractiveExerciseResponse(
     @SerialName("id") val id: Int,
-    @SerialName("title") val title: String,
-    @SerialName("type") val type: String, // "circuit", "timeline", "drag-drop", "matching"
-    @SerialName("configJson") val configJson: String,
+    @SerialName("title") val title: String?,
+    @SerialName("type") val type: String?,
+    @SerialName("configJson") val configJson: String?,
     @SerialName("instructionsMarkdown") val instructionsMarkdown: String?,
     @SerialName("postIds") val postIds: List<Int>? = null,
     @SerialName("categoryIds") val categoryIds: List<Int>? = null,

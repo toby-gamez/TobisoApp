@@ -725,7 +725,7 @@ fun PostDetailScreen(
                         // TTS BUTTON - nejlevější tlačítko
                         if (ttsManager != null && postDetail?.content != null) {
                             IconButton(onClick = {
-                                val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content)
+                                val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content ?: "")
                                 if (plainText.isNotEmpty()) {
                                     vm.getTtsManager().speak(plainText)
                                 }
@@ -1107,7 +1107,7 @@ fun PostDetailScreen(
                                                         },
                                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                                                     ) {
-                                                        val exLabel = ex.title.takeIf { it.isNotBlank() } ?: exerciseLabel(ex.type)
+                                                        val exLabel = ex.title?.takeIf { it.isNotBlank() } ?: exerciseLabel(ex.type ?: "")
                                                         Text(exLabel)
                                                     }
                                                 }
@@ -1171,7 +1171,7 @@ fun PostDetailScreen(
                                                     )
                                                     Spacer(modifier = Modifier.height(4.dp))
                                                     Text(
-                                                        text = relatedPost.text,
+                                                        text = relatedPost.text ?: "",
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )

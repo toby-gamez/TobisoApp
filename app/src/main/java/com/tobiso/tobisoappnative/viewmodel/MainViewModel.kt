@@ -50,14 +50,20 @@ class MainViewModel @Inject constructor(
 
     private fun loadCategories() {
         viewModelScope.launch(Dispatchers.IO) {
-            setState { copy(categoryLoading = true) }
             val isOnline = NetworkUtils.isOnline(getApplication())
 
+            // If cache is fresh AND data actually exists in DB, load from cache and skip download.
+            // Note: after a Room schema migration, the DB is wiped but SharedPreferences timestamp
+            // remains – so we must verify data is actually present before skipping the download.
             try {
                 if (offlineDataManager.isCacheFresh(15)) {
-                    loadOfflineData()
-                    setState { copy(categoryLoading = false) }
-                    return@launch
+                    val cachedCategories = offlineDataManager.getCachedCategories()
+                    if (cachedCategories != null) {
+                        loadOfflineData(isOnline)
+                        return@launch
+                    }
+                    // Timestamp is fresh but DB is empty (schema migration wiped it) → re-download
+                    android.util.Log.w("MainViewModel", "Cache timestamp fresh but DB empty – forcing re-download")
                 }
             } catch (e: Exception) {
                 android.util.Log.w("MainViewModel", "Error checking cache freshness: ${e.message}")
@@ -65,19 +71,26 @@ class MainViewModel @Inject constructor(
 
             if (isOnline) {
                 try {
-                    // Download everything (categories, posts, questions, related posts,
-                    // addendums, exercises) so offline mode has complete data.
-                    val success = offlineRepo.downloadAllData(onProgress = {})
-                    if (success) {
-                        val categories = offlineDataManager.getCachedCategories() ?: emptyList()
-                        val posts = offlineDataManager.getCachedPosts() ?: emptyList()
+                    // Phase 1: Download categories + posts → update state immediately so the UI
+                    // becomes interactive right away without any full-screen loading block.
+                    val base = offlineRepo.downloadCategoriesAndPosts()
+                    if (base != null) {
+                        val (categories, posts) = base
                         setState { copy(categories = categories, posts = posts, categoryError = null, isOffline = false) }
-                        if (isFirstLoad) {
-                            emitEffect(MainEffect.ShowToast("Offline obsah byl aktualizován"))
-                            isFirstLoad = false
+
+                        // Phase 2: Download the rest (questions, exercises, etc.) silently in the
+                        // background. Data from Phase 1 is passed directly — no DB re-read needed.
+                        launch {
+                            try {
+                                offlineRepo.downloadRemainingData(categories, posts)
+                            } catch (e: Exception) {
+                                // downloadRemainingData never throws, but defensively catch anyway
+                                android.util.Log.e("MainViewModel", "Phase 2 background failed: ${e.message}", e)
+                            }
+                            if (isFirstLoad) isFirstLoad = false
                         }
                     } else {
-                        loadOfflineData()
+                        loadOfflineData(isOnline)
                     }
                 } catch (e: Exception) {
                     val stillOnline = NetworkUtils.isOnline(getApplication())
@@ -85,24 +98,25 @@ class MainViewModel @Inject constructor(
                         setState { copy(categoryError = "Chyba serveru: ${e.message}", isOffline = false) }
                         emitEffect(MainEffect.ShowToast("Problém s připojením k serveru. Zkuste to později."))
                     } else {
-                        loadOfflineData()
+                        loadOfflineData(isOnline = false)
                     }
                 }
             } else {
-                loadOfflineData()
+                loadOfflineData(isOnline = false)
             }
-            setState { copy(categoryLoading = false) }
         }
     }
 
-    private suspend fun loadOfflineData() {
+    private suspend fun loadOfflineData(isOnline: Boolean = false) {
         val cachedCategories = offlineDataManager.getCachedCategories()
         val cachedPosts = offlineDataManager.getCachedPosts()
         if (cachedCategories != null && cachedPosts != null) {
-            setState { copy(categories = cachedCategories, posts = cachedPosts, categoryError = null, isOffline = true) }
+            setState { copy(categories = cachedCategories, posts = cachedPosts, categoryError = null, isOffline = !isOnline) }
         } else {
-            setState { copy(categories = emptyList(), posts = emptyList(), categoryError = "Žádná offline data k dispozici", isOffline = true) }
-            emitEffect(MainEffect.ShowToast("Žádná offline data. Připojte se k internetu."))
+            setState { copy(categories = emptyList(), posts = emptyList(), categoryError = "Žádná offline data k dispozici", isOffline = !isOnline) }
+            if (!isOnline) {
+                emitEffect(MainEffect.ShowToast("Žádná offline data. Připojte se k internetu."))
+            }
         }
     }
 }

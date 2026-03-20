@@ -128,7 +128,7 @@ fun FloatingSearchBar(
             val hasValidCategory = it.categoryId != null && it.categoryId != 42
             hasValidCategory && (
                 normalizeText(it.title).contains(normQuery) ||
-                (!aiMode && normalizeText(it.content).contains(normQuery))
+                (!aiMode && normalizeText(it.content ?: "").contains(normQuery))
             )
         }
     }
@@ -240,7 +240,7 @@ fun FloatingSearchBar(
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            post.content.take(80) + "...",
+                                            (post.content ?: "").take(80) + "...",
                                             style = MaterialTheme.typography.bodySmall,
                                             maxLines = 2
                                         )
