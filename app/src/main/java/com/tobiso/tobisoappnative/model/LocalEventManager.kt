@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.model
+import timber.log.Timber
 
 import android.content.Context
 import com.google.gson.Gson
@@ -47,7 +48,7 @@ object LocalEventManager {
                 event.copy(isLocal = true)
             }
         } catch (e: Exception) {
-            android.util.Log.e("LocalEventManager", "Error loading local events", e)
+            Timber.e(e, "Error loading local events")
             return@withContext emptyList()
         }
     }
@@ -58,7 +59,7 @@ object LocalEventManager {
             val json = gson.toJson(events)
             file.writeText(json)
         } catch (e: Exception) {
-            android.util.Log.e("LocalEventManager", "Error saving local events", e)
+            Timber.e(e, "Error saving local events")
             throw e
         }
     }
@@ -89,21 +90,21 @@ object LocalEventManager {
     }
     
     suspend fun deleteLocalEvent(context: Context, eventId: Int): Boolean {
-        android.util.Log.d("LocalEventManager", "Deleting event with ID: $eventId")
+        Timber.d("Deleting event with ID: $eventId")
         val events = loadLocalEvents(context).toMutableList()
-        android.util.Log.d("LocalEventManager", "Loaded ${events.size} events, looking for ID $eventId")
+        Timber.d("Loaded ${events.size} events, looking for ID $eventId")
         
         // Debug: vypíš všechna ID
         events.forEach { event ->
-            android.util.Log.d("LocalEventManager", "Found event ID: ${event.id}, title: ${event.getTitleSafe()}")
+            Timber.d("Found event ID: ${event.id}, title: ${event.getTitleSafe()}")
         }
         
         val removed = events.removeAll { it.id == eventId }
-        android.util.Log.d("LocalEventManager", "Removal result: $removed, events after removal: ${events.size}")
+        Timber.d("Removal result: $removed, events after removal: ${events.size}")
         
         if (removed) {
             saveLocalEvents(context, events)
-            android.util.Log.d("LocalEventManager", "Events saved successfully")
+            Timber.d("Events saved successfully")
         }
         
         return removed

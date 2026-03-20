@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative
+import timber.log.Timber
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -123,10 +124,10 @@ fun TobisoApp(navigateTo: String? = null) {
     // LaunchedEffect pro milník overlay (priorita)
     LaunchedEffect(lastMilestone) {
         if (lastMilestone != null) {
-            println("=== MILESTONE OVERLAY DEBUG ===")
-            println("Milestone detected: $lastMilestone days")
-            println("Points to show: $lastAddedPoints")
-            println("Total points: $totalPoints")
+            Timber.d("=== MILESTONE OVERLAY DEBUG ===")
+            Timber.d("Milestone detected: $lastMilestone days")
+            Timber.d("Points to show: $lastAddedPoints")
+            Timber.d("Total points: $totalPoints")
 
             overlayPoints = lastAddedPoints
             milestoneDay = lastMilestone!!
@@ -135,18 +136,18 @@ fun TobisoApp(navigateTo: String? = null) {
             showMilestoneOverlay = false
             PointsManager.resetLastAddedPoints()
 
-            println("Milestone overlay finished and reset")
-            println("=== END MILESTONE OVERLAY DEBUG ===")
+            Timber.d("Milestone overlay finished and reset")
+            Timber.d("=== END MILESTONE OVERLAY DEBUG ===")
         }
     }
 
     // LaunchedEffect pro achievement overlay (priorita)
     LaunchedEffect(lastAchievement) {
         if (lastAchievement != null) {
-            println("=== ACHIEVEMENT OVERLAY DEBUG ===")
-            println("Achievement detected: $lastAchievement points")
-            println("Points to show: $lastAddedPoints")
-            println("Total points: $totalPoints")
+            Timber.d("=== ACHIEVEMENT OVERLAY DEBUG ===")
+            Timber.d("Achievement detected: $lastAchievement points")
+            Timber.d("Points to show: $lastAddedPoints")
+            Timber.d("Total points: $totalPoints")
 
             overlayPoints = lastAddedPoints
             achievementPoints = lastAchievement!!
@@ -155,8 +156,8 @@ fun TobisoApp(navigateTo: String? = null) {
             showAchievementOverlay = false
             PointsManager.resetLastAddedPoints()
 
-            println("Achievement overlay finished and reset")
-            println("=== END ACHIEVEMENT OVERLAY DEBUG ===")
+            Timber.d("Achievement overlay finished and reset")
+            Timber.d("=== END ACHIEVEMENT OVERLAY DEBUG ===")
         }
     }
 

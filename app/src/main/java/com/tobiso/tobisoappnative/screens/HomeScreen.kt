@@ -66,17 +66,17 @@ fun parseDateToMillis(dateStr: String?): Long? {
         return ZonedDateTime.parse(dateStr, DateTimeFormatter.ISO_DATE_TIME)
             .toInstant().toEpochMilli()
     } catch (_: DateTimeParseException) {}
-    // Try without timezone (yyyy-MM-ddTHH:mm:ss or yyyy-MM-dd HH:mm:ss)
-    val localPatterns = listOf(
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"),
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    )
-    for (fmt in localPatterns) {
-        try {
-            return fmt.parse(dateStr, java.time.LocalDateTime::from)
-                .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()
-        } catch (_: DateTimeParseException) {}
-    }
+    // Try ISO local datetime (handles yyyy-MM-ddTHH:mm:ss with 0-9 fractional digits, e.g. .1234567)
+    try {
+        return java.time.LocalDateTime.parse(dateStr)
+            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()
+    } catch (_: DateTimeParseException) {}
+    // Try with space separator (yyyy-MM-dd HH:mm:ss)
+    try {
+        return java.time.LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()
+    } catch (_: DateTimeParseException) {}
+
     // Try plain date
     try {
         return java.time.LocalDate.parse(dateStr)
@@ -444,25 +444,17 @@ fun HomeScreen(navController: NavHostController) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(onClick = { selectedSubjectId = null }) {
-                            Text("Všechny předměty")
-                        }
+                        FilterChip(
+                            selected = selectedSubjectId == null,
+                            onClick = { selectedSubjectId = null },
+                            label = { Text("Vše") }
+                        )
 
                         rootWithChildren.forEach { subj ->
-                            Button(onClick = { selectedSubjectId = subj.id }) {
-                                Text(subj.name)
-                            }
-                        }
-                    }
-
-                    // Zobrazit vybraný filtr pod tlačítky (pokud není vybráno 'Vše')
-                    if (selectedSubjectId != null) {
-                        val selName = rootWithChildren.find { it.id == selectedSubjectId }?.name
-                        selName?.let { name ->
-                            Text(
-                                text = "Vybrán filtr: $name",
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(start = 12.dp, top = 6.dp)
+                            FilterChip(
+                                selected = selectedSubjectId == subj.id,
+                                onClick = { selectedSubjectId = subj.id },
+                                label = { Text(subj.name) }
                             )
                         }
                     }

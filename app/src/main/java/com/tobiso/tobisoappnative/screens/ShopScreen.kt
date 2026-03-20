@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import timber.log.Timber
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -152,7 +153,7 @@ fun ShopScreen(
                         coroutineScope.launch {
                             // Použij uložený index pozice pro danou kategorii
                             val targetIndex = headerPositions[category]
-                            println("Scrolling to category: $category, targetIndex: $targetIndex")
+                            Timber.d("Scrolling to category: $category, targetIndex: $targetIndex")
                             
                             if (targetIndex != null) {
                                 try {
@@ -161,12 +162,12 @@ fun ShopScreen(
                                         scrollOffset = 0 // Scroll přesně na začátek položky
                                     )
                                 } catch (e: Exception) {
-                                    println("Error scrolling: $e")
+                                    Timber.d("Error scrolling: $e")
                                     // Fallback
                                     listState.scrollToItem(targetIndex)
                                 }
                             } else {
-                                println("No saved position, calculating...")
+                                Timber.d("No saved position, calculating...")
                                 // Dynamic calculation fallback
                                 val categories = ShopCategory.values()
                                 var calculatedIndex = 0
@@ -176,7 +177,7 @@ fun ShopScreen(
                                     calculatedIndex += ShopData.getItemsByCategory(cat).size // items
                                     if (cat != categories.last()) calculatedIndex++ // spacer
                                 }
-                                println("Calculated index: $calculatedIndex")
+                                Timber.d("Calculated index: $calculatedIndex")
                                 listState.animateScrollToItem(calculatedIndex, scrollOffset = 0)
                             }
                         }
@@ -199,7 +200,7 @@ fun ShopScreen(
             ShopCategory.values().forEachIndexed { categoryIndex, category ->
                     // Uloží pozici headeru pro navigaci
                     headerPositions[category] = currentIndex
-                    println("Saved header position for $category at index: $currentIndex")
+                    Timber.d("Saved header position for $category at index: $currentIndex")
                     
                 // Nadpis kategorie
                 item(key = "header_$category") {

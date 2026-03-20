@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.viewmodel
+import timber.log.Timber
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
@@ -63,10 +64,10 @@ class MainViewModel @Inject constructor(
                         return@launch
                     }
                     // Timestamp is fresh but DB is empty (schema migration wiped it) → re-download
-                    android.util.Log.w("MainViewModel", "Cache timestamp fresh but DB empty – forcing re-download")
+                    Timber.w("Cache timestamp fresh but DB empty – forcing re-download")
                 }
             } catch (e: Exception) {
-                android.util.Log.w("MainViewModel", "Error checking cache freshness: ${e.message}")
+                Timber.w("Error checking cache freshness: ${e.message}")
             }
 
             if (isOnline) {
@@ -85,7 +86,7 @@ class MainViewModel @Inject constructor(
                                 offlineRepo.downloadRemainingData(categories, posts)
                             } catch (e: Exception) {
                                 // downloadRemainingData never throws, but defensively catch anyway
-                                android.util.Log.e("MainViewModel", "Phase 2 background failed: ${e.message}", e)
+                                Timber.e(e, "Phase 2 background failed: ${e.message}")
                             }
                             if (isFirstLoad) isFirstLoad = false
                         }

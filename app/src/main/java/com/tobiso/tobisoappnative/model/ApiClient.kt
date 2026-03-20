@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.model
+import timber.log.Timber
 
 import com.tobiso.tobisoappnative.config.SecurityConfig
 import com.tobiso.tobisoappnative.BuildConfig
@@ -52,7 +53,7 @@ object ApiClient {
             val response = chain.proceed(request)
             
             if (!response.isSuccessful) {
-                android.util.Log.w("ApiClient", "HTTP ${response.code}: ${response.message}")
+                Timber.w("HTTP ${response.code}: ${response.message}")
             }
             
             response
@@ -79,7 +80,7 @@ object ApiClient {
                     .build()
                 val response = chain.proceed(request)
                 if (!response.isSuccessful) {
-                    android.util.Log.e("ApiClient", "HTTP error: ${response.code} ${response.message}")
+                    Timber.e("HTTP error: ${response.code} ${response.message}")
                 }
                 response
             }
@@ -96,10 +97,10 @@ object ApiClient {
         }
         
         return if (SecurityConfig.shouldUseTrustAllCerts()) {
-            android.util.Log.w("ApiClient", "Používá se debug SSL client - certificate pinning vypnut!")
+            Timber.w("Používá se debug SSL client - certificate pinning vypnut!")
             getDebugOkHttpClient()
         } else {
-            android.util.Log.i("ApiClient", "Používá se produkční bezpečný SSL client")
+            Timber.i("Používá se produkční bezpečný SSL client")
             getSecureOkHttpClient()
         }
     }
@@ -107,7 +108,7 @@ object ApiClient {
     val apiService: ApiService by lazy {
         // Kontrola při inicializaci
         if (SecurityConfig.isRunningOnEmulator()) {
-            android.util.Log.i("ApiClient", "Aplikace běží na emulátoru")
+            Timber.i("Aplikace běží na emulátoru")
         }
         
         // Základní Gson bez custom TypeAdapter pro Android 15 kompatibilitu

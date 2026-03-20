@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.viewmodel.offlinemanager
+import timber.log.Timber
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -88,7 +89,7 @@ class OfflineManagerViewModel @Inject constructor(
                     else "Stažení selhalo. Zkontrolujte připojení."
                 if (success) loadCacheInfo()
             } catch (e: Exception) {
-                android.util.Log.e("OfflineManagerVM", "downloadAllOfflineData failed", e)
+                Timber.e(e, "downloadAllOfflineData failed")
                 _offlineDownloading.value = false
                 _toastMessage.value = "Chyba stahování: ${e.message}"
             }

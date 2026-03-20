@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.config
+import timber.log.Timber
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
@@ -56,21 +57,21 @@ object SecurityConfig {
             getCurrentSignatures(ctx)?.forEach { sig ->
                 val digest = MessageDigest.getInstance("SHA-256")
                 val encoded = Base64.encodeToString(digest.digest(sig.toByteArray()), Base64.NO_WRAP)
-                android.util.Log.i("SecurityConfig", "Current cert fingerprint: $encoded")
+                Timber.i("Current cert fingerprint: $encoded")
             }
         } catch (e: Exception) {
-            android.util.Log.e("SecurityConfig", "Could not read cert fingerprint", e)
+            Timber.e(e, "Could not read cert fingerprint")
         }
     }
 
     private fun checkAppSignature(): Boolean {
         return try {
             val ctx = appContext ?: return false.also {
-                android.util.Log.e("SecurityConfig", "SecurityConfig.initialize() not called")
+                Timber.e("SecurityConfig.initialize() not called")
             }
             val expected = BuildConfig.CERT_FINGERPRINT
             if (expected.isBlank()) {
-                android.util.Log.e("SecurityConfig", "CERT_FINGERPRINT not set in local.properties")
+                Timber.e("CERT_FINGERPRINT not set in local.properties")
                 return false
             }
             getCurrentSignatures(ctx)?.any { sig ->
@@ -79,7 +80,7 @@ object SecurityConfig {
                 encoded == expected
             } ?: false
         } catch (e: Exception) {
-            android.util.Log.e("SecurityConfig", "App signature verification failed", e)
+            Timber.e(e, "App signature verification failed")
             false
         }
     }
@@ -134,7 +135,7 @@ object SecurityConfig {
             val hmac = mac.doFinal(data.toByteArray(Charsets.UTF_8))
             "$timestamp.${Base64.encodeToString(hmac, Base64.NO_WRAP)}"
         } catch (e: Exception) {
-            android.util.Log.e("SecurityConfig", "Failed to generate security token", e)
+            Timber.e(e, "Failed to generate security token")
             ""
         }
     }

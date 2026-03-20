@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.viewmodel.feedback
+import timber.log.Timber
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -66,7 +67,7 @@ class FeedbackViewModel @Inject constructor() : ViewModel() {
                 ApiClient.apiService.sendFeedback(dto)
                 _isSuccess.value = true
             } catch (e: Exception) {
-                android.util.Log.e("FeedbackViewModel", "Error sending feedback", e)
+                Timber.e(e, "Error sending feedback")
                 _isError.value = true
             } finally {
                 _isLoading.value = false

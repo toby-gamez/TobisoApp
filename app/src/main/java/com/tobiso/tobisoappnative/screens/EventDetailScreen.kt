@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import timber.log.Timber
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -109,7 +110,7 @@ fun EventDetailScreen(
                             // Tlačítko pro mazání
                             IconButton(
                                 onClick = { 
-                                    android.util.Log.d("EventDetailScreen", "Delete button clicked, showing dialog")
+                                    Timber.d("Delete button clicked, showing dialog")
                                     showDeleteDialog = true 
                                 }
                             ) {
@@ -170,7 +171,7 @@ fun EventDetailScreen(
     
     // Dialog pro potvrzení smazání
     if (showDeleteDialog) {
-        android.util.Log.d("EventDetailScreen", "Showing delete dialog")
+        Timber.d("Showing delete dialog")
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Smazat událost") },

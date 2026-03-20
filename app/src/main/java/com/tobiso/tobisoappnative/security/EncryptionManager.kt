@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.security
+import timber.log.Timber
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
@@ -79,7 +80,7 @@ class EncryptionManager private constructor() {
             return Base64.encodeToString(encryptedData, Base64.NO_WRAP)
             
         } catch (e: Exception) {
-            android.util.Log.e("EncryptionManager", "Chyba při šifrování: ${e.message}")
+            Timber.e("Chyba při šifrování: ${e.message}")
             return null
         }
     }
@@ -104,7 +105,7 @@ class EncryptionManager private constructor() {
             return String(plaintext, Charsets.UTF_8)
             
         } catch (e: Exception) {
-            android.util.Log.e("EncryptionManager", "Chyba při dešifrování: ${e.message}")
+            Timber.e("Chyba při dešifrování: ${e.message}")
             return null
         }
     }
@@ -128,7 +129,7 @@ class EncryptionManager private constructor() {
             keyStore.deleteEntry(KEY_ALIAS)
             true
         } catch (e: Exception) {
-            android.util.Log.e("EncryptionManager", "Chyba při mazání klíče: ${e.message}")
+            Timber.e("Chyba při mazání klíče: ${e.message}")
             false
         }
     }
@@ -143,7 +144,7 @@ class EncryptionManager private constructor() {
             prefs.edit().putString(key, encryptedValue).apply()
             true
         } catch (e: Exception) {
-            android.util.Log.e("EncryptionManager", "Chyba při ukládání: ${e.message}")
+            Timber.e("Chyba při ukládání: ${e.message}")
             false
         }
     }
@@ -157,7 +158,7 @@ class EncryptionManager private constructor() {
             val encryptedValue = prefs.getString(key, null) ?: return null
             decrypt(encryptedValue)
         } catch (e: Exception) {
-            android.util.Log.e("EncryptionManager", "Chyba při načítání: ${e.message}")
+            Timber.e("Chyba při načítání: ${e.message}")
             null
         }
     }

@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.utils
+import timber.log.Timber
 
 import java.text.SimpleDateFormat
 import java.util.*
@@ -22,7 +23,7 @@ object CalendarDateUtils {
         return try {
             calendarFormatter.parse(dateString)
         } catch (e: Exception) {
-            android.util.Log.w("CalendarDateUtils", "Failed to parse calendar date: $dateString", e)
+            Timber.w("Failed to parse calendar date: $dateString", e)
             null
         }
     }

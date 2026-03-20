@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.repository
+import timber.log.Timber
 
 import android.content.Context
 import com.tobiso.tobisoappnative.model.ApiClient
@@ -24,7 +25,7 @@ class OfflineRepositoryImpl(
      */
     suspend fun downloadAllData(onProgress: (Float) -> Unit): Boolean {
         val isOnline = NetworkUtils.isOnline(context)
-        android.util.Log.d("OfflineRepo", "downloadAllData start: isOnline=$isOnline")
+        Timber.d("downloadAllData start: isOnline=$isOnline")
         if (!isOnline) {
             throw Exception("Zařízení není připojeno k internetu (NetworkUtils.isOnline = false)")
         }
@@ -34,9 +35,9 @@ class OfflineRepositoryImpl(
         val categories: List<Category>
         try {
             categories = ApiClient.apiService.getCategories().toList()
-            android.util.Log.d("OfflineRepo", "getCategories OK: ${categories.size}")
+            Timber.d("getCategories OK: ${categories.size}")
         } catch (e: Exception) {
-            android.util.Log.e("OfflineRepo", "getCategories failed", e)
+            Timber.e(e, "getCategories failed")
             throw Exception("Stažení kategorií selhalo (${e.javaClass.simpleName}): ${e.message}", e)
         }
         onProgress(0.15f)
@@ -44,9 +45,9 @@ class OfflineRepositoryImpl(
         val posts: List<Post>
         try {
             posts = ApiClient.apiService.getPosts().toList()
-            android.util.Log.d("OfflineRepo", "getPosts OK: ${posts.size}")
+            Timber.d("getPosts OK: ${posts.size}")
         } catch (e: Exception) {
-            android.util.Log.e("OfflineRepo", "getPosts failed", e)
+            Timber.e(e, "getPosts failed")
             throw Exception("Stažení článků selhalo (${e.javaClass.simpleName}): ${e.message}", e)
         }
         onProgress(0.3f)
@@ -54,9 +55,9 @@ class OfflineRepositoryImpl(
         try {
             // Save phase A immediately so UI has data even if phase B fails
             offlineDataManager.saveCategoriesAndPosts(categories, posts)
-            android.util.Log.d("OfflineRepo", "saveCategoriesAndPosts OK")
+            Timber.d("saveCategoriesAndPosts OK")
         } catch (e: Exception) {
-            android.util.Log.e("OfflineRepo", "saveCategoriesAndPosts failed", e)
+            Timber.e(e, "saveCategoriesAndPosts failed")
             throw Exception("Uložení kategorií/článků selhalo (${e.javaClass.simpleName}): ${e.message}", e)
         }
         onProgress(0.35f)
@@ -76,7 +77,7 @@ class OfflineRepositoryImpl(
             offlineDataManager.saveCategoriesAndPosts(categories, posts)
             Pair(categories, posts)
         } catch (e: Exception) {
-            android.util.Log.e("OfflineRepo", "downloadCategoriesAndPosts failed: ${e.message}", e)
+            Timber.e(e, "downloadCategoriesAndPosts failed: ${e.message}")
             null
         }
     }
@@ -91,7 +92,7 @@ class OfflineRepositoryImpl(
         return try {
             downloadAndSaveRemaining(categories, posts, onProgress = {}, startProgress = 0f)
         } catch (e: Exception) {
-            android.util.Log.e("OfflineRepo", "downloadRemainingData failed: ${e.message}", e)
+            Timber.e(e, "downloadRemainingData failed: ${e.message}")
             false
         }
     }
@@ -110,7 +111,7 @@ class OfflineRepositoryImpl(
             val questions = try {
                 ApiClient.apiService.getAllQuestions().toList()
             } catch (e: Exception) {
-                android.util.Log.w("OfflineRepo", "getAllQuestions failed: ${e.message}")
+                Timber.w("getAllQuestions failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.25f)
@@ -118,7 +119,7 @@ class OfflineRepositoryImpl(
             val questionsPosts = try {
                 ApiClient.apiService.getPostsForQuestions().toList()
             } catch (e: Exception) {
-                android.util.Log.w("OfflineRepo", "getPostsForQuestions failed: ${e.message}")
+                Timber.w("getPostsForQuestions failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.45f)
@@ -126,7 +127,7 @@ class OfflineRepositoryImpl(
             val relatedPosts = try {
                 ApiClient.apiService.getAllRelatedPosts().toList()
             } catch (e: Exception) {
-                android.util.Log.w("OfflineRepo", "getAllRelatedPosts failed: ${e.message}")
+                Timber.w("getAllRelatedPosts failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.6f)
@@ -134,7 +135,7 @@ class OfflineRepositoryImpl(
             val addendums = try {
                 ApiClient.apiService.getAddendums().toList()
             } catch (e: Exception) {
-                android.util.Log.w("OfflineRepo", "getAddendums failed: ${e.message}")
+                Timber.w("getAddendums failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.75f)
@@ -153,7 +154,7 @@ class OfflineRepositoryImpl(
             val events = try {
                 ApiClient.apiService.getEvents().toList()
             } catch (e: Exception) {
-                android.util.Log.w("OfflineRepo", "getEvents failed: ${e.message}")
+                Timber.w("getEvents failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.97f)
@@ -167,7 +168,7 @@ class OfflineRepositoryImpl(
             onProgress(1f)
             true
         } catch (e: Exception) {
-            android.util.Log.e("OfflineRepo", "downloadAndSaveRemaining failed", e)
+            Timber.e(e, "downloadAndSaveRemaining failed")
             throw Exception("Uložení dat selhalo (${e.javaClass.simpleName}): ${e.message}", e)
         }
     }

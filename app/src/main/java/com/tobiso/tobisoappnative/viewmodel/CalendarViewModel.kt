@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.viewmodel
+import timber.log.Timber
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
@@ -104,20 +105,20 @@ class CalendarViewModel @Inject constructor(
                         return@launch
                     }
                 } catch (e: Exception) {
-                    android.util.Log.w("CalendarViewModel", "Error checking/using events cache: ${e.message}")
+                    Timber.w("Error checking/using events cache: ${e.message}")
                 }
 
                 val apiEvents = try {
                     ApiClient.apiService.getEventsInRange(startDate, endDate).toList()
                 } catch (e: Exception) {
-                    android.util.Log.e("CalendarViewModel", "Error loading API events", e)
+                    Timber.e(e, "Error loading API events")
                     emptyList()
                 }
 
                 try {
                     if (apiEvents.isNotEmpty()) offlineDataManager.saveEvents(apiEvents)
                 } catch (e: Exception) {
-                    android.util.Log.w("CalendarViewModel", "Failed to save API events to cache: ${e.message}")
+                    Timber.w("Failed to save API events to cache: ${e.message}")
                 }
 
                 val localEvents = try {
@@ -128,7 +129,7 @@ class CalendarViewModel @Inject constructor(
                 setState { copy(events = allEvents) }
 
             } catch (e: Exception) {
-                android.util.Log.e("CalendarViewModel", "Error loading events", e)
+                Timber.e(e, "Error loading events")
                 setState { copy(error = "Chyba při načítání eventů: ${e.message}", events = emptyList()) }
             } finally {
                 setState { copy(isLoading = false) }
@@ -168,7 +169,7 @@ class CalendarViewModel @Inject constructor(
                 }
                 emitEffect(CalendarEffect.EventAdded(success = newEvent != null))
             } catch (e: Exception) {
-                android.util.Log.e("CalendarViewModel", "Error adding local event", e)
+                Timber.e(e, "Error adding local event")
                 emitEffect(CalendarEffect.EventAdded(success = false))
             }
         }
@@ -192,7 +193,7 @@ class CalendarViewModel @Inject constructor(
                 }
                 emitEffect(CalendarEffect.EventUpdated(success = updatedEvent != null))
             } catch (e: Exception) {
-                android.util.Log.e("CalendarViewModel", "Error updating local event", e)
+                Timber.e(e, "Error updating local event")
                 emitEffect(CalendarEffect.EventUpdated(success = false))
             }
         }
@@ -214,7 +215,7 @@ class CalendarViewModel @Inject constructor(
                 }
                 emitEffect(CalendarEffect.EventDeleted(success = deleted, eventId = eventId))
             } catch (e: Exception) {
-                android.util.Log.e("CalendarViewModel", "Error deleting local event", e)
+                Timber.e(e, "Error deleting local event")
                 emitEffect(CalendarEffect.EventDeleted(success = false, eventId = eventId))
             }
         }

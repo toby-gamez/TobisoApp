@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.utils
+import timber.log.Timber
 
 import android.content.Context
 import com.tobiso.tobisoappnative.PointsManager
@@ -43,7 +44,7 @@ fun checkPointsAchievements(context: Context) {
 
             if (!isAlreadyAchieved) {
                 newAchievementsFound = true
-                println("🏆 NEW ACHIEVEMENT UNLOCKED: $requiredPoints points - awarding $rewardPoints points")
+                Timber.d("🏆 NEW ACHIEVEMENT UNLOCKED: $requiredPoints points - awarding $rewardPoints points")
 
                 PointsManager.addPointsForAchievement(rewardPoints, requiredPoints)
                 achievementsPrefs.edit().putBoolean(achievementKey, true).apply()

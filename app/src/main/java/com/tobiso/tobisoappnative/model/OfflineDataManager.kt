@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.model
+import timber.log.Timber
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -93,20 +94,20 @@ class OfflineDataManager(
 
         // Kategorie a posty znovu uložit (pro případ přímého volání z OfflineManagerScreen)
         categoryDao.deleteAll()
-        categoryDao.insertAll(categories.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip category ${it.id}: ${e.message}"); null } })
+        categoryDao.insertAll(categories.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip category ${it.id}: ${e.message}"); null } })
         postDao.deleteAll()
-        postDao.insertAll(posts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip post ${it.id}: ${e.message}"); null } })
+        postDao.insertAll(posts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip post ${it.id}: ${e.message}"); null } })
 
         questionPostDao.deleteAll()
-        questionPostDao.insertAll(questionsPosts.mapNotNull { runCatching { it.toQuestionPostEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip questionPost ${it.id}: ${e.message}"); null } })
+        questionPostDao.insertAll(questionsPosts.mapNotNull { runCatching { it.toQuestionPostEntity() }.getOrElse { e -> Timber.w("skip questionPost ${it.id}: ${e.message}"); null } })
         questionDao.deleteAll()
-        questionDao.insertAll(questions.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip question ${it.id}: ${e.message}"); null } })
+        questionDao.insertAll(questions.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip question ${it.id}: ${e.message}"); null } })
         relatedPostDao.deleteAll()
-        relatedPostDao.insertAll(relatedPosts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip relatedPost ${it.id}: ${e.message}"); null } })
+        relatedPostDao.insertAll(relatedPosts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip relatedPost ${it.id}: ${e.message}"); null } })
         addendumDao.deleteAll()
-        addendumDao.insertAll(addendums.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip addendum ${it.id}: ${e.message}"); null } })
+        addendumDao.insertAll(addendums.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip addendum ${it.id}: ${e.message}"); null } })
         exerciseDao.deleteAll()
-        exerciseDao.insertAll(exercises.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> android.util.Log.w("OfflineDataManager", "skip exercise ${it.id}: ${e.message}"); null } })
+        exerciseDao.insertAll(exercises.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip exercise ${it.id}: ${e.message}"); null } })
 
         metaPrefs.edit()
             .putLong(KEY_LAST_UPDATE, currentTime)
@@ -120,7 +121,7 @@ class OfflineDataManager(
             eventDao.insertAll(events.map { it.toEntity() })
             metaPrefs.edit().putLong(KEY_EVENTS_LAST_UPDATE, System.currentTimeMillis()).apply()
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error saving events", e)
+            Timber.e(e, "Error saving events")
         }
     }
 
@@ -129,7 +130,7 @@ class OfflineDataManager(
             addendumDao.deleteAll()
             addendumDao.insertAll(addendums.map { it.toEntity() })
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error saving addendums", e)
+            Timber.e(e, "Error saving addendums")
         }
     }
 
@@ -140,7 +141,7 @@ class OfflineDataManager(
             val entities = categoryDao.getAll()
             if (entities.isEmpty()) null else entities.map { it.toDomain() }
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading categories", e)
+            Timber.e(e, "Error loading categories")
             null
         }
     }
@@ -150,7 +151,7 @@ class OfflineDataManager(
             val entities = postDao.getAll()
             if (entities.isEmpty()) null else entities.map { it.toDomain() }
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading posts", e)
+            Timber.e(e, "Error loading posts")
             null
         }
     }
@@ -161,7 +162,7 @@ class OfflineDataManager(
                 val entities = postDao.getByCategory(categoryId)
                 if (entities.isEmpty()) null else entities.map { it.toDomain() }
             } catch (e: Exception) {
-                android.util.Log.e("OfflineDataManager", "Error loading posts by category", e)
+                Timber.e(e, "Error loading posts by category")
                 null
             }
         }
@@ -170,7 +171,7 @@ class OfflineDataManager(
         try {
             postDao.getById(postId)?.toDomain()
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading post", e)
+            Timber.e(e, "Error loading post")
             null
         }
     }
@@ -180,7 +181,7 @@ class OfflineDataManager(
             val entities = questionDao.getAll()
             if (entities.isEmpty()) null else entities.map { it.toDomain() }
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading questions", e)
+            Timber.e(e, "Error loading questions")
             null
         }
     }
@@ -191,7 +192,7 @@ class OfflineDataManager(
                 val entities = questionDao.getByPostId(postId)
                 if (entities.isEmpty()) null else entities.map { it.toDomain() }
             } catch (e: Exception) {
-                android.util.Log.e("OfflineDataManager", "Error loading questions by post", e)
+                Timber.e(e, "Error loading questions by post")
                 null
             }
         }
@@ -201,7 +202,7 @@ class OfflineDataManager(
             val entities = questionPostDao.getAll()
             if (entities.isEmpty()) null else entities.map { it.toDomain() }
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading questions posts", e)
+            Timber.e(e, "Error loading questions posts")
             null
         }
     }
@@ -211,7 +212,7 @@ class OfflineDataManager(
             val entities = relatedPostDao.getAll()
             if (entities.isEmpty()) null else entities.map { it.toDomain() }
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading related posts", e)
+            Timber.e(e, "Error loading related posts")
             null
         }
     }
@@ -222,7 +223,7 @@ class OfflineDataManager(
                 val entities = relatedPostDao.getByPostId(postId)
                 if (entities.isEmpty()) null else entities.map { it.toDomain() }
             } catch (e: Exception) {
-                android.util.Log.e("OfflineDataManager", "Error loading related posts by post", e)
+                Timber.e(e, "Error loading related posts by post")
                 null
             }
         }
@@ -232,7 +233,7 @@ class OfflineDataManager(
             val entities = eventDao.getAll()
             if (entities.isEmpty()) null else entities.map { it.toDomain() }
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading events", e)
+            Timber.e(e, "Error loading events")
             null
         }
     }
@@ -242,7 +243,7 @@ class OfflineDataManager(
             val entities = addendumDao.getAll()
             if (entities.isEmpty()) null else entities.map { it.toDomain() }
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading addendums", e)
+            Timber.e(e, "Error loading addendums")
             null
         }
     }
@@ -251,7 +252,7 @@ class OfflineDataManager(
         try {
             addendumDao.getById(addendumId)?.toDomain()
         } catch (e: Exception) {
-            android.util.Log.e("OfflineDataManager", "Error loading addendum", e)
+            Timber.e(e, "Error loading addendum")
             null
         }
     }
@@ -262,7 +263,7 @@ class OfflineDataManager(
                 val entities = exerciseDao.getAll()
                 if (entities.isEmpty()) null else entities.map { it.toDomain() }
             } catch (e: Exception) {
-                android.util.Log.e("OfflineDataManager", "Error loading exercises", e)
+                Timber.e(e, "Error loading exercises")
                 null
             }
         }
@@ -278,7 +279,7 @@ class OfflineDataManager(
             try {
                 exerciseDao.getById(exerciseId)?.toDomain()
             } catch (e: Exception) {
-                android.util.Log.e("OfflineDataManager", "Error loading exercise", e)
+                Timber.e(e, "Error loading exercise")
                 null
             }
         }

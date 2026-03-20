@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import timber.log.Timber
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -613,9 +614,9 @@ fun CalendarGrid(
                     } ?: false
                     
                     // Debug pro všechny dny - ne jen prosinec
-                    android.util.Log.d("CalendarGrid", "Day $dayNumber/$currentMonth: Found ${dayEvents.size} events")
+                    Timber.d("Day $dayNumber/$currentMonth: Found ${dayEvents.size} events")
                     dayEvents.forEach { event ->
-                        android.util.Log.d("CalendarGrid", "  - ${event.getTitleSafe()} (AllDay: ${event.isAllDaySafe()})")
+                        Timber.d("  - ${event.getTitleSafe()} (AllDay: ${event.isAllDaySafe()})")
                     }
                     
                     CalendarDay(

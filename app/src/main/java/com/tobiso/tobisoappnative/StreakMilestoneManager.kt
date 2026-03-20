@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative
+import timber.log.Timber
 
 import android.content.Context
 import android.os.Build
@@ -15,16 +16,16 @@ object StreakMilestoneManager {
         val streakInfo = StreakUtils.calculateStreaks(context)
         val currentStreak = streakInfo.currentStreak
 
-        println("=== STREAK MILESTONES DEBUG ===")
-        println("Current streak: $currentStreak days (včetně freezes)")
-        println("Max streak: ${streakInfo.maxStreak} days")
+        Timber.d("=== STREAK MILESTONES DEBUG ===")
+        Timber.d("Current streak: $currentStreak days (včetně freezes)")
+        Timber.d("Max streak: ${streakInfo.maxStreak} days")
 
         val allMilestones = generateStreakMilestones(currentStreak)
 
         val milestonesPrefs = context.getSharedPreferences("streak_milestones", Context.MODE_PRIVATE)
 
         val achievedMilestones = milestonesPrefs.all.keys.filter { it.startsWith("milestone_") }
-        println("Already achieved milestones: $achievedMilestones")
+        Timber.d("Already achieved milestones: $achievedMilestones")
 
         var newMilestonesFound = false
         allMilestones.forEach { (days, points) ->
@@ -32,26 +33,26 @@ object StreakMilestoneManager {
                 val milestoneKey = "milestone_$days"
                 val isAlreadyAchieved = milestonesPrefs.getBoolean(milestoneKey, false)
 
-                println("Checking milestone $days days: already achieved = $isAlreadyAchieved")
+                Timber.d("Checking milestone $days days: already achieved = $isAlreadyAchieved")
 
                 if (!isAlreadyAchieved) {
                     newMilestonesFound = true
-                    println("🎉 NEW MILESTONE ACHIEVED: $days days - awarding $points points")
+                    Timber.d("🎉 NEW MILESTONE ACHIEVED: $days days - awarding $points points")
 
                     PointsManager.addPointsForMilestone(points, days)
                     milestonesPrefs.edit().putBoolean(milestoneKey, true).apply()
 
-                    println("Points added and milestone marked as achieved")
+                    Timber.d("Points added and milestone marked as achieved")
                 } else {
-                    println("Milestone $days already achieved, skipping")
+                    Timber.d("Milestone $days already achieved, skipping")
                 }
             }
         }
 
         if (!newMilestonesFound) {
-            println("No new milestones found for current streak: $currentStreak")
+            Timber.d("No new milestones found for current streak: $currentStreak")
         }
-        println("=== END STREAK MILESTONES DEBUG ===")
+        Timber.d("=== END STREAK MILESTONES DEBUG ===")
     }
 
     private fun generateStreakMilestones(maxStreak: Int): Map<Int, Int> {

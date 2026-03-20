@@ -354,9 +354,9 @@ implementation("androidx.compose.material:material-icons-extended:1.7.6")
 
 **Opraveno:** Odstraněna explicitní verze `materialIconsExtended = "1.7.8"` z `libs.versions.toml`. Závislost `androidx-material-icons-extended` nyní nemá `version.ref` – verzi spravuje Compose BOM (`2025.05.00`), stejně jako ostatní Compose knihovny (`material3`, `ui` atd.). Release build má aktivní `isMinifyEnabled = true` a `isShrinkResources = true`, takže R8 odstraní všechny nepoužívané ikony – reálný přírůstek APK odpovídá jen cca 70 ikonám reálně použitým v kódu.
 
-### 5.5 Debug `println()` v produkčním kódu ❌
+### ~~5.5 Debug `println()` v produkčním kódu~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 // PointsManager.kt
 println("=== POINTS MANAGER DEBUG ===")
 println("Adding $amount points for milestone $milestoneDay days")
@@ -367,9 +367,11 @@ println("DEBUG: App initialized - Online: $isOnline, Offline: ${!isOnline}")
 
 // CalendarViewModel.kt
 android.util.Log.d("EventOverlap", "=== Checking event '...' for day $dateStr ===")
-```
+```~~
 
-Desítky `println()` a debug logů jsou po celém projektu. `println()` se **nezahodí** ani v release buildu s R8. Správný přístup je `Timber` (nebo alespoň `if (BuildConfig.DEBUG)` wrapper). Debug logy zbytečně zatěžují logcat a mohou odhalit interní logiku útočníkovi.
+~~Desítky `println()` a debug logů jsou po celém projektu. `println()` se **nezahodí** ani v release buildu s R8. Správný přístup je `Timber` (nebo alespoň `if (BuildConfig.DEBUG)` wrapper). Debug logy zbytečně zatěžují logcat a mohou odhalit interní logiku útočníkovi.~~
+
+**Opraveno:** Přidána závislost `com.jakewharton.timber:timber:5.0.1` (verze spravována přes `libs.versions.toml`). `Timber.plant(Timber.DebugTree())` je voláno v `TobisoApplication.onCreate()` podmíněně přes `BuildConfig.DEBUG` – v release buildu se žádný strom nezasadí a Timber volání jsou tichá (žádný výstup). Všechna `println()` volání (22 souborů) nahrazena `Timber.d()`/`Timber.e()`/`Timber.w()`/`Timber.i()` dle závažnosti. Všechna `android.util.Log.*` volání nahrazena Timber ekvivalenty – tagy jsou automaticky odvozeny z názvu třídy.
 
 ---
 

@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.viewmodel.ai
+import timber.log.Timber
 
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.ViewModelProvider
@@ -57,10 +58,10 @@ class AiChatViewModel(
                 } else {
                     setState { copy(error = "Chyba serveru (${e.code()}). Zkus to znovu.", isLoading = false) }
                 }
-                android.util.Log.e("AiChatViewModel", "HTTP error ${e.code()}", e)
+                Timber.e(e, "HTTP error ${e.code()}")
             } catch (e: Exception) {
                 setState { copy(error = "Nepodařilo se spojit se serverem.", isLoading = false) }
-                android.util.Log.e("AiChatViewModel", "Error asking AI", e)
+                Timber.e(e, "Error asking AI")
             }
         }
     }

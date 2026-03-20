@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import timber.log.Timber
 
 import android.content.Context
 import android.content.res.Configuration
@@ -305,7 +306,7 @@ fun addTodayToStreak(context: Context) {
 
     // 4. Zkontrolujeme, jestli už dnešní den není přidán
     if (existingDays.contains(today)) {
-        println("Today ($today) is already in streak. Total days: ${existingDays.size}")
+        Timber.d("Today ($today) is already in streak. Total days: ${existingDays.size}")
         return
     }
 
@@ -317,7 +318,7 @@ fun addTodayToStreak(context: Context) {
 
     // 7. Uložíme nový, rozšířený seznam zpět do paměti.
     sharedPreferences.edit().putStringSet("streak_days", newDays).apply()
-    println("Today ($today) was added to streak. Total days: ${newDays.size}")
+    Timber.d("Today ($today) was added to streak. Total days: ${newDays.size}")
 }
 
 fun denDnyDni(count: Int): String {

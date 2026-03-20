@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative
+import timber.log.Timber
 
 import android.content.Context
 import androidx.work.Data
@@ -25,7 +26,7 @@ object NotificationTestHelper {
             .build()
             
         WorkManager.getInstance(context).enqueue(workRequest)
-        android.util.Log.d("NotificationTestHelper", "Enqueued today events notification test")
+        Timber.d("Enqueued today events notification test")
     }
     
     /**
@@ -43,6 +44,6 @@ object NotificationTestHelper {
             .build()
             
         WorkManager.getInstance(context).enqueue(workRequest)
-        android.util.Log.d("NotificationTestHelper", "Enqueued tomorrow events notification test")
+        Timber.d("Enqueued tomorrow events notification test")
     }
 }

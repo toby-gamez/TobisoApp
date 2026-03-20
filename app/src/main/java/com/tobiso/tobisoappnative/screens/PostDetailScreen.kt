@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import timber.log.Timber
 
 import android.net.Uri
 import androidx.compose.animation.fadeIn
@@ -218,7 +219,7 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
             safeContent.length // test že není null
             null
         } catch (e: Exception) {
-            android.util.Log.e("SafeMarkdown", "Content validation failed", e)
+            Timber.e(e, "Content validation failed")
             e
         }
     }
@@ -280,7 +281,7 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
             }
         }
         if (result.isFailure) {
-            android.util.Log.e("SafeMarkdown", "Markdown render failed", result.exceptionOrNull())
+            Timber.e("Markdown render failed", result.exceptionOrNull())
             // Fallback na prostý text, aby aplikace nespadla
             Text(
                 text = safeContent,
@@ -369,7 +370,7 @@ fun parseContentToElements(
                         elements.add(ContentElement.MarkdownText(textBefore))
                     }
                 } catch (e: Exception) {
-                    android.util.Log.e("parseContentToElements", "Error extracting text before element", e)
+                    Timber.e(e, "Error extracting text before element")
                 }
             }
 
@@ -426,13 +427,13 @@ fun parseContentToElements(
                     elements.add(ContentElement.MarkdownText(textAfter))
                 }
             } catch (e: Exception) {
-                android.util.Log.e("parseContentToElements", "Error extracting text after elements", e)
+                Timber.e(e, "Error extracting text after elements")
             }
         }
 
         return elements
     } catch (e: Exception) {
-        android.util.Log.e("parseContentToElements", "Chyba při parsování obsahu", e)
+        Timber.e(e, "Chyba při parsování obsahu")
         // V případě chyby vrátíme celý obsah jako prostý text (s kontrolou na null)
         val safeContent = content.replace("\u0000", "").trim()
         return if (safeContent.isNotBlank()) {
@@ -492,10 +493,10 @@ fun PostDetailScreen(
     val downloadPdf: (Int) -> Unit = { id ->
         coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                android.util.Log.d("PostDetailScreen", "Stahování PDF pro post ID: $id")
+                Timber.d("Stahování PDF pro post ID: $id")
                 val responseBody = vm.downloadPostPdf(id)
                 val pdfBytes = responseBody.bytes()
-                android.util.Log.d("PostDetailScreen", "PDF staženo, velikost: ${pdfBytes.size} bytes")
+                Timber.d("PDF staženo, velikost: ${pdfBytes.size} bytes")
                 
                 val fileName = "tobiso_post_${id}.pdf"
                 var pdfUri: android.net.Uri? = null
@@ -515,7 +516,7 @@ fun PostDetailScreen(
                         resolver.openOutputStream(uri)?.use { outputStream ->
                             outputStream.write(pdfBytes)
                         }
-                        android.util.Log.d("PostDetailScreen", "PDF uloženo do Downloads: $fileName")
+                        Timber.d("PDF uloženo do Downloads: $fileName")
                     }
                 } else {
                     // Pro starší verze použijeme starý způsob
@@ -527,7 +528,7 @@ fun PostDetailScreen(
                         output.write(pdfBytes)
                     }
                     pdfUri = android.net.Uri.fromFile(pdfFile)
-                    android.util.Log.d("PostDetailScreen", "PDF uloženo: ${pdfFile.absolutePath}")
+                    Timber.d("PDF uloženo: ${pdfFile.absolutePath}")
                 }
                 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
@@ -556,7 +557,7 @@ fun PostDetailScreen(
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("PostDetailScreen", "Chyba při generování PDF", e)
+                Timber.e(e, "Chyba při generování PDF")
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     val errorMsg = when {
                         e.message != null -> e.message
@@ -591,31 +592,31 @@ fun PostDetailScreen(
     
     LaunchedEffect(postId) {
         try {
-            android.util.Log.d("PostDetailScreen", "LaunchedEffect started for post $postId")
+            Timber.d("LaunchedEffect started for post $postId")
             // Načteme detail (ViewModel má logiku pro offline i online režim)
             vm.loadPostDetail(postId)
-            android.util.Log.d("PostDetailScreen", "Post detail loaded")
+            Timber.d("Post detail loaded")
             
             // Načteme všechny posts pro vyhledávání odkazů a zobrazení souvisejících článků
             if (posts.isEmpty()) {
                 vm.loadPosts()
-                android.util.Log.d("PostDetailScreen", "Posts loaded")
+                Timber.d("Posts loaded")
             }
             // Načteme související články (funguje v online i offline režimu)
             vm.loadRelatedPosts(postId)
-            android.util.Log.d("PostDetailScreen", "Related posts loaded")
+            Timber.d("Related posts loaded")
             
             // Načteme dodatky
             if (addendums.isEmpty()) {
                 vm.loadAddendums()
-                android.util.Log.d("PostDetailScreen", "Addendums loaded")
+                Timber.d("Addendums loaded")
             }
             
             // Kontrola otázek pro tento příspěvek (nyní funguje v online i offline režimu)
             hasQuestions = try {
                 vm.checkHasQuestions(postId)
             } catch (e: Exception) {
-                android.util.Log.e("PostDetailScreen", "Error checking questions", e)
+                Timber.e(e, "Error checking questions")
                 false
             }
             
@@ -624,7 +625,7 @@ fun PostDetailScreen(
                 val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId ?: postDetail?.categoryId
                 vm.checkHasExercises(postId, postCategoryId)
             } catch (e: Exception) {
-                android.util.Log.e("PostDetailScreen", "Error checking exercises", e)
+                Timber.e(e, "Error checking exercises")
                 false
             }
 
@@ -633,13 +634,13 @@ fun PostDetailScreen(
                 val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId ?: postDetail?.categoryId
                 vm.loadExercisesByPostId(postId, postCategoryId)
             } catch (e: Exception) {
-                android.util.Log.e("PostDetailScreen", "Error preloading exercises", e)
+                Timber.e(e, "Error preloading exercises")
             }
             
             loaded = true
-            android.util.Log.d("PostDetailScreen", "LaunchedEffect completed for post $postId")
+            Timber.d("LaunchedEffect completed for post $postId")
         } catch (e: Exception) {
-            android.util.Log.e("PostDetailScreen", "Critical error in LaunchedEffect for post $postId", e)
+            Timber.e(e, "Critical error in LaunchedEffect for post $postId")
             loaded = true // Stejně nastavíme, aby se zobrazila chyba místo nekonečného načítání
         }
     }
@@ -652,7 +653,7 @@ fun PostDetailScreen(
         hasExercises = try {
             vm.checkHasExercises(postId, postCategoryId)
         } catch (e: Exception) {
-            android.util.Log.e("PostDetailScreen", "Error re-checking exercises", e)
+            Timber.e(e, "Error re-checking exercises")
             hasExercises
         }
 
@@ -660,7 +661,7 @@ fun PostDetailScreen(
         try {
             vm.loadExercisesByPostId(postId, postCategoryId)
         } catch (e: Exception) {
-            android.util.Log.e("PostDetailScreen", "Error reloading exercises", e)
+            Timber.e(e, "Error reloading exercises")
         }
     }
 
@@ -887,7 +888,7 @@ fun PostDetailScreen(
                             }
                             postDetail?.content?.let { content ->
                                 val contentElements = remember(content, isOffline, posts) {
-                                    android.util.Log.d("PostDetailScreen", "Parsování článku ID: $postId, délka: ${content.length}")
+                                    Timber.d("Parsování článku ID: $postId, délka: ${content.length}")
                                     parseContentToElements(content, isOffline, posts)
                                 }
 
@@ -956,7 +957,7 @@ fun PostDetailScreen(
                                                                         try {
                                                                             navController.context.startActivity(intent)
                                                                         } catch (e: Exception) {
-                                                                            android.util.Log.e("PostDetailScreen", "Chyba při otevírání odkazu", e)
+                                                                            Timber.e(e, "Chyba při otevírání odkazu")
                                                                         }
                                                                     }
                                                                 }
@@ -1066,7 +1067,7 @@ fun PostDetailScreen(
                                                                 android.widget.Toast.LENGTH_SHORT
                                                             ).show()
                                                         } catch (e: Exception) {
-                                                            android.util.Log.e("PostDetailScreen", "Error loading exercises", e)
+                                                            Timber.e(e, "Error loading exercises")
                                                             android.widget.Toast.makeText(
                                                                 context,
                                                                 "Chyba při načítání cvičení",
@@ -1096,7 +1097,7 @@ fun PostDetailScreen(
                                                                         ).show()
                                                                     }
                                                                 } catch (e: Exception) {
-                                                                    android.util.Log.e("PostDetailScreen", "Error opening exercise", e)
+                                                                    Timber.e(e, "Error opening exercise")
                                                                     android.widget.Toast.makeText(
                                                                         context,
                                                                         "Chyba při otevírání cvičení",

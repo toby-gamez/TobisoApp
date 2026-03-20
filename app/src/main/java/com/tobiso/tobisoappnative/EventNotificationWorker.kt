@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative
+import timber.log.Timber
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -40,7 +41,7 @@ class EventNotificationWorker(
             
             Result.success()
         } catch (e: Exception) {
-            android.util.Log.e("EventNotificationWorker", "Error in notification worker", e)
+            Timber.e(e, "Error in notification worker")
             Result.failure()
         }
     }
@@ -52,11 +53,11 @@ class EventNotificationWorker(
                     add(Calendar.DAY_OF_MONTH, 1)
                 }
                 
-                android.util.Log.d("EventNotificationWorker", "=== TOMORROW NOTIFICATION CHECK ===")
-                android.util.Log.d("EventNotificationWorker", "Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(tomorrow.time)}")
+                Timber.d("=== TOMORROW NOTIFICATION CHECK ===")
+                Timber.d("Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(tomorrow.time)}")
                 
                 val events = getEventsForDate(tomorrow.time)
-                android.util.Log.d("EventNotificationWorker", "Found ${events.size} events for tomorrow")
+                Timber.d("Found ${events.size} events for tomorrow")
                 
                 if (events.isNotEmpty()) {
                     // Máš volno - jsou naplánované události (prázdniny/víkend)
@@ -87,7 +88,7 @@ class EventNotificationWorker(
                     )
                 }
             } catch (e: Exception) {
-                android.util.Log.e("EventNotificationWorker", "Error loading tomorrow events", e)
+                Timber.e(e, "Error loading tomorrow events")
             }
         }
     }
@@ -96,11 +97,11 @@ class EventNotificationWorker(
         runBlocking {
             try {
                 val today = Calendar.getInstance().time
-                android.util.Log.d("EventNotificationWorker", "=== TODAY NOTIFICATION CHECK ===")
-                android.util.Log.d("EventNotificationWorker", "Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(today)}")
+                Timber.d("=== TODAY NOTIFICATION CHECK ===")
+                Timber.d("Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(today)}")
                 
                 val events = getEventsForDate(today)
-                android.util.Log.d("EventNotificationWorker", "Found ${events.size} events for today")
+                Timber.d("Found ${events.size} events for today")
                 
                 if (events.isNotEmpty()) {
                     // Máš volno - jsou naplánované události (prázdniny/víkend)
@@ -158,7 +159,7 @@ class EventNotificationWorker(
                     )
                 }
             } catch (e: Exception) {
-                android.util.Log.e("EventNotificationWorker", "Error loading today events", e)
+                Timber.e(e, "Error loading today events")
             }
         }
     }
@@ -180,28 +181,27 @@ class EventNotificationWorker(
         val endDate = dateFormat.format(calendar.time)
         
         try {
-            android.util.Log.d("EventNotificationWorker", "Requesting events range: $startDate - $endDate")
+            Timber.d("Requesting events range: $startDate - $endDate")
             val allEventsArray = ApiClient.apiService.getEventsInRange(startDate, endDate)
             val allEvents = allEventsArray.toList()
 
-            android.util.Log.d("EventNotificationWorker", "API returned ${allEvents.size} events (raw)")
+            Timber.d("API returned ${allEvents.size} events (raw)")
 
             // Filtruj události, které se skutečně překrývají s daným dnem
             val filtered = allEvents.filter { event ->
                 val hasStart = event.startDate != null
                 val overlaps = hasStart && doesEventOverlapDay(event, date)
-                android.util.Log.d(
-                    "EventNotificationWorker",
-                    "Event check id=${event.id} title=${event.getTitleSafe()} start=${event.startDate?.let { logDateFormat.format(it) }} end=${event.endDate?.let { logDateFormat.format(it) }} isAllDay=${event.isAllDaySafe()} overlaps=$overlaps"
+                Timber.d(
+                "Event check id=${event.id} title=${event.getTitleSafe()} start=${event.startDate?.let { logDateFormat.format(it) }} end=${event.endDate?.let { logDateFormat.format(it) }} isAllDay=${event.isAllDaySafe()} overlaps=$overlaps"
                 )
                 overlaps
             }
 
-            android.util.Log.d("EventNotificationWorker", "Filtered to ${filtered.size} events for date ${logDateFormat.format(date)}")
+            Timber.d("Filtered to ${filtered.size} events for date ${logDateFormat.format(date)}")
             return filtered
         } catch (e: Exception) {
-            android.util.Log.e("EventNotificationWorker", "Error fetching events for date $date", e)
-            android.util.Log.w("EventNotificationWorker", "API failed, trying fallback logic...")
+            Timber.e(e, "Error fetching events for date $date")
+            Timber.w("API failed, trying fallback logic...")
 
             // FALLBACK: Zkus použít lokální data nebo základní víkendovou logiku
             return getFallbackEventsForDate(date)
@@ -294,7 +294,7 @@ class EventNotificationWorker(
      * Fallback logika když API není dostupné (background worker problém)
      */
     private suspend fun getFallbackEventsForDate(date: Date): List<Event> {
-        android.util.Log.d("EventNotificationWorker", "Using fallback logic for date: $date")
+        Timber.d("Using fallback logic for date: $date")
         
         try {
             // 1. Zkus nejdřív lokální události (místně uložené)
@@ -309,7 +309,7 @@ class EventNotificationWorker(
                 doesEventOverlapDay(event, date)
             }
             
-            android.util.Log.d("EventNotificationWorker", "Found ${relevantLocalEvents.size} local events")
+            Timber.d("Found ${relevantLocalEvents.size} local events")
             
             if (relevantLocalEvents.isNotEmpty()) {
                 return relevantLocalEvents
@@ -319,12 +319,12 @@ class EventNotificationWorker(
             val calendar = Calendar.getInstance().apply { time = date }
             val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
             
-            android.util.Log.d("EventNotificationWorker", "No local events, checking day of week: $dayOfWeek")
+            Timber.d("No local events, checking day of week: $dayOfWeek")
             
             // Pokud je víkend, vytvoř umělou událost "víkend"
             if (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY) {
                 val dayName = if (dayOfWeek == Calendar.SATURDAY) "Sobota" else "Neděle"
-                android.util.Log.d("EventNotificationWorker", "Creating artificial weekend event for $dayName")
+                Timber.d("Creating artificial weekend event for $dayName")
                 
                 // Vytvoř umělou událost pro víkend
                 val weekendEvent = Event(
@@ -345,18 +345,18 @@ class EventNotificationWorker(
                 return listOf(weekendEvent)
             }
             
-            android.util.Log.d("EventNotificationWorker", "Weekday and no local events - assuming school day")
+            Timber.d("Weekday and no local events - assuming school day")
             return emptyList() // Všední den bez událostí = škola
             
         } catch (e: Exception) {
-            android.util.Log.e("EventNotificationWorker", "Error in fallback logic", e)
+            Timber.e(e, "Error in fallback logic")
             
             // Poslední záchrana: základní víkendová logika bez lokálních dat
             val calendar = Calendar.getInstance().apply { time = date }
             val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
             
             if (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY) {
-                android.util.Log.w("EventNotificationWorker", "Emergency fallback: assuming weekend is free day")
+                Timber.w("Emergency fallback: assuming weekend is free day")
                 return listOf(Event(
                     id = -999998,
                     title = "Víkend",
