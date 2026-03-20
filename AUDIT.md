@@ -344,13 +344,15 @@ postsArray.forEach { post ->
 
 **Opraveno:** `OfflineDataManager` migrován na Room databázi (`tobiso_offline.db`). Vytvořeny entity pro všechny 8 datových typů (`CategoryEntity`, `PostEntity`, `QuestionPostEntity`, `QuestionEntity`, `EventEntity`, `AddendumEntity`, `RelatedPostEntity`, `ExerciseEntity`), příslušná DAO rozhraní a `AppDatabase`. Room je registrován v `DatabaseModule` jako Hilt singleton; DAO závislosti jsou injektovány do `OfflineDataManager` přes `AppModule`. Room garantuje přístup k DB výhradně z vláken IO – volání z hlavního vlákna vyhodí výjimku a tím zcela eliminuje ANR riziko. Staré soubory JSON z `filesDir/offline_cache/` jsou automaticky smazány při prvním startu nové verze. Jako bonus přinesla migrace SQL indexy na sloupce `categoryId` a `postId`, takže dotazy jako `getCachedPostsByCategory()` či `getCachedQuestionsByPostId()` již neprocházejí celou tabulku v paměti.
 
-### 5.4 `material-icons-extended` jako plná závislost ⚠️
+### ~~5.4 `material-icons-extended` jako plná závislost~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 implementation("androidx.compose.material:material-icons-extended:1.7.6")
-```
+```~~
 
-Tato závislost přidá přes 7 MB ke velikosti APK. Při release buildu s R8 se nepoužívané ikony zahazují, ale správnější přístup je použít jen konkrétní ikony z resources nebo SVG.
+~~Tato závislost přidá přes 7 MB ke velikosti APK. Při release buildu s R8 se nepoužívané ikony zahazují, ale správnější přístup je použít jen konkrétní ikony z resources nebo SVG.~~
+
+**Opraveno:** Odstraněna explicitní verze `materialIconsExtended = "1.7.8"` z `libs.versions.toml`. Závislost `androidx-material-icons-extended` nyní nemá `version.ref` – verzi spravuje Compose BOM (`2025.05.00`), stejně jako ostatní Compose knihovny (`material3`, `ui` atd.). Release build má aktivní `isMinifyEnabled = true` a `isShrinkResources = true`, takže R8 odstraní všechny nepoužívané ikony – reálný přírůstek APK odpovídá jen cca 70 ikonám reálně použitým v kódu.
 
 ### 5.5 Debug `println()` v produkčním kódu ❌
 
