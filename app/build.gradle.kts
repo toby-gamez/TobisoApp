@@ -23,7 +23,7 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "2.0"
+        versionName = "2.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -71,7 +71,6 @@ android {
             isDebuggable = true
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-DEBUG"
             
             // Debug build config fields
             buildConfigField("boolean", "IS_PRODUCTION", "false")
