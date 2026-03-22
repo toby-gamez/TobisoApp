@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.postdetail.PostDetailViewModel
+import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.Composable
 import com.halilibo.richtext.ui.material3.RichText
@@ -457,7 +458,8 @@ fun parseContentToElements(
 @Composable
 fun PostDetailScreen(
     postId: Int,
-    navController: NavController
+    navController: NavController,
+    ttsViewModel: TtsViewModel
 ) {
     val vm: PostDetailViewModel = hiltViewModel()
     val postDetail by vm.postDetail.collectAsState()
@@ -477,7 +479,7 @@ fun PostDetailScreen(
     var loaded by remember { mutableStateOf(false) }
     var hasQuestions by remember { mutableStateOf(false) }
     var hasExercises by remember { mutableStateOf(false) }
-    val ttsManager = vm.getTtsManager()
+    val ttsManager = ttsViewModel.ttsManager
     val addendums by vm.addendums.collectAsState()
     var selectedAddendum by remember { mutableStateOf<Addendum?>(null) }
     var showAddendumDialog by remember { mutableStateOf(false) }
@@ -733,11 +735,11 @@ fun PostDetailScreen(
                         MultiplierIndicator()
                         
                         // TTS BUTTON - nejlevější tlačítko
-                        if (ttsManager != null && postDetail?.content != null) {
+                        if (postDetail?.content != null) {
                             IconButton(onClick = {
                                 val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content ?: "")
                                 if (plainText.isNotEmpty()) {
-                                    vm.getTtsManager().speak(plainText)
+                                    ttsViewModel.speak(plainText)
                                 }
                             }) {
                                 Icon(

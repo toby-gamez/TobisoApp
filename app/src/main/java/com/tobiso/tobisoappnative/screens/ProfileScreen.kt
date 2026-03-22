@@ -421,7 +421,7 @@ fun ProfileScreen(navController: NavController) {
                                 {"Jak nakládáme s tvými daty a soukromím?"} 
                                 else if (post.title == "Podmínky použití") 
                                 {"Pravidla a podmínky pro používání aplikace"} 
-                                else {"Proč vlastně toto existuje?"}
+                                else {"Proč tento projekt vlastně existuje?"}
                                 , style = MaterialTheme.typography.bodySmall)
                             }
                         }

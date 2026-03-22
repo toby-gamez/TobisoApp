@@ -74,7 +74,9 @@ fun ChangelogScreen(navController: NavController) {
             "integrace cvičení do systému bodů",
             "opraveno zobrazování souvisejících článků",
             "přidána umělá inteligence",
-            "opraveny obrázky s pozadím"
+            "opraveny obrázky s pozadím",
+            "vylepšeno UI",
+            "znovupřidáno čtení článků",
         )),
         VersionInfo("2.7", listOf(
             "přidána podpora pro obrázky z nového serveru",

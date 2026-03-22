@@ -343,7 +343,8 @@ fun TobisoApp(navigateTo: String? = null) {
                                 val route: PostDetailRoute = backStackEntry.toRoute()
                                 com.tobiso.tobisoappnative.screens.PostDetailScreen(
                                     postId = route.postId,
-                                    navController = navController
+                                    navController = navController,
+                                    ttsViewModel = ttsViewModel
                                 )
                             }
                             composable<ExerciseTimelineRoute>(
@@ -504,7 +505,7 @@ fun TobisoApp(navigateTo: String? = null) {
                     val bottomBarVisible = showBottomBar
 
                     if (ttsManagerInstance != null) {
-                        val raiseBy = 63.dp
+                        val raiseBy = 100.dp
                         val bottomPadding = if (bottomBarVisible) 72.dp else 12.dp
                         val adjustedBottom = bottomPadding + raiseBy
                         TtsPlayer(
