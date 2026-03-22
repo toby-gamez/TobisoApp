@@ -415,7 +415,14 @@ fun ProfileScreen(navController: NavController) {
 
                             val formatted = latestDate?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
                             if (formatted.isNotBlank()) {
-                                Text(text = if (post.title == "O mně") "Něco drobného o autoru aplikace" else "Proč vlastně toto existuje?", style = MaterialTheme.typography.bodySmall)
+                                Text(text = if (post.title == "O mně") 
+                                {"Něco drobného o autoru aplikace"} 
+                                else if (post.title == "Zásady ochrany osobních údajů") 
+                                {"Jak nakládáme s tvými daty a soukromím?"} 
+                                else if (post.title == "Podmínky použití") 
+                                {"Pravidla a podmínky pro používání aplikace"} 
+                                else {"Proč vlastně toto existuje?"}
+                                , style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
