@@ -1450,12 +1450,6 @@ fun PostDetailScreen(
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { 
-                            showAddendumDialog = false
-                            selectedAddendum = null
-                        }) {
-                            Icon(Icons.Default.Close, contentDescription = "Zavřít")
-                        }
                     }
                 },
                 text = {

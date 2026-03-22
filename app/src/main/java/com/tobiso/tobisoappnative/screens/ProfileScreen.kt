@@ -625,25 +625,25 @@ fun ProfileSection(navController: NavController) {
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(6.dp),
+            elevation = CardDefaults.cardElevation(0.dp),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // Profilový obrázek
             Box(
-                modifier = Modifier.size(120.dp),
+                modifier = Modifier.size(64.dp),
                 contentAlignment = Alignment.Center
             ) {
                 // Kruh s obrázkem nebo ikonou
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(64.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                         .clickable {
@@ -656,7 +656,7 @@ fun ProfileSection(navController: NavController) {
                             model = File(profileImageUri!!),
                             contentDescription = "Profilový obrázek",
                             modifier = Modifier
-                                .size(120.dp)
+                                .size(64.dp)
                                 .clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
@@ -664,7 +664,7 @@ fun ProfileSection(navController: NavController) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = "Profilový obrázek",
-                            modifier = Modifier.size(60.dp),
+                            modifier = Modifier.size(32.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -674,7 +674,7 @@ fun ProfileSection(navController: NavController) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .size(36.dp)
+                        .size(30.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
                         .clickable {
@@ -685,7 +685,7 @@ fun ProfileSection(navController: NavController) {
                     Icon(
                         imageVector = Icons.Default.PhotoCamera,
                         contentDescription = "Změnit obrázek",
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -696,7 +696,7 @@ fun ProfileSection(navController: NavController) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .size(36.dp)
+                            .size(30.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f))
                             .clickable { 
@@ -708,14 +708,14 @@ fun ProfileSection(navController: NavController) {
                     ) {
                         Text(
                             text = petIcon,
-                            fontSize = 20.sp,
+                            fontSize = 16.sp,
                             color = MaterialTheme.colorScheme.onSecondary
                         )
                     }
                 }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             
             // Jméno profilu
             if (isEditingName) {
@@ -724,7 +724,7 @@ fun ProfileSection(navController: NavController) {
                     onValueChange = { tempName = it },
                     label = { Text("Jméno") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(1f),
                     trailingIcon = {
                         Row {
                             IconButton(
@@ -756,16 +756,17 @@ fun ProfileSection(navController: NavController) {
             } else {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { 
-                        isEditingName = true
-                        tempName = profileName
-                    }
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { 
+                            isEditingName = true
+                            tempName = profileName
+                        }
                 ) {
                     Text(
                         text = profileName,
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
+                        fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
