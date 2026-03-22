@@ -135,15 +135,17 @@ fun PostListItem(
     categoryName: String,
     onClick: () -> Unit = {}
 ) {
-    val displayMillis = post.lastEdit?.let { parseDateToMillis(it) } ?: post.lastFix?.let { parseDateToMillis(it) }
+    val candidates = listOfNotNull(post.lastEdit, post.lastFix, post.createdAt)
+    val latestMillis = candidates.mapNotNull { parseDateToMillis(it) }.maxOrNull()
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = post.title,
                 style = MaterialTheme.typography.titleMedium,
@@ -161,7 +163,7 @@ fun PostListItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = formatDateOnly(displayMillis),
+                    text = formatDateOnly(latestMillis),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
