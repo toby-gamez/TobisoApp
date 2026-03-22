@@ -31,6 +31,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.navigation.NavDestination.Companion.hasRoute
+import com.tobiso.tobisoappnative.navigation.BOTTOM_BAR_ROUTES
 import com.tobiso.tobisoappnative.navigation.AiChatRoute
 import com.tobiso.tobisoappnative.navigation.AllQuestionsRoute
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
@@ -233,12 +234,7 @@ fun TobisoApp(navigateTo: String? = null) {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val destination = navBackStackEntry?.destination
                     val showBottomBar = destination == null ||
-                        destination.hasRoute(HomeRoute::class) ||
-                        destination.hasRoute(AllQuestionsRoute::class) ||
-                        destination.hasRoute(CalendarRoute::class) ||
-                        destination.hasRoute(CalendarWithDateRoute::class) ||
-                        destination.hasRoute(ProfileRoute::class) ||
-                        destination.hasRoute(CategoryListRoute::class)
+                        BOTTOM_BAR_ROUTES.any { destination.hasRoute(it) }
                     Scaffold(
                         bottomBar = {
                             AnimatedVisibility(
@@ -521,12 +517,7 @@ fun TobisoApp(navigateTo: String? = null) {
                     }
 
                     // Floating Search Bar
-                    val showFloatingSearch = destination?.hasRoute(HomeRoute::class) == true ||
-                            destination?.hasRoute(AllQuestionsRoute::class) == true ||
-                            destination?.hasRoute(CalendarRoute::class) == true ||
-                            destination?.hasRoute(CalendarWithDateRoute::class) == true ||
-                            destination?.hasRoute(ProfileRoute::class) == true ||
-                            destination?.hasRoute(CategoryListRoute::class) == true
+                    val showFloatingSearch = BOTTOM_BAR_ROUTES.any { destination?.hasRoute(it) == true }
 
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showFloatingSearch,

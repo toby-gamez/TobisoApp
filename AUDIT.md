@@ -439,16 +439,21 @@ navController.navigate(AiChatRoute(postId = post.id, postTitle = post.title, fir
 
 **Opraveno:** Vytvořen soubor `navigation/Routes.kt` s 26 typově bezpečnými route třídami anotovanými `@Serializable` (stabilní Type-Safe Navigation z Compose Navigation 2.8+). Všechny `composable("route")` definice v `TobisoApp.kt` nahrazeny `composable<RouteType>`, argumenty čteny přes `backStackEntry.toRoute()` místo `backStackEntry.arguments?.getString()`. Všechna volání `navController.navigate("route-string")` nahrazena `navController.navigate(RouteObject)` ve všech souborech (PostDetailScreen, CalendarScreen, HomeScreen, ProfileScreen, AllQuestionsScreen, CategoryListScreen, FavoritesScreen, FloatingSearchBar, ShopScreen, BackpackScreen, PlainTextScreen, BottomBar). Přepsat na typy detekovány překlídem – překlep v názvu route způsobí chybu at compile time, ne crash za běhu.
 
-### 7.2 Viditelnost bottom baru – fragile ⚠️
+### ~~7.2 Viditelnost bottom baru – fragile~~ ✅ OPRAVENO
 
 ```kotlin
+// PŘED:
 visible = (route == null || !(route.startsWith("postDetail") ||
     route.startsWith("about") || route.startsWith("feedback") ||
     // ... 15 dalších podmínek
 ))
+
+// PO:
+val showBottomBar = destination == null ||
+    BOTTOM_BAR_ROUTES.any { destination.hasRoute(it) }
 ```
 
-Tento seznam musí být manuálně udržován. Při přidání nové obrazovky, kde má být bottom bar skryt, je snadné zapomenout ho přidat. S type-safe navigací by každá route mohla deklarovat vlastní metadata.
+**Opraveno:** Vytvořena sada `BOTTOM_BAR_ROUTES: Set<KClass<*>>` v `Routes.kt` přímo vedle definic routů. Každý rout, který má zobrazovat bottom bar, je uveden v této sadě – metadata jsou co-located s definicí routu. `TobisoApp.kt` používá `BOTTOM_BAR_ROUTES.any { destination.hasRoute(it) }` místo hardcoded výčtu `hasRoute()` volání. Stejný přístup aplikován i na `showFloatingSearch`, který sdílel identický seznam. Při přidání nového routu s bottom barem stačí přidat jeden řádek do `BOTTOM_BAR_ROUTES` v `Routes.kt` – žádná změna jinde není potřeba.
 
 ---
 

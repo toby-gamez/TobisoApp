@@ -1,6 +1,7 @@
 package com.tobiso.tobisoappnative.navigation
 
 import kotlinx.serialization.Serializable
+import kotlin.reflect.KClass
 
 @Serializable
 object HomeRoute
@@ -79,3 +80,17 @@ object BackpackRoute
 
 @Serializable
 data class AiChatRoute(val postId: Int, val postTitle: String, val firstUserMessage: String)
+
+/**
+ * Routes where the bottom navigation bar should be visible.
+ * Add a route here when the screen should display the bottom bar.
+ * All other routes automatically hide it — no changes needed elsewhere.
+ */
+val BOTTOM_BAR_ROUTES: Set<KClass<*>> = setOf(
+    HomeRoute::class,
+    AllQuestionsRoute::class,
+    CalendarRoute::class,
+    CalendarWithDateRoute::class,
+    ProfileRoute::class,
+    CategoryListRoute::class,
+)
