@@ -423,23 +423,21 @@ Use Cases (`GetExerciseUseCase`, `ValidateExerciseUseCase`, `GetAllQuestionsUseC
 
 ## 7. Navigace
 
-### 7.1 Magické route strings ❌
+### ~~7.1 Magické route strings~~ ✅ OPRAVENO
 
 ```kotlin
-// MainActivity.kt
+// PŘED:
 navController.navigate("postDetail/$postId")
 navController.navigate("questions/$categoryId/$postId")
 navController.navigate("aiChat/$postId/$postTitle/$encodedMessage")
-```
 
-Route řetězce jsou hardcoded stringy. Typo způsobí crash za běhu, ne compile error. Moderní řešení je **Type-Safe Navigation** (stabilní od Compose Navigation 2.8.x):
-
-```kotlin
-@Serializable
-data class PostDetailRoute(val postId: Int)
-
+// PO:
 navController.navigate(PostDetailRoute(postId = post.id))
+navController.navigate(QuestionsRoute(postId = postId))
+navController.navigate(AiChatRoute(postId = post.id, postTitle = post.title, firstUserMessage = message))
 ```
+
+**Opraveno:** Vytvořen soubor `navigation/Routes.kt` s 26 typově bezpečnými route třídami anotovanými `@Serializable` (stabilní Type-Safe Navigation z Compose Navigation 2.8+). Všechny `composable("route")` definice v `TobisoApp.kt` nahrazeny `composable<RouteType>`, argumenty čteny přes `backStackEntry.toRoute()` místo `backStackEntry.arguments?.getString()`. Všechna volání `navController.navigate("route-string")` nahrazena `navController.navigate(RouteObject)` ve všech souborech (PostDetailScreen, CalendarScreen, HomeScreen, ProfileScreen, AllQuestionsScreen, CategoryListScreen, FavoritesScreen, FloatingSearchBar, ShopScreen, BackpackScreen, PlainTextScreen, BottomBar). Přepsat na typy detekovány překlídem – překlep v názvu route způsobí chybu at compile time, ne crash za běhu.
 
 ### 7.2 Viditelnost bottom baru – fragile ⚠️
 

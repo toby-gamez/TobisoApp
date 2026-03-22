@@ -1,6 +1,15 @@
 package com.tobiso.tobisoappnative.screens
 import timber.log.Timber
 
+import com.tobiso.tobisoappnative.navigation.AiChatRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseMatchingRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
+import com.tobiso.tobisoappnative.navigation.PlainTextRoute
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
+import com.tobiso.tobisoappnative.navigation.QuestionsRoute
+import com.tobiso.tobisoappnative.navigation.VideoPlayerRoute
 import android.net.Uri
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -940,7 +949,7 @@ fun PostDetailScreen(
                                                             ),
                                                             modifier = Modifier.clickable {
                                                                 if (element.postId != null) {
-                                                                    navController.navigate("postDetail/${element.postId}")
+                                                                    navController.navigate(PostDetailRoute(postId = element.postId))
                                                                 } else if (!isOffline) {
                                                                     val url = element.url
                                                                     if (url.contains("http") || url.startsWith("files") || url.contains("/files/")) {
@@ -978,7 +987,7 @@ fun PostDetailScreen(
                                                         OutlinedButton(
                                                             onClick = {
                                                                 navController.navigate(
-                                                                    "videoPlayer/${Uri.encode(element.videoUrl)}"
+                                                                    VideoPlayerRoute(videoUrl = Uri.encode(element.videoUrl))
                                                                 )
                                                             },
                                                             modifier = Modifier.padding(vertical = 8.dp)
@@ -1086,10 +1095,10 @@ fun PostDetailScreen(
                                                             coroutineScope.launch {
                                                                 try {
                                                                     when (ex.type) {
-                                                                        "timeline" -> navController.navigate("exerciseTimeline/${ex.id}")
-                                                                        "drag-drop" -> navController.navigate("exerciseDragDrop/${ex.id}")
-                                                                        "matching" -> navController.navigate("exerciseMatching/${ex.id}")
-                                                                        "circuit" -> navController.navigate("exerciseCircuit/${ex.id}")
+                                                                        "timeline" -> navController.navigate(ExerciseTimelineRoute(exerciseId = ex.id))
+                                                                        "drag-drop" -> navController.navigate(ExerciseDragDropRoute(exerciseId = ex.id))
+                                                                        "matching" -> navController.navigate(ExerciseMatchingRoute(exerciseId = ex.id))
+                                                                        "circuit" -> navController.navigate(ExerciseCircuitRoute(exerciseId = ex.id))
                                                                         else -> android.widget.Toast.makeText(
                                                                             context,
                                                                             "Nepodporovaný typ cvičení: ${ex.type}",
@@ -1118,7 +1127,7 @@ fun PostDetailScreen(
                                     
                                     if (hasQuestions || questions.isNotEmpty()) {
                                         Button(
-                                            onClick = { navController.navigate("questions/$postId") },
+                                            onClick = { navController.navigate(QuestionsRoute(postId = postId)) },
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = MaterialTheme.colorScheme.secondary
                                             )
@@ -1159,7 +1168,7 @@ fun PostDetailScreen(
                                                     .fillMaxWidth()
                                                     .padding(vertical = 4.dp),
                                                 onClick = {
-                                                    navController.navigate("postDetail/${relatedPost.relatedPostId}")
+                                                    navController.navigate(PostDetailRoute(postId = relatedPost.relatedPostId))
                                                 }
                                             ) {
                                                 Column(
@@ -1248,7 +1257,7 @@ fun PostDetailScreen(
                     FloatingActionButton(onClick = {
                         showFloatingSelectButton = false
                         // Proper navigation to the plain-text selectable screen
-                        navController.navigate("plainText/$postId")
+                        navController.navigate(PlainTextRoute(postId = postId))
                     }) {
                         Icon(Icons.Default.TextFields, contentDescription = "Vybrat text")
                     }
@@ -1314,7 +1323,11 @@ fun PostDetailScreen(
                                 onSend = {
                                     if (aiInputText.isNotBlank()) {
                                         navController.navigate(
-                                            "aiChat/$postId/${android.net.Uri.encode(postTitle)}/${android.net.Uri.encode(aiInputText)}"
+                                            AiChatRoute(
+                                                postId = postId,
+                                                postTitle = android.net.Uri.encode(postTitle),
+                                                firstUserMessage = android.net.Uri.encode(aiInputText)
+                                            )
                                         )
                                         aiInputText = ""
                                         aiInputExpanded = false
@@ -1332,7 +1345,11 @@ fun PostDetailScreen(
                             onClick = {
                                 if (aiInputText.isNotBlank()) {
                                     navController.navigate(
-                                        "aiChat/$postId/${android.net.Uri.encode(postTitle)}/${android.net.Uri.encode(aiInputText)}"
+                                        AiChatRoute(
+                                            postId = postId,
+                                            postTitle = android.net.Uri.encode(postTitle),
+                                            firstUserMessage = android.net.Uri.encode(aiInputText)
+                                        )
                                     )
                                     aiInputText = ""
                                     aiInputExpanded = false

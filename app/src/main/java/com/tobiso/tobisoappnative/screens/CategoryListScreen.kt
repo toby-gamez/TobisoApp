@@ -1,5 +1,8 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.navigation.CategoryListRoute
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -131,7 +134,7 @@ fun CategoryListScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { navController.navigate("categoryList/${category.name}") },
+                            .clickable { navController.navigate(CategoryListRoute(categoryName = category.name)) },
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Folder, contentDescription = "Kategorie", modifier = Modifier.size(32.dp))
@@ -170,7 +173,7 @@ fun CategoryListScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { navController.navigate("postDetail/${post.id}") },
+                                .clickable { navController.navigate(PostDetailRoute(postId = post.id)) },
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Row(

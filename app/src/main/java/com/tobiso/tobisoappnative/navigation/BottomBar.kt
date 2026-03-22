@@ -12,12 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 @Composable
 fun BottomBar(navController: NavHostController, searchRequestFocus: MutableState<Boolean>) {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = currentBackStackEntry?.destination?.route
+    val currentDestination = currentBackStackEntry?.destination
 
     NavigationBar (
         modifier = Modifier.padding(top = 0.dp)
@@ -25,26 +26,26 @@ fun BottomBar(navController: NavHostController, searchRequestFocus: MutableState
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, contentDescription = "Zobrazení všech předmětů") },
             label = { Text("Učivo", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
-            selected = currentDestination == "home",
-            onClick = { navController.navigate("home") }
+            selected = currentDestination?.hasRoute(HomeRoute::class) == true,
+            onClick = { navController.navigate(HomeRoute) }
         )
         NavigationBarItem(
             icon = { Icon(Icons.AutoMirrored.Filled.DirectionsWalk, contentDescription = "Procvičování všech otázek") },
             label = { Text("Procvičování", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
-            selected = currentDestination == "allQuestions",
-            onClick = { navController.navigate("allQuestions") }
+            selected = currentDestination?.hasRoute(AllQuestionsRoute::class) == true,
+            onClick = { navController.navigate(AllQuestionsRoute) }
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.CalendarToday, contentDescription = "Kalendář s událostmi") },
             label = { Text("Kalendář", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
-            selected = currentDestination == "calendar",
-            onClick = { navController.navigate("calendar") }
+            selected = currentDestination?.hasRoute(CalendarRoute::class) == true,
+            onClick = { navController.navigate(CalendarRoute) }
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.Person, contentDescription = "Profil") },
             label = { Text("Profil", style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)) },
-            selected = currentDestination == "profile",
-            onClick = { navController.navigate("profile") }
+            selected = currentDestination?.hasRoute(ProfileRoute::class) == true,
+            onClick = { navController.navigate(ProfileRoute) }
         )
     }
 }

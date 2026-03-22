@@ -1,6 +1,9 @@
 package com.tobiso.tobisoappnative.screens
 import timber.log.Timber
 
+import com.tobiso.tobisoappnative.navigation.EventDetailRoute
+import com.tobiso.tobisoappnative.navigation.StreakRoute
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -251,7 +254,7 @@ fun CalendarScreen(
                     
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { navController?.navigate("streak") }
+                        modifier = Modifier.clickable { navController?.navigate(StreakRoute) }
                     ) {
                         if (currentStreak.value > 0) {
                             Text(
@@ -788,7 +791,7 @@ fun DateDetailCard(
                             event = event,
                             timeFormat = timeFormat,
                             onClick = {
-                                navController?.navigate("eventDetail/${event.id}")
+                                navController?.navigate(EventDetailRoute(eventId = event.id))
                             },
                             onEdit = if (event.isLocalSafe()) { { onEditEvent(event) } } else null,
                             onDelete = if (event.isLocalSafe()) { { onDeleteEvent(event.id) } } else null

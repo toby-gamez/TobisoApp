@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.navigation.ShopRoute
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -125,7 +127,7 @@ fun BackpackScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { navController.navigate("shop") }
+                        onClick = { navController.navigate(ShopRoute) }
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ShoppingBag,

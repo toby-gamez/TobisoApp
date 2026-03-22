@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.navigation.FavoritesRoute
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -305,7 +307,7 @@ fun PlainTextScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 TextButton(onClick = {
                                     showSavedSnackbar = false
-                                    navController.navigate("favorites")
+                                    navController.navigate(FavoritesRoute)
                                 }) {
                                     Text("Zobrazit")
                                 }

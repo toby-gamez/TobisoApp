@@ -1,5 +1,15 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.navigation.BackpackRoute
+import com.tobiso.tobisoappnative.navigation.ShopRoute
+import com.tobiso.tobisoappnative.navigation.StreakRoute
+import com.tobiso.tobisoappnative.navigation.OfflineManagerRoute
+import com.tobiso.tobisoappnative.navigation.FavoritesRoute
+import com.tobiso.tobisoappnative.navigation.UpdaterRoute
+import com.tobiso.tobisoappnative.navigation.FeedbackRoute
+import com.tobiso.tobisoappnative.navigation.AboutRoute
+import com.tobiso.tobisoappnative.navigation.ChangelogRoute
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -148,7 +158,7 @@ fun ProfileScreen(navController: NavController) {
                 actions = {
                     // Ikona aktovky
                     IconButton(
-                        onClick = { navController.navigate("backpack") }
+                        onClick = { navController.navigate(BackpackRoute) }
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Backpack,
@@ -160,7 +170,7 @@ fun ProfileScreen(navController: NavController) {
                     
                     // Ikona obchodu
                     IconButton(
-                        onClick = { navController.navigate("shop") }
+                        onClick = { navController.navigate(ShopRoute) }
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ShoppingBag,
@@ -217,7 +227,7 @@ fun ProfileScreen(navController: NavController) {
                     
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { navController.navigate("streak") }
+                        modifier = Modifier.clickable { navController.navigate(StreakRoute) }
                     ) {
                         if (currentStreak.value > 0) {
                             Text(
@@ -296,7 +306,7 @@ fun ProfileScreen(navController: NavController) {
                             elevation = CardDefaults.cardElevation(4.dp),
                             shape = cardShape,
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("offlineManager") }
+                            onClick = { navController.navigate(OfflineManagerRoute) }
                         ) {
                             Column(Modifier.padding(16.dp)) {
                                 Text("Správce offline dat", style = MaterialTheme.typography.titleMedium)
@@ -311,7 +321,7 @@ fun ProfileScreen(navController: NavController) {
                         elevation = CardDefaults.cardElevation(4.dp),
                         shape = cardShape,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate("favorites") }
+                        onClick = { navController.navigate(FavoritesRoute) }
                     ) {
                         Column(Modifier.padding(16.dp)) {
                             Text("Oblíbené", style = MaterialTheme.typography.titleMedium)
@@ -326,7 +336,7 @@ fun ProfileScreen(navController: NavController) {
                         elevation = CardDefaults.cardElevation(4.dp),
                         shape = cardShape,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate("updater") }
+                        onClick = { navController.navigate(UpdaterRoute) }
                     ) {
                         Column(Modifier.padding(16.dp)) {
                             Text("Aktualizátor", style = MaterialTheme.typography.titleMedium)
@@ -340,7 +350,7 @@ fun ProfileScreen(navController: NavController) {
                             elevation = CardDefaults.cardElevation(4.dp),
                             shape = cardShape,
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("feedback") }
+                            onClick = { navController.navigate(FeedbackRoute) }
                         ) {
                             Column(Modifier.padding(16.dp)) {
                                 Text("Zpětná vazba", style = MaterialTheme.typography.titleMedium)
@@ -354,7 +364,7 @@ fun ProfileScreen(navController: NavController) {
                             elevation = CardDefaults.cardElevation(4.dp),
                             shape = cardShape,
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("about") }
+                            onClick = { navController.navigate(AboutRoute) }
                         ) {
                             Column(Modifier.padding(16.dp)) {
                                 Text("O aplikaci", style = MaterialTheme.typography.titleMedium)
@@ -368,7 +378,7 @@ fun ProfileScreen(navController: NavController) {
                             elevation = CardDefaults.cardElevation(4.dp),
                             shape = cardShape,
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate("changelog") }
+                            onClick = { navController.navigate(ChangelogRoute) }
                         ) {
                             Column(Modifier.padding(16.dp)) {
                                 Text("Deník změn", style = MaterialTheme.typography.titleMedium)
@@ -382,7 +392,7 @@ fun ProfileScreen(navController: NavController) {
                         elevation = CardDefaults.cardElevation(4.dp),
                         shape = cardShape,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate("postDetail/${post.id}") }
+                        onClick = { navController.navigate(PostDetailRoute(postId = post.id)) }
                     ) {
                         Column(Modifier.padding(16.dp)) {
                             Text(text = post.title, style = MaterialTheme.typography.titleMedium)

@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -157,7 +159,7 @@ fun FavoritesScreen(
                                     .padding(8.dp)
                                     .let { mod ->
                                         if (snippet.postId != 0 && postTitle != null) mod.clickable {
-                                            navController.navigate("postDetail/${snippet.postId}")
+                                            navController.navigate(PostDetailRoute(postId = snippet.postId))
                                         } else mod
                                     },
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -210,7 +212,7 @@ fun FavoritesScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(8.dp)
-                                    .clickable { navController.navigate("postDetail/${post.id}") },
+                                    .clickable { navController.navigate(PostDetailRoute(postId = post.id)) },
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Row(

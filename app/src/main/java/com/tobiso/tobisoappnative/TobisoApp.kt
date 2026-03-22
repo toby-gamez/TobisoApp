@@ -29,6 +29,34 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import androidx.navigation.NavDestination.Companion.hasRoute
+import com.tobiso.tobisoappnative.navigation.AiChatRoute
+import com.tobiso.tobisoappnative.navigation.AllQuestionsRoute
+import com.tobiso.tobisoappnative.navigation.BackpackRoute
+import com.tobiso.tobisoappnative.navigation.CalendarRoute
+import com.tobiso.tobisoappnative.navigation.CalendarWithDateRoute
+import com.tobiso.tobisoappnative.navigation.CategoryListRoute
+import com.tobiso.tobisoappnative.navigation.ChangelogRoute
+import com.tobiso.tobisoappnative.navigation.EventDetailRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseMatchingRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
+import com.tobiso.tobisoappnative.navigation.FavoritesRoute
+import com.tobiso.tobisoappnative.navigation.FeedbackRoute
+import com.tobiso.tobisoappnative.navigation.HomeRoute
+import com.tobiso.tobisoappnative.navigation.MixedQuizRoute
+import com.tobiso.tobisoappnative.navigation.OfflineManagerRoute
+import com.tobiso.tobisoappnative.navigation.PlainTextRoute
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
+import com.tobiso.tobisoappnative.navigation.ProfileRoute
+import com.tobiso.tobisoappnative.navigation.QuestionsRoute
+import com.tobiso.tobisoappnative.navigation.ShopRoute
+import com.tobiso.tobisoappnative.navigation.StreakRoute
+import com.tobiso.tobisoappnative.navigation.UpdaterRoute
+import com.tobiso.tobisoappnative.navigation.VideoPlayerRoute
+import com.tobiso.tobisoappnative.navigation.AboutRoute
 import com.tobiso.tobisoappnative.ui.theme.TobisoAppNativeTheme
 import com.tobiso.tobisoappnative.screens.HomeScreen
 import com.tobiso.tobisoappnative.screens.CalendarScreen
@@ -203,32 +231,18 @@ fun TobisoApp(navigateTo: String? = null) {
                 } else {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val route = navBackStackEntry?.destination?.route
+                    val destination = navBackStackEntry?.destination
+                    val showBottomBar = destination == null ||
+                        destination.hasRoute(HomeRoute::class) ||
+                        destination.hasRoute(AllQuestionsRoute::class) ||
+                        destination.hasRoute(CalendarRoute::class) ||
+                        destination.hasRoute(CalendarWithDateRoute::class) ||
+                        destination.hasRoute(ProfileRoute::class) ||
+                        destination.hasRoute(CategoryListRoute::class)
                     Scaffold(
                         bottomBar = {
                             AnimatedVisibility(
-                                visible = (route == null ||
-                                        !(route.startsWith("postDetail") ||
-                                                route.startsWith("about") ||
-                                                route.startsWith("feedback") ||
-                                                route.startsWith("changelog") ||
-                                                route.startsWith("videoPlayer") ||
-                                                route.startsWith("streak") ||
-                                                route.startsWith("favorites") ||
-                                                route.startsWith("updater") ||
-                                                route.startsWith("questions") ||
-                                                route.startsWith("mixedQuiz") ||
-                                                route.startsWith("eventDetail") ||
-                                                route.startsWith("shop") ||
-                                                route.startsWith("backpack") ||
-                                                route.startsWith("plainText") ||
-                                                route.startsWith("exerciseTimeline") ||
-                                                route.startsWith("exerciseDragDrop") ||
-                                                route.startsWith("exerciseMatching") ||
-                                                route.startsWith("exerciseCircuit") ||
-                                                route.startsWith("offlineManager") ||
-                                                route.startsWith("aiChat"))
-                                        ),
+                                visible = showBottomBar,
                                 enter = slideInVertically(
                                     initialOffsetY = { it },
                                     animationSpec = tween(durationMillis = 250, delayMillis = 100)
@@ -244,29 +258,27 @@ fun TobisoApp(navigateTo: String? = null) {
                     ) { paddingValues ->
                         NavHost(
                             navController = navController,
-                            startDestination = if (navigateTo == "calendar") "calendar" else "home",
+                            startDestination = if (navigateTo == "calendar") CalendarRoute else HomeRoute,
                             modifier = Modifier.padding(paddingValues)
                         ) {
-                            composable("home") {
+                            composable<HomeRoute> {
                                 HomeScreen(navController = navController)
                             }
-                            composable("calendar") {
+                            composable<CalendarRoute> {
                                 CalendarScreen(navController = navController)
                             }
-                            composable("calendar/{year}/{month}") { backStackEntry ->
-                                val year = backStackEntry.arguments?.getString("year")?.toIntOrNull()
-                                val month = backStackEntry.arguments?.getString("month")?.toIntOrNull()
+                            composable<CalendarWithDateRoute> { backStackEntry ->
+                                val route: CalendarWithDateRoute = backStackEntry.toRoute()
                                 CalendarScreen(
                                     navController = navController,
-                                    initialYear = year,
-                                    initialMonth = month
+                                    initialYear = route.year,
+                                    initialMonth = route.month
                                 )
                             }
-                            composable("profile") {
+                            composable<ProfileRoute> {
                                 ProfileScreen(navController = navController)
                             }
-                            composable(
-                                "feedback",
+                            composable<FeedbackRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
@@ -274,8 +286,7 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 FeedbackScreen(navController = navController)
                             }
-                            composable(
-                                "changelog",
+                            composable<ChangelogRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
@@ -283,8 +294,7 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 ChangelogScreen(navController = navController)
                             }
-                            composable(
-                                "updater",
+                            composable<UpdaterRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
@@ -292,8 +302,7 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 UpdaterScreen(navController = navController)
                             }
-                            composable(
-                                "offlineManager",
+                            composable<OfflineManagerRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
@@ -301,8 +310,7 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 com.tobiso.tobisoappnative.screens.OfflineManagerScreen(navController = navController)
                             }
-                            composable(
-                                "about",
+                            composable<AboutRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
@@ -310,8 +318,7 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 AboutScreen(navController = navController)
                             }
-                            composable(
-                                "favorites",
+                            composable<FavoritesRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
@@ -319,136 +326,103 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 FavoritesScreen(navController = navController)
                             }
-                            composable(
-                                "categoryList/{categoryName}",
+                            composable<CategoryListRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
+                                val route: CategoryListRoute = backStackEntry.toRoute()
                                 CategoryListScreen(
-                                    parentCategoryName = categoryName,
+                                    parentCategoryName = route.categoryName,
                                     navController = navController
                                 )
                             }
-                            composable(
-                                "postDetail/{postId}",
+                            composable<PostDetailRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val postId = backStackEntry.arguments?.getString("postId")?.toIntOrNull()
-                                if (postId != null) {
-                                    com.tobiso.tobisoappnative.screens.PostDetailScreen(
-                                        postId = postId,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybný postId", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: PostDetailRoute = backStackEntry.toRoute()
+                                com.tobiso.tobisoappnative.screens.PostDetailScreen(
+                                    postId = route.postId,
+                                    navController = navController
+                                )
                             }
-                            composable(
-                                "exerciseTimeline/{exerciseId}",
+                            composable<ExerciseTimelineRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val exerciseId = backStackEntry.arguments?.getString("exerciseId")?.toIntOrNull()
-                                if (exerciseId != null) {
-                                    com.tobiso.tobisoappnative.screens.TimelineExerciseScreen(
-                                        exerciseId = exerciseId,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: ExerciseTimelineRoute = backStackEntry.toRoute()
+                                com.tobiso.tobisoappnative.screens.TimelineExerciseScreen(
+                                    exerciseId = route.exerciseId,
+                                    navController = navController
+                                )
                             }
-                            composable(
-                                "exerciseDragDrop/{exerciseId}",
+                            composable<ExerciseDragDropRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val exerciseId = backStackEntry.arguments?.getString("exerciseId")?.toIntOrNull()
-                                if (exerciseId != null) {
-                                    com.tobiso.tobisoappnative.screens.DragDropExerciseScreen(
-                                        exerciseId = exerciseId,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: ExerciseDragDropRoute = backStackEntry.toRoute()
+                                com.tobiso.tobisoappnative.screens.DragDropExerciseScreen(
+                                    exerciseId = route.exerciseId,
+                                    navController = navController
+                                )
                             }
-                            composable(
-                                "exerciseMatching/{exerciseId}",
+                            composable<ExerciseMatchingRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val exerciseId = backStackEntry.arguments?.getString("exerciseId")?.toIntOrNull()
-                                if (exerciseId != null) {
-                                    com.tobiso.tobisoappnative.screens.MatchingExerciseScreen(
-                                        exerciseId = exerciseId,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: ExerciseMatchingRoute = backStackEntry.toRoute()
+                                com.tobiso.tobisoappnative.screens.MatchingExerciseScreen(
+                                    exerciseId = route.exerciseId,
+                                    navController = navController
+                                )
                             }
-                            composable(
-                                "exerciseCircuit/{exerciseId}",
+                            composable<ExerciseCircuitRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val exerciseId = backStackEntry.arguments?.getString("exerciseId")?.toIntOrNull()
-                                if (exerciseId != null) {
-                                    com.tobiso.tobisoappnative.screens.CircuitExerciseScreen(
-                                        exerciseId = exerciseId,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybný exerciseId", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: ExerciseCircuitRoute = backStackEntry.toRoute()
+                                com.tobiso.tobisoappnative.screens.CircuitExerciseScreen(
+                                    exerciseId = route.exerciseId,
+                                    navController = navController
+                                )
                             }
-                            composable(
-                                "plainText/{postId}",
+                            composable<PlainTextRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val postId = backStackEntry.arguments?.getString("postId")?.toIntOrNull()
-                                if (postId != null) {
-                                    com.tobiso.tobisoappnative.screens.PlainTextScreen(
-                                        postId = postId,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybný postId", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: PlainTextRoute = backStackEntry.toRoute()
+                                com.tobiso.tobisoappnative.screens.PlainTextScreen(
+                                    postId = route.postId,
+                                    navController = navController
+                                )
                             }
-                            composable(
-                                "videoPlayer/{videoUrl}",
+                            composable<VideoPlayerRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val videoUrl = backStackEntry.arguments?.getString("videoUrl") ?: ""
+                                val route: VideoPlayerRoute = backStackEntry.toRoute()
                                 com.tobiso.tobisoappnative.screens.VideoPlayerScreen(
-                                    videoUrl = videoUrl,
+                                    videoUrl = route.videoUrl,
                                     navController = navController
                                 )
                             }
-                            composable(
-                                "streak",
+                            composable<StreakRoute>(
                                 enterTransition = { slideInVertically(initialOffsetY = { -it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutVertically(targetOffsetY = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInVertically(initialOffsetY = { -it }, animationSpec = tween(400)) },
@@ -456,60 +430,48 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 StreakScreen(navController = navController)
                             }
-                            composable(
-                                "questions/{postId}",
+                            composable<QuestionsRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val postId = backStackEntry.arguments?.getString("postId")?.toIntOrNull()
-                                if (postId != null) {
-                                    com.tobiso.tobisoappnative.screens.QuestionsScreen(
-                                        postId = postId,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybný postId", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: QuestionsRoute = backStackEntry.toRoute()
+                                com.tobiso.tobisoappnative.screens.QuestionsScreen(
+                                    postId = route.postId,
+                                    navController = navController
+                                )
                             }
-                            composable("allQuestions") {
+                            composable<AllQuestionsRoute> {
                                 com.tobiso.tobisoappnative.screens.AllQuestionsScreen(
                                     navController = navController
                                 )
                             }
-                            composable(
-                                "mixedQuiz/{questionIds}",
+                            composable<MixedQuizRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val questionIds = backStackEntry.arguments?.getString("questionIds") ?: ""
+                                val route: MixedQuizRoute = backStackEntry.toRoute()
                                 com.tobiso.tobisoappnative.screens.MixedQuizScreen(
-                                    questionIds = questionIds,
+                                    questionIds = route.questionIds,
                                     navController = navController
                                 )
                             }
-                            composable(
-                                "eventDetail/{eventId}",
+                            composable<EventDetailRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val eventId = backStackEntry.arguments?.getString("eventId")?.toIntOrNull()
-                                if (eventId != null) {
-                                    EventDetailScreen(
-                                        eventId = eventId,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybné ID události", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: EventDetailRoute = backStackEntry.toRoute()
+                                EventDetailScreen(
+                                    eventId = route.eventId,
+                                    navController = navController
+                                )
                             }
-                            composable(
-                                "shop",
+                            composable<ShopRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
@@ -517,8 +479,7 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 ShopScreen(navController = navController)
                             }
-                            composable(
-                                "backpack",
+                            composable<BackpackRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
@@ -526,53 +487,25 @@ fun TobisoApp(navigateTo: String? = null) {
                             ) {
                                 BackpackScreen(navController = navController)
                             }
-                            composable(
-                                "aiChat/{postId}/{postTitle}/{firstUserMessage}",
+                            composable<AiChatRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
                                 exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
                                 popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
                                 popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) { backStackEntry ->
-                                val postId = backStackEntry.arguments?.getString("postId")?.toIntOrNull()
-                                val postTitle = backStackEntry.arguments?.getString("postTitle") ?: ""
-                                val firstUserMessage = backStackEntry.arguments?.getString("firstUserMessage") ?: ""
-                                if (postId != null) {
-                                    com.tobiso.tobisoappnative.screens.AiChatScreen(
-                                        postId = postId,
-                                        postTitle = postTitle,
-                                        firstUserMessage = firstUserMessage,
-                                        navController = navController
-                                    )
-                                } else {
-                                    Text("Chybný postId", color = MaterialTheme.colorScheme.error)
-                                }
+                                val route: AiChatRoute = backStackEntry.toRoute()
+                                com.tobiso.tobisoappnative.screens.AiChatScreen(
+                                    postId = route.postId,
+                                    postTitle = route.postTitle,
+                                    firstUserMessage = route.firstUserMessage,
+                                    navController = navController
+                                )
                             }
                         }
                     }
                     // Persistent TTS player shown above other content (bottom-aligned).
                     val ttsManagerInstance = ttsViewModel.ttsManager
-                    val bottomBarVisible = (route == null ||
-                        !(route.startsWith("postDetail") ||
-                            route.startsWith("about") ||
-                            route.startsWith("feedback") ||
-                            route.startsWith("changelog") ||
-                            route.startsWith("videoPlayer") ||
-                            route.startsWith("streak") ||
-                            route.startsWith("favorites") ||
-                            route.startsWith("updater") ||
-                            route.startsWith("questions") ||
-                            route.startsWith("mixedQuiz") ||
-                            route.startsWith("eventDetail") ||
-                            route.startsWith("shop") ||
-                            route.startsWith("backpack") ||
-                            route.startsWith("plainText") ||
-                            route.startsWith("exerciseTimeline") ||
-                            route.startsWith("exerciseDragDrop") ||
-                            route.startsWith("exerciseMatching") ||
-                            route.startsWith("exerciseCircuit") ||
-                            route.startsWith("aiChat")
-                        )
-                    )
+                    val bottomBarVisible = showBottomBar
 
                     if (ttsManagerInstance != null) {
                         val raiseBy = 63.dp
@@ -588,12 +521,12 @@ fun TobisoApp(navigateTo: String? = null) {
                     }
 
                     // Floating Search Bar
-                    val currentRoute = navBackStackEntry?.destination?.route
-                    val showFloatingSearch = currentRoute?.startsWith("home") == true ||
-                            currentRoute?.startsWith("allQuestions") == true ||
-                            currentRoute?.startsWith("calendar") == true ||
-                            currentRoute?.startsWith("profile") == true ||
-                            currentRoute?.startsWith("categoryList/") == true
+                    val showFloatingSearch = destination?.hasRoute(HomeRoute::class) == true ||
+                            destination?.hasRoute(AllQuestionsRoute::class) == true ||
+                            destination?.hasRoute(CalendarRoute::class) == true ||
+                            destination?.hasRoute(CalendarWithDateRoute::class) == true ||
+                            destination?.hasRoute(ProfileRoute::class) == true ||
+                            destination?.hasRoute(CategoryListRoute::class) == true
 
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showFloatingSearch,
@@ -622,7 +555,11 @@ fun TobisoApp(navigateTo: String? = null) {
                             isOffline = !isConnected,
                             onAiSend = { post, message ->
                                 navController.navigate(
-                                    "aiChat/${post.id}/${android.net.Uri.encode(post.title)}/${android.net.Uri.encode(message)}"
+                                    AiChatRoute(
+                                        postId = post.id,
+                                        postTitle = post.title,
+                                        firstUserMessage = message
+                                    )
                                 )
                             }
                         )

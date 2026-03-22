@@ -1,5 +1,9 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.navigation.MixedQuizRoute
+import com.tobiso.tobisoappnative.navigation.QuestionsRoute
+import com.tobiso.tobisoappnative.navigation.StreakRoute
+
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -168,7 +172,7 @@ fun AllQuestionsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .padding(end = 8.dp)
-                            .clickable { navController.navigate("streak") }
+                            .clickable { navController.navigate(StreakRoute) }
                     ) {
                         if (currentStreak.value > 0) {
                             Text(
@@ -765,7 +769,7 @@ private fun QuestionsContent(
                         // Practice button
                         TextButton(
                             onClick = { 
-                                navController.navigate("questions/$postId")
+                                navController.navigate(QuestionsRoute(postId = postId))
                             }
                         ) {
                             Text("Vyzkoušet")
@@ -913,10 +917,10 @@ private fun startPracticeWithQuestions(
     
     // Pokud jsou všechny otázky ze stejného článku, přejdeme na klasický kvíz
     if (questions.all { it.postId == firstPostId }) {
-        navController.navigate("questions/$firstPostId")
+        navController.navigate(QuestionsRoute(postId = firstPostId))
     } else {
         // Mixed quiz režim pro otázky z více článků
         val questionIds = questions.map { it.id }.joinToString(",")
-        navController.navigate("mixedQuiz/$questionIds")
+        navController.navigate(MixedQuizRoute(questionIds = questionIds))
     }
 }

@@ -1,5 +1,9 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.navigation.CategoryListRoute
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
+import com.tobiso.tobisoappnative.navigation.StreakRoute
+
 import com.tobiso.tobisoappnative.R
 import com.tobiso.tobisoappnative.components.FloatingSearchBar
 import androidx.compose.foundation.Image
@@ -391,7 +395,7 @@ fun HomeScreen(navController: NavHostController) {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .padding(end = 8.dp)
-                            .clickable { navController.navigate("streak") }
+                            .clickable { navController.navigate(StreakRoute) }
                     ) {
                         if (currentStreak.value > 0) {
                             Text(
@@ -425,7 +429,7 @@ fun HomeScreen(navController: NavHostController) {
                         items(subjects) { subject ->
                             SubjectCard(
                                 subject = subject,
-                                onClick = { navController.navigate("categoryList/${subject.name}") },
+                                onClick = { navController.navigate(CategoryListRoute(categoryName = subject.name)) },
                                 modifier = Modifier.padding(8.dp)
                             )
                         }
@@ -506,7 +510,7 @@ fun HomeScreen(navController: NavHostController) {
                             PostListItem(
                                 post = post,
                                 categoryName = categories.find { it.id == post.categoryId }?.name ?: "Nezařazeno",
-                                onClick = { navController.navigate("postDetail/${post.id}") }
+                                onClick = { navController.navigate(PostDetailRoute(postId = post.id)) }
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }

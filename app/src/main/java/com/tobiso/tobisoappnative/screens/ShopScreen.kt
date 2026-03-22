@@ -1,4 +1,6 @@
 package com.tobiso.tobisoappnative.screens
+
+import com.tobiso.tobisoappnative.navigation.BackpackRoute
 import timber.log.Timber
 
 import androidx.compose.foundation.background
@@ -99,7 +101,7 @@ fun ShopScreen(
             actions = {
                 // Ikona aktovky
                 IconButton(
-                    onClick = { navController.navigate("backpack") }
+                    onClick = { navController.navigate(BackpackRoute) }
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Backpack,

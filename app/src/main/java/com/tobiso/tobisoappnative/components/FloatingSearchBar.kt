@@ -1,5 +1,8 @@
 package com.tobiso.tobisoappnative.components
 
+import com.tobiso.tobisoappnative.navigation.CategoryListRoute
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
+
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -189,7 +192,7 @@ fun FloatingSearchBar(
                                         .fillMaxWidth()
                                         .clickable {
                                             searchText = ""
-                                            navController?.navigate("categoryList/${category.name}")
+                                            navController?.navigate(CategoryListRoute(categoryName = category.name))
                                         },
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(
@@ -224,7 +227,7 @@ fun FloatingSearchBar(
                                                 onAiPostSelected(post)
                                             } else {
                                                 searchText = ""
-                                                navController?.navigate("postDetail/${post.id}")
+                                                navController?.navigate(PostDetailRoute(postId = post.id))
                                             }
                                         },
                                     shape = RoundedCornerShape(16.dp),
