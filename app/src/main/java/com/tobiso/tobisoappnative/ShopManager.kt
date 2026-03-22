@@ -43,7 +43,14 @@ class ShopManager private constructor(context: Context) : IShopManager {
     }
 
     private fun savePurchasedItem(itemId: Int) {
-        prefs.edit().putBoolean("${KEY_PURCHASED_PREFIX}$itemId", true).apply()
+        prefs.edit()
+            .putBoolean("${KEY_PURCHASED_PREFIX}$itemId", true)
+            .putLong("${KEY_PURCHASE_DATE_PREFIX}$itemId", System.currentTimeMillis())
+            .apply()
+    }
+
+    override fun getPurchaseDate(itemId: Int): Long {
+        return prefs.getLong("${KEY_PURCHASE_DATE_PREFIX}$itemId", 0L)
     }
 
     private fun removePurchasedItem(itemId: Int) {
@@ -123,6 +130,7 @@ class ShopManager private constructor(context: Context) : IShopManager {
     companion object {
         private const val PREFS_NAME = "shop_prefs"
         private const val KEY_PURCHASED_PREFIX = "purchased_"
+        private const val KEY_PURCHASE_DATE_PREFIX = "purchased_date_"
         private const val KEY_COOLDOWN_PREFIX = "cooldown_"
         private const val CLASSIC_ICON_PACK_ID = 23
 
@@ -152,5 +160,6 @@ class ShopManager private constructor(context: Context) : IShopManager {
         fun usePowerUp(item: ShopItem) = instance.usePowerUp(item)
         fun isOnCooldown(itemId: Int) = instance.isOnCooldown(itemId)
         fun getCooldownTimeLeft(itemId: Int) = instance.getCooldownTimeLeft(itemId)
+        fun getPurchaseDate(itemId: Int) = instance.getPurchaseDate(itemId)
     }
 }

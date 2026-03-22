@@ -459,17 +459,24 @@ val showBottomBar = destination == null ||
 
 ## 8. Kvalita kódu
 
-### 8.1 TODO v produkčním kódu ⚠️
+### 8.1 ~~TODO v produkčním kódu~~ ✅ OPRAVENO
 
-```kotlin
+~~```kotlin
 // BackpackManager.kt
 BackpackItem(
     shopItem = shopItem,
     purchaseDate = System.currentTimeMillis() // TODO: uložit skutečné datum nákupu
 )
-```
+```~~
 
-`TODO:` komentáře označují nedokončenou funkčnost v produkčním kódu.
+~~`TODO:` komentáře označují nedokončenou funkčnost v produkčním kódu.~~
+
+**Opraveno:**
+- `ShopManager.savePurchasedItem()` nyní ukládá timestamp nákupu pod klíčem `purchased_date_{itemId}` do `shop_prefs` vedle stávajícího `purchased_{itemId}` boolean záznamu.
+- Přidána metoda `getPurchaseDate(itemId: Int): Long` do `ShopManager` (instance i companion delegation) a do rozhraní `IShopManager`.
+- `BackpackManager.loadBackpackItems()` čte skutečné datum nákupu přes `ShopManager.getPurchaseDate(itemId)`. Pro historicky zakoupené položky (bez uloženého data) se jako fallback použije aktuální čas.
+- `data_extraction_rules.xml` TODO nahrazen reálnou konfigurací: všechna SharedPreferences s uživatelskými daty (profil, streak, body, obchod, aktovka) zahrnuta do cloud backup a přenosu zařízení; `secure_prefs`, `app_usage_prefs` a Room databáze (`tobiso_offline.db`) jsou vyloučeny.
+
 
 ### 8.2 Zakomentovaný kód ⚠️
 

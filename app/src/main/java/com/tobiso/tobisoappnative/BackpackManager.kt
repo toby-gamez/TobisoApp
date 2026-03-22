@@ -37,15 +37,19 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
         purchasedItemIds.forEach { itemId ->
             val shopItem = ShopData.getItemById(itemId)
             if (shopItem != null && shopItem.type != ShopItemType.POINTS_MULTIPLIER) {
-                backpackItemsList.add(BackpackItem(shopItem = shopItem, purchaseDate = System.currentTimeMillis()))
+                val purchaseDate = ShopManager.getPurchaseDate(itemId)
+                    .takeIf { it > 0L } ?: System.currentTimeMillis()
+                backpackItemsList.add(BackpackItem(shopItem = shopItem, purchaseDate = purchaseDate))
             }
         }
 
         // Ujisti se, že "Klasické ikony" jsou vždycky v aktovce
         val hasClassicIconPack = backpackItemsList.any { it.shopItem.id == CLASSIC_ICON_PACK_ID }
         if (!hasClassicIconPack) {
+            val classicPurchaseDate = ShopManager.getPurchaseDate(CLASSIC_ICON_PACK_ID)
+                .takeIf { it > 0L } ?: System.currentTimeMillis()
             ShopData.getItemById(CLASSIC_ICON_PACK_ID)?.let {
-                backpackItemsList.add(BackpackItem(shopItem = it, purchaseDate = System.currentTimeMillis()))
+                backpackItemsList.add(BackpackItem(shopItem = it, purchaseDate = classicPurchaseDate))
             }
         }
 

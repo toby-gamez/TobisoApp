@@ -14,4 +14,5 @@ interface IShopManager {
     fun usePowerUp(item: ShopItem): Boolean
     fun isOnCooldown(itemId: Int): Boolean
     fun getCooldownTimeLeft(itemId: Int): Long
+    fun getPurchaseDate(itemId: Int): Long
 }
