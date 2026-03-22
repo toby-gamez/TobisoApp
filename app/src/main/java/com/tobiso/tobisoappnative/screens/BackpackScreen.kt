@@ -290,30 +290,16 @@ fun BackpackCategoryChip(
     isActive: Boolean,
     onClick: () -> Unit
 ) {
-    val containerColor = if (isActive) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
-    
-    val contentColor = if (isActive) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    
-    Card(
-        modifier = Modifier.clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor)
-    ) {
-        Text(
-            text = category.displayName,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            color = contentColor,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
-        )
-    }
+    FilterChip(
+        selected = isActive,
+        onClick = onClick,
+        label = {
+            Text(
+                text = category.displayName,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    )
 }
 
 @Composable
