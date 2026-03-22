@@ -68,6 +68,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import com.tobiso.tobisoappnative.utils.TextUtils
+import com.tobiso.tobisoappnative.utils.hasAiConsent
+import com.tobiso.tobisoappnative.utils.saveAiConsent
+import com.tobiso.tobisoappnative.components.AiConsentDialog
 import java.io.File
 import java.io.FileOutputStream
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -691,6 +694,7 @@ fun PostDetailScreen(
     var showFloatingSelectButton by remember { mutableStateOf(false) }
     var aiInputText by remember { mutableStateOf("") }
     var aiInputExpanded by remember { mutableStateOf(false) }
+    var showAiConsentDialog by remember { mutableStateOf(false) }
     
     // Scroll behavior pro nested scrolling
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -1324,15 +1328,19 @@ fun PostDetailScreen(
                             keyboardActions = KeyboardActions(
                                 onSend = {
                                     if (aiInputText.isNotBlank()) {
-                                        navController.navigate(
-                                            AiChatRoute(
-                                                postId = postId,
-                                                postTitle = android.net.Uri.encode(postTitle),
-                                                firstUserMessage = android.net.Uri.encode(aiInputText)
+                                        if (hasAiConsent(context)) {
+                                            navController.navigate(
+                                                AiChatRoute(
+                                                    postId = postId,
+                                                    postTitle = android.net.Uri.encode(postTitle),
+                                                    firstUserMessage = android.net.Uri.encode(aiInputText)
+                                                )
                                             )
-                                        )
-                                        aiInputText = ""
-                                        aiInputExpanded = false
+                                            aiInputText = ""
+                                            aiInputExpanded = false
+                                        } else {
+                                            showAiConsentDialog = true
+                                        }
                                     }
                                 }
                             ),
@@ -1346,15 +1354,19 @@ fun PostDetailScreen(
                         IconButton(
                             onClick = {
                                 if (aiInputText.isNotBlank()) {
-                                    navController.navigate(
-                                        AiChatRoute(
-                                            postId = postId,
-                                            postTitle = android.net.Uri.encode(postTitle),
-                                            firstUserMessage = android.net.Uri.encode(aiInputText)
+                                    if (hasAiConsent(context)) {
+                                        navController.navigate(
+                                            AiChatRoute(
+                                                postId = postId,
+                                                postTitle = android.net.Uri.encode(postTitle),
+                                                firstUserMessage = android.net.Uri.encode(aiInputText)
+                                            )
                                         )
-                                    )
-                                    aiInputText = ""
-                                    aiInputExpanded = false
+                                        aiInputText = ""
+                                        aiInputExpanded = false
+                                    } else {
+                                        showAiConsentDialog = true
+                                    }
                                 }
                             },
                             enabled = aiInputText.isNotBlank()
@@ -1393,6 +1405,30 @@ fun PostDetailScreen(
                         Text("Zrušit")
                     }
                 }
+            )
+        }
+
+        // Souhlas s podmínkami AI
+        if (showAiConsentDialog) {
+            AiConsentDialog(
+                navController = navController,
+                onAccepted = {
+                    saveAiConsent(context)
+                    showAiConsentDialog = false
+                    if (aiInputText.isNotBlank()) {
+                        val title = postDetail?.title ?: ""
+                        navController.navigate(
+                            AiChatRoute(
+                                postId = postId,
+                                postTitle = android.net.Uri.encode(title),
+                                firstUserMessage = android.net.Uri.encode(aiInputText)
+                            )
+                        )
+                        aiInputText = ""
+                        aiInputExpanded = false
+                    }
+                },
+                onDismissed = { showAiConsentDialog = false }
             )
         }
         

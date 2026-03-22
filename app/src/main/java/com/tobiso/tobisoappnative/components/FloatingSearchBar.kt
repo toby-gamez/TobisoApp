@@ -35,12 +35,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.compose.ui.unit.Dp
 import com.tobiso.tobisoappnative.model.Category
 import com.tobiso.tobisoappnative.model.Post
+import com.tobiso.tobisoappnative.utils.hasAiConsent
 import com.tobiso.tobisoappnative.utils.normalizeText
+import com.tobiso.tobisoappnative.utils.saveAiConsent
 import com.tobiso.tobisoappnative.viewmodel.MainIntent
 import com.tobiso.tobisoappnative.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
@@ -96,6 +99,8 @@ fun FloatingSearchBar(
     val posts = state.posts
     val categories = state.categories
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val context = LocalContext.current
+    var showConsentDialog by remember { mutableStateOf(false) }
 
     // Debounce pro vyhledávání
     LaunchedEffect(searchText) {
@@ -410,7 +415,13 @@ fun FloatingSearchBar(
                                         searchText = ""
                                     }
                                     aiMode -> { aiMode = false; searchText = ""; attachedPost = null }
-                                    else -> { aiMode = true; searchText = ""; onAiClick() }
+                                    else -> {
+                                        if (hasAiConsent(context)) {
+                                            aiMode = true; searchText = ""; onAiClick()
+                                        } else {
+                                            showConsentDialog = true
+                                        }
+                                    }
                                 }
                             },
                             containerColor = if (isOffline && !aiMode)
@@ -450,5 +461,19 @@ fun FloatingSearchBar(
                 }
             }
         }
+    }
+
+    if (showConsentDialog) {
+        AiConsentDialog(
+            navController = navController,
+            onAccepted = {
+                saveAiConsent(context)
+                showConsentDialog = false
+                aiMode = true
+                searchText = ""
+                onAiClick()
+            },
+            onDismissed = { showConsentDialog = false }
+        )
     }
 }
