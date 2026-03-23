@@ -5,11 +5,6 @@ Datum: 2026-03-23
 
 Tento dokument shrnuje výsledky rychlého auditu zaměřeného na plynulost, efektivitu a stabilitu aplikace.
 
-**Hlavní zjištění (Priorita: Vysoká)**
-
-- Lazy listy bez stabilních klíčů: například v AiChatScreen používáte `itemsIndexed(messages)` bez `key`. To způsobuje zbytečné překomponování, špatné animace a skoky. Doporučení: používat `items(items = messages, key = { it.id })` nebo jiný stabilní identifikátor.
-- UI-thread / IO rizika: některé těžké operace (file I/O, bitmap crop, generování PDF) musí být spolehlivě v IO/Default vlákně; zkontrolovat všechny cesty, aby se minimalizovalo UI-thread work.
-
 **Střední priorita**
 
 - HTTP klient: ApiClient vynucuje `Protocol.HTTP_1_1` a používá certificate pinning. Pinning je bezpečný, ale omezí možnost využití HTTP/2 (lepší multiplexing a latence). Doporučení: otestovat povolení HTTP/2 když server podporuje, zavést proces aktualizace pinů (rotace, více pinů pro fallback).

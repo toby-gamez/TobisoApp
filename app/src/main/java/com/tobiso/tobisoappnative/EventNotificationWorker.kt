@@ -18,6 +18,8 @@ import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.Event
 import com.tobiso.tobisoappnative.model.LocalEventManager
 // Converted to CoroutineWorker: no runBlocking needed
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -174,7 +176,9 @@ class EventNotificationWorker(
         
         try {
             Timber.d("Requesting events range: $startDate - $endDate")
-            val allEventsArray = ApiClient.apiService.getEventsInRange(startDate, endDate)
+            val allEventsArray = withContext(Dispatchers.IO) {
+                ApiClient.apiService.getEventsInRange(startDate, endDate)
+            }
             val allEvents = allEventsArray.toList()
 
             Timber.d("API returned ${allEvents.size} events (raw)")
@@ -290,11 +294,13 @@ class EventNotificationWorker(
         
         try {
             // 1. Zkus nejdřív lokální události (místně uložené)
-            val localEvents = LocalEventManager.expandRecurringEvents(
-                context, 
-                date, 
-                Date(date.time + 24 * 60 * 60 * 1000) // +1 den
-            )
+            val localEvents = withContext(Dispatchers.IO) {
+                LocalEventManager.expandRecurringEvents(
+                    context,
+                    date,
+                    Date(date.time + 24 * 60 * 60 * 1000) // +1 den
+                )
+            }
             
             // Filtruj události pro konkrétní den
             val relevantLocalEvents = localEvents.filter { event ->
