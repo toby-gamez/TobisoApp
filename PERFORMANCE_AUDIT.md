@@ -7,8 +7,6 @@ Tento dokument shrnuje výsledky rychlého auditu zaměřeného na plynulost, ef
 
 **Hlavní zjištění (Priorita: Vysoká)**
 
-- Blocking worker: EventNotificationWorker používá `runBlocking` v background workeru. To blokuje thread pool WorkManageru, omezuje škálování a může zpomalit plánování úloh. Doporučení: přepsat na `CoroutineWorker` a využít suspend funkcí.
-- Plné dekódování bitmap bez downsampling: v components/ImageCropper.kt se používá `BitmapFactory.decodeFile` bez `inSampleSize`. Riziko OOM a dlouhých GC pauz. Doporučení: dekódovat s `inJustDecodeBounds` → spočítat `inSampleSize` → dekódovat, nebo používat `ImageDecoder`/Coil; dělat dekódování v `Dispatchers.IO`.
 - Lazy listy bez stabilních klíčů: například v AiChatScreen používáte `itemsIndexed(messages)` bez `key`. To způsobuje zbytečné překomponování, špatné animace a skoky. Doporučení: používat `items(items = messages, key = { it.id })` nebo jiný stabilní identifikátor.
 - UI-thread / IO rizika: některé těžké operace (file I/O, bitmap crop, generování PDF) musí být spolehlivě v IO/Default vlákně; zkontrolovat všechny cesty, aby se minimalizovalo UI-thread work.
 

@@ -10,6 +10,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -131,15 +135,21 @@ fun ImageCropperDialog(
                         style = MaterialTheme.typography.titleMedium
                     )
                     
+                    val _scope = rememberCoroutineScope()
+
                     IconButton(
                         onClick = {
-                            performCrop(
-                                context = context,
-                                imageUri = imageUri,
-                                cropRect = cropRect,
-                                containerSize = containerSize,
-                                onComplete = onCropComplete
-                            )
+                            _scope.launch {
+                                val result = withContext(Dispatchers.IO) {
+                                    performCrop(
+                                        context = context,
+                                        imageUri = imageUri,
+                                        cropRect = cropRect,
+                                        containerSize = containerSize
+                                    )
+                                }
+                                onCropComplete(result)
+                            }
                         }
                     ) {
                         Icon(
@@ -458,64 +468,92 @@ private fun constrainCropRect(
     )
 }
 
-private fun performCrop(
+private suspend fun performCrop(
     context: android.content.Context,
     imageUri: String,
     cropRect: SimpleCropRect,
-    containerSize: Size,
-    onComplete: (String) -> Unit
-) {
+    containerSize: Size
+): String {
     try {
-        val originalBitmap = android.graphics.BitmapFactory.decodeFile(imageUri)
-        
-        // Calculate scale factors for ContentScale.Fit
-        val scaleX = originalBitmap.width.toFloat() / containerSize.width
-        val scaleY = originalBitmap.height.toFloat() / containerSize.height
-        val scale = min(scaleX, scaleY) // ContentScale.Fit uses min scale to fit entire image
-        
-        // Calculate actual image bounds within container
-        val actualImageWidth = originalBitmap.width / scale
-        val actualImageHeight = originalBitmap.height / scale
-        val imageOffsetX = (containerSize.width - actualImageWidth) / 2f
-        val imageOffsetY = (containerSize.height - actualImageHeight) / 2f
-        
-        // Adjust crop coordinates relative to actual image position
-        val adjustedCropLeft = cropRect.left - imageOffsetX
-        val adjustedCropTop = cropRect.top - imageOffsetY
-        
-        // Calculate actual crop coordinates on original bitmap
-        val actualLeft = (adjustedCropLeft * scale).toInt().coerceAtLeast(0)
-        val actualTop = (adjustedCropTop * scale).toInt().coerceAtLeast(0)
-        val actualWidth = (cropRect.width * scale).toInt()
-            .coerceAtMost(originalBitmap.width - actualLeft)
-        val actualHeight = (cropRect.height * scale).toInt()
-            .coerceAtMost(originalBitmap.height - actualTop)
-        
-        // Crop the bitmap
-        val croppedBitmap = android.graphics.Bitmap.createBitmap(
-            originalBitmap,
-            actualLeft,
-            actualTop,
-            actualWidth,
-            actualHeight
-        )
-        
-        // Save cropped image
-        val fileName = "profile_image_cropped_${System.currentTimeMillis()}.jpg"
-        val file = File(context.filesDir, fileName)
-        val outputStream = java.io.FileOutputStream(file)
-        
-        croppedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, outputStream)
-        outputStream.close()
-        
-        // Clean up memory
-        originalBitmap.recycle()
-        croppedBitmap.recycle()
-        
-        onComplete(file.absolutePath)
-        
+        // First read bounds only to compute an appropriate inSampleSize
+        val boundsOpts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeFile(imageUri, boundsOpts)
+
+        val reqWidth = containerSize.width.toInt().coerceAtLeast(1)
+        val reqHeight = containerSize.height.toInt().coerceAtLeast(1)
+
+        fun calculateInSampleSize(options: android.graphics.BitmapFactory.Options, reqW: Int, reqH: Int): Int {
+            val (height: Int, width: Int) = options.outHeight to options.outWidth
+            var inSampleSize = 1
+            if (height > reqH || width > reqW) {
+                val halfHeight = height / 2
+                val halfWidth = width / 2
+                while (halfHeight / inSampleSize >= reqH && halfWidth / inSampleSize >= reqW) {
+                    inSampleSize *= 2
+                }
+            }
+            return inSampleSize
+        }
+
+        val inSample = calculateInSampleSize(boundsOpts, reqWidth, reqHeight)
+
+        val decodeOpts = android.graphics.BitmapFactory.Options().apply {
+            inSampleSize = inSample
+            inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+        }
+
+        val originalBitmap = android.graphics.BitmapFactory.decodeFile(imageUri, decodeOpts)
+            ?: return imageUri
+
+        try {
+            // Calculate scale factors for ContentScale.Fit based on the (possibly downsampled) bitmap
+            val scaleX = originalBitmap.width.toFloat() / containerSize.width
+            val scaleY = originalBitmap.height.toFloat() / containerSize.height
+            val scale = min(scaleX, scaleY)
+
+            val actualImageWidth = originalBitmap.width / scale
+            val actualImageHeight = originalBitmap.height / scale
+            val imageOffsetX = (containerSize.width - actualImageWidth) / 2f
+            val imageOffsetY = (containerSize.height - actualImageHeight) / 2f
+
+            val adjustedCropLeft = cropRect.left - imageOffsetX
+            val adjustedCropTop = cropRect.top - imageOffsetY
+
+            val actualLeft = (adjustedCropLeft * scale).toInt().coerceAtLeast(0)
+            val actualTop = (adjustedCropTop * scale).toInt().coerceAtLeast(0)
+            val actualWidth = (cropRect.width * scale).toInt()
+                .coerceAtMost(originalBitmap.width - actualLeft)
+            val actualHeight = (cropRect.height * scale).toInt()
+                .coerceAtMost(originalBitmap.height - actualTop)
+
+            if (actualWidth <= 0 || actualHeight <= 0) {
+                return imageUri
+            }
+
+            val croppedBitmap = android.graphics.Bitmap.createBitmap(
+                originalBitmap,
+                actualLeft,
+                actualTop,
+                actualWidth,
+                actualHeight
+            )
+
+            // Save cropped image
+            val fileName = "profile_image_cropped_${System.currentTimeMillis()}.jpg"
+            val file = File(context.filesDir, fileName)
+            file.outputStream().use { out ->
+                croppedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+            }
+
+            croppedBitmap.recycle()
+            return file.absolutePath
+
+        } finally {
+            originalBitmap.recycle()
+        }
+
     } catch (e: Exception) {
         e.printStackTrace()
-        onComplete(imageUri) // Return original on error
+        return imageUri
     }
 }
