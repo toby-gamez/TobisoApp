@@ -1,12 +1,15 @@
 package com.tobiso.tobisoappnative.viewmodel.ai
 
+import java.util.UUID
+
 import com.tobiso.tobisoappnative.base.UiEffect
 import com.tobiso.tobisoappnative.base.UiIntent
 import com.tobiso.tobisoappnative.base.UiState
 
 data class ChatMessage(
     val role: String, // "user" or "assistant"
-    val content: String
+    val content: String,
+    val id: String = UUID.randomUUID().toString()
 )
 
 data class AiChatState(

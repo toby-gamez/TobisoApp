@@ -116,7 +116,7 @@ fun AiChatScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
-            itemsIndexed(messages) { index, message ->
+            itemsIndexed(items = messages, key = { _, msg -> msg.id }) { index, message ->
                 val shouldAnimate = message.role == "assistant" && index !in animatedIndices
                 ChatBubble(
                     message = message,
