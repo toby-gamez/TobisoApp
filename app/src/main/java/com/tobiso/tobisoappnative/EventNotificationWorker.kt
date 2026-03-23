@@ -12,33 +12,33 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.Event
 import com.tobiso.tobisoappnative.model.LocalEventManager
-import kotlinx.coroutines.runBlocking
+// Converted to CoroutineWorker: no runBlocking needed
 import java.text.SimpleDateFormat
 import java.util.*
 
 class EventNotificationWorker(
     private val context: Context,
     workerParams: WorkerParameters
-) : Worker(context, workerParams) {
+) : CoroutineWorker(context, workerParams) {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
     // for logging human readable times
     private val logDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         return try {
             val notificationType = inputData.getString("notification_type") ?: "today_events"
-            
+
             when (notificationType) {
                 "tomorrow_events" -> handleTomorrowEventsNotification()
                 "today_events" -> handleTodayEventsNotification()
             }
-            
+
             Result.success()
         } catch (e: Exception) {
             Timber.e(e, "Error in notification worker")
@@ -46,121 +46,113 @@ class EventNotificationWorker(
         }
     }
 
-    private fun handleTomorrowEventsNotification() {
-        runBlocking {
-            try {
-                val tomorrow = Calendar.getInstance().apply {
-                    add(Calendar.DAY_OF_MONTH, 1)
-                }
-                
-                Timber.d("=== TOMORROW NOTIFICATION CHECK ===")
-                Timber.d("Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(tomorrow.time)}")
-                
-                val events = getEventsForDate(tomorrow.time)
-                Timber.d("Found ${events.size} events for tomorrow")
-                
-                if (events.isNotEmpty()) {
-                    // Máš volno - jsou naplánované události (prázdniny/víkend)
-                    val title = "Zítra máš volno! 🎉"
-                    val content = when {
-                        events.size == 1 -> "Máš ${events.first().getTitleSafe()}"
-                        events.size <= 3 -> events.joinToString(", ") { it.getTitleSafe() }
-                        else -> "${events.take(2).joinToString(", ") { it.getTitleSafe() }} a další..."
-                    }
-                    
-                    showEventNotification(
-                        notificationId = 3000,
-                        channelId = "tobiso_events_tomorrow",
-                        channelName = "Zítřejší volno",
-                        title = title,
-                        content = content,
-                        isCritical = false
-                    )
-                } else {
-                    // Zítra jdeš do školy - nejsou naplánované události
-                    showEventNotification(
-                        notificationId = 3000,
-                        channelId = "tobiso_events_tomorrow",
-                        channelName = "Zítřejší škola",
-                        title = "Zítra jdeš do školy 📚",
-                        content = "Připrav si věci a nezapomeň na úkoly!",
-                        isCritical = false
-                    )
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Error loading tomorrow events")
+    private suspend fun handleTomorrowEventsNotification() {
+        try {
+            val tomorrow = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_MONTH, 1)
             }
+
+            Timber.d("=== TOMORROW NOTIFICATION CHECK ===")
+            Timber.d("Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(tomorrow.time)}")
+
+            val events = getEventsForDate(tomorrow.time)
+            Timber.d("Found ${events.size} events for tomorrow")
+
+            if (events.isNotEmpty()) {
+                val title = "Zítra máš volno! 🎉"
+                val content = when {
+                    events.size == 1 -> "Máš ${events.first().getTitleSafe()}"
+                    events.size <= 3 -> events.joinToString(", ") { it.getTitleSafe() }
+                    else -> "${events.take(2).joinToString(", ") { it.getTitleSafe() }} a další..."
+                }
+
+                showEventNotification(
+                    notificationId = 3000,
+                    channelId = "tobiso_events_tomorrow",
+                    channelName = "Zítřejší volno",
+                    title = title,
+                    content = content,
+                    isCritical = false
+                )
+            } else {
+                showEventNotification(
+                    notificationId = 3000,
+                    channelId = "tobiso_events_tomorrow",
+                    channelName = "Zítřejší škola",
+                    title = "Zítra jdeš do školy 📚",
+                    content = "Připrav si věci a nezapomeň na úkoly!",
+                    isCritical = false
+                )
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error loading tomorrow events")
         }
     }
 
-    private fun handleTodayEventsNotification() {
-        runBlocking {
-            try {
-                val today = Calendar.getInstance().time
-                Timber.d("=== TODAY NOTIFICATION CHECK ===")
-                Timber.d("Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(today)}")
-                
-                val events = getEventsForDate(today)
-                Timber.d("Found ${events.size} events for today")
-                
-                if (events.isNotEmpty()) {
-                    // Máš volno - jsou naplánované události (prázdniny/víkend)
-                    val title = "Dnes máš volno! 🎉"
-                    val content = when {
-                        events.size == 1 -> {
-                            val event = events.first()
-                            if (event.isAllDaySafe()) {
-                                "${event.getTitleSafe()} (celý den)"
-                            } else {
-                                val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(event.getStartDateSafe())
-                                "${event.getTitleSafe()} v $timeStr"
-                            }
-                        }
-                        events.size <= 3 -> {
-                            events.joinToString("\n") { event ->
-                                if (event.isAllDaySafe()) {
-                                    "• ${event.getTitleSafe()}"
-                                } else {
-                                    val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(event.getStartDateSafe())
-                                    "• ${event.getTitleSafe()} ($timeStr)"
-                                }
-                            }
-                        }
-                        else -> {
-                            val firstEvents = events.take(2).joinToString("\n") { event ->
-                                if (event.isAllDaySafe()) {
-                                    "• ${event.getTitleSafe()}"
-                                } else {
-                                    val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(event.getStartDateSafe())
-                                    "• ${event.getTitleSafe()} ($timeStr)"
-                                }
-                            }
-                            "$firstEvents\n• a další ${events.size - 2} ${getEventCountText(events.size - 2)}..."
+    private suspend fun handleTodayEventsNotification() {
+        try {
+            val today = Calendar.getInstance().time
+            Timber.d("=== TODAY NOTIFICATION CHECK ===")
+            Timber.d("Date: ${SimpleDateFormat("yyyy-MM-dd EEEE", Locale.getDefault()).format(today)}")
+
+            val events = getEventsForDate(today)
+            Timber.d("Found ${events.size} events for today")
+
+            if (events.isNotEmpty()) {
+                val title = "Dnes máš volno! 🎉"
+                val content = when {
+                    events.size == 1 -> {
+                        val event = events.first()
+                        if (event.isAllDaySafe()) {
+                            "${event.getTitleSafe()} (celý den)"
+                        } else {
+                            val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(event.getStartDateSafe())
+                            "${event.getTitleSafe()} v $timeStr"
                         }
                     }
-                    
-                    showEventNotification(
-                        notificationId = 3001,
-                        channelId = "tobiso_events_today",
-                        channelName = "Dnešní volno",
-                        title = title,
-                        content = content,
-                        isCritical = false
-                    )
-                } else {
-                    // Dnes jdeš do školy - nejsou naplánované události
-                    showEventNotification(
-                        notificationId = 3001,
-                        channelId = "tobiso_events_today",
-                        channelName = "Dnešní škola",
-                        title = "Dnes jdeš do školy 📚",
-                        content = "Hodně štěstí a užij si den ve škole!",
-                        isCritical = false
-                    )
+                    events.size <= 3 -> {
+                        events.joinToString("\n") { event ->
+                            if (event.isAllDaySafe()) {
+                                "• ${event.getTitleSafe()}"
+                            } else {
+                                val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(event.getStartDateSafe())
+                                "• ${event.getTitleSafe()} ($timeStr)"
+                            }
+                        }
+                    }
+                    else -> {
+                        val firstEvents = events.take(2).joinToString("\n") { event ->
+                            if (event.isAllDaySafe()) {
+                                "• ${event.getTitleSafe()}"
+                            } else {
+                                val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(event.getStartDateSafe())
+                                "• ${event.getTitleSafe()} ($timeStr)"
+                            }
+                        }
+                        "$firstEvents\n• a další ${events.size - 2} ${getEventCountText(events.size - 2)}..."
+                    }
                 }
-            } catch (e: Exception) {
-                Timber.e(e, "Error loading today events")
+
+                showEventNotification(
+                    notificationId = 3001,
+                    channelId = "tobiso_events_today",
+                    channelName = "Dnešní volno",
+                    title = title,
+                    content = content,
+                    isCritical = false
+                )
+            } else {
+                showEventNotification(
+                    notificationId = 3001,
+                    channelId = "tobiso_events_today",
+                    channelName = "Dnešní škola",
+                    title = "Dnes jdeš do školy 📚",
+                    content = "Hodně štěstí a užij si den ve škole!",
+                    isCritical = false
+                )
             }
+        } catch (e: Exception) {
+            Timber.e(e, "Error loading today events")
         }
     }
 

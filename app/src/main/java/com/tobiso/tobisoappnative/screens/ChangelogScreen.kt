@@ -77,6 +77,7 @@ fun ChangelogScreen(navController: NavController) {
             "opraveny obrázky s pozadím",
             "vylepšeno UI",
             "znovupřidáno čtení článků",
+            "velké optimalizace"
         )),
         VersionInfo("2.7", listOf(
             "přidána podpora pro obrázky z nového serveru",
