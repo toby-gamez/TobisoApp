@@ -99,7 +99,7 @@ fun CategoryListScreen(
                         if (categoryError != null) {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text("Detail chyby:", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
-                            Text(categoryError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                            Text(categoryError ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }

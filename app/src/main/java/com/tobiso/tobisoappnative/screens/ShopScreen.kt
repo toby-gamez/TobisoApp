@@ -255,25 +255,29 @@ fun ShopScreen(
     }
     
     // Purchase Dialog
-    if (showPurchaseDialog && selectedItem != null) {
-        PurchaseDialog(
-            item = selectedItem!!,
-            totalPoints = totalPoints,
-            isPurchased = purchasedItemIds.contains(selectedItem!!.id),
-            onConfirm = { vm.confirmPurchase() },
-            onDismiss = { vm.dismissPurchaseDialog() }
-        )
+    if (showPurchaseDialog) {
+        selectedItem?.let { item ->
+            PurchaseDialog(
+                item = item,
+                totalPoints = totalPoints,
+                isPurchased = purchasedItemIds.contains(item.id),
+                onConfirm = { vm.confirmPurchase() },
+                onDismiss = { vm.dismissPurchaseDialog() }
+            )
+        }
     }
 
     // Use Power-Up Dialog
-    if (showUsePowerUpDialog && selectedItem != null) {
-        UsePowerUpDialog(
-            item = selectedItem!!,
-            isOnCooldown = ShopManager.isOnCooldown(selectedItem!!.id),
-            cooldownTimeLeft = ShopManager.getCooldownTimeLeft(selectedItem!!.id),
-            onConfirm = { vm.confirmUsePowerUp() },
-            onDismiss = { vm.dismissUsePowerUpDialog() }
-        )
+    if (showUsePowerUpDialog) {
+        selectedItem?.let { item ->
+            UsePowerUpDialog(
+                item = item,
+                isOnCooldown = ShopManager.isOnCooldown(item.id),
+                cooldownTimeLeft = ShopManager.getCooldownTimeLeft(item.id),
+                onConfirm = { vm.confirmUsePowerUp() },
+                onDismiss = { vm.dismissUsePowerUpDialog() }
+            )
+        }
     }
 
     // Success Snackbar

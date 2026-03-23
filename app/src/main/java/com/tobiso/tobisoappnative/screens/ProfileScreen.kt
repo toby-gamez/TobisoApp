@@ -636,7 +636,7 @@ fun ProfileSection(navController: NavController) {
                 ) {
                     if (profileImageUri != null) {
                         AsyncImage(
-                            model = File(profileImageUri!!),
+                            model = File(profileImageUri),
                             contentDescription = "Profilový obrázek",
                             modifier = Modifier
                                 .size(64.dp)
@@ -782,7 +782,7 @@ fun ProfileSection(navController: NavController) {
             ) {
                 if (profileImageUri != null) {
                     AsyncImage(
-                        model = File(profileImageUri!!),
+                        model = File(profileImageUri),
                         contentDescription = "Profilový obrázek",
                         modifier = Modifier
                             .fillMaxSize()
@@ -915,21 +915,23 @@ fun ProfileSection(navController: NavController) {
     }
     
     // Image Cropper Dialog
-    if (showImageCropper && tempImageForCropping != null) {
-        ImageCropperDialog(
-            imageUri = tempImageForCropping!!,
-            onCropComplete = { croppedImagePath ->
-                // Uložit oříznutý obrázek
-                profileImageUri = croppedImagePath
-                saveProfileImageUri(context, croppedImagePath)
-                showImageCropper = false
-                tempImageForCropping = null
-            },
-            onDismiss = {
-                showImageCropper = false
-                tempImageForCropping = null
-            }
-        )
+    if (showImageCropper) {
+        tempImageForCropping?.let { imageToProcess ->
+            ImageCropperDialog(
+                imageUri = imageToProcess,
+                onCropComplete = { croppedImagePath ->
+                    // Uložit oříznutý obrázek
+                    profileImageUri = croppedImagePath
+                    saveProfileImageUri(context, croppedImagePath)
+                    showImageCropper = false
+                    tempImageForCropping = null
+                },
+                onDismiss = {
+                    showImageCropper = false
+                    tempImageForCropping = null
+                }
+            )
+        }
     }
 }
 }

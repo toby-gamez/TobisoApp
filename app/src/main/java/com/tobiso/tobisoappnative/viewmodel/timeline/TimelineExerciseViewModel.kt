@@ -43,7 +43,7 @@ class TimelineExerciseViewModel @Inject constructor(
                     val config = runCatching {
                         val raw = exercise.configJson
                         if (raw.isNullOrBlank() || raw == "null") null
-                        else json.decodeFromString<TimelineConfig>(raw!!)
+                        else json.decodeFromString<TimelineConfig>(raw)
                     }.getOrNull()
                     val slotYears = config?.events?.mapNotNull { it.year }?.sorted() ?: emptyList()
                     setState {

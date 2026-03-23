@@ -42,8 +42,8 @@ object ApiClient {
             val originalRequest = chain.request()
             val requestBuilder = originalRequest.newBuilder()
                 .addHeader("Authorization", credentials)
-                .addHeader("User-Agent", "TobisoApp-Android/2.0.1")
-                .addHeader("X-App-Version", "2.0.1")
+                .addHeader("User-Agent", "TobisoApp-Android/${BuildConfig.VERSION_NAME}")
+                .addHeader("X-App-Version", BuildConfig.VERSION_NAME)
                 .addHeader("X-Security-Token", SecurityConfig.getSecurityToken())
             
             // Přidej security headers
@@ -76,7 +76,7 @@ object ApiClient {
             .addInterceptor { chain ->
                 val request: Request = chain.request().newBuilder()
                     .addHeader("Authorization", credential)
-                    .addHeader("User-Agent", "TobisoApp-Android/2.0.1")
+                    .addHeader("User-Agent", "TobisoApp-Android/${BuildConfig.VERSION_NAME}")
                     .build()
                 val response = chain.proceed(request)
                 if (!response.isSuccessful) {

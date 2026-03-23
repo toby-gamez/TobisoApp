@@ -44,7 +44,7 @@ class CircuitExerciseViewModel @Inject constructor(
                     val config = runCatching {
                         val raw = exercise.configJson
                         if (raw.isNullOrBlank() || raw == "null") null
-                        else json.decodeFromString<CircuitConfig>(raw!!)
+                        else json.decodeFromString<CircuitConfig>(raw)
                     }.getOrNull()
 
                     val components = config?.components?.map {

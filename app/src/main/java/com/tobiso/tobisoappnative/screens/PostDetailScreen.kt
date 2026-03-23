@@ -686,7 +686,7 @@ fun PostDetailScreen(
     // Re-načteme související články jakmile je postDetail dostupný,
     // protože první volání loadRelatedPosts proběhlo před načtením postDetail/posts.
     LaunchedEffect(postDetail?.id) {
-        if (postDetail != null && postDetail!!.id == postId) {
+        if (postDetail?.id == postId) {
             vm.loadRelatedPosts(postId)
         }
     }
@@ -741,7 +741,7 @@ fun PostDetailScreen(
                         // TTS BUTTON - nejlevější tlačítko
                         if (postDetail?.content != null) {
                             IconButton(onClick = {
-                                val plainText = TextUtils.extractPlainTextForTts(postDetail!!.content ?: "")
+                                val plainText = TextUtils.extractPlainTextForTts(postDetail?.content ?: "")
                                 if (plainText.isNotEmpty()) {
                                     ttsViewModel.speak(plainText)
                                 }
@@ -1434,6 +1434,7 @@ fun PostDetailScreen(
         
         // Dialog pro zobrazení dodatku
         if (showAddendumDialog && selectedAddendum != null) {
+            val addendum = selectedAddendum
             AlertDialog(
                 onDismissRequest = { 
                     showAddendumDialog = false
@@ -1446,7 +1447,7 @@ fun PostDetailScreen(
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
                         Text(
-                            text = (selectedAddendum!!.name ?: "Dodatek").ifBlank { "Dodatek" },
+                            text = (addendum?.name ?: "Dodatek").ifBlank { "Dodatek" },
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f)
                         )
@@ -1459,11 +1460,11 @@ fun PostDetailScreen(
                             .verticalScroll(rememberScrollState())
                     ) {
                         SafeMarkdown(
-                            content = selectedAddendum!!.content,
+                            content = addendum?.content ?: "",
                             modifier = Modifier.fillMaxWidth()
                         )
                         
-                        selectedAddendum!!.updatedAt?.let { updatedAt ->
+                        addendum?.updatedAt?.let { updatedAt ->
                             Spacer(modifier = Modifier.height(16.dp))
                             Divider()
                             Spacer(modifier = Modifier.height(8.dp))

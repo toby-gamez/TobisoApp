@@ -1,25 +1,36 @@
 package com.tobiso.tobisoappnative
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.RequiresApi
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.work.*
 import com.tobiso.tobisoappnative.screens.addTodayToStreak
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    private val requestNotificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) {
+                Timber.w("POST_NOTIFICATIONS permission denied – push notifications will not work")
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        requestNotificationPermissionIfNeeded()
         recordAppOpen()
 
         // DŮLEŽITÉ: Kontrola freeze PŘED přidáním dnešního dne
@@ -44,9 +55,28 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
     private fun recordAppOpen() {
         val prefs = getSharedPreferences("app_usage_prefs", Context.MODE_PRIVATE)
-        val today = java.time.LocalDate.now().toString()
+        val today = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            java.time.LocalDate.now().toString()
+        } else {
+            val calendar = java.util.Calendar.getInstance()
+            "%04d-%02d-%02d".format(
+                calendar.get(java.util.Calendar.YEAR),
+                calendar.get(java.util.Calendar.MONTH) + 1,
+                calendar.get(java.util.Calendar.DAY_OF_MONTH)
+            )
+        }
         prefs.edit().putString("last_opened_date", today).apply()
     }
 }
