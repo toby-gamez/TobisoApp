@@ -43,6 +43,7 @@ class OfflineDataManager(
     companion object {
         private const val META_PREFS = "offline_meta"
         private const val KEY_LAST_UPDATE = "last_update_timestamp"
+        const val CACHE_FRESHNESS_MINUTES = 15
         private const val KEY_LAST_UPDATE_FORMATTED = "last_update_formatted"
         private const val KEY_EVENTS_LAST_UPDATE = "events_last_update_timestamp"
 
@@ -72,7 +73,7 @@ class OfflineDataManager(
             postDao.deleteAll()
             postDao.insertAll(posts.map { it.toEntity() })
             // Záměrně NENASTAVUJEME KEY_LAST_UPDATE – ten nastavuje jen saveRemainingData
-            // po stažení kompletních dat. Jinak by isCacheFresh(15) blokoval Phase 2.
+            // po stažení kompletních dat. Jinak by isCacheFresh(CACHE_FRESHNESS_MINUTES) blokoval Phase 2.
         }
 
     /**

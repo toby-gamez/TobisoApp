@@ -57,7 +57,7 @@ class MainViewModel @Inject constructor(
             // Note: after a Room schema migration, the DB is wiped but SharedPreferences timestamp
             // remains – so we must verify data is actually present before skipping the download.
             try {
-                if (offlineDataManager.isCacheFresh(15)) {
+                if (offlineDataManager.isCacheFresh(OfflineDataManager.CACHE_FRESHNESS_MINUTES)) {
                     val cachedCategories = offlineDataManager.getCachedCategories()
                     if (cachedCategories != null) {
                         loadOfflineData(isOnline)

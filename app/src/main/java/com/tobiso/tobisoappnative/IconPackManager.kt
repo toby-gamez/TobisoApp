@@ -60,7 +60,7 @@ class IconPackManager private constructor(context: Context) {
         if (activePackId != -1) {
             _activeIconPack.value = ShopData.getItemById(activePackId)
         } else {
-            ShopData.getItemById(CLASSIC_ICON_PACK_ID)?.let { setActiveIconPack(it) }
+            ShopData.getItemById(ShopData.CLASSIC_ICON_PACK_ID)?.let { setActiveIconPack(it) }
         }
     }
 
@@ -104,7 +104,6 @@ class IconPackManager private constructor(context: Context) {
     companion object {
         private const val PREFS_NAME = "backpack_prefs"
         private const val KEY_ACTIVE_ICON_PACK = "equipped_icon_pack"
-        private const val CLASSIC_ICON_PACK_ID = 23
 
         @Volatile private var INSTANCE: IconPackManager? = null
 

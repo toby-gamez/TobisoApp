@@ -70,7 +70,7 @@ class OfflineManagerViewModel @Inject constructor(
                     eventsCount = offlineDataManager.getCachedEvents()?.size,
                     lastUpdateFormatted = offlineDataManager.getLastUpdateFormatted(),
                     lastUpdateTimestamp = offlineDataManager.getLastUpdateTimestamp(),
-                    cacheFresh15 = offlineDataManager.isCacheFresh(15)
+                    cacheFresh15 = offlineDataManager.isCacheFresh(OfflineDataManager.CACHE_FRESHNESS_MINUTES)
                 )
             } catch (e: Exception) {
                 _cacheInfo.value = CacheInfo()

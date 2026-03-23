@@ -86,27 +86,10 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.items
 import com.tobiso.tobisoappnative.components.ImageCropperDialog
 import com.tobiso.tobisoappnative.components.FloatingSearchBar
-
-// Helper funkce pro správu profilu
-fun getProfileName(context: android.content.Context): String {
-    val prefs = context.getSharedPreferences("ProfilePrefs", android.content.Context.MODE_PRIVATE)
-    return prefs.getString("profile_name", "Chytrá věc") ?: "Chytrá věc"
-}
-
-fun saveProfileName(context: android.content.Context, name: String) {
-    val prefs = context.getSharedPreferences("ProfilePrefs", android.content.Context.MODE_PRIVATE)
-    prefs.edit().putString("profile_name", name).apply()
-}
-
-fun getProfileImageUri(context: android.content.Context): String? {
-    val prefs = context.getSharedPreferences("ProfilePrefs", android.content.Context.MODE_PRIVATE)
-    return prefs.getString("profile_image_uri", null)
-}
-
-fun saveProfileImageUri(context: android.content.Context, uri: String?) {
-    val prefs = context.getSharedPreferences("ProfilePrefs", android.content.Context.MODE_PRIVATE)
-    prefs.edit().putString("profile_image_uri", uri).apply()
-}
+import com.tobiso.tobisoappnative.utils.getProfileName
+import com.tobiso.tobisoappnative.utils.saveProfileName
+import com.tobiso.tobisoappnative.utils.getProfileImageUri
+import com.tobiso.tobisoappnative.utils.saveProfileImageUri
 
 // Funkce pro kopírování obrázku do interního úložiště
 fun copyImageToInternalStorage(context: android.content.Context, uri: android.net.Uri): String? {

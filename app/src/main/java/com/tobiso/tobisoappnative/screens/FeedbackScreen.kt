@@ -12,7 +12,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.tooling.preview.Preview
 import com.tobiso.tobisoappnative.viewmodel.feedback.FeedbackViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,8 +93,3 @@ fun FeedbackScreen(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun FeedbackScreenPreview() {
-    // FeedbackScreen(navController = rememberNavController()) // Uncomment when NavController is available
-}

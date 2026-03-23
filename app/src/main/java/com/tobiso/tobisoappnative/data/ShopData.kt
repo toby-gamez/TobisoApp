@@ -3,7 +3,10 @@ package com.tobiso.tobisoappnative.data
 import com.tobiso.tobisoappnative.model.*
 
 object ShopData {
-    
+
+    /** ID itemu "Klasické ikony" – výchozí ikony, které jsou vždy dostupné zdarma. */
+    const val CLASSIC_ICON_PACK_ID = 23
+
     fun getShopItems(): List<ShopItem> {
         return listOf(
             // Streak kategorie

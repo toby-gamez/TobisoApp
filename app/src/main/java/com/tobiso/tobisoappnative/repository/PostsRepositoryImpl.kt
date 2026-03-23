@@ -14,7 +14,7 @@ class PostsRepositoryImpl(
 
     override suspend fun getCategories(): Result<List<Category>> {
         return try {
-            if (offlineDataManager.isCacheFresh(15)) {
+            if (offlineDataManager.isCacheFresh(OfflineDataManager.CACHE_FRESHNESS_MINUTES)) {
                 val cached = offlineDataManager.getCachedCategories()
                 if (cached != null) return Result.success(cached)
             }
@@ -34,7 +34,7 @@ class PostsRepositoryImpl(
 
     override suspend fun getPostsByCategory(categoryId: Int?): Result<List<Post>> {
         return try {
-            if (offlineDataManager.isCacheFresh(15)) {
+            if (offlineDataManager.isCacheFresh(OfflineDataManager.CACHE_FRESHNESS_MINUTES)) {
                 val cached = if (categoryId != null)
                     offlineDataManager.getCachedPostsByCategory(categoryId)
                 else

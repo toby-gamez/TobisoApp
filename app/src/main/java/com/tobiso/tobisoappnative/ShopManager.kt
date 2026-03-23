@@ -1,6 +1,7 @@
 package com.tobiso.tobisoappnative
 
 import android.content.Context
+import com.tobiso.tobisoappnative.data.ShopData
 import com.tobiso.tobisoappnative.manager.IShopManager
 import com.tobiso.tobisoappnative.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,9 +36,9 @@ class ShopManager private constructor(context: Context) : IShopManager {
             }
         }
         // Vždycky automaticky přidat "Klasické ikony" balíček (ID 23) jako vlastněný
-        if (!purchasedSet.contains(CLASSIC_ICON_PACK_ID)) {
-            purchasedSet.add(CLASSIC_ICON_PACK_ID)
-            savePurchasedItem(CLASSIC_ICON_PACK_ID)
+        if (!purchasedSet.contains(ShopData.CLASSIC_ICON_PACK_ID)) {
+            purchasedSet.add(ShopData.CLASSIC_ICON_PACK_ID)
+            savePurchasedItem(ShopData.CLASSIC_ICON_PACK_ID)
         }
         _purchasedItems.value = purchasedSet
     }
@@ -132,7 +133,6 @@ class ShopManager private constructor(context: Context) : IShopManager {
         private const val KEY_PURCHASED_PREFIX = "purchased_"
         private const val KEY_PURCHASE_DATE_PREFIX = "purchased_date_"
         private const val KEY_COOLDOWN_PREFIX = "cooldown_"
-        private const val CLASSIC_ICON_PACK_ID = 23
 
         @Volatile private var INSTANCE: ShopManager? = null
 

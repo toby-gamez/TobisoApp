@@ -44,11 +44,11 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
         }
 
         // Ujisti se, že "Klasické ikony" jsou vždycky v aktovce
-        val hasClassicIconPack = backpackItemsList.any { it.shopItem.id == CLASSIC_ICON_PACK_ID }
+        val hasClassicIconPack = backpackItemsList.any { it.shopItem.id == ShopData.CLASSIC_ICON_PACK_ID }
         if (!hasClassicIconPack) {
-            val classicPurchaseDate = ShopManager.getPurchaseDate(CLASSIC_ICON_PACK_ID)
+            val classicPurchaseDate = ShopManager.getPurchaseDate(ShopData.CLASSIC_ICON_PACK_ID)
                 .takeIf { it > 0L } ?: System.currentTimeMillis()
-            ShopData.getItemById(CLASSIC_ICON_PACK_ID)?.let {
+            ShopData.getItemById(ShopData.CLASSIC_ICON_PACK_ID)?.let {
                 backpackItemsList.add(BackpackItem(shopItem = it, purchaseDate = classicPurchaseDate))
             }
         }
@@ -69,7 +69,7 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
             _equippedIconPack.value = iconPack
             if (iconPack != null) IconPackManager.setActiveIconPack(iconPack)
         } else {
-            ShopData.getItemById(CLASSIC_ICON_PACK_ID)?.let { equipIconPack(it) }
+            ShopData.getItemById(ShopData.CLASSIC_ICON_PACK_ID)?.let { equipIconPack(it) }
         }
     }
 
@@ -110,7 +110,6 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
         private const val KEY_EQUIPPED_QUOTE = "equipped_quote"
         private const val KEY_EQUIPPED_PET = "equipped_pet"
         private const val KEY_EQUIPPED_ICON_PACK = "equipped_icon_pack"
-        private const val CLASSIC_ICON_PACK_ID = 23
 
         @Volatile private var INSTANCE: BackpackManager? = null
 

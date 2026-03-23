@@ -54,79 +54,13 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import com.tobiso.tobisoappnative.utils.StreakUtils
+import com.tobiso.tobisoappnative.utils.parseDateToMillis
+import com.tobiso.tobisoappnative.utils.formatDateDisplay
+import com.tobiso.tobisoappnative.utils.formatDateOnly
+import com.tobiso.tobisoappnative.utils.SortMode
+import com.tobiso.tobisoappnative.utils.loadSortMode
+import com.tobiso.tobisoappnative.utils.saveSortMode
 import kotlinx.coroutines.delay
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-import java.util.Locale
-
-// Pomocné funkce pro parsování a formát data
-fun parseDateToMillis(dateStr: String?): Long? {
-    if (dateStr.isNullOrBlank()) return null
-    // Try ISO formats with offset/Z (yyyy-MM-ddTHH:mm:ssZ or +HH:mm)
-    try {
-        return ZonedDateTime.parse(dateStr, DateTimeFormatter.ISO_DATE_TIME)
-            .toInstant().toEpochMilli()
-    } catch (_: DateTimeParseException) {}
-    // Try ISO local datetime (handles yyyy-MM-ddTHH:mm:ss with 0-9 fractional digits, e.g. .1234567)
-    try {
-        return java.time.LocalDateTime.parse(dateStr)
-            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()
-    } catch (_: DateTimeParseException) {}
-    // Try with space separator (yyyy-MM-dd HH:mm:ss)
-    try {
-        return java.time.LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()
-    } catch (_: DateTimeParseException) {}
-
-    // Try plain date
-    try {
-        return java.time.LocalDate.parse(dateStr)
-            .atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
-    } catch (_: DateTimeParseException) {}
-    return null
-}
-
-private val csDisplayFormatter = DateTimeFormatter.ofPattern("d. M. yyyy 'v' HH:mm", Locale.forLanguageTag("cs-CZ"))
-private val csDateOnlyFormatter = DateTimeFormatter.ofPattern("d. M. yyyy", Locale.forLanguageTag("cs-CZ"))
-
-fun formatDateDisplay(millis: Long?): String {
-    if (millis == null) return "Neznámé datum"
-    return try {
-        Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).format(csDisplayFormatter)
-    } catch (_: Exception) {
-        "Neznámé datum"
-    }
-}
-
-fun formatDateOnly(millis: Long?): String {
-    if (millis == null) return "Neznámé datum"
-    return try {
-        Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).format(csDateOnlyFormatter)
-    } catch (_: Exception) {
-        "Neznámé datum"
-    }
-}
-
-private const val HOME_PREFS = "home_prefs"
-private const val KEY_SORT_MODE = "home_sort_mode"
-
-fun loadSortMode(context: Context): SortMode {
-    val prefs = context.getSharedPreferences(HOME_PREFS, Context.MODE_PRIVATE)
-    val saved = prefs.getString(KEY_SORT_MODE, null)
-    return when (saved) {
-        SortMode.NEWEST.name -> SortMode.NEWEST
-        SortMode.SUBJECTS.name -> SortMode.SUBJECTS
-        else -> SortMode.SUBJECTS
-    }
-}
-
-fun saveSortMode(context: Context, mode: SortMode) {
-    val prefs = context.getSharedPreferences(HOME_PREFS, Context.MODE_PRIVATE)
-    prefs.edit().putString(KEY_SORT_MODE, mode.name).apply()
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -183,12 +117,6 @@ enum class SubjectColorType {
     PRIMARY, SECONDARY, TERTIARY, ERROR, OUTLINE,
     PRIMARY_CONTAINER, SECONDARY_CONTAINER, TERTIARY_CONTAINER,
     SURFACE_VARIANT
-}
-
-// Režimy řazení / zobrazení na Home obrazovce
-enum class SortMode {
-    SUBJECTS,
-    NEWEST
 }
 
 @Composable
