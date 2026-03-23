@@ -35,6 +35,11 @@ fun UpdaterScreen(
     val error by vm.error.collectAsState()
     val isOfflineMode by vm.isOfflineMode.collectAsState()
 
+    // Create local non-delegated copies so Kotlin can smart-cast nullability
+    val currentVersionVal = currentVersion
+    val latestVersionVal = latestVersion
+    val isUpToDateVal = isUpToDate
+
     LaunchedEffect(Unit) {
         val packageInfo = try {
             context.packageManager.getPackageInfo(context.packageName, 0)
@@ -90,11 +95,11 @@ fun UpdaterScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "Vaše verze: $currentVersion", style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(16.dp))
-                    if (isUpToDate == true) {
+                    if (isUpToDateVal == true) {
                         Icon(Icons.Default.CheckCircle, contentDescription = "Aktuální", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(64.dp))
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(text = "Aplikace je aktuální.", color = MaterialTheme.colorScheme.tertiary)
-                    } else if (latestVersion != null && currentVersion > latestVersion) {
+                    } else if (latestVersionVal != null && currentVersionVal > latestVersionVal) {
                         Icon(Icons.Default.CheckCircle, contentDescription = "Debug", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(64.dp))
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(text = "Jste v debug verzi aplikace!", color = MaterialTheme.colorScheme.tertiary)
@@ -107,7 +112,7 @@ fun UpdaterScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Dostupná nová verze: $latestVersion",
+                                text = "Dostupná nová verze: $latestVersionVal",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
@@ -120,8 +125,8 @@ fun UpdaterScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
-                                onClick = { latestVersion?.let { openDownloadPage(it) } },
-                                enabled = latestVersion != null,
+                                onClick = { latestVersionVal?.let { openDownloadPage(it) } },
+                                enabled = latestVersionVal != null,
                                 modifier = Modifier.fillMaxWidth(0.8f)
                             ) {
                                 Text("Stáhnout aktualizaci")
