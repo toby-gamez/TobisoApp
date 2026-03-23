@@ -34,8 +34,8 @@ object ApiClient {
         builder.readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
         builder.writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
         
-        // Protokoly - preferuj HTTP/1.1 pro stabilitu
-        builder.protocols(listOf(okhttp3.Protocol.HTTP_1_1))
+        // Nevynucuj protokol zde — nechej OkHttp vyjednat nejlepší protokol (HTTP/2 pokud server podporuje)
+        // (Původně: builder.protocols(listOf(okhttp3.Protocol.HTTP_1_1)))
         
         // Interceptor s bezpečnostními hlavičkami
         builder.addInterceptor { chain ->
@@ -72,7 +72,6 @@ object ApiClient {
             .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .protocols(listOf(okhttp3.Protocol.HTTP_1_1))
             .addInterceptor { chain ->
                 val request: Request = chain.request().newBuilder()
                     .addHeader("Authorization", credential)

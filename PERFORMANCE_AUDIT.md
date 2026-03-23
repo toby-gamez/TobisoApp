@@ -7,7 +7,6 @@ Tento dokument shrnuje výsledky rychlého auditu zaměřeného na plynulost, ef
 
 **Střední priorita**
 
-- HTTP klient: ApiClient vynucuje `Protocol.HTTP_1_1` a používá certificate pinning. Pinning je bezpečný, ale omezí možnost využití HTTP/2 (lepší multiplexing a latence). Doporučení: otestovat povolení HTTP/2 když server podporuje, zavést proces aktualizace pinů (rotace, více pinů pro fallback).
 - Gson konfigurace: `setLenient()` a `serializeNulls()` mohou maskovat chyby a mírně zpomalovat parsing. Zvážit `kotlinx.serialization` pro menší overhead a bezpečnější parsing.
 
 **Nízka priorita / celkové doporučení pro plynulost**
