@@ -237,19 +237,21 @@ fun BackpackScreen(
     }
     
     // Dialog pro zobrazení itemu
-    if (showItemDialog && selectedItem != null) {
-        BackpackItemDialog(
-            backpackItem = selectedItem!!,
-            isEquipped = when (selectedItem!!.shopItem.type) {
-                ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == selectedItem!!.shopItem.id
-                ShopItemType.PET -> equippedPet?.id == selectedItem!!.shopItem.id
-                ShopItemType.ICON_PACK -> BackpackManager.equippedIconPack.collectAsState().value?.id == selectedItem!!.shopItem.id
-                else -> false
-            },
-            onEquip = { vm.equipItem(selectedItem!!) },
-            onUnequip = { vm.unequipItem(selectedItem!!) },
-            onDismiss = { vm.dismissDialog() }
-        )
+    if (showItemDialog) {
+        selectedItem?.let { item ->
+            BackpackItemDialog(
+                backpackItem = item,
+                isEquipped = when (item.shopItem.type) {
+                    ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == item.shopItem.id
+                    ShopItemType.PET -> equippedPet?.id == item.shopItem.id
+                    ShopItemType.ICON_PACK -> BackpackManager.equippedIconPack.collectAsState().value?.id == item.shopItem.id
+                    else -> false
+                },
+                onEquip = { vm.equipItem(item) },
+                onUnequip = { vm.unequipItem(item) },
+                onDismiss = { vm.dismissDialog() }
+            )
+        }
     }
 
     // Success Snackbar

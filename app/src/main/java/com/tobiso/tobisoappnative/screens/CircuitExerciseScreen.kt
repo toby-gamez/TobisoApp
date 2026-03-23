@@ -176,11 +176,12 @@ fun CircuitExerciseScreen(
                         // preview line while connecting
                         if (state.connectingFrom != null && previewPointer != null) {
                             val fromComp = state.components.find { it.id == state.connectingFrom }
-                            if (fromComp != null) {
+                            val pointer = previewPointer
+                            if (fromComp != null && pointer != null) {
                                 drawLine(
                                     color = Color(0xFF0D6EFD),
                                     start = Offset(fromComp.x.toFloat() + compSizePx / 2f, fromComp.y.toFloat() + compSizePx / 2f),
-                                    end = previewPointer!!,
+                                    end = pointer,
                                     strokeWidth = 4f,
                                     pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
                                 )

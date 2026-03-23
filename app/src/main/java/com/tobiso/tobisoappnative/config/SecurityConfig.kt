@@ -32,6 +32,9 @@ object SecurityConfig {
     fun getApiCredentials(): String {
         val username = BuildConfig.API_USERNAME
         val password = BuildConfig.API_PASSWORD
+        if (username.isBlank() || password.isBlank()) {
+            Timber.e("API credentials are not configured – requests will fail authentication")
+        }
         return Credentials.basic(username, password)
     }
 

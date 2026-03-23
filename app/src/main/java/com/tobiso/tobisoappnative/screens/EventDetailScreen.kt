@@ -142,14 +142,14 @@ fun EventDetailScreen(
                         )
                     ) {
                         Text(
-                            text = error!!,
+                            text = error ?: "",
                             modifier = Modifier.padding(16.dp),
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                     }
                 }
                 event != null -> {
-                    EventDetailContent(event = event!!)
+                    EventDetailContent(event = event)
                 }
             }
         }

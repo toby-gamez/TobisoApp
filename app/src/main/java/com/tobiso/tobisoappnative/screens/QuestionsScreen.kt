@@ -390,7 +390,7 @@ fun QuestionsScreen(
                                                     )
                                                     Spacer(modifier = Modifier.height(4.dp))
                                                     Text(
-                                                        question.explanation!!,
+                                                        question.explanation ?: "",
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )

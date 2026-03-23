@@ -324,6 +324,7 @@ fun FloatingSearchBar(
                     ) {
                         Column {
                             if (aiMode && attachedPost != null) {
+                                val post = attachedPost
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
@@ -338,7 +339,7 @@ fun FloatingSearchBar(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = attachedPost!!.title,
+                                        text = post?.title ?: "",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         maxLines = 1,
@@ -411,7 +412,8 @@ fun FloatingSearchBar(
                                 if (isOffline && !aiMode) return@SmallFloatingActionButton
                                 when {
                                     aiMode && attachedPost != null && searchText.isNotEmpty() -> {
-                                        onAiSend(attachedPost!!, searchText)
+                                        val post = attachedPost ?: return@SmallFloatingActionButton
+                                        onAiSend(post, searchText)
                                         searchText = ""
                                     }
                                     aiMode -> { aiMode = false; searchText = ""; attachedPost = null }

@@ -327,7 +327,7 @@ fun MatchingExerciseScreen(
 
             // Výsledek validace
             if (state.showResult && state.validationResult != null) {
-                val result = state.validationResult!!
+                val result = state.validationResult
                 val isCorrect = result.isCorrect
                 Card(
                     modifier = Modifier

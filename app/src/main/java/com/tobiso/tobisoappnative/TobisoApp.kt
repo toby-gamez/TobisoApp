@@ -159,7 +159,7 @@ fun TobisoApp(navigateTo: String? = null) {
             Timber.d("Total points: $totalPoints")
 
             overlayPoints = lastAddedPoints
-            milestoneDay = lastMilestone!!
+            milestoneDay = lastMilestone ?: 0
             showMilestoneOverlay = true
             delay(3000) // Delší zobrazení pro milník
             showMilestoneOverlay = false
@@ -179,7 +179,7 @@ fun TobisoApp(navigateTo: String? = null) {
             Timber.d("Total points: $totalPoints")
 
             overlayPoints = lastAddedPoints
-            achievementPoints = lastAchievement!!
+            achievementPoints = lastAchievement ?: 0
             showAchievementOverlay = true
             delay(3000) // Delší zobrazení pro achievement
             showAchievementOverlay = false

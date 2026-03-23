@@ -360,6 +360,7 @@ fun CalendarScreen(
 
                 // Detail vybraného dne
                 if (showDateDetail && selectedDate != null) {
+                    val currentSelectedDate = selectedDate
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     // Filtruj události podle aktuálního filtru
@@ -372,7 +373,7 @@ fun CalendarScreen(
                     }
                     
                     DateDetailCard(
-                        date = selectedDate!!,
+                        date = currentSelectedDate,
                         events = filteredEvents,
                         navController = navController,
                         onClose = {
@@ -458,6 +459,7 @@ fun CalendarScreen(
     
     // Dialog pro potvrzení smazání
     if (showDeleteDialog && eventToDelete != null) {
+        val currentEventToDelete = eventToDelete
         AlertDialog(
             onDismissRequest = { 
                 showDeleteDialog = false
@@ -465,13 +467,15 @@ fun CalendarScreen(
             },
             title = { Text("Smazat událost") },
             text = { 
-                Text("Opravdu chcete smazat událost \"${eventToDelete!!.getTitleSafe()}\"? Tato akce je nevratná.") 
+                Text("Opravdu chcete smazat událost \"${currentEventToDelete?.getTitleSafe() ?: "tuto událost"}\"? Tato akce je nevratná.") 
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         isDeleting = true
-                        viewModel.onIntent(CalendarIntent.DeleteLocalEvent(eventToDelete!!.id))
+                        currentEventToDelete?.id?.let { id ->
+                            viewModel.onIntent(CalendarIntent.DeleteLocalEvent(id))
+                        }
                     },
                     enabled = !isDeleting
                 ) {

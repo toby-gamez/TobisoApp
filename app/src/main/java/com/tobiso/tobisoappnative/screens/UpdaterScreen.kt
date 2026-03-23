@@ -83,7 +83,7 @@ fun UpdaterScreen(
                     )
                 }
             } else if (error != null) {
-                Text(text = error!!, color = MaterialTheme.colorScheme.error)
+                Text(text = error ?: "", color = MaterialTheme.colorScheme.error)
             } else if (latestVersion == null) {
                 CircularProgressIndicator()
             } else {
@@ -94,7 +94,7 @@ fun UpdaterScreen(
                         Icon(Icons.Default.CheckCircle, contentDescription = "Aktuální", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(64.dp))
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(text = "Aplikace je aktuální.", color = MaterialTheme.colorScheme.tertiary)
-                    } else if (latestVersion != null && currentVersion > latestVersion!!) {
+                    } else if (latestVersion != null && currentVersion > latestVersion) {
                         Icon(Icons.Default.CheckCircle, contentDescription = "Debug", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(64.dp))
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(text = "Jste v debug verzi aplikace!", color = MaterialTheme.colorScheme.tertiary)
@@ -120,7 +120,8 @@ fun UpdaterScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
-                                onClick = { openDownloadPage(latestVersion!!) },
+                                onClick = { latestVersion?.let { openDownloadPage(it) } },
+                                enabled = latestVersion != null,
                                 modifier = Modifier.fillMaxWidth(0.8f)
                             ) {
                                 Text("Stáhnout aktualizaci")
