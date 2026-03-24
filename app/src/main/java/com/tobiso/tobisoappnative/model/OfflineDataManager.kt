@@ -3,6 +3,8 @@ import timber.log.Timber
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.tobiso.tobisoappnative.db.AppDatabase
+import androidx.room.withTransaction
 import com.tobiso.tobisoappnative.db.dao.AddendumDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
@@ -37,7 +39,8 @@ class OfflineDataManager(
     private val eventDao: EventDao,
     private val addendumDao: AddendumDao,
     private val relatedPostDao: RelatedPostDao,
-    private val exerciseDao: ExerciseDao
+    private val exerciseDao: ExerciseDao,
+    private val db: AppDatabase
 ) {
 
     companion object {
@@ -68,10 +71,12 @@ class OfflineDataManager(
 
     suspend fun saveCategoriesAndPosts(categories: List<Category>, posts: List<Post>) =
         withContext(Dispatchers.IO) {
-            categoryDao.deleteAll()
-            categoryDao.insertAll(categories.map { it.toEntity() })
-            postDao.deleteAll()
-            postDao.insertAll(posts.map { it.toEntity() })
+            db.withTransaction {
+                categoryDao.deleteAll()
+                categoryDao.insertAll(categories.map { it.toEntity() })
+                postDao.deleteAll()
+                postDao.insertAll(posts.map { it.toEntity() })
+            }
             // Záměrně NENASTAVUJEME KEY_LAST_UPDATE – ten nastavuje jen saveRemainingData
             // po stažení kompletních dat. Jinak by isCacheFresh(CACHE_FRESHNESS_MINUTES) blokoval Phase 2.
         }
@@ -93,23 +98,27 @@ class OfflineDataManager(
         val formattedTime = Instant.ofEpochMilli(currentTime)
             .atZone(ZoneId.systemDefault()).format(csTimeFormatter)
 
-        // Kategorie a posty znovu uložit (pro případ přímého volání z OfflineManagerScreen)
-        categoryDao.deleteAll()
-        categoryDao.insertAll(categories.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip category ${it.id}: ${e.message}"); null } })
-        postDao.deleteAll()
-        postDao.insertAll(posts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip post ${it.id}: ${e.message}"); null } })
+        // Uložit vše atomicky v transakci. Pokud něco selže, DB zůstane konzistentní.
+        db.withTransaction {
+            // Kategorie a posty znovu uložit (pro případ přímého volání z OfflineManagerScreen)
+            categoryDao.deleteAll()
+            categoryDao.insertAll(categories.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip category ${it.id}: ${e.message}"); null } })
+            postDao.deleteAll()
+            postDao.insertAll(posts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip post ${it.id}: ${e.message}"); null } })
 
-        questionPostDao.deleteAll()
-        questionPostDao.insertAll(questionsPosts.mapNotNull { runCatching { it.toQuestionPostEntity() }.getOrElse { e -> Timber.w("skip questionPost ${it.id}: ${e.message}"); null } })
-        questionDao.deleteAll()
-        questionDao.insertAll(questions.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip question ${it.id}: ${e.message}"); null } })
-        relatedPostDao.deleteAll()
-        relatedPostDao.insertAll(relatedPosts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip relatedPost ${it.id}: ${e.message}"); null } })
-        addendumDao.deleteAll()
-        addendumDao.insertAll(addendums.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip addendum ${it.id}: ${e.message}"); null } })
-        exerciseDao.deleteAll()
-        exerciseDao.insertAll(exercises.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip exercise ${it.id}: ${e.message}"); null } })
+            questionPostDao.deleteAll()
+            questionPostDao.insertAll(questionsPosts.mapNotNull { runCatching { it.toQuestionPostEntity() }.getOrElse { e -> Timber.w("skip questionPost ${it.id}: ${e.message}"); null } })
+            questionDao.deleteAll()
+            questionDao.insertAll(questions.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip question ${it.id}: ${e.message}"); null } })
+            relatedPostDao.deleteAll()
+            relatedPostDao.insertAll(relatedPosts.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip relatedPost ${it.id}: ${e.message}"); null } })
+            addendumDao.deleteAll()
+            addendumDao.insertAll(addendums.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip addendum ${it.id}: ${e.message}"); null } })
+            exerciseDao.deleteAll()
+            exerciseDao.insertAll(exercises.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip exercise ${it.id}: ${e.message}"); null } })
+        }
 
+        // Nastavit metadata PO úspěšné transakci
         metaPrefs.edit()
             .putLong(KEY_LAST_UPDATE, currentTime)
             .putString(KEY_LAST_UPDATE_FORMATTED, formattedTime)

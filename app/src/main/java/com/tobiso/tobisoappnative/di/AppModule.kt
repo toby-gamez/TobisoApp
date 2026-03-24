@@ -46,10 +46,11 @@ object AppModule {
         eventDao: EventDao,
         addendumDao: AddendumDao,
         relatedPostDao: RelatedPostDao,
-        exerciseDao: ExerciseDao
+        exerciseDao: ExerciseDao,
+        db: com.tobiso.tobisoappnative.db.AppDatabase
     ): OfflineDataManager = OfflineDataManager(
         context, categoryDao, postDao, questionPostDao,
-        questionDao, eventDao, addendumDao, relatedPostDao, exerciseDao
+        questionDao, eventDao, addendumDao, relatedPostDao, exerciseDao, db
     )
 
     @Provides
