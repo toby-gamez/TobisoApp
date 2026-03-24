@@ -488,7 +488,7 @@ fun PostDetailScreen(
     var showAddendumDialog by remember { mutableStateOf(false) }
     var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
     var pendingPdfDownload by rememberSaveable { mutableStateOf(false) }
-    
+
     var downloadProgress by rememberSaveable { mutableStateOf<Int?>(null) }
 
     val context = LocalContext.current
@@ -826,8 +826,9 @@ fun PostDetailScreen(
                                         if (hasPermission) {
                                             downloadPdf(id)
                                         } else {
-                                            // Požádáme o permission
-                                            showPermissionDialog = true
+                                            // Požádáme o permission a pamatujeme, že bylo požadováno stažení
+                                            pendingPdfDownload = true
+                                            permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                                         }
                                     }
                                 }

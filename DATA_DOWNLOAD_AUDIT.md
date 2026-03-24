@@ -11,7 +11,7 @@ Krátce: síťová vrstva je solidně navržena (Retrofit + OkHttp), má certifi
 - `OfflineRepositoryImpl` provádí masivní paralelní stahování s lokálním řízením concurrency (Semaphore 10) — dobrý přístup.
 <!-- Credentials handling item resolved: moved to secure storage fallback in SecurityConfig -->
 - `NetworkUtils.isOnline()` používá moderní API a `observeConnectivityAsFlow()` — OK.
-PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro starší verze; permission handling existuje — doporučuji přidat progress indikaci při stahování a ověřit streaming (pokud není již implementován).
+PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro starší verze; permission handling existuje.
 
 ## Doporučení (konkrétní kroky)
 1. (PONECHÁNO) Přehled ostatních doporučení a testování na atomicitu zápisů.
@@ -20,7 +20,6 @@ PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro star
    - Mít připravený proces rotace pinů (skript už existuje: `get_ssl_hash.sh`).
    - Doporučit záložní pin (backup) a/nebo pinovat CA, ne jen leaf, aby aktualizace certifikátu serveru nezlomila aplikaci.
 3. PDF UX a bezpečnost:
-   - Streamovat a ukazovat progress. Zajistit, že soubor je uložen s pravými MIME typy a že `FLAG_GRANT_READ_URI_PERMISSION` se správně používá.
    - Pro Android 11+ preferovat MediaStore / SAF a vyhnout se WRITE_EXTERNAL_STORAGE fallbackům (scoped storage). Zvažte sdílení do interního soukromého adresáře a sdílení přes `FileProvider` místo ukládání přímo do Downloads, pokud intentování k prohlížeči není kritické.
 
 4. Concurrency tuning:
