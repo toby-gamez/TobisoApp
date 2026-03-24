@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.offlinemanager.OfflineManagerViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalView
+import com.google.android.material.snackbar.Snackbar
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,7 +26,7 @@ fun OfflineManagerScreen(
     val isOfflineMode by vm.isOffline.collectAsState()
     val cacheInfo by vm.cacheInfo.collectAsState()
     val toastMessage by vm.toastMessage.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val view = LocalView.current
     val offlineDownloading by vm.offlineDownloading.collectAsState()
     val offlineProgress by vm.offlineDownloadProgress.collectAsState()
     val lastError by vm.lastError.collectAsState()
@@ -229,10 +231,10 @@ fun OfflineManagerScreen(
             }
         }
 
-        // Snackbar for toastMessage (shown at bottom)
+        // Android Snackbar for toastMessage (shown at bottom)
         LaunchedEffect(toastMessage) {
             toastMessage?.let { msg ->
-                snackbarHostState.showSnackbar(msg)
+                Snackbar.make(view, msg, Snackbar.LENGTH_LONG).show()
                 vm.clearToast()
             }
         }
@@ -245,18 +247,11 @@ fun OfflineManagerScreen(
                 // if viewModel didn't emit a toast (e.g. background download), show feedback
                 kotlinx.coroutines.delay(300)
                 if (vm.toastMessage.value == null) {
-                    snackbarHostState.showSnackbar("Offline obsah byl aktualizován")
+                    Snackbar.make(view, "Offline obsah byl aktualizován", Snackbar.LENGTH_SHORT).show()
                 }
             }
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            SnackbarHost(hostState = snackbarHostState)
-        }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
