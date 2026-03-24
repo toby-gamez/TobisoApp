@@ -8,6 +8,7 @@ import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.atomic.AtomicInteger
@@ -23,6 +24,29 @@ class OfflineRepositoryImpl(
     private val context: Context,
     private val offlineDataManager: OfflineDataManager
 ) {
+    // Generic retry with exponential backoff for transient network errors.
+    private suspend fun <T> retryWithBackoff(
+        attempts: Int = 3,
+        initialDelayMillis: Long = 500,
+        factor: Double = 2.0,
+        block: suspend () -> T
+    ): T {
+        var currentDelay = initialDelayMillis
+        var lastError: Throwable? = null
+        repeat(attempts - 1) {
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastError = e
+                Timber.w(e, "Transient error, retrying in %d ms", currentDelay)
+                delay(currentDelay)
+                currentDelay = (currentDelay * factor).toLong()
+            }
+        }
+        // final attempt - let exception propagate if it fails
+        return block()
+    }
+
     /**
      * Full download used by OfflineManagerScreen "Stáhnout vše" button.
      * Phase A: categories + posts saved immediately.
@@ -40,7 +64,7 @@ class OfflineRepositoryImpl(
 
         val categories: List<Category>
         try {
-            categories = ApiClient.apiService.getCategories().toList()
+            categories = retryWithBackoff { ApiClient.apiService.getCategories().toList() }
             Timber.d("getCategories OK: ${categories.size}")
         } catch (e: Exception) {
             Timber.e(e, "getCategories failed")
@@ -50,7 +74,7 @@ class OfflineRepositoryImpl(
 
         val posts: List<Post>
         try {
-            posts = ApiClient.apiService.getPosts().toList()
+            posts = retryWithBackoff { ApiClient.apiService.getPosts().toList() }
             Timber.d("getPosts OK: ${posts.size}")
         } catch (e: Exception) {
             Timber.e(e, "getPosts failed")
@@ -78,8 +102,8 @@ class OfflineRepositoryImpl(
     suspend fun downloadCategoriesAndPosts(): Pair<List<Category>, List<Post>>? {
         return try {
             if (!NetworkUtils.isOnline(context)) return null
-            val categories = ApiClient.apiService.getCategories().toList()
-            val posts = ApiClient.apiService.getPosts().toList()
+            val categories = retryWithBackoff { ApiClient.apiService.getCategories().toList() }
+            val posts = retryWithBackoff { ApiClient.apiService.getPosts().toList() }
             offlineDataManager.saveCategoriesAndPosts(categories, posts)
             Pair(categories, posts)
         } catch (e: Exception) {
@@ -115,33 +139,33 @@ class OfflineRepositoryImpl(
             val span = 1f - startProgress
 
             val questions = try {
-                ApiClient.apiService.getAllQuestions().toList()
+                retryWithBackoff { ApiClient.apiService.getAllQuestions().toList() }
             } catch (e: Exception) {
-                Timber.w("getAllQuestions failed: ${e.message}")
+                Timber.w(e, "getAllQuestions failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.25f)
 
             val questionsPosts = try {
-                ApiClient.apiService.getPostsForQuestions().toList()
+                retryWithBackoff { ApiClient.apiService.getPostsForQuestions().toList() }
             } catch (e: Exception) {
-                Timber.w("getPostsForQuestions failed: ${e.message}")
+                Timber.w(e, "getPostsForQuestions failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.45f)
 
             val relatedPosts = try {
-                ApiClient.apiService.getAllRelatedPosts().toList()
+                retryWithBackoff { ApiClient.apiService.getAllRelatedPosts().toList() }
             } catch (e: Exception) {
-                Timber.w("getAllRelatedPosts failed: ${e.message}")
+                Timber.w(e, "getAllRelatedPosts failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.6f)
 
             val addendums = try {
-                ApiClient.apiService.getAddendums().toList()
+                retryWithBackoff { ApiClient.apiService.getAddendums().toList() }
             } catch (e: Exception) {
-                Timber.w("getAddendums failed: ${e.message}")
+                Timber.w(e, "getAddendums failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.75f)
@@ -155,9 +179,9 @@ class OfflineRepositoryImpl(
                     async {
                         semaphore.withPermit {
                             val list = try {
-                                ApiClient.apiService.getExercisesByPostId(post.id)
+                                retryWithBackoff { ApiClient.apiService.getExercisesByPostId(post.id) }
                             } catch (e: Exception) {
-                                Timber.w("getExercisesByPostId failed for ${post.id}: ${e.message}")
+                                Timber.w(e, "getExercisesByPostId failed for ${post.id}: ${e.message}")
                                 emptyList()
                             }
                             val done = completed.incrementAndGet()
@@ -174,9 +198,9 @@ class OfflineRepositoryImpl(
             onProgress(startProgress + span * 0.93f)
 
             val events = try {
-                ApiClient.apiService.getEvents().toList()
+                retryWithBackoff { ApiClient.apiService.getEvents().toList() }
             } catch (e: Exception) {
-                Timber.w("getEvents failed: ${e.message}")
+                Timber.w(e, "getEvents failed: ${e.message}")
                 emptyList()
             }
             onProgress(startProgress + span * 0.97f)

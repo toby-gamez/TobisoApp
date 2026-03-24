@@ -18,24 +18,22 @@ PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro star
 
 2. (PONECHÁNO) Přehled ostatních doporučení a testování na atomicitu zápisů.
 
-3. Přidat postupné zpětné volání / retry s exponenciálním backoff pro transient HTTP chyby ve velkých dávkách (Phase 2). Logovat a reportovat selhání (telemetry).
-
-4. Pro certificate pinning:
+3. Pro certificate pinning:
    - Mít připravený proces rotace pinů (skript už existuje: `get_ssl_hash.sh`).
    - Doporučit záložní pin (backup) a/nebo pinovat CA, ne jen leaf, aby aktualizace certifikátu serveru nezlomila aplikaci.
 
-5. Credentials a tokeny:
+4. Credentials a tokeny:
    - Neukládat produkční hesla/secret přímo do VCS nebo BuildConfig. Preferovat secure storage nebo vydávání krátkodobých tokenů přes secure backend.
    - Pokud nelze, ověřit, že `local.properties`/CI secrets nejsou v repu a přidat kontrolu do CI.
 
-6. PDF UX a bezpečnost:
+5. PDF UX a bezpečnost:
    - Streamovat a ukazovat progress. Zajistit, že soubor je uložen s pravými MIME typy a že `FLAG_GRANT_READ_URI_PERMISSION` se správně používá.
    - Pro Android 11+ preferovat MediaStore / SAF a vyhnout se WRITE_EXTERNAL_STORAGE fallbackům (scoped storage). Zvažte sdílení do interního soukromého adresáře a sdílení přes `FileProvider` místo ukládání přímo do Downloads, pokud intentování k prohlížeči není kritické.
 
-7. Concurrency tuning:
+6. Concurrency tuning:
    - Semaphore(10) je rozumný. Pokud se projeví backlog nebo špičky požadavků, omezit ještě klientské počty: `OkHttp` `Dispatcher` `maxRequests`/`maxRequestsPerHost`.
 
-8. Testy
+7. Testy
    - Přidat unit/integration testy pro `OfflineRepositoryImpl` s mockovaným `ApiService` a pro `OfflineDataManager` ověřit atomicitu zápisů.
 
 ## Rychlé odkazy na relevantní soubory
@@ -49,7 +47,6 @@ PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro star
 ## Prioritizovaná opravná práce (rád/a bych to udělal/a jako PR)
 1. Review and document certificate pin rotation + add backup pins (střední)
 2. Move secrets out of BuildConfig/local.properties for production or document secure process (vysoká)
-3. Add retry/backoff + telemetry for bulk downloading (střední)
 
 ---
 
