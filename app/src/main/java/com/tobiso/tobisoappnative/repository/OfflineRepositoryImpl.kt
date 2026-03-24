@@ -24,6 +24,10 @@ class OfflineRepositoryImpl(
     private val context: Context,
     private val offlineDataManager: OfflineDataManager
 ) {
+    companion object {
+        // Tunable limit for concurrent exercise downloads to avoid overwhelming device/server.
+        private const val MAX_CONCURRENT_EXERCISE_DOWNLOADS = 10
+    }
     // Generic retry with exponential backoff for transient network errors.
     private suspend fun <T> retryWithBackoff(
         attempts: Int = 3,
@@ -173,7 +177,7 @@ class OfflineRepositoryImpl(
             val exercises = mutableListOf<InteractiveExerciseResponse>()
             // Fetch exercises concurrently but limit concurrency to avoid overwhelming the server/device.
             coroutineScope {
-                val semaphore = Semaphore(10)
+                val semaphore = Semaphore(MAX_CONCURRENT_EXERCISE_DOWNLOADS)
                 val completed = AtomicInteger(0)
                 val deferreds = posts.map { post ->
                     async {

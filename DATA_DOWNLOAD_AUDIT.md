@@ -19,8 +19,8 @@ PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro star
 2. PDF UX a bezpečnost: (řešeno)
    - Implementováno: pro Android 10+ se používá MediaStore; pro starší verze nyní ukládáme do app-specific external files, čímž se vyhneme WRITE_EXTERNAL_STORAGE fallbackům. Doporučení ohledně `FileProvider` je nadále platné pro sdílení mezi aplikacemi.
 
-3. Concurrency tuning:
-   - Semaphore(10) je rozumný. Pokud se projeví backlog nebo špičky požadavků, omezit ještě klientské počty: `OkHttp` `Dispatcher` `maxRequests`/`maxRequestsPerHost`.
+3. Concurrency tuning: (řešeno)
+   - Limit pro paralelní stahování cvičení byl extrahován do konfigurované konstanty `MAX_CONCURRENT_EXERCISE_DOWNLOADS` v `OfflineRepositoryImpl`.
 4. Testy
    - Přidat unit/integration testy pro `OfflineRepositoryImpl` s mockovaným `ApiService` a pro `OfflineDataManager` ověřit atomicitu zápisů.
 
