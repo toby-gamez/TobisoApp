@@ -176,6 +176,8 @@ class OfflineRepositoryImpl(
 
             val exercises = mutableListOf<InteractiveExerciseResponse>()
             // Fetch exercises concurrently but limit concurrency to avoid overwhelming the server/device.
+            // Guard against empty posts list when computing progress to avoid division by zero.
+            val postsCount = posts.size.coerceAtLeast(1)
             coroutineScope {
                 val semaphore = Semaphore(MAX_CONCURRENT_EXERCISE_DOWNLOADS)
                 val completed = AtomicInteger(0)
@@ -190,7 +192,7 @@ class OfflineRepositoryImpl(
                             }
                             val done = completed.incrementAndGet()
                             if (done % 10 == 0) {
-                                onProgress(startProgress + span * (0.75f + 0.18f * (done.toFloat() / posts.size)))
+                                onProgress(startProgress + span * (0.75f + 0.18f * (done.toFloat() / postsCount)))
                             }
                             list
                         }
