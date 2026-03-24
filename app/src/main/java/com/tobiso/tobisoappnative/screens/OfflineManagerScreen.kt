@@ -13,8 +13,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.offlinemanager.OfflineManagerViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.material3.Snackbar
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,6 +33,8 @@ fun OfflineManagerScreen(
     val lastError by vm.lastError.collectAsState()
     // Guard to skip the initial composition where offlineDownloading is already false
     var downloadEverStarted by remember { mutableStateOf(false) }
+    // Tracks whether a toast was already shown for the current download session
+    var toastShownDuringDownload by remember { mutableStateOf(false) }
 
     val categoriesCount = cacheInfo.categoriesCount
     val postsCount = cacheInfo.postsCount
@@ -44,8 +47,7 @@ fun OfflineManagerScreen(
     val lastUpdateFormatted = cacheInfo.lastUpdateFormatted
     val lastUpdateTimestamp = cacheInfo.lastUpdateTimestamp
     val cacheFresh15 = cacheInfo.cacheFresh15
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         vm.loadCacheInfo()
@@ -218,6 +220,7 @@ fun OfflineManagerScreen(
 
                         Button(onClick = {
                             downloadEverStarted = true
+                            toastShownDuringDownload = false
                             vm.downloadAllOfflineData()
                         }) {
                             Text("Stáhnout offline data")
@@ -233,10 +236,11 @@ fun OfflineManagerScreen(
             }
         }
 
-        // Android Snackbar for toastMessage (shown at bottom)
         LaunchedEffect(toastMessage) {
             toastMessage?.let { msg ->
-                snackbarHostState.showSnackbar(msg)
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                // remember that a toast was shown for this download session
+                toastShownDuringDownload = true
                 vm.clearToast()
             }
         }
@@ -248,9 +252,12 @@ fun OfflineManagerScreen(
                 vm.loadCacheInfo()
                 kotlinx.coroutines.delay(300)
 
-                if (vm.toastMessage.value == null) {
-                    snackbarHostState.showSnackbar("Offline obsah byl aktualizován")
+                if (vm.toastMessage.value == null && !toastShownDuringDownload) {
+                    Toast.makeText(context, "Offline obsah byl aktualizován", Toast.LENGTH_SHORT).show()
                 }
+                // reset guard so future downloads behave correctly
+                toastShownDuringDownload = false
+                downloadEverStarted = false
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
