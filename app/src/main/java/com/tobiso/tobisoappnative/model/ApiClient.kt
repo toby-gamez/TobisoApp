@@ -50,9 +50,9 @@ object ApiClient {
                         addPinsForHost("www.tobiso.com", listOf(pin))
                     }
             } else {
-                // Bundled backup CA pin (fallback) — replace with real CA pin when available
-                addPinsForHost("tobiso.com", listOf("sha256/9rmBackupCAExampleBase64=="))
-                addPinsForHost("www.tobiso.com", listOf("sha256/9rmBackupCAExampleBase64=="))
+                // Bundled backup CA pin (fallback) — replaced with current CA public-key pin
+                addPinsForHost("tobiso.com", listOf("sha256/kZwN96eHtZftBWrOZUsd6cA4es80n3NzSk/XtYz2EqQ="))
+                addPinsForHost("www.tobiso.com", listOf("sha256/kZwN96eHtZftBWrOZUsd6cA4es80n3NzSk/XtYz2EqQ="))
             }
         } else {
             pinString.split(',')

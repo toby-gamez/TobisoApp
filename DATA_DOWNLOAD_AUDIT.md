@@ -16,15 +16,12 @@ PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro star
 ## Doporučení (konkrétní kroky)
 1. (PONECHÁNO) Přehled ostatních doporučení a testování na atomicitu zápisů.
 
-2. Pro certificate pinning:
-   - Mít připravený proces rotace pinů (skript už existuje: `get_ssl_hash.sh`).
-   - Doporučit záložní pin (backup) a/nebo pinovat CA, ne jen leaf, aby aktualizace certifikátu serveru nezlomila aplikaci.
-3. PDF UX a bezpečnost: (řešeno)
+2. PDF UX a bezpečnost: (řešeno)
    - Implementováno: pro Android 10+ se používá MediaStore; pro starší verze nyní ukládáme do app-specific external files, čímž se vyhneme WRITE_EXTERNAL_STORAGE fallbackům. Doporučení ohledně `FileProvider` je nadále platné pro sdílení mezi aplikacemi.
 
-4. Concurrency tuning:
+3. Concurrency tuning:
    - Semaphore(10) je rozumný. Pokud se projeví backlog nebo špičky požadavků, omezit ještě klientské počty: `OkHttp` `Dispatcher` `maxRequests`/`maxRequestsPerHost`.
-5. Testy
+4. Testy
    - Přidat unit/integration testy pro `OfflineRepositoryImpl` s mockovaným `ApiService` a pro `OfflineDataManager` ověřit atomicitu zápisů.
 
 ## Rychlé odkazy na relevantní soubory
