@@ -68,6 +68,8 @@ android {
             buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"${localProperties["SECURITY_TOKEN_SECRET"] ?: ""}\"")
             // Comma-separated certificate pins (sha256/...) to allow rotation without code changes.
             buildConfigField("String", "CERT_PINS", "\"sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=,sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg=\"")
+            // Optional comma-separated backup pins (CA pins or extra pins) to act as failover during rotation.
+            buildConfigField("String", "CERT_PINS_BACKUP", "\"sha256/9rmBackupCAExampleBase64==\"")
         }
         debug {
             isDebuggable = true
@@ -83,6 +85,8 @@ android {
             buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"${localProperties["SECURITY_TOKEN_SECRET"] ?: ""}\"")
             // Debug builds do not pin by default to ease local development.
             buildConfigField("String", "CERT_PINS", "\"\"")
+            // Debug: no backup pins by default
+            buildConfigField("String", "CERT_PINS_BACKUP", "\"\"")
         }
     }
     compileOptions {

@@ -7,7 +7,7 @@ Role: senior developer — stručné, praktické zjištění a doporučení
 Krátce: síťová vrstva je solidně navržena (Retrofit + OkHttp), má certificate pinning a bezpečnostní hlavičky. Hlavní rizika a možnosti zlepšení se týkají streamování a ukládání velkých souborů (PDF), atomických zápisů do databáze a bezpečného nakládání s citlivými credentials.
 
 ## Hlavní nálezy (severita / dopad)
-- Retrofit/OkHttp klient je centralizovaný v `ApiClient` a obsahuje certificate pinning + bezpečnostní hlavičky — to je dobré (viz [app/src/main/java/com/tobiso/tobisoappnative/model/ApiClient.kt](app/src/main/java/com/tobiso/tobisoappnative/model/ApiClient.kt)), ale piny musí být spravované/rotované a je vhodné přidat záložní piny (backup CA).
+-- Retrofit/OkHttp klient je centralizovaný v `ApiClient` a obsahuje certificate pinning + bezpečnostní hlavičky — to je dobré (viz [app/src/main/java/com/tobiso/tobisoappnative/model/ApiClient.kt](app/src/main/java/com/tobiso/tobisoappnative/model/ApiClient.kt)).
 - `OfflineRepositoryImpl` provádí masivní paralelní stahování s lokálním řízením concurrency (Semaphore 10) — dobrý přístup.
 <!-- Credentials handling item resolved: moved to secure storage fallback in SecurityConfig -->
 - `NetworkUtils.isOnline()` používá moderní API a `observeConnectivityAsFlow()` — OK.

@@ -26,20 +26,52 @@ object ApiClient {
         // When non-empty, `CERT_PINS` should contain comma-separated sha256/... fingerprints.
         // This allows rotating pins without editing Kotlin source.
         val pinString = try { BuildConfig.CERT_PINS } catch (e: Throwable) { "" }
+        val backupPinString = try { BuildConfig.CERT_PINS_BACKUP } catch (e: Throwable) { "" }
         val pinnedBuilder = CertificatePinner.Builder()
+
+        fun addPinsForHost(host: String, pins: List<String>) {
+            pins.forEach { pin -> pinnedBuilder.add(host, pin) }
+        }
+
         if (pinString.isNullOrBlank()) {
             // Fallback to bundled pins (generated 2026-03-19)
-            pinnedBuilder
-                .add("tobiso.com", "sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=")
-                .add("www.tobiso.com", "sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg=")
+            addPinsForHost("tobiso.com", listOf(
+                "sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=",
+                "sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg="
+            ))
+
+            // Add backup pins (from build config if provided) or a bundled CA backup pin
+            if (!backupPinString.isNullOrBlank()) {
+                backupPinString.split(',')
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .forEach { pin ->
+                        addPinsForHost("tobiso.com", listOf(pin))
+                        addPinsForHost("www.tobiso.com", listOf(pin))
+                    }
+            } else {
+                // Bundled backup CA pin (fallback) — replace with real CA pin when available
+                addPinsForHost("tobiso.com", listOf("sha256/9rmBackupCAExampleBase64=="))
+                addPinsForHost("www.tobiso.com", listOf("sha256/9rmBackupCAExampleBase64=="))
+            }
         } else {
             pinString.split(',')
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
                 .forEach { pin ->
-                    pinnedBuilder.add("tobiso.com", pin)
-                    pinnedBuilder.add("www.tobiso.com", pin)
+                    addPinsForHost("tobiso.com", listOf(pin))
+                    addPinsForHost("www.tobiso.com", listOf(pin))
                 }
+
+            if (!backupPinString.isNullOrBlank()) {
+                backupPinString.split(',')
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .forEach { pin ->
+                        addPinsForHost("tobiso.com", listOf(pin))
+                        addPinsForHost("www.tobiso.com", listOf(pin))
+                    }
+            }
         }
         builder.certificatePinner(pinnedBuilder.build())
         
