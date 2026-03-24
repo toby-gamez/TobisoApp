@@ -1,29 +1,24 @@
 package com.tobiso.tobisoappnative.model
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.util.Date
 
+@Serializable
 data class Event(
     val id: Int,
-    val title: String?,
-    val description: String?,
-    @SerializedName("startDate")
-    val startDate: Date?,
-    @SerializedName("endDate")
-    val endDate: Date?,
-    @SerializedName("isAllDay")
-    val isAllDay: Boolean?,
-    val location: String?,
-    val color: String?,
-    @SerializedName("isRecurring")
-    val isRecurring: Boolean?,
-    @SerializedName("recurrencePattern")
-    val recurrencePattern: String?,
-    @SerializedName("recurrenceEndDate")
-    val recurrenceEndDate: Date?,
-    @SerializedName("isLocal")
-    val isLocal: Boolean? = null
-) {
+    val title: String? = null,
+    val description: String? = null,
+    @SerialName("startDate") @Serializable(with = DateSerializer::class) val startDate: Date? = null,
+    @SerialName("endDate") @Serializable(with = DateSerializer::class) val endDate: Date? = null,
+    @SerialName("isAllDay") val isAllDay: Boolean? = null,
+    val location: String? = null,
+    val color: String? = null,
+    @SerialName("isRecurring") val isRecurring: Boolean? = null,
+    @SerialName("recurrencePattern") val recurrencePattern: String? = null,
+    @SerialName("recurrenceEndDate") @Serializable(with = DateSerializer::class) val recurrenceEndDate: Date? = null,
+    @SerialName("isLocal") val isLocal: Boolean? = null
+){
     // Pomocné funkce pro bezpečný přístup k datům
     fun getTitleSafe(): String = title ?: "Bez názvu"
     fun getColorSafe(): String = color ?: "#33d17a"

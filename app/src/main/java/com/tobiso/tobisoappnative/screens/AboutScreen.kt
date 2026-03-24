@@ -52,7 +52,7 @@ fun AboutScreen(navController: NavController) {
         "androidx.navigation:navigation-compose:2.8.0",
         "androidx.core:core-splashscreen:1.0.1",
         "com.squareup.retrofit2:retrofit:2.9.0",
-        "com.squareup.retrofit2:converter-gson:2.9.0",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3",
         "com.jakewharton.retrofit:retrofit2-kotlin-coroutines-adapter:0.9.2",
         "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3",
         "io.coil-kt:coil-compose:2.4.0",

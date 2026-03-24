@@ -3,13 +3,14 @@ import timber.log.Timber
 
 import com.tobiso.tobisoappnative.config.SecurityConfig
 import com.tobiso.tobisoappnative.BuildConfig
-import com.google.gson.GsonBuilder
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.CertificatePinner
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 object ApiClient {
     private const val BASE_URL = "https://www.tobiso.com/api/"
@@ -110,17 +111,14 @@ object ApiClient {
             Timber.i("Aplikace běží na emulátoru")
         }
         
-        // Základní Gson bez custom TypeAdapter pro Android 15 kompatibilitu
-        val gson = GsonBuilder()
-            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
-            .serializeNulls() // Explicitně zacházej s null hodnotami
-            .setLenient() // Více tolerantní parsing pro problematické API
-            .create()
-            
+        // Použij kotlinx.serialization pro Retrofit
+        val json = Json { ignoreUnknownKeys = true }
+        val contentType = "application/json".toMediaType()
+
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(getHttpClient())
-            .addConverterFactory(GsonConverterFactory.create(gson))
+            .addConverterFactory(json.asConverterFactory(contentType))
             .build()
             .create(ApiService::class.java)
     }

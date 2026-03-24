@@ -5,10 +5,6 @@ Datum: 2026-03-23
 
 Tento dokument shrnuje výsledky rychlého auditu zaměřeného na plynulost, efektivitu a stabilitu aplikace.
 
-**Střední priorita**
-
-- Gson konfigurace: `setLenient()` a `serializeNulls()` mohou maskovat chyby a mírně zpomalovat parsing. Zvážit `kotlinx.serialization` pro menší overhead a bezpečnější parsing.
-
 **Nízka priorita / celkové doporučení pro plynulost**
 
 - Zapnout `StrictMode` v debug buildu pro odhalení hlavních chyb (main-thread I/O, disk reads).

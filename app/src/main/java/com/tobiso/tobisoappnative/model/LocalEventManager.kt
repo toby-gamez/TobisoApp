@@ -2,9 +2,8 @@ package com.tobiso.tobisoappnative.model
 import timber.log.Timber
 
 import android.content.Context
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
@@ -14,9 +13,7 @@ object LocalEventManager {
     private const val LOCAL_EVENTS_FILE = "local_events.json"
     private var nextLocalId = -1 // Používáme negativní ID pro místní eventy
     
-    private val gson = GsonBuilder()
-        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
-        .create()
+    private val json = Json { ignoreUnknownKeys = true }
     
     private fun getLocalEventsFile(context: Context): File {
         return File(context.filesDir, LOCAL_EVENTS_FILE)
@@ -34,14 +31,17 @@ object LocalEventManager {
                 return@withContext emptyList()
             }
             
-            val json = file.readText()
-            if (json.isEmpty()) {
+            val jsonString = file.readText()
+            if (jsonString.isEmpty()) {
                 return@withContext emptyList()
             }
             
-            // Použití Array místo TypeToken pro Android 15 kompatibilitu
-            val eventsArray = gson.fromJson(json, Array<Event>::class.java)
-            val events: List<Event> = eventsArray?.toList() ?: emptyList()
+            // Použití Array místo TypeToken pro Android 15 kompatibilitu (kotlinx.serialization)
+            val events: List<Event> = try {
+                json.decodeFromString<List<Event>>(jsonString)
+            } catch (e: Exception) {
+                emptyList()
+            }
             
             // Ujistíme se, že všechny místní eventy mají isLocal = true
             return@withContext events.map { event ->
@@ -56,8 +56,8 @@ object LocalEventManager {
     private suspend fun saveLocalEvents(context: Context, events: List<Event>) = withContext(Dispatchers.IO) {
         try {
             val file = getLocalEventsFile(context)
-            val json = gson.toJson(events)
-            file.writeText(json)
+            val jsonOut = json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Event.serializer()), events)
+            file.writeText(jsonOut)
         } catch (e: Exception) {
             Timber.e(e, "Error saving local events")
             throw e

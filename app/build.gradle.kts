@@ -119,7 +119,7 @@ dependencies {
     
     // API dependencies
     implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.gson)
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0")
     implementation(libs.retrofit.coroutines.adapter)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)

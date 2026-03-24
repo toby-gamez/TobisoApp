@@ -3,12 +3,12 @@ package com.tobiso.tobisoappnative.db.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.google.gson.Gson
 import com.tobiso.tobisoappnative.model.Answer
 import com.tobiso.tobisoappnative.model.Explanation
 import com.tobiso.tobisoappnative.model.Question
+import kotlinx.serialization.json.Json
 
-private val gson = Gson()
+private val json = Json { ignoreUnknownKeys = true }
 
 @Entity(
     tableName = "questions",
@@ -18,22 +18,22 @@ data class QuestionEntity(
     @PrimaryKey val id: Int,
     val questionText: String,
     val postId: Int,
-    val answersJson: String,         // Gson-serialized List<Answer>
-    val explanationsJson: String     // Gson-serialized List<Explanation>
+    val answersJson: String,         // kotlinx.serialization-serialized List<Answer>
+    val explanationsJson: String     // kotlinx.serialization-serialized List<Explanation>
 )
 
 fun QuestionEntity.toDomain(): Question = Question(
     id = id,
     questionText = questionText,
     postId = postId,
-    answers = gson.fromJson(answersJson, Array<Answer>::class.java)?.toList() ?: emptyList(),
-    explanations = gson.fromJson(explanationsJson, Array<Explanation>::class.java)?.toList() ?: emptyList()
+    answers = try { json.decodeFromString<List<Answer>>(answersJson) } catch (e: Exception) { emptyList() },
+    explanations = try { json.decodeFromString<List<Explanation>>(explanationsJson) } catch (e: Exception) { emptyList() }
 )
 
 fun Question.toEntity(): QuestionEntity = QuestionEntity(
     id = id,
     questionText = questionText,
     postId = postId,
-    answersJson = gson.toJson(answers),
-    explanationsJson = gson.toJson(explanations)
+    answersJson = json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Answer.serializer()), answers),
+    explanationsJson = json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Explanation.serializer()), explanations)
 )

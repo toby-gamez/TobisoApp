@@ -9,7 +9,7 @@ TobisoApp Native je nativní Android aplikace postavená na **Jetpack Compose**,
 ### Hlavní komponenty:
 - **Frontend**: Jetpack Compose (Material 3 Design)
 - **Backend komunikace**: Retrofit + OkHttp
-- **Data serializace**: Gson
+-- **Data serializace**: kotlinx.serialization (migrováno z Gson)
 - **Offline režim**: SharedPreferences + lokální soubory
 - **State management**: ViewModel + StateFlow + Coroutines
 - **Navigace**: Jetpack Navigation Compose
@@ -175,7 +175,7 @@ _toastMessage.value  // toast notifikace
 - **Produkce**: Nutno implementovat správné SSL certifikáty
 
 ### 2. Android 15 kompatibilita:
-- **Gson TypeToken**: Vyřešeno přechodem na Array<T>::class.java
+- **Migrace z Gson**: Projekt byl migrován na `kotlinx.serialization`; problémy s `TypeToken` jsou odstraněny.
 - **Deprecated API**: Postupná migrace na nové API
 
 ### 3. Network detection:
