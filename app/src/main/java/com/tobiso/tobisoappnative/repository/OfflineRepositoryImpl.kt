@@ -5,6 +5,12 @@ import android.content.Context
 import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.Category
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import java.util.concurrent.atomic.AtomicInteger
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.utils.NetworkUtils
@@ -141,13 +147,29 @@ class OfflineRepositoryImpl(
             onProgress(startProgress + span * 0.75f)
 
             val exercises = mutableListOf<InteractiveExerciseResponse>()
-            posts.forEachIndexed { idx, post ->
-                try {
-                    exercises.addAll(ApiClient.apiService.getExercisesByPostId(post.id).toList())
-                } catch (_: Exception) { /* one post failing is OK */ }
-                if (idx % 10 == 0) {
-                    onProgress(startProgress + span * (0.75f + 0.18f * (idx.toFloat() / posts.size)))
+            // Fetch exercises concurrently but limit concurrency to avoid overwhelming the server/device.
+            coroutineScope {
+                val semaphore = Semaphore(10)
+                val completed = AtomicInteger(0)
+                val deferreds = posts.map { post ->
+                    async {
+                        semaphore.withPermit {
+                            val list = try {
+                                ApiClient.apiService.getExercisesByPostId(post.id)
+                            } catch (e: Exception) {
+                                Timber.w("getExercisesByPostId failed for ${post.id}: ${e.message}")
+                                emptyList()
+                            }
+                            val done = completed.incrementAndGet()
+                            if (done % 10 == 0) {
+                                onProgress(startProgress + span * (0.75f + 0.18f * (done.toFloat() / posts.size)))
+                            }
+                            list
+                        }
+                    }
                 }
+                val results = deferreds.awaitAll()
+                results.forEach { exercises.addAll(it) }
             }
             onProgress(startProgress + span * 0.93f)
 

@@ -2,6 +2,7 @@ package com.tobiso.tobisoappnative.viewmodel.offlinemanager
 import timber.log.Timber
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.model.OfflineDataManager
@@ -47,6 +48,9 @@ class OfflineManagerViewModel @Inject constructor(
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage
 
+    private val _lastError = MutableStateFlow<String?>(null)
+    val lastError: StateFlow<String?> = _lastError
+
     private val _cacheInfo = MutableStateFlow(CacheInfo())
     val cacheInfo: StateFlow<CacheInfo> = _cacheInfo
 
@@ -82,16 +86,24 @@ class OfflineManagerViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _offlineDownloading.value = true
             _offlineProgress.value = 0f
+            _lastError.value = null
             try {
                 val success = offlineRepo.downloadAllData { progress -> _offlineProgress.value = progress }
                 _offlineDownloading.value = false
-                _toastMessage.value = if (success) "Offline obsah byl aktualizován"
-                    else "Stažení selhalo. Zkontrolujte připojení."
-                if (success) loadCacheInfo()
+                if (success) {
+                    _toastMessage.value = "Offline obsah byl aktualizován"
+                    _lastError.value = null
+                    loadCacheInfo()
+                } else {
+                    _toastMessage.value = "Stažení selhalo. Zkontrolujte připojení."
+                    _lastError.value = "downloadAllData returned false (non-exception failure)"
+                }
             } catch (e: Exception) {
                 Timber.e(e, "downloadAllOfflineData failed")
                 _offlineDownloading.value = false
-                _toastMessage.value = "Chyba stahování: ${e.message}"
+                val msg = e.message ?: e::class.java.simpleName
+                _toastMessage.value = "Chyba stahování: $msg"
+                _lastError.value = Log.getStackTraceString(e)
             }
         }
     }

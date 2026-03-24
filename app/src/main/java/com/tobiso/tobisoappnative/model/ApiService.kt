@@ -10,35 +10,35 @@ import retrofit2.http.Body
 
 interface ApiService {
     @GET("categories")
-    suspend fun getCategories(): Array<Category>
+    suspend fun getCategories(): List<Category>
 
     @GET("pages")
-    suspend fun getPosts(@Query("categoryId") categoryId: Int? = null): Array<Post>
+    suspend fun getPosts(@Query("categoryId") categoryId: Int? = null): List<Post>
 
     @GET("pages/links")
-    suspend fun getPostLinks(): Array<PostLink>
+    suspend fun getPostLinks(): List<PostLink>
 
     @GET("pages/{id}")
     suspend fun getPost(@Path("id") id: Int): Post
 
     @GET("Questions/post/{postId}")
-    suspend fun getQuestionsByPostId(@Path("postId") postId: Int): Array<Question>
+    suspend fun getQuestionsByPostId(@Path("postId") postId: Int): List<Question>
 
     @GET("Questions")
-    suspend fun getAllQuestions(): Array<Question>
+    suspend fun getAllQuestions(): List<Question>
 
     @GET("posts/links")
-    suspend fun getPostsForQuestions(): Array<Post>
+    suspend fun getPostsForQuestions(): List<Post>
 
     @GET("RelatedPosts/by-post/{postId}")
-    suspend fun getRelatedPostsByPostId(@Path("postId") postId: Int): Array<RelatedPost>
+    suspend fun getRelatedPostsByPostId(@Path("postId") postId: Int): List<RelatedPost>
 
     @GET("RelatedPosts")
-    suspend fun getAllRelatedPosts(): Array<RelatedPost>
+    suspend fun getAllRelatedPosts(): List<RelatedPost>
 
     // Event endpoints
     @GET("Events")
-    suspend fun getEvents(): Array<Event>
+    suspend fun getEvents(): List<Event>
 
     @GET("Events/{id}")
     suspend fun getEvent(@Path("id") id: Int): Event
@@ -47,14 +47,14 @@ interface ApiService {
     suspend fun getEventsInRange(
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String
-    ): Array<Event>
+    ): List<Event>
 
     @GET("Events/search")
-    suspend fun searchEvents(@Query("query") query: String): Array<Event>
+    suspend fun searchEvents(@Query("query") query: String): List<Event>
 
     // Addendum endpoints
     @GET("Addendums")
-    suspend fun getAddendums(): Array<Addendum>
+    suspend fun getAddendums(): List<Addendum>
 
     @GET("Addendums/{id}")
     suspend fun getAddendum(@Path("id") id: Int): Addendum
@@ -70,7 +70,7 @@ interface ApiService {
 
     // Interactive Exercise endpoints
     @GET("InteractiveExercises/post/{postId}")
-    suspend fun getExercisesByPostId(@Path("postId") postId: Int): Array<InteractiveExerciseResponse>
+    suspend fun getExercisesByPostId(@Path("postId") postId: Int): List<InteractiveExerciseResponse>
 
     @GET("InteractiveExercises/{id}")
     suspend fun getExercise(@Path("id") id: Int): InteractiveExerciseResponse

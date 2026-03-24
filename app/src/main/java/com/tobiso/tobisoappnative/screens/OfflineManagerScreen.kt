@@ -1,6 +1,8 @@
 package com.tobiso.tobisoappnative.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -25,6 +27,7 @@ fun OfflineManagerScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val offlineDownloading by vm.offlineDownloading.collectAsState()
     val offlineProgress by vm.offlineDownloadProgress.collectAsState()
+    val lastError by vm.lastError.collectAsState()
     // Guard to skip the initial composition where offlineDownloading is already false
     var downloadEverStarted by remember { mutableStateOf(false) }
 
@@ -66,7 +69,13 @@ fun OfflineManagerScreen(
             }
         )
 
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             if (isOfflineMode) {
                 // When offline: show detailed cached info but do NOT show action buttons
                 Column(modifier = Modifier
@@ -210,11 +219,15 @@ fun OfflineManagerScreen(
                             Text("Stáhnout offline data")
                         }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (lastError != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(text = "Chyba stahování:", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        Text(text = lastError ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
+                    }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
 
         // Snackbar for toastMessage (shown at bottom)
         LaunchedEffect(toastMessage) {

@@ -133,6 +133,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.serialization.json)
+    // Needed for kotlinx.serialization runtime lookups used by retrofit serializer
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.10")
     
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
