@@ -45,8 +45,7 @@ PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro star
 - Security config: [app/src/main/java/com/tobiso/tobisoappnative/config/SecurityConfig.kt](app/src/main/java/com/tobiso/tobisoappnative/config/SecurityConfig.kt)
 
 ## Prioritizovaná opravná práce (rád/a bych to udělal/a jako PR)
-1. Review and document certificate pin rotation + add backup pins (střední)
-2. Move secrets out of BuildConfig/local.properties for production or document secure process (vysoká)
+1. Move secrets out of BuildConfig/local.properties for production or document secure process (vysoká)
 
 ---
 

@@ -22,13 +22,26 @@ object ApiClient {
         val credentials = SecurityConfig.getApiCredentials()
         val builder = OkHttpClient.Builder()
         
-        // Certificate pinning – Public Key Pinning pro tobiso.com
-        // Hashi vygenerovány: 2026-03-19 pomocí get_ssl_hash.sh
-        val certificatePinner = CertificatePinner.Builder()
-            .add("tobiso.com", "sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=")
-            .add("www.tobiso.com", "sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg=")
-            .build()
-        builder.certificatePinner(certificatePinner)
+        // Certificate pinning – support configurable pins via BuildConfig.CERT_PINS
+        // When non-empty, `CERT_PINS` should contain comma-separated sha256/... fingerprints.
+        // This allows rotating pins without editing Kotlin source.
+        val pinString = try { BuildConfig.CERT_PINS } catch (e: Throwable) { "" }
+        val pinnedBuilder = CertificatePinner.Builder()
+        if (pinString.isNullOrBlank()) {
+            // Fallback to bundled pins (generated 2026-03-19)
+            pinnedBuilder
+                .add("tobiso.com", "sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=")
+                .add("www.tobiso.com", "sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg=")
+        } else {
+            pinString.split(',')
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .forEach { pin ->
+                    pinnedBuilder.add("tobiso.com", pin)
+                    pinnedBuilder.add("www.tobiso.com", pin)
+                }
+        }
+        builder.certificatePinner(pinnedBuilder.build())
         
         // Konfigurace timeouts pro produkci
         builder.connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)

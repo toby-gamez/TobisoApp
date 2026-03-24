@@ -66,6 +66,8 @@ android {
             buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
             buildConfigField("String", "CERT_FINGERPRINT", "\"${localProperties["CERT_FINGERPRINT"] ?: ""}\"")
             buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"${localProperties["SECURITY_TOKEN_SECRET"] ?: ""}\"")
+            // Comma-separated certificate pins (sha256/...) to allow rotation without code changes.
+            buildConfigField("String", "CERT_PINS", "\"sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=,sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg=\"")
         }
         debug {
             isDebuggable = true
@@ -79,6 +81,8 @@ android {
             buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
             buildConfigField("String", "CERT_FINGERPRINT", "\"\"")
             buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"${localProperties["SECURITY_TOKEN_SECRET"] ?: ""}\"")
+            // Debug builds do not pin by default to ease local development.
+            buildConfigField("String", "CERT_PINS", "\"\"")
         }
     }
     compileOptions {
