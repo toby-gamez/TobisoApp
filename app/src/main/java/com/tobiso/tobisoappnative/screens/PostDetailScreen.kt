@@ -489,6 +489,8 @@ fun PostDetailScreen(
     var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
     var pendingPdfDownload by rememberSaveable { mutableStateOf(false) }
     
+    var downloadProgress by rememberSaveable { mutableStateOf<Int?>(null) }
+
     val context = LocalContext.current
 
     // Skutečná kontrola připojení (stejně jako v MainActivity)
@@ -536,6 +538,16 @@ fun PostDetailScreen(
                                 while (input.read(buffer).also { read = it } != -1) {
                                     outputStream.write(buffer, 0, read)
                                     total += read
+                                    if (contentLength > 0) {
+                                        val percent = ((total * 100) / contentLength).toInt().coerceIn(0, 100)
+                                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                            downloadProgress = percent
+                                        }
+                                    } else {
+                                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                            downloadProgress = -1
+                                        }
+                                    }
                                 }
                                 outputStream.flush()
                                 Timber.d("PDF uloženo do Downloads: $fileName, bytes: $total, contentLength: $contentLength")
@@ -554,6 +566,16 @@ fun PostDetailScreen(
                             while (input.read(buffer).also { read = it } != -1) {
                                 output.write(buffer, 0, read)
                                 total += read
+                                if (contentLength > 0) {
+                                    val percent = ((total * 100) / contentLength).toInt().coerceIn(0, 100)
+                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                        downloadProgress = percent
+                                    }
+                                } else {
+                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                        downloadProgress = -1
+                                    }
+                                }
                             }
                             output.flush()
                             Timber.d("PDF uloženo: ${pdfFile.absolutePath}, bytes: $total, contentLength: $contentLength")
@@ -586,6 +608,8 @@ fun PostDetailScreen(
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
+                    // clear progress indicator after finishing
+                    downloadProgress = null
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Chyba při generování PDF")
@@ -600,6 +624,7 @@ fun PostDetailScreen(
                         "Chyba při generování PDF: $errorMsg",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
+                    downloadProgress = null
                 }
             }
         }
@@ -837,6 +862,31 @@ fun PostDetailScreen(
                         }
                     }
                 )
+
+                // Download progress indicator (appears while a PDF is being downloaded)
+                if (downloadProgress != null) {
+                    if (downloadProgress!! >= 0) {
+                        LinearProgressIndicator(
+                            progress = (downloadProgress!! / 100f),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "Stahování: ${downloadProgress}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            textAlign = TextAlign.End
+                        )
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text(
+                            text = "Stahování…",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
 
                 when {
                     postDetailError != null -> {

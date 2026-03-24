@@ -14,7 +14,7 @@ import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.offlinemanager.OfflineManagerViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalView
-import com.google.android.material.snackbar.Snackbar
+import androidx.compose.material3.Snackbar
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +44,8 @@ fun OfflineManagerScreen(
     val lastUpdateFormatted = cacheInfo.lastUpdateFormatted
     val lastUpdateTimestamp = cacheInfo.lastUpdateTimestamp
     val cacheFresh15 = cacheInfo.cacheFresh15
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         vm.loadCacheInfo()
@@ -234,7 +236,7 @@ fun OfflineManagerScreen(
         // Android Snackbar for toastMessage (shown at bottom)
         LaunchedEffect(toastMessage) {
             toastMessage?.let { msg ->
-                Snackbar.make(view, msg, Snackbar.LENGTH_LONG).show()
+                snackbarHostState.showSnackbar(msg)
                 vm.clearToast()
             }
         }
@@ -244,10 +246,10 @@ fun OfflineManagerScreen(
         LaunchedEffect(offlineDownloading) {
             if (!offlineDownloading && downloadEverStarted) {
                 vm.loadCacheInfo()
-                // if viewModel didn't emit a toast (e.g. background download), show feedback
                 kotlinx.coroutines.delay(300)
+
                 if (vm.toastMessage.value == null) {
-                    Snackbar.make(view, "Offline obsah byl aktualizován", Snackbar.LENGTH_SHORT).show()
+                    snackbarHostState.showSnackbar("Offline obsah byl aktualizován")
                 }
             }
         }

@@ -14,9 +14,7 @@ Krátce: síťová vrstva je solidně navržena (Retrofit + OkHttp), má certifi
 PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro starší verze; permission handling existuje — doporučuji přidat progress indikaci při stahování a ověřit streaming (pokud není již implementován).
 
 ## Doporučení (konkrétní kroky)
-1. (Opraveno) Streamování PDF bylo řešeno ve `PostDetailScreen.kt`; ověřit případné UI progress požadavky.
-
-2. (PONECHÁNO) Přehled ostatních doporučení a testování na atomicitu zápisů.
+1. (PONECHÁNO) Přehled ostatních doporučení a testování na atomicitu zápisů.
 
 3. Pro certificate pinning:
    - Mít připravený proces rotace pinů (skript už existuje: `get_ssl_hash.sh`).
