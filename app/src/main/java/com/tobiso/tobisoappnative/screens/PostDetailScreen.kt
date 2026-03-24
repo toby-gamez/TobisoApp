@@ -554,10 +554,9 @@ fun PostDetailScreen(
                             }
                         }
                     } else {
-                        // Pro starší verze použijeme starý způsob
-                        @Suppress("DEPRECATION")
-                        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                        val pdfFile = File(downloadsDir, fileName)
+                        // Pro starší verze uložíme PDF do app-specific external files (nevyžaduje WRITE_EXTERNAL_STORAGE)
+                        val appDownloads = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                        val pdfFile = File(appDownloads ?: context.filesDir, fileName)
 
                         FileOutputStream(pdfFile).use { output ->
                             val buffer = ByteArray(8 * 1024)
@@ -578,11 +577,12 @@ fun PostDetailScreen(
                                 }
                             }
                             output.flush()
-                            Timber.d("PDF uloženo: ${pdfFile.absolutePath}, bytes: $total, contentLength: $contentLength")
+                            Timber.d("PDF uloženo do interního app adresáře: ${pdfFile.absolutePath}, bytes: $total, contentLength: $contentLength")
                         }
                         pdfUri = android.net.Uri.fromFile(pdfFile)
                     }
-                }
+                    }
+
                 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     if (pdfUri != null) {

@@ -19,8 +19,8 @@ PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro star
 2. Pro certificate pinning:
    - Mít připravený proces rotace pinů (skript už existuje: `get_ssl_hash.sh`).
    - Doporučit záložní pin (backup) a/nebo pinovat CA, ne jen leaf, aby aktualizace certifikátu serveru nezlomila aplikaci.
-3. PDF UX a bezpečnost:
-   - Pro Android 11+ preferovat MediaStore / SAF a vyhnout se WRITE_EXTERNAL_STORAGE fallbackům (scoped storage). Zvažte sdílení do interního soukromého adresáře a sdílení přes `FileProvider` místo ukládání přímo do Downloads, pokud intentování k prohlížeči není kritické.
+3. PDF UX a bezpečnost: (řešeno)
+   - Implementováno: pro Android 10+ se používá MediaStore; pro starší verze nyní ukládáme do app-specific external files, čímž se vyhneme WRITE_EXTERNAL_STORAGE fallbackům. Doporučení ohledně `FileProvider` je nadále platné pro sdílení mezi aplikacemi.
 
 4. Concurrency tuning:
    - Semaphore(10) je rozumný. Pokud se projeví backlog nebo špičky požadavků, omezit ještě klientské počty: `OkHttp` `Dispatcher` `maxRequests`/`maxRequestsPerHost`.
@@ -36,7 +36,7 @@ PDF ukládání používá MediaStore pro Android Q+ a starý přístup pro star
 - Security config: [app/src/main/java/com/tobiso/tobisoappnative/config/SecurityConfig.kt](app/src/main/java/com/tobiso/tobisoappnative/config/SecurityConfig.kt)
 
 ## Prioritizovaná opravná práce (rád/a bych to udělal/a jako PR)
-1. Move secrets out of BuildConfig/local.properties for production or document secure process (vysoká)
+1. (Odstarněno) Move secrets out of BuildConfig/local.properties — implementováno ve `app/build.gradle.kts` (release nyní neobsahuje tajné hodnoty v BuildConfig).
 
 ---
 

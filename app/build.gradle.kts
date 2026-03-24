@@ -62,10 +62,14 @@ android {
             // Přidání build config fields pro rozlišení prostředí
             buildConfigField("boolean", "IS_PRODUCTION", "true")
             buildConfigField("String", "API_BASE_URL", "\"https://www.tobiso.com/api/\"")
-            buildConfigField("String", "API_USERNAME", "\"${localProperties["API_USERNAME"] ?: ""}\"")
-            buildConfigField("String", "API_PASSWORD", "\"${localProperties["API_PASSWORD"] ?: ""}\"")
+            // Do NOT embed production secrets into BuildConfig. Load credentials from
+            // a secure store (Android Keystore / EncryptedSharedPreferences) at runtime
+            // or inject them via CI secrets into the secure store on device provisioning.
+            buildConfigField("String", "API_USERNAME", "\"\"")
+            buildConfigField("String", "API_PASSWORD", "\"\"")
             buildConfigField("String", "CERT_FINGERPRINT", "\"${localProperties["CERT_FINGERPRINT"] ?: ""}\"")
-            buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"${localProperties["SECURITY_TOKEN_SECRET"] ?: ""}\"")
+            // SECURITY_TOKEN_SECRET is sensitive; keep empty in BuildConfig for release builds.
+            buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"\"")
             // Comma-separated certificate pins (sha256/...) to allow rotation without code changes.
             buildConfigField("String", "CERT_PINS", "\"sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=,sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg=\"")
             // Optional comma-separated backup pins (CA pins or extra pins) to act as failover during rotation.
