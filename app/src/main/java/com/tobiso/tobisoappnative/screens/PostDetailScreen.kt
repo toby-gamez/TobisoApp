@@ -509,40 +509,57 @@ fun PostDetailScreen(
             try {
                 Timber.d("Stahování PDF pro post ID: $id")
                 val responseBody = vm.downloadPostPdf(id)
-                val pdfBytes = responseBody.bytes()
-                Timber.d("PDF staženo, velikost: ${pdfBytes.size} bytes")
-                
                 val fileName = "tobiso_post_${id}.pdf"
                 var pdfUri: android.net.Uri? = null
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    // Pro Android 10+ použijeme MediaStore
-                    val contentValues = ContentValues().apply {
-                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                        put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                    }
-                    
-                    val resolver = context.contentResolver
-                    pdfUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                    
-                    pdfUri?.let { uri ->
-                        resolver.openOutputStream(uri)?.use { outputStream ->
-                            outputStream.write(pdfBytes)
+
+                // Stream obsah místo načítání celého souboru do paměti
+                responseBody.use { body ->
+                    val input = body.byteStream()
+                    val contentLength = try { body.contentLength() } catch (_: Exception) { -1L }
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // Pro Android 10+ použijeme MediaStore
+                        val contentValues = ContentValues().apply {
+                            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                            put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
                         }
-                        Timber.d("PDF uloženo do Downloads: $fileName")
+
+                        val resolver = context.contentResolver
+                        pdfUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+
+                        pdfUri?.let { uri ->
+                            resolver.openOutputStream(uri)?.use { outputStream ->
+                                val buffer = ByteArray(8 * 1024)
+                                var read: Int
+                                var total = 0L
+                                while (input.read(buffer).also { read = it } != -1) {
+                                    outputStream.write(buffer, 0, read)
+                                    total += read
+                                }
+                                outputStream.flush()
+                                Timber.d("PDF uloženo do Downloads: $fileName, bytes: $total, contentLength: $contentLength")
+                            }
+                        }
+                    } else {
+                        // Pro starší verze použijeme starý způsob
+                        @Suppress("DEPRECATION")
+                        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                        val pdfFile = File(downloadsDir, fileName)
+
+                        FileOutputStream(pdfFile).use { output ->
+                            val buffer = ByteArray(8 * 1024)
+                            var read: Int
+                            var total = 0L
+                            while (input.read(buffer).also { read = it } != -1) {
+                                output.write(buffer, 0, read)
+                                total += read
+                            }
+                            output.flush()
+                            Timber.d("PDF uloženo: ${pdfFile.absolutePath}, bytes: $total, contentLength: $contentLength")
+                        }
+                        pdfUri = android.net.Uri.fromFile(pdfFile)
                     }
-                } else {
-                    // Pro starší verze použijeme starý způsob
-                    @Suppress("DEPRECATION")
-                    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                    val pdfFile = File(downloadsDir, fileName)
-                    
-                    FileOutputStream(pdfFile).use { output ->
-                        output.write(pdfBytes)
-                    }
-                    pdfUri = android.net.Uri.fromFile(pdfFile)
-                    Timber.d("PDF uloženo: ${pdfFile.absolutePath}")
                 }
                 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
