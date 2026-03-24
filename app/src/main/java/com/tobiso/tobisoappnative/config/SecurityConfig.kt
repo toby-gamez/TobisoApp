@@ -7,6 +7,7 @@ import android.content.pm.Signature
 import android.os.Build
 import android.util.Base64
 import com.tobiso.tobisoappnative.BuildConfig
+import com.tobiso.tobisoappnative.security.EncryptionManager
 import okhttp3.Credentials
 import java.security.MessageDigest
 
@@ -30,8 +31,13 @@ object SecurityConfig {
      * V produkci by měly být uloženy v KeyStore nebo získané z secure API
      */
     fun getApiCredentials(): String {
-        val username = BuildConfig.API_USERNAME
-        val password = BuildConfig.API_PASSWORD
+        val ctx = appContext
+        val usernameFromStore = ctx?.let { EncryptionManager.getInstance().secureRetrieveString(it, "api_username") }
+        val passwordFromStore = ctx?.let { EncryptionManager.getInstance().secureRetrieveString(it, "api_password") }
+
+        val username = BuildConfig.API_USERNAME.takeIf { it.isNotBlank() } ?: usernameFromStore.orEmpty()
+        val password = BuildConfig.API_PASSWORD.takeIf { it.isNotBlank() } ?: passwordFromStore.orEmpty()
+
         if (username.isBlank() || password.isBlank()) {
             Timber.e("API credentials are not configured – requests will fail authentication")
         }
@@ -125,7 +131,9 @@ object SecurityConfig {
      * z local.properties a nikdy není součástí zdrojového kódu ani VCS.
      */
     fun getSecurityToken(): String {
-        val secret = BuildConfig.SECURITY_TOKEN_SECRET
+        val ctx = appContext
+        val secretFromStore = ctx?.let { EncryptionManager.getInstance().secureRetrieveString(it, "security_token_secret") }
+        val secret = BuildConfig.SECURITY_TOKEN_SECRET.takeIf { it.isNotBlank() } ?: secretFromStore.orEmpty()
         if (secret.isBlank()) return ""
         return try {
             val timestamp = (System.currentTimeMillis() / 1000L).toString()
