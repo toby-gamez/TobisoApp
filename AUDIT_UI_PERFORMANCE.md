@@ -15,14 +15,8 @@
 **DB migrace:** Připraveny základní migrace v `DatabaseModule` (no-op migration přidána), takže není použito `fallbackToDestructiveMigration()`; doporučeno doplnit reálné migrace při změnách schématu.
  
 
-- **Favorites (DataStore + Flow):** [app/src/main/java/com/tobiso/tobisoappnative/repository/FavoritesRepositoryImpl.kt](app/src/main/java/com/tobiso/tobisoappnative/repository/FavoritesRepositoryImpl.kt#L1)
-
-
-
 **Rychlé refaktory (první sprint)**
-- **Refactor A:** Přesunout všechny síťové / diskové operace z Composables do `ViewModel`/`Repository` (low risk, vysoký přínos).
-- **Refactor B:** Nahradit polling event-driven `Flow` (NetworkUtils) a upravit `LaunchedEffect` na `collect` z ViewModelu.
--- **Refactor C:** (hotovo) Základní no-op migrace přidána v `DatabaseModule`, doporučeno doplnit konkrétní migrace podle potřeby.
+- **Refactor C:** (hotovo) Základní no-op migrace přidána v `DatabaseModule`, doporučeno doplnit konkrétní migrace podle potřeby.
 
 **Doporučené metriky a testy**
 - **Měření:** přidat prosté časování dlouhých operací (log/analytics) a sledovat frame drops v release builds (Systrace/Android Studio profiler).
@@ -30,8 +24,9 @@
 
 **Další kroky**
 - **Chceš, abych:**
-  - - **Napsal konkrétní PR** s přesunem download logic z `PostDetailScreen` do `PostDetailViewModel`? (vysoká priorita)
-  - - **Vytvořil checklist migrací** pro Room DB? (střední priorita)
+  - **Napsal konkrétní PR** s přesunem download logic z `PostDetailScreen` do `PostDetailViewModel`? (vysoká priorita)
+
+Checklist migrací byl vytvořen v `ROOM_DB_MIGRATIONS_CHECKLIST.md`.
 
 ---
 *Audit vytvořil senior review focused na rychlém nasazení oprav a bezpečných refaktorů. Pokud chceš, připravím PRy pro vybrané refaktory.*
