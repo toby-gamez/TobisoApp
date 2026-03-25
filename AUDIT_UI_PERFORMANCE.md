@@ -11,15 +11,10 @@
 - **UI / Compose:** 8/10 — Compose idiomy používány, ale některé Composable provádějí těžké IO nebo polling.
 
 **Hlavní problémy a doporučení**
-- **Polling v UI:** PostDetailScreen používá aktivní čekání/polling každé 2s (potenciální CPU/baterie). Návrh: použít `NetworkUtils.observeConnectivityAsFlow` nebo Broadcast/CallbackFlow ([app/src/main/java/com/tobiso/tobisoappnative/screens/PostDetailScreen.kt](app/src/main/java/com/tobiso/tobisoappnative/screens/PostDetailScreen.kt#L462)).
 <!-- Removed: IO in Composables fixed by moving download logic into PostDetailViewModel -->
-- **Časté context switchy:** Místy se volá `withContext(Dispatchers.Main)` uvnitř IO smyček. Návrh: agregovat aktualizace UI do jediné `StateFlow` aktualizace, minimalizovat přepnutí kontextu.
-- **DB migrace:** Připraveny základní migrace v `DatabaseModule` (no-op migration přidána), takže není použito `fallbackToDestructiveMigration()`; doporučeno doplnit reálné migrace při změnách schématu.
-- **Startup I/O:** Synchronous reads in managers (SharedPreferences/DB) při startu může zpomalit start. Návrh: odložené/pozadové načtení, lazy inicializace nebo přesun do IO coroutine při startu.
+**DB migrace:** Připraveny základní migrace v `DatabaseModule` (no-op migration přidána), takže není použito `fallbackToDestructiveMigration()`; doporučeno doplnit reálné migrace při změnách schématu.
+ 
 
-**Ukázkové soubory k revizi (priority)**
-- **Post UI / polling & IO:** [app/src/main/java/com/tobiso/tobisoappnative/screens/PostDetailScreen.kt](app/src/main/java/com/tobiso/tobisoappnative/screens/PostDetailScreen.kt#L462)
-- **Offline concurrency / downloads:** [app/src/main/java/com/tobiso/tobisoappnative/repository/OfflineRepositoryImpl.kt](app/src/main/java/com/tobiso/tobisoappnative/repository/OfflineRepositoryImpl.kt#L23)
 - **Favorites (DataStore + Flow):** [app/src/main/java/com/tobiso/tobisoappnative/repository/FavoritesRepositoryImpl.kt](app/src/main/java/com/tobiso/tobisoappnative/repository/FavoritesRepositoryImpl.kt#L1)
 
 

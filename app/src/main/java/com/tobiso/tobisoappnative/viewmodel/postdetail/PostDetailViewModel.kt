@@ -246,12 +246,10 @@ class PostDetailViewModel @Inject constructor(
                     }
                 }
 
-                // Post-download: publish result on main thread
-                withContext(Dispatchers.Main) {
-                    _downloadUri.value = pdfUri?.toString()
-                    _downloadProgress.value = null
-                    _downloadError.value = null
-                }
+                // Post-download: publish result (StateFlow is thread-safe; update directly)
+                _downloadUri.value = pdfUri?.toString()
+                _downloadProgress.value = null
+                _downloadError.value = null
             } catch (e: Exception) {
                 _downloadError.value = e.message ?: e.javaClass.simpleName
                 _downloadProgress.value = null
