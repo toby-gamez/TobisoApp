@@ -1,6 +1,11 @@
 package com.tobiso.tobisoappnative.viewmodel.postdetail
 
 import android.app.Application
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkRequest
+import android.net.NetworkCapabilities
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.model.Addendum
@@ -21,6 +26,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.ResponseBody
 import javax.inject.Inject
+import android.content.ContentValues
+import android.os.Build
+import android.os.Environment
+import android.net.Uri
+import java.io.File
+import java.io.FileOutputStream
+import java.lang.Exception
+import kotlinx.coroutines.withContext
+import android.provider.MediaStore
 
 @HiltViewModel
 class PostDetailViewModel @Inject constructor(
@@ -76,6 +90,9 @@ class PostDetailViewModel @Inject constructor(
 
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions
+
+    private val _isConnected = MutableStateFlow(true)
+    val isConnected: StateFlow<Boolean> = _isConnected
 
     fun getTtsManager(): TtsManager = ttsManager
 
@@ -155,6 +172,97 @@ class PostDetailViewModel @Inject constructor(
 
     suspend fun downloadPostPdf(postId: Int): ResponseBody = detailRepo.downloadPdf(postId)
 
+    // Download + save handled in ViewModel to avoid heavy IO in Composables
+    private val _downloadProgress = MutableStateFlow<Int?>(null)
+    val downloadProgress: StateFlow<Int?> = _downloadProgress
+
+    private val _downloadUri = MutableStateFlow<String?>(null)
+    val downloadUri: StateFlow<String?> = _downloadUri
+
+    private val _downloadError = MutableStateFlow<String?>(null)
+    val downloadError: StateFlow<String?> = _downloadError
+
+    fun startDownloadAndSavePdf(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val responseBody = detailRepo.downloadPdf(postId)
+                val fileName = "tobiso_post_${postId}.pdf"
+                var pdfUri: Uri? = null
+
+                responseBody.use { body ->
+                    val input = body.byteStream()
+                    val contentLength = try { body.contentLength() } catch (_: Exception) { -1L }
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        val contentValues = ContentValues().apply {
+                            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                            put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                        }
+
+                        val resolver = getApplication<Application>().contentResolver
+                        pdfUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+
+                        pdfUri?.let { uri ->
+                            resolver.openOutputStream(uri)?.use { outputStream ->
+                                val buffer = ByteArray(8 * 1024)
+                                var read: Int
+                                var total = 0L
+                                while (input.read(buffer).also { read = it } != -1) {
+                                    outputStream.write(buffer, 0, read)
+                                    total += read
+                                    if (contentLength > 0) {
+                                        val percent = ((total * 100) / contentLength).toInt().coerceIn(0, 100)
+                                        _downloadProgress.value = percent
+                                    } else {
+                                        _downloadProgress.value = -1
+                                    }
+                                }
+                                outputStream.flush()
+                            }
+                        }
+                    } else {
+                        val context = getApplication<Application>()
+                        val appDownloads = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                        val pdfFile = File(appDownloads ?: context.filesDir, fileName)
+
+                        FileOutputStream(pdfFile).use { output ->
+                            val buffer = ByteArray(8 * 1024)
+                            var read: Int
+                            var total = 0L
+                            while (input.read(buffer).also { read = it } != -1) {
+                                output.write(buffer, 0, read)
+                                total += read
+                                if (contentLength > 0) {
+                                    val percent = ((total * 100) / contentLength).toInt().coerceIn(0, 100)
+                                    _downloadProgress.value = percent
+                                } else {
+                                    _downloadProgress.value = -1
+                                }
+                            }
+                            output.flush()
+                        }
+                        pdfUri = Uri.fromFile(pdfFile)
+                    }
+                }
+
+                // Post-download: publish result on main thread
+                withContext(Dispatchers.Main) {
+                    _downloadUri.value = pdfUri?.toString()
+                    _downloadProgress.value = null
+                    _downloadError.value = null
+                }
+            } catch (e: Exception) {
+                _downloadError.value = e.message ?: e.javaClass.simpleName
+                _downloadProgress.value = null
+            }
+        }
+    }
+
+    fun clearDownloadUri() {
+        _downloadUri.value = null
+    }
+
     fun savePost(post: Post) {
         viewModelScope.launch(Dispatchers.IO) { favoritesRepo.savePost(post) }
     }
@@ -163,8 +271,37 @@ class PostDetailViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { favoritesRepo.unsavePost(postId) }
     }
 
+    private val connectivityManager by lazy {
+        getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    }
+
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            _isConnected.value = true
+        }
+
+        override fun onLost(network: Network) {
+            _isConnected.value = false
+        }
+    }
+
+    init {
+        try {
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            connectivityManager.registerNetworkCallback(request, networkCallback)
+        } catch (e: Exception) {
+            // ignore: if registration fails, keep default true
+        }
+    }
+
     override fun onCleared() {
-        super.onCleared()
+        try {
+            connectivityManager.unregisterNetworkCallback(networkCallback)
+        } catch (_: Exception) {
+        }
         ttsManager.stop()
+        super.onCleared()
     }
 }

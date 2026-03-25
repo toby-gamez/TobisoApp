@@ -489,146 +489,16 @@ fun PostDetailScreen(
     var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
     var pendingPdfDownload by rememberSaveable { mutableStateOf(false) }
 
-    var downloadProgress by rememberSaveable { mutableStateOf<Int?>(null) }
-
     val context = LocalContext.current
 
-    // Skutečná kontrola připojení (stejně jako v MainActivity)
-    var isConnected by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
-                    as android.net.ConnectivityManager
-            val caps = cm.activeNetwork?.let { cm.getNetworkCapabilities(it) }
-            isConnected = caps?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-            delay(2000)
-        }
-    }
+    val isConnected by vm.isConnected.collectAsState()
 
-    // Funkce pro stažení PDF
-    val downloadPdf: (Int) -> Unit = { id ->
-        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                Timber.d("Stahování PDF pro post ID: $id")
-                val responseBody = vm.downloadPostPdf(id)
-                val fileName = "tobiso_post_${id}.pdf"
-                var pdfUri: android.net.Uri? = null
+    // Download state exposed by ViewModel
+    val downloadProgress by vm.downloadProgress.collectAsState()
+    val downloadUri by vm.downloadUri.collectAsState()
+    val downloadError by vm.downloadError.collectAsState()
 
-                // Stream obsah místo načítání celého souboru do paměti
-                responseBody.use { body ->
-                    val input = body.byteStream()
-                    val contentLength = try { body.contentLength() } catch (_: Exception) { -1L }
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        // Pro Android 10+ použijeme MediaStore
-                        val contentValues = ContentValues().apply {
-                            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                            put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                        }
-
-                        val resolver = context.contentResolver
-                        pdfUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-
-                        pdfUri?.let { uri ->
-                            resolver.openOutputStream(uri)?.use { outputStream ->
-                                val buffer = ByteArray(8 * 1024)
-                                var read: Int
-                                var total = 0L
-                                while (input.read(buffer).also { read = it } != -1) {
-                                    outputStream.write(buffer, 0, read)
-                                    total += read
-                                    if (contentLength > 0) {
-                                        val percent = ((total * 100) / contentLength).toInt().coerceIn(0, 100)
-                                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                            downloadProgress = percent
-                                        }
-                                    } else {
-                                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                            downloadProgress = -1
-                                        }
-                                    }
-                                }
-                                outputStream.flush()
-                                Timber.d("PDF uloženo do Downloads: $fileName, bytes: $total, contentLength: $contentLength")
-                            }
-                        }
-                    } else {
-                        // Pro starší verze uložíme PDF do app-specific external files (nevyžaduje WRITE_EXTERNAL_STORAGE)
-                        val appDownloads = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-                        val pdfFile = File(appDownloads ?: context.filesDir, fileName)
-
-                        FileOutputStream(pdfFile).use { output ->
-                            val buffer = ByteArray(8 * 1024)
-                            var read: Int
-                            var total = 0L
-                            while (input.read(buffer).also { read = it } != -1) {
-                                output.write(buffer, 0, read)
-                                total += read
-                                if (contentLength > 0) {
-                                    val percent = ((total * 100) / contentLength).toInt().coerceIn(0, 100)
-                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        downloadProgress = percent
-                                    }
-                                } else {
-                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        downloadProgress = -1
-                                    }
-                                }
-                            }
-                            output.flush()
-                            Timber.d("PDF uloženo do interního app adresáře: ${pdfFile.absolutePath}, bytes: $total, contentLength: $contentLength")
-                        }
-                        pdfUri = android.net.Uri.fromFile(pdfFile)
-                    }
-                    }
-
-                
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    if (pdfUri != null) {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                            setDataAndType(pdfUri, "application/pdf")
-                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        
-                        try {
-                            context.startActivity(intent)
-                        } catch (e: android.content.ActivityNotFoundException) {
-                            android.widget.Toast.makeText(
-                                context,
-                                "PDF uloženo do složky Stažené",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    } else {
-                        android.widget.Toast.makeText(
-                            context,
-                            "Chyba při ukládání PDF",
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    // clear progress indicator after finishing
-                    downloadProgress = null
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Chyba při generování PDF")
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    val errorMsg = when {
-                        e.message != null -> e.message
-                        e.cause?.message != null -> e.cause?.message
-                        else -> e.javaClass.simpleName
-                    }
-                    android.widget.Toast.makeText(
-                        context,
-                        "Chyba při generování PDF: $errorMsg",
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
-                    downloadProgress = null
-                }
-            }
-        }
-    }
+    val downloadPdf: (Int) -> Unit = { id -> vm.startDownloadAndSavePdf(id) }
     
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -643,6 +513,36 @@ fun PostDetailScreen(
                 "Pro stažení PDF je potřeba oprávnění k úložišti",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
+        }
+    }
+
+    // Open downloaded PDF when ViewModel reports a saved URI
+    LaunchedEffect(downloadUri) {
+        downloadUri?.let { uriStr ->
+            try {
+                val uri = android.net.Uri.parse(uriStr)
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "application/pdf")
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (e: android.content.ActivityNotFoundException) {
+                android.widget.Toast.makeText(
+                    context,
+                    "PDF uloženo do složky Stažené",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            } catch (e: Exception) {
+                Timber.e(e, "Error opening downloaded PDF")
+                android.widget.Toast.makeText(
+                    context,
+                    "Chyba při otevření PDF",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            } finally {
+                vm.clearDownloadUri()
+            }
         }
     }
     

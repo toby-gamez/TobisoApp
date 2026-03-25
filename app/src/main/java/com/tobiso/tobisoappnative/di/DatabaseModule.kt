@@ -2,6 +2,8 @@ package com.tobiso.tobisoappnative.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.tobiso.tobisoappnative.db.AppDatabase
 import com.tobiso.tobisoappnative.db.dao.AddendumDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
@@ -17,16 +19,25 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import timber.log.Timber
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    // Placeholder migration to avoid destructive fallback. Add real migrations here when schema changes.
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // No-op migration: reserved for future schema changes.
+            Timber.d("Applying migration 1->2 (no-op)")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "tobiso_offline.db")
-            .fallbackToDestructiveMigration()
+            .addMigrations(MIGRATION_1_2)
             .build()
 
     @Provides
