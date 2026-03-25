@@ -94,9 +94,8 @@ import com.tobiso.tobisoappnative.components.FloatingSearchBar
 @Composable
 fun TobisoApp(navigateTo: String? = null) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val connectivityFlow = NetworkUtils.observeConnectivityAsFlow(context)
-    val isConnected by connectivityFlow.collectAsState(initial = false)
     val mainViewModel: MainViewModel = hiltViewModel()
+    val isConnected by mainViewModel.connectivityFlow.collectAsState(initial = false)
     val ttsViewModel: TtsViewModel = hiltViewModel()
     val mainState by mainViewModel.uiState.collectAsState()
     val categories = mainState.categories

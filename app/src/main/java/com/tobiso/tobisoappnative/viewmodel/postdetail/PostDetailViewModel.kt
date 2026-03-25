@@ -91,6 +91,12 @@ class PostDetailViewModel @Inject constructor(
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
     val questions: StateFlow<List<Question>> = _questions
 
+    private val _hasQuestions = MutableStateFlow(false)
+    val hasQuestions: StateFlow<Boolean> = _hasQuestions
+
+    private val _hasExercises = MutableStateFlow(false)
+    val hasExercises: StateFlow<Boolean> = _hasExercises
+
     private val _isConnected = MutableStateFlow(true)
     val isConnected: StateFlow<Boolean> = _isConnected
 
@@ -301,5 +307,47 @@ class PostDetailViewModel @Inject constructor(
         }
         ttsManager.stop()
         super.onCleared()
+    }
+
+    /**
+     * Convenience initializer that orchestrates loading all data for a post.
+     * Keeps heavy IO inside the ViewModel instead of the Composable.
+     */
+    fun loadAllForPost(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                loadPostDetail(postId)
+
+                if (_posts.value.isEmpty()) {
+                    loadPosts()
+                }
+
+                loadRelatedPosts(postId)
+
+                if (_addendums.value.isEmpty()) {
+                    loadAddendums()
+                }
+
+                // Determine categoryId from loaded posts or postDetail
+                val postCategoryId = _posts.value.firstOrNull { it.id == postId }?.categoryId ?: _postDetail.value?.categoryId
+
+                // Preload exercises and set flags
+                try {
+                    _hasExercises.value = try { checkHasExercises(postId, postCategoryId) } catch (_: Exception) { false }
+                    loadExercisesByPostId(postId, postCategoryId)
+                } catch (e: Exception) {
+                    _exercisesError.value = "Chyba při načítání cvičení: ${e.message}"
+                }
+
+                // Questions
+                _hasQuestions.value = try { checkHasQuestions(postId) } catch (_: Exception) { false }
+                if (_hasQuestions.value) {
+                    // try to populate questions state for UI
+                    _questions.value = detailRepo.getQuestionsForPost(postId).getOrNull() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                // swallow to avoid crashing UI; individual loaders report errors
+            }
+        }
     }
 }

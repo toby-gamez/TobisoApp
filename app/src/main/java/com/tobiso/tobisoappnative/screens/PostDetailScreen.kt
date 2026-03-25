@@ -480,8 +480,8 @@ fun PostDetailScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(false) }
-    var hasQuestions by remember { mutableStateOf(false) }
-    var hasExercises by remember { mutableStateOf(false) }
+    val hasQuestions by vm.hasQuestions.collectAsState()
+    val hasExercises by vm.hasExercises.collectAsState()
     val ttsManager = ttsViewModel.ttsManager
     val addendums by vm.addendums.collectAsState()
     var selectedAddendum by remember { mutableStateOf<Addendum?>(null) }
@@ -547,58 +547,9 @@ fun PostDetailScreen(
     }
     
     LaunchedEffect(postId) {
-        try {
-            Timber.d("LaunchedEffect started for post $postId")
-            // Načteme detail (ViewModel má logiku pro offline i online režim)
-            vm.loadPostDetail(postId)
-            Timber.d("Post detail loaded")
-            
-            // Načteme všechny posts pro vyhledávání odkazů a zobrazení souvisejících článků
-            if (posts.isEmpty()) {
-                vm.loadPosts()
-                Timber.d("Posts loaded")
-            }
-            // Načteme související články (funguje v online i offline režimu)
-            vm.loadRelatedPosts(postId)
-            Timber.d("Related posts loaded")
-            
-            // Načteme dodatky
-            if (addendums.isEmpty()) {
-                vm.loadAddendums()
-                Timber.d("Addendums loaded")
-            }
-            
-            // Kontrola otázek pro tento příspěvek (nyní funguje v online i offline režimu)
-            hasQuestions = try {
-                vm.checkHasQuestions(postId)
-            } catch (e: Exception) {
-                Timber.e(e, "Error checking questions")
-                false
-            }
-            
-            // Kontrola cvičení pro tento příspěvek (pouze v online režimu)
-            hasExercises = try {
-                val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId ?: postDetail?.categoryId
-                vm.checkHasExercises(postId, postCategoryId)
-            } catch (e: Exception) {
-                Timber.e(e, "Error checking exercises")
-                false
-            }
-
-            // Přednačteme cvičení (online i offline), aby se tlačítko zobrazilo spolehlivě
-            try {
-                val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId ?: postDetail?.categoryId
-                vm.loadExercisesByPostId(postId, postCategoryId)
-            } catch (e: Exception) {
-                Timber.e(e, "Error preloading exercises")
-            }
-            
-            loaded = true
-            Timber.d("LaunchedEffect completed for post $postId")
-        } catch (e: Exception) {
-            Timber.e(e, "Critical error in LaunchedEffect for post $postId")
-            loaded = true // Stejně nastavíme, aby se zobrazila chyba místo nekonečného načítání
-        }
+        // Delegate all heavy work to ViewModel to avoid IO in Composables
+        vm.loadAllForPost(postId)
+        loaded = true
     }
 
     LaunchedEffect(postId, postDetail?.categoryId, posts, isOffline) {
@@ -606,23 +557,12 @@ fun PostDetailScreen(
         val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId ?: postDetail?.categoryId
         if (postCategoryId == null && postDetail?.id != postId) return@LaunchedEffect
 
-        hasExercises = try {
-            vm.checkHasExercises(postId, postCategoryId)
-        } catch (e: Exception) {
-            Timber.e(e, "Error re-checking exercises")
-            hasExercises
-        }
-
         // Jakmile známe categoryId, dotáhneme cvičení (kvůli category-based přiřazení)
         try {
             vm.loadExercisesByPostId(postId, postCategoryId)
         } catch (e: Exception) {
             Timber.e(e, "Error reloading exercises")
         }
-    }
-
-    LaunchedEffect(exercises) {
-        hasExercises = exercises.isNotEmpty()
     }
 
     // Re-načteme související články jakmile je postDetail dostupný,

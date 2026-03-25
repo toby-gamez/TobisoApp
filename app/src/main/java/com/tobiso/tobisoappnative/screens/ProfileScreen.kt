@@ -55,8 +55,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.TimeZone
 import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.graphicsLayer
@@ -91,26 +89,7 @@ import com.tobiso.tobisoappnative.utils.saveProfileName
 import com.tobiso.tobisoappnative.utils.getProfileImageUri
 import com.tobiso.tobisoappnative.utils.saveProfileImageUri
 
-// Funkce pro kopírování obrázku do interního úložiště
-fun copyImageToInternalStorage(context: android.content.Context, uri: android.net.Uri): String? {
-    return try {
-        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-        val fileName = "profile_image.jpg"
-        val file = File(context.filesDir, fileName)
-        val outputStream = FileOutputStream(file)
-        
-        inputStream?.use { input ->
-            outputStream.use { output ->
-                input.copyTo(output)
-            }
-        }
-        
-        file.absolutePath
-    } catch (e: Exception) {
-        e.printStackTrace()
-        null
-    }
-}
+// Image copying moved to ProfileViewModel to avoid IO on UI thread.
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -571,7 +550,17 @@ fun ProfileSection(navController: NavController) {
     var isAnimatingOut by remember { mutableStateOf(false) }
     var showImageCropper by remember { mutableStateOf(false) }
     var tempImageForCropping by remember { mutableStateOf<String?>(null) }
-    
+    val vm: ProfileViewModel = hiltViewModel()
+    val copiedImagePath by vm.copiedImagePath.collectAsState()
+
+    // When ViewModel finishes copying the picked image, open cropper on UI thread
+    LaunchedEffect(copiedImagePath) {
+        copiedImagePath?.let { path ->
+            tempImageForCropping = path
+            showImageCropper = true
+            vm.clearCopiedImagePath()
+        }
+    }
     // Načtení dat při startu
     LaunchedEffect(Unit) {
         profileName = getProfileName(context)
@@ -591,13 +580,8 @@ fun ProfileSection(navController: NavController) {
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { originalUri ->
-            // Zkopírujeme obrázek do interního úložiště
-            val copiedImagePath = copyImageToInternalStorage(context, originalUri)
-            copiedImagePath?.let { path ->
-                // Místo přímého nastavení, otevřeme cropper
-                tempImageForCropping = path
-                showImageCropper = true
-            }
+            // Delegate actual copy to ViewModel (runs on IO dispatcher)
+            vm.copyImageToInternalStorage(originalUri)
         }
     }
     

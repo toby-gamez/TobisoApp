@@ -27,7 +27,7 @@ class FavoritesRepositoryImpl(private val application: Application) {
     val favoritePosts: Flow<List<Post>> = dataStore.data.map { prefs ->
         val jsonSet = prefs[FAVORITE_POSTS_KEY] ?: emptySet()
         jsonSet.mapNotNull { jsonString ->
-            try { json.decodeFromString<Post>(jsonString) } catch (e: Exception) { null }
+            try { json.decodeFromString(Post.serializer(), jsonString) } catch (e: Exception) { null }
         }
     }
 
@@ -35,7 +35,7 @@ class FavoritesRepositoryImpl(private val application: Application) {
         dataStore.edit { prefs ->
             val current = prefs[FAVORITE_POSTS_KEY] ?: emptySet()
             val alreadySaved = current.any { jsonString ->
-                try { json.decodeFromString<Post>(jsonString).id == post.id } catch (e: Exception) { false }
+                try { json.decodeFromString(Post.serializer(), jsonString).id == post.id } catch (e: Exception) { false }
             }
             if (!alreadySaved) prefs[FAVORITE_POSTS_KEY] = current + json.encodeToString(Post.serializer(), post)
         }
@@ -58,7 +58,7 @@ class FavoritesRepositoryImpl(private val application: Application) {
         val file = File(application.filesDir, SNIPPETS_FILE_NAME)
         if (!file.exists()) return@withContext emptyList()
         try {
-            try { json.decodeFromString<List<Snippet>>(file.readText()) } catch (e: Exception) { emptyList() }
+            try { json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(Snippet.serializer()), file.readText()) } catch (e: Exception) { emptyList() }
         } catch (e: Exception) {
             emptyList()
         }
@@ -96,7 +96,7 @@ class FavoritesRepositoryImpl(private val application: Application) {
     private fun readSnippetsFromFile(file: File): List<Snippet> {
         if (!file.exists()) return emptyList()
         return try {
-            try { json.decodeFromString<List<Snippet>>(file.readText()) } catch (e: Exception) { emptyList() }
+            try { json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(Snippet.serializer()), file.readText()) } catch (e: Exception) { emptyList() }
         } catch (e: Exception) { emptyList() }
     }
 }

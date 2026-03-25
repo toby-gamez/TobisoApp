@@ -7,6 +7,7 @@ import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.repository.OfflineRepositoryImpl
 import com.tobiso.tobisoappnative.utils.NetworkUtils
+import kotlinx.coroutines.flow.Flow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,6 +30,9 @@ class MainViewModel @Inject constructor(
 ) : BaseAndroidViewModel<MainState, MainIntent, MainEffect>(application, MainState()) {
 
     private var isFirstLoad = true
+
+    // Expose connectivity Flow from NetworkUtils so composables can collect from the ViewModel
+    val connectivityFlow: Flow<Boolean> = NetworkUtils.observeConnectivityAsFlow(getApplication())
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
