@@ -132,13 +132,14 @@ fun FloatingSearchBar(
         }
     }
     val filteredPosts = if (debouncedSearchText.isBlank() || attachedPost != null) emptyList() else {
-        posts.filter {
-            val hasValidCategory = it.categoryId != null && it.categoryId != 42
-            hasValidCategory && (
-                normalizeText(it.title).contains(normQuery) ||
-                (!aiMode && normalizeText(it.content ?: "").contains(normQuery))
-            )
+        // Prioritize posts where the title matches, then posts where only the content matches
+        val hasValidCategory: (Post) -> Boolean = { it.categoryId != null && it.categoryId != 42 }
+        val titleMatches = posts.filter { hasValidCategory(it) && normalizeText(it.title).contains(normQuery) }
+        val contentMatches = posts.filter {
+            hasValidCategory(it) && !normalizeText(it.title).contains(normQuery) &&
+            (!aiMode && normalizeText(it.content ?: "").contains(normQuery))
         }
+        (titleMatches + contentMatches).distinctBy { it.id }
     }
 
     Box(
@@ -222,6 +223,22 @@ fun FloatingSearchBar(
                                 )
                             }
                             items(filteredPosts) { post ->
+                                    // Helper: find category by id
+                                    fun findCategoryById(id: Int?): Category? = id?.let { cid -> categories.firstOrNull { it.id == cid } }
+                                    // Helper: find top-level subject (root ancestor)
+                                    fun findTopSubject(cat: Category?): Category? {
+                                        var cur = cat
+                                        var safety = 0
+                                        while (cur?.parentId != null && safety < 20) {
+                                            cur = findCategoryById(cur.parentId)
+                                            safety++
+                                        }
+                                        return cur
+                                    }
+
+                                    val postCategory = findCategoryById(post.categoryId)
+                                    val topSubject = findTopSubject(postCategory)
+                                    val isTitleMatch = normalizeText(post.title).contains(normQuery)
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -240,18 +257,69 @@ fun FloatingSearchBar(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant
                                     )
                                 ) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
-                                        Text(
-                                            highlightText(post.title, debouncedSearchText, isDark),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            (post.content ?: "").take(80) + "...",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            maxLines = 2
-                                        )
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Left: title + optional snippet
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                highlightText(post.title, debouncedSearchText, isDark),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            if (!isTitleMatch) {
+                                                val raw = post.content ?: ""
+                                                val snippet = com.tobiso.tobisoappnative.utils.TextUtils.markdownToSearchSnippet(raw, normQuery, 120)
+                                                Text(
+                                                    highlightText(snippet, debouncedSearchText, isDark),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    maxLines = 2
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        // Right: subject/category box
+                                        val subjectLabel = topSubject?.name
+                                        val categoryLabel = postCategory?.name
+                                        Surface(
+                                            tonalElevation = 2.dp,
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .widthIn(min = 96.dp, max = 160.dp)
+                                                .padding(start = 4.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                                horizontalAlignment = Alignment.Start
+                                            ) {
+                                                if (!categoryLabel.isNullOrBlank()) {
+                                                    Text(
+                                                        categoryLabel,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                                if (!subjectLabel.isNullOrBlank()) {
+                                                    Text(
+                                                        subjectLabel,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }

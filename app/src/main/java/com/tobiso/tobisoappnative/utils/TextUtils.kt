@@ -144,4 +144,106 @@ object TextUtils {
         
         return segments
     }
+
+    /**
+     * Convert markdown content to a short plain-text snippet suitable for search results.
+     * Rules:
+     * - Remove lines that are only dots ("..." or longer)
+     * - Remove heading lines starting with '#'
+     * - Remove images (markdown and HTML)
+     * - Convert markdown links to plain text (keep the link text)
+     * - Remove code blocks and inline code markers
+     * - Normalize whitespace and truncate to maxLength (prefer breaking at word boundary)
+     */
+    fun markdownToSearchSnippet(markdownContent: String, query: String? = null, maxLength: Int = 120): String {
+        if (markdownContent.isBlank()) return ""
+
+        var s = markdownContent
+
+        // Remove fenced code blocks
+        s = s.replace(Regex("```[\\s\\S]*?```"), "")
+
+        // Remove HTML <img> and <video> tags and any other HTML tags
+        s = s.replace(Regex("<img[^>]*>", RegexOption.IGNORE_CASE), "")
+        // Use inline flags (?is) to enable DOT_MATCHES_ALL and IGNORE_CASE together
+        s = s.replace(Regex("(?is)<video[^>]*>(.*?)</video>"), "")
+        s = s.replace(Regex("<[^>]+>"), "")
+
+        // Remove markdown images ![alt](url)
+        s = s.replace(Regex("!\\[[^\\]]*\\]\\([^\\)]*\\)"), "")
+
+        // Remove heading lines completely
+        s = s.replace(Regex("(?m)^[\\t ]*#{1,6}.*$"), "")
+
+        // Remove lines that contain only dots (e.g., "..." or "…..")
+        s = s.replace(Regex("(?m)^[\\t ]*\\.{3,}\\s*$"), "")
+
+        // Convert markdown links [text](url) -> text
+        s = s.replace(Regex("\\[([^\\]]+)\\]\\([^\\)]+\\)"), "$1")
+
+        // Remove bold/italic markers but keep content
+        s = s.replace(Regex("\\*\\*([^*]+)\\*\\*"), "$1")
+        s = s.replace(Regex("\\*([^*]+)\\*"), "$1")
+        s = s.replace(Regex("__([^_]+)__"), "$1")
+        s = s.replace(Regex("_([^_]+)_"), "$1")
+
+        // Remove inline code markers
+        s = s.replace(Regex("`([^`]+)`"), "$1")
+
+        // Remove horizontal rules
+        s = s.replace(Regex("(?m)^-{3,}$"), "")
+
+        // Normalize blank lines and whitespace
+        s = s.replace(Regex("\\r\\n|\\r"), "\n")
+        s = s.replace(Regex("\\n\\s*\\n+"), "\n\n")
+        s = s.replace(Regex("\\s+"), " ")
+        s = s.trim()
+
+        // If a query is provided, try to center the snippet around its first occurrence.
+        if (!query.isNullOrBlank()) {
+            val normQuery = normalizeText(query)
+
+            // Build normalized string with mapping from normalized index -> original index
+            val normBuilder = StringBuilder()
+            val normIndexToOriginal = mutableListOf<Int>()
+            for (i in s.indices) {
+                val nc = normalizeText(s[i].toString())
+                if (nc.isEmpty()) continue
+                for (ch in nc) {
+                    normBuilder.append(ch)
+                    normIndexToOriginal.add(i)
+                }
+            }
+            val normS = normBuilder.toString()
+            val found = normS.indexOf(normQuery)
+            if (found >= 0) {
+                val origIndex = normIndexToOriginal.getOrNull(found) ?: 0
+
+                // Center snippet around origIndex
+                val half = maxLength / 2
+                var start = (origIndex - half).coerceAtLeast(0)
+                // Try to move start to nearest space after start but before origIndex for nicer cut
+                val spaceBefore = s.lastIndexOf(' ', origIndex)
+                if (spaceBefore in (start + 1) until origIndex) start = spaceBefore + 1
+
+                var end = (start + maxLength).coerceAtMost(s.length)
+                // Try to extend end to next space for nicer cut
+                val spaceAfter = s.indexOf(' ', origIndex + normQuery.length)
+                if (spaceAfter in origIndex until s.length && spaceAfter < start + maxLength) end = spaceAfter
+
+                var snippet = s.substring(start, end).trim()
+                if (start > 0) snippet = "..." + snippet
+                if (end < s.length) snippet = snippet.trimEnd() + "..."
+                return snippet
+            }
+        }
+
+        if (s.length <= maxLength) return s
+
+        // Truncate smartly at last space before maxLength
+        val cut = s.substring(0, maxLength)
+        val lastSpace = cut.lastIndexOf(' ')
+        val snippet = if (lastSpace > maxLength / 2) cut.substring(0, lastSpace) else cut
+        return snippet.trimEnd() + "..."
+    }
 }
