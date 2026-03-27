@@ -28,7 +28,6 @@ import com.halilibo.richtext.ui.string.RichTextString
 import com.halilibo.richtext.ui.string.Text as RichTextScopeText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.unit.sp
@@ -41,6 +40,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
 import com.halilibo.richtext.ui.material3.RichText
+import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.unit.dp
 import com.tobiso.tobisoappnative.model.Post
 import timber.log.Timber as TimberAlias
 
@@ -178,6 +187,23 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
             val parser = remember { CommonmarkAstNodeParser() }
             val astNode = remember(displayMarkdown) { parser.parse(displayMarkdown) }
 
+            // track nodes we've already consumed (image + following caption/source)
+            val consumed = remember { mutableSetOf<Int>() }
+
+            fun paragraphPlainText(node: AstNode): String {
+                val sb = StringBuilder()
+                inlineChildren(node).forEach { ch ->
+                    when (val t = ch.type) {
+                        is AstText -> sb.append(t.literal)
+                        is AstLink -> inlineChildren(ch).forEach { sub -> if (sub.type is AstText) sb.append((sub.type as AstText).literal) }
+                        is AstImage -> if ((t as AstImage).title.isNotBlank()) sb.append(t.title)
+                        is AstHtmlInline -> sb.append((t as AstHtmlInline).literal)
+                        else -> {}
+                    }
+                }
+                return sb.toString()
+            }
+
             val paragraphComposer = remember {
                 object : AstBlockNodeComposer {
                     override fun predicate(astBlockNodeType: AstBlockNodeType): Boolean {
@@ -189,13 +215,37 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
                         astNode: AstNode,
                         visitChildren: @Composable (AstNode) -> Unit
                     ) {
+                        if (consumed.contains(astNode.hashCode())) return
+
                         val children = inlineChildren(astNode)
 
                         if (children.size == 1 && children.first().type is AstImage) {
-                            val img = children.first().type as AstImage
+                            val imgNode = children.first().type as AstImage
+
+                            // look ahead up to 3 paragraph siblings to find Zdroj/Autor
+                            val captionNodes = mutableListOf<AstNode>()
+                            var srcNode: AstNode? = null
+                            var nxt = astNode.links.next
+                            var steps = 0
+                            while (nxt != null && steps < 3) {
+                                if (nxt.type == AstParagraph) {
+                                    val txt = paragraphPlainText(nxt).trim()
+                                    if (txt.isNotEmpty()) {
+                                        if (txt.startsWith("Zdroj") || txt.startsWith("Autor")) {
+                                            srcNode = nxt
+                                            break
+                                        } else {
+                                            captionNodes.add(nxt)
+                                        }
+                                    }
+                                }
+                                nxt = nxt.links.next
+                                steps++
+                            }
+
                             AsyncImage(
-                                model = img.destination,
-                                contentDescription = img.title.ifBlank { "image" },
+                                model = imgNode.destination,
+                                contentDescription = imgNode.title.ifBlank { "image" },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 120.dp, max = 400.dp)
@@ -205,7 +255,54 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
                                 error = ColorPainter(MaterialTheme.colorScheme.onErrorContainer),
                                 contentScale = ContentScale.Crop
                             )
-                            return
+
+                            if (srcNode != null) {
+                                // mark consumed so subsequent paragraph composers skip these nodes
+                                consumed.add(astNode.hashCode())
+                                captionNodes.forEach { consumed.add(it.hashCode()) }
+                                consumed.add(srcNode.hashCode())
+
+                                val sourceText = paragraphPlainText(srcNode).trim()
+                                val captionText = captionNodes.joinToString(" ") { paragraphPlainText(it).trim() }
+                                val isTobiso = sourceText.contains("Tobiso", ignoreCase = true)
+
+                                if (isTobiso) {
+                                    // render intermediate captions as normal markdown text and source as a small Card
+                                    captionNodes.forEach { node ->
+                                        val builder = RichTextString.Builder(inlineChildren(node).sumOf { (it.type as? AstText)?.literal?.length ?: 8 })
+                                        inlineChildren(node).forEach { appendInlineNode(builder, it) }
+                                        val rich = builder.toRichTextString()
+                                        RichTextScopeText(text = rich)
+                                    }
+
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 6.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            Text(text = sourceText, style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                } else {
+                                    // external source: wrap caption+source in a Card under the image
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 6.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            if (captionText.isNotBlank()) Text(text = captionText, style = MaterialTheme.typography.bodyMedium)
+                                            Text(text = sourceText, style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                }
+
+                                return
+                            } else {
+                                // no source found - nothing extra to render
+                                return
+                            }
                         }
 
                         val builder = RichTextString.Builder(children.sumOf { (it.type as? AstText)?.literal?.length ?: 8 })
