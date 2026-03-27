@@ -34,7 +34,6 @@ import com.tobiso.tobisoappnative.viewmodel.postdetail.PostDetailViewModel
 import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.Composable
-import com.halilibo.richtext.ui.material3.RichText
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -92,12 +91,6 @@ import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.zIndex
 import com.tobiso.tobisoappnative.components.InlineFraction
-import com.halilibo.richtext.commonmark.CommonmarkAstNodeParser
-import com.halilibo.richtext.markdown.AstBlockNodeComposer
-import com.halilibo.richtext.markdown.BasicMarkdown
-import com.halilibo.richtext.markdown.node.AstBlockNodeType
-import com.halilibo.richtext.markdown.node.AstCode
-import com.halilibo.richtext.markdown.node.AstEmphasis
 import com.halilibo.richtext.markdown.node.AstHardLineBreak
 import com.halilibo.richtext.markdown.node.AstHtmlInline
 import com.halilibo.richtext.markdown.node.AstImage
@@ -105,17 +98,10 @@ import com.halilibo.richtext.markdown.node.AstLink
 import com.halilibo.richtext.markdown.node.AstNode
 import com.halilibo.richtext.markdown.node.AstParagraph
 import com.halilibo.richtext.markdown.node.AstSoftLineBreak
-import com.halilibo.richtext.markdown.node.AstStrikethrough
-import com.halilibo.richtext.markdown.node.AstStrongEmphasis
-import com.halilibo.richtext.markdown.node.AstText
-import com.halilibo.richtext.ui.RichTextScope
-import com.halilibo.richtext.ui.string.InlineContent
-import com.halilibo.richtext.ui.string.RichTextString
+// removed all halilibo.richtext imports
 import com.tobiso.tobisoappnative.components.AddendumDialog
 import com.tobiso.tobisoappnative.components.AiInputBar
-import com.halilibo.richtext.ui.string.Text as RichTextScopeText
 import kotlin.math.max
-import com.tobiso.tobisoappnative.components.SafeMarkdown
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
 import com.tobiso.tobisoappnative.components.ContentRenderer
@@ -394,7 +380,7 @@ fun PostDetailScreen(
                             val createdFormatted by vm.createdFormatted.collectAsState()
                             val updatedFormatted by vm.updatedFormatted.collectAsState()
 
-                            // Use LazyColumn for the article body to avoid composing everything at once
+                            // Nový custom markdown renderer
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -403,7 +389,6 @@ fun PostDetailScreen(
                                 item {
                                     Spacer(modifier = Modifier.height(4.dp))
                                 }
-
                                 item {
                                     wordCountText?.let { infoText ->
                                         Text(
@@ -416,7 +401,6 @@ fun PostDetailScreen(
                                             textAlign = TextAlign.End
                                         )
                                     }
-
                                     Box(modifier = Modifier
                                         .fillMaxWidth()
                                         .pointerInput(Unit) {
@@ -433,12 +417,10 @@ fun PostDetailScreen(
                                         )
                                     }
                                 }
-
                                 item {
                                     Spacer(modifier = Modifier.height(16.dp))
                                     if (loaded) Spacer(modifier = Modifier.height(20.dp))
                                 }
-
                                 item {
                                     ExerciseButtonsRow(
                                         hasExercises = hasExercises,
@@ -477,7 +459,6 @@ fun PostDetailScreen(
                                         onOpenQuestions = { navController.navigate(QuestionsRoute(postId = postId)) }
                                     )
                                 }
-
                                 item {
                                     val linkedPostIds = remember(contentElements) {
                                         contentElements.mapNotNull { (it as? ContentElement.ClickableLink)?.postId }.toSet()
@@ -485,7 +466,6 @@ fun PostDetailScreen(
                                     val filteredRelated = relatedPosts.filter { it.relatedPostId !in linkedPostIds }
                                     RelatedPostsList(relatedPosts = filteredRelated, posts = posts, navController = navController)
                                 }
-
                                 item {
                                     Text(
                                         text = "Vytvořeno: $createdFormatted",

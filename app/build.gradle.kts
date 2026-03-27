@@ -136,8 +136,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
     implementation(libs.androidx.splashscreen)
-    implementation(libs.richtext.ui.material3)
-    implementation(libs.richtext.commonmark)
     implementation(libs.play.services.oss.licenses)
     implementation(libs.androidx.ui.text.google.fonts)
     implementation(libs.androidx.media3.exoplayer)
