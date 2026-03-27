@@ -107,11 +107,18 @@ import com.halilibo.richtext.markdown.node.AstText
 import com.halilibo.richtext.ui.RichTextScope
 import com.halilibo.richtext.ui.string.InlineContent
 import com.halilibo.richtext.ui.string.RichTextString
+import com.tobiso.tobisoappnative.components.AddendumDialog
+import com.tobiso.tobisoappnative.components.AiInputBar
 import com.halilibo.richtext.ui.string.Text as RichTextScopeText
 import kotlin.math.max
 import com.tobiso.tobisoappnative.components.SafeMarkdown
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
+import com.tobiso.tobisoappnative.components.ContentRenderer
+import com.tobiso.tobisoappnative.components.PostActionsRow
+import com.tobiso.tobisoappnative.components.ExerciseButtonsRow
+import com.tobiso.tobisoappnative.components.RelatedPostsList
+import kotlinx.serialization.json.JsonNull.content
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -273,72 +280,43 @@ fun PostDetailScreen(
                     },
                     scrollBehavior = scrollBehavior,
                     actions = {
-                        // Zobrazení aktivního multiplikátoru
-                        MultiplierIndicator()
-                        
-                        // TTS BUTTON - nejlevější tlačítko
-                        if (postDetail?.content != null) {
-                            IconButton(onClick = {
+                        PostActionsRow(
+                            postDetail = postDetail,
+                            favoritePosts = favoritePosts,
+                            isOffline = isOffline,
+                            ttsManager = ttsManager,
+                            onTts = {
                                 val plainText = TextUtils.extractPlainTextForTts(postDetail?.content ?: "")
                                 if (plainText.isNotEmpty()) {
                                     ttsViewModel.speak(plainText)
                                 }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.VolumeUp,
-                                    contentDescription = "Přečíst článek",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                        
-                        val isFavorite = favoritePosts.any { it.id == postDetail?.id }
-                        // HVĚZDIČKA - první vpravo
-                        IconButton(onClick = {
-                            postDetail?.let {
-                                if (isFavorite) vm.unsavePost(it.id) else vm.savePost(it)
-                            }
-                        }) {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
-                                contentDescription = if (isFavorite) "Odebrat z oblíbených" else "Uložit do oblíbených",
-                                tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        // PRINT PDF BUTTON - pouze v online režimu
-                        if (!isOffline) {
-                            IconButton(onClick = {
+                            },
+                            onToggleFavorite = {
+                                postDetail?.let {
+                                    val isFavorite = favoritePosts.any { it.id == postDetail?.id }
+                                    if (isFavorite) vm.unsavePost(it.id) else vm.savePost(it)
+                                }
+                            },
+                            onDownloadClick = {
                                 postDetail?.id?.let { id ->
-                                    // Pro Android 10+ (API 29+) nepotřebujeme permission
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                         downloadPdf(id)
                                     } else {
-                                        // Pro starší verze Android < 10 zkontrolujeme permission
                                         val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                                             context,
                                             android.Manifest.permission.WRITE_EXTERNAL_STORAGE
                                         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                                        
+
                                         if (hasPermission) {
                                             downloadPdf(id)
                                         } else {
-                                            // Požádáme o permission a pamatujeme, že bylo požadováno stažení
                                             pendingPdfDownload = true
                                             permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                                         }
                                     }
                                 }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Print,
-                                    contentDescription = "Stáhnout PDF",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                        // SHARE BUTTON - třetí vpravo (pouze v online režimu)
-                        if (!isOffline) {
-                            IconButton(onClick = {
+                            },
+                            onShareClick = {
                                 postDetail?.id?.let { id ->
                                     val url = "https://www.tobiso.com/post/$id"
                                     val sendIntent = android.content.Intent().apply {
@@ -349,14 +327,9 @@ fun PostDetailScreen(
                                     val shareIntent = android.content.Intent.createChooser(sendIntent, null)
                                     context.startActivity(shareIntent)
                                 }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Share,
-                                    contentDescription = "Sdílet odkaz",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                 )
 
@@ -471,7 +444,6 @@ fun PostDetailScreen(
                                     parseContentToElements(content, isOffline, posts)
                                 }
 
-                                // Renderování obsahu podle elementů
                                 Box(modifier = Modifier
                                     .fillMaxWidth()
                                     .pointerInput(Unit) {
@@ -482,124 +454,14 @@ fun PostDetailScreen(
                                         )
                                     }
                                 ) {
-                                    Column {
-                                        contentElements.forEach { element ->
-                                            when (element) {
-                                                is ContentElement.MarkdownText -> {
-                                                    if (element.text.isNotBlank()) {
-                                                        SafeMarkdown(element.text)
-                                                    }
-                                                }
-                                                
-                                                is ContentElement.HighlightedBlock -> {
-                                                    if (element.text.isNotBlank()) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .padding(vertical = 4.dp)
-                                                                .background(
-                                                                    MaterialTheme.colorScheme.surfaceVariant,
-                                                                    shape = MaterialTheme.shapes.medium
-                                                                )
-                                                                .padding(8.dp)
-                                                        ) {
-                                                            SafeMarkdown(element.text)
-                                                        }
-                                                    }
-                                                }
-                                                
-                                                is ContentElement.ClickableLink -> {
-                                                    val linkText = element.text.trim()
-                                                    if (linkText.isNotBlank()) {
-                                                        Text(
-                                                            text = linkText,
-                                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                                color = MaterialTheme.colorScheme.primary,
-                                                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                                                            ),
-                                                            modifier = Modifier.clickable {
-                                                                if (element.postId != null) {
-                                                                    navController.navigate(PostDetailRoute(postId = element.postId))
-                                                                } else if (!isOffline) {
-                                                                    val url = element.url
-                                                                    if (url.contains("http") || url.startsWith("files") || url.contains("/files/")) {
-                                                                        val fullUrl = if (url.startsWith("http")) {
-                                                                            url
-                                                                        } else {
-                                                                            "https://files.tobiso.com/" + url.removePrefix("/")
-                                                                        }
-                                                                        val intent = android.content.Intent(
-                                                                            android.content.Intent.ACTION_VIEW,
-                                                                            android.net.Uri.parse(fullUrl)
-                                                                        )
-                                                                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                                        try {
-                                                                            navController.context.startActivity(intent)
-                                                                        } catch (e: Exception) {
-                                                                            Timber.e(e, "Chyba při otevírání odkazu")
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        )
-                                                    }
-                                                }
-                                                
-                                                is ContentElement.VideoPlayer -> {
-                                                    if (isOffline) {
-                                                        Text(
-                                                            text = "*[Video nedostupné v offline režimu]*",
-                                                            modifier = Modifier.padding(vertical = 8.dp),
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    } else {
-                                                        OutlinedButton(
-                                                            onClick = {
-                                                                navController.navigate(
-                                                                    VideoPlayerRoute(videoUrl = Uri.encode(element.videoUrl))
-                                                                )
-                                                            },
-                                                            modifier = Modifier.padding(vertical = 8.dp)
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.PlayArrow,
-                                                                contentDescription = "Přehrát video",
-                                                                tint = MaterialTheme.colorScheme.primary
-                                                            )
-                                                            Spacer(modifier = Modifier.width(8.dp))
-                                                            Text("Video", color = MaterialTheme.colorScheme.primary)
-                                                        }
-                                                    }
-                                                }
-                                                
-                                                is ContentElement.AddendumReference -> {
-                                                    val addendum = addendums.find { it.id == element.addendumId }
-                                                    if (addendum != null) {
-                                                        IconButton(
-                                                            onClick = {
-                                                                selectedAddendum = addendum
-                                                                showAddendumDialog = true
-                                                            },
-                                                            modifier = Modifier.size(32.dp)
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Help,
-                                                                contentDescription = "Zobrazit dodatek",
-                                                                tint = MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
-                                                    } else {
-                                                        Text(
-                                                            text = "[Dodatek #${element.addendumId}]",
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                                    ContentRenderer(
+                                        contentElements = contentElements,
+                                        isOffline = isOffline,
+                                        posts = posts,
+                                        addendums = addendums,
+                                        navController = navController,
+                                        onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true }
+                                    )
                                 }
                             }
                             Spacer(modifier = Modifier.height(16.dp))
@@ -610,158 +472,53 @@ fun PostDetailScreen(
                             }
 
                             // Tlačítka Prověrka a Cvičení — inline v obsahu (pod body, nad souvisejícími články)
-                            if (hasExercises || exercisesLoading || exercises.isNotEmpty() || hasQuestions || questions.isNotEmpty() || !exercisesError.isNullOrBlank()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    if (hasExercises || exercisesLoading || exercises.isNotEmpty()) {
-                                        val exerciseLabel: (String) -> String = { type ->
+                            ExerciseButtonsRow(
+                                hasExercises = hasExercises,
+                                exercisesLoading = exercisesLoading,
+                                exercises = exercises,
+                                hasQuestions = hasQuestions || questions.isNotEmpty(),
+                                onLoadExercises = {
+                                    coroutineScope.launch {
+                                        try {
+                                            val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
+                                                ?: postDetail?.categoryId
+                                            vm.loadExercisesByPostId(postId, postCategoryId)
+                                            android.widget.Toast.makeText(context, "Načítám cvičení…", android.widget.Toast.LENGTH_SHORT).show()
+                                        } catch (e: Exception) {
+                                            Timber.e(e, "Error loading exercises")
+                                            android.widget.Toast.makeText(context, "Chyba při načítání cvičení", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                onOpenExercise = { id, type ->
+                                    coroutineScope.launch {
+                                        try {
                                             when (type) {
-                                                "timeline" -> "Cvičení na časovou osu"
-                                                "circuit" -> "Cvičení: obvod"
-                                                "drag-drop" -> "Cvičení: přetahování"
-                                                "matching" -> "Cvičení: párování"
-                                                else -> "Cvičení"
+                                                "timeline" -> navController.navigate(ExerciseTimelineRoute(exerciseId = id))
+                                                "drag-drop" -> navController.navigate(ExerciseDragDropRoute(exerciseId = id))
+                                                "matching" -> navController.navigate(ExerciseMatchingRoute(exerciseId = id))
+                                                "circuit" -> navController.navigate(ExerciseCircuitRoute(exerciseId = id))
+                                                else -> android.widget.Toast.makeText(context, "Nepodporovaný typ cvičení: $type", android.widget.Toast.LENGTH_SHORT).show()
                                             }
+                                        } catch (e: Exception) {
+                                            Timber.e(e, "Error opening exercise")
+                                            android.widget.Toast.makeText(context, "Chyba při otevírání cvičení", android.widget.Toast.LENGTH_SHORT).show()
                                         }
+                                    }
+                                },
+                                onOpenQuestions = { navController.navigate(QuestionsRoute(postId = postId)) }
+                            )
 
-                                        if (exercisesLoading) {
-                                            Button(
-                                                onClick = {},
-                                                enabled = false,
-                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                                            ) { Text("Cvičení…") }
-                        } else if (exercises.isEmpty() && hasExercises) {
-                                            Button(
-                                                onClick = {
-                                                    coroutineScope.launch {
-                                                        try {
-                                                            val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
-                                                                ?: postDetail?.categoryId
-                                                            vm.loadExercisesByPostId(postId, postCategoryId)
-                                                            android.widget.Toast.makeText(
-                                                                context,
-                                                                "Načítám cvičení…",
-                                                                android.widget.Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        } catch (e: Exception) {
-                                                            Timber.e(e, "Error loading exercises")
-                                                            android.widget.Toast.makeText(
-                                                                context,
-                                                                "Chyba při načítání cvičení",
-                                                                android.widget.Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        }
-                                                    }
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                                            ) { Text("Cvičení") }
-                                        } else {
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                exercises.forEach { ex ->
-                                                    Button(
-                                                        onClick = {
-                                                            coroutineScope.launch {
-                                                                try {
-                                                                    when (ex.type) {
-                                                                        "timeline" -> navController.navigate(ExerciseTimelineRoute(exerciseId = ex.id))
-                                                                        "drag-drop" -> navController.navigate(ExerciseDragDropRoute(exerciseId = ex.id))
-                                                                        "matching" -> navController.navigate(ExerciseMatchingRoute(exerciseId = ex.id))
-                                                                        "circuit" -> navController.navigate(ExerciseCircuitRoute(exerciseId = ex.id))
-                                                                        else -> android.widget.Toast.makeText(
-                                                                            context,
-                                                                            "Nepodporovaný typ cvičení: ${ex.type}",
-                                                                            android.widget.Toast.LENGTH_SHORT
-                                                                        ).show()
-                                                                    }
-                                                                } catch (e: Exception) {
-                                                                    Timber.e(e, "Error opening exercise")
-                                                                    android.widget.Toast.makeText(
-                                                                        context,
-                                                                        "Chyba při otevírání cvičení",
-                                                                        android.widget.Toast.LENGTH_SHORT
-                                                                    ).show()
-                                                                }
-                                                            }
-                                                        },
-                                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                                                    ) {
-                                                        val exLabel = ex.title?.takeIf { it.isNotBlank() } ?: exerciseLabel(ex.type ?: "")
-                                                        Text(exLabel)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (hasQuestions || questions.isNotEmpty()) {
-                                        Button(
-                                            onClick = { navController.navigate(QuestionsRoute(postId = postId)) },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.secondary
-                                            )
-                                        ) {
-                                            Text("Prověrka")
-                                        }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(16.dp))
+                            // Odstraníme duplicitní související články (pokud jsou již uvedeny v obsahu) a vykreslíme seznam
+                            val linkedPostIds = remember(content) {
+                                parseContentToElements(content, isOffline, posts)
+                                    .mapNotNull { (it as? ContentElement.ClickableLink)?.postId }
+                                    .toSet()
                             }
-                            
-                            // Související články
-                            if (relatedPosts.isNotEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.surfaceVariant,
-                                            shape = MaterialTheme.shapes.medium
-                                        )
-                                        .padding(12.dp)
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "Související články",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(bottom = 8.dp)
-                                        )
-                                        
-                                        relatedPosts.forEach { relatedPost ->
-                                            val title = posts.find { it.id == relatedPost.relatedPostId }?.title
-                                                ?: relatedPost.relatedPostTitle
-                                                ?: return@forEach
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 4.dp),
-                                                onClick = {
-                                                    navController.navigate(PostDetailRoute(postId = relatedPost.relatedPostId))
-                                                }
-                                            ) {
-                                                Column(
-                                                    modifier = Modifier.padding(12.dp)
-                                                ) {
-                                                    Text(
-                                                        text = title,
-                                                        style = MaterialTheme.typography.titleSmall,
-                                                        color = MaterialTheme.colorScheme.onSurface
-                                                    )
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        text = relatedPost.text ?: "",
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(16.dp))
-                            }
+
+                            val filteredRelated = relatedPosts.filter { it.relatedPostId !in linkedPostIds }
+
+                            RelatedPostsList(relatedPosts = filteredRelated, posts = posts, navController = navController)
                             
                             val locale = java.util.Locale("cs", "CZ")
                             // Parse server timestamps as UTC and display them in device's local timezone
@@ -839,92 +596,32 @@ fun PostDetailScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    // AI vstupní řádek
                     val postTitle = postDetail?.title ?: ""
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = aiInputText,
-                            onValueChange = { aiInputText = it; if (!aiInputExpanded) aiInputExpanded = true },
-                            modifier = Modifier.weight(1f),
-                            placeholder = {
-                                Text(
-                                    "Nějaká otázka k článku...",
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            },
-                            trailingIcon = {
-                                if (aiInputText.isNotBlank()) {
-                                    IconButton(onClick = { aiInputText = ""; aiInputExpanded = false }) {
-                                        Icon(Icons.Default.Clear, contentDescription = "Smazat")
-                                    }
-                                }
-                            },
-                            singleLine = !aiInputExpanded,
-                            maxLines = if (aiInputExpanded) 4 else 1,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(
-                                onSend = {
-                                    if (aiInputText.isNotBlank()) {
-                                        if (hasAiConsent(context)) {
-                                            navController.navigate(
-                                                AiChatRoute(
-                                                    postId = postId,
-                                                    postTitle = android.net.Uri.encode(postTitle),
-                                                    firstUserMessage = android.net.Uri.encode(aiInputText)
-                                                )
-                                            )
-                                            aiInputText = ""
-                                            aiInputExpanded = false
-                                        } else {
-                                            showAiConsentDialog = true
-                                        }
-                                    }
-                                }
-                            ),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        SmallFloatingActionButton(
-                            onClick = {
-                                if (aiInputText.isNotBlank()) {
-                                    if (hasAiConsent(context)) {
-                                        navController.navigate(
-                                            AiChatRoute(
-                                                postId = postId,
-                                                postTitle = android.net.Uri.encode(postTitle),
-                                                firstUserMessage = android.net.Uri.encode(aiInputText)
-                                            )
+                    AiInputBar(
+                        aiInputText = aiInputText,
+                        onTextChange = { aiInputText = it },
+                        aiInputExpanded = aiInputExpanded,
+                        onExpandedChange = { aiInputExpanded = it },
+                        postTitle = postTitle,
+                        enabled = aiInputText.isNotBlank(),
+                        onSend = {
+                            if (aiInputText.isNotBlank()) {
+                                if (hasAiConsent(context)) {
+                                    navController.navigate(
+                                        AiChatRoute(
+                                            postId = postId,
+                                            postTitle = android.net.Uri.encode(postTitle),
+                                            firstUserMessage = android.net.Uri.encode(aiInputText)
                                         )
-                                        aiInputText = ""
-                                        aiInputExpanded = false
-                                    } else {
-                                        showAiConsentDialog = true
-                                    }
+                                    )
+                                    aiInputText = ""
+                                    aiInputExpanded = false
+                                } else {
+                                    showAiConsentDialog = true
                                 }
-                            },
-                            containerColor = if (aiInputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (aiInputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Odeslat"
-                            )
+                            }
                         }
-                    }
+                    )
                 }
             }
         }
@@ -1000,72 +697,10 @@ fun PostDetailScreen(
         
         // Dialog pro zobrazení dodatku
         if (showAddendumDialog && selectedAddendum != null) {
-            val addendum = selectedAddendum
-            AlertDialog(
-                onDismissRequest = { 
-                    showAddendumDialog = false
-                    selectedAddendum = null
-                },
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = (addendum?.name ?: "Dodatek").ifBlank { "Dodatek" },
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                },
-                text = {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        SafeMarkdown(
-                            content = addendum?.content ?: "",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        
-                        addendum?.updatedAt?.let { updatedAt ->
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Divider()
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            val locale = java.util.Locale("cs", "CZ")
-                            val inputFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
-                                timeZone = TimeZone.getTimeZone("UTC")
-                            }
-                            val outputFormatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
-                                timeZone = TimeZone.getDefault()
-                            }
-                            val updatedFormatted = try {
-                                val date = inputFormatter.parse(updatedAt)
-                                date?.let { outputFormatter.format(it) } ?: updatedAt
-                            } catch (e: Exception) {
-                                updatedAt
-                            }
-                            
-                            Text(
-                                text = "Aktualizováno: $updatedFormatted",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { 
-                        showAddendumDialog = false
-                        selectedAddendum = null
-                    }) {
-                        Text("Zavřít")
-                    }
-                }
-            )
+            AddendumDialog(addendum = selectedAddendum) {
+                showAddendumDialog = false
+                selectedAddendum = null
+            }
         }
     }
 }
