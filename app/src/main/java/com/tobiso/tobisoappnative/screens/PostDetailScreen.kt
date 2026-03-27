@@ -86,6 +86,7 @@ import kotlin.getOrElse
 import coil.compose.AsyncImage
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.zIndex
 import com.tobiso.tobisoappnative.components.InlineFraction
 import com.halilibo.richtext.commonmark.CommonmarkAstNodeParser
 import com.halilibo.richtext.markdown.AstBlockNodeComposer
@@ -1156,27 +1157,6 @@ fun PostDetailScreen(
             }
         }
             // Long-press now only shows floating button; plain-text navigation is handled by the FAB.
-            // Floating select button (levitující) — zobrazuje se po podržení
-            androidx.compose.animation.AnimatedVisibility(
-                visible = showFloatingSelectButton,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = androidx.compose.ui.Alignment.BottomEnd
-                ) {
-                    FloatingActionButton(onClick = {
-                        showFloatingSelectButton = false
-                        // Proper navigation to the plain-text selectable screen
-                        navController.navigate(PlainTextRoute(postId = postId))
-                    }) {
-                        Icon(Icons.Default.TextFields, contentDescription = "Vybrat text")
-                    }
-                }
-            }
 
             // Auto-hide floating button after a short period
             LaunchedEffect(showFloatingSelectButton) {
@@ -1191,8 +1171,10 @@ fun PostDetailScreen(
         val showActionsBar = loaded && isConnected
         if (showActionsBar) {
             Surface(
-                tonalElevation = 6.dp,
-                shadowElevation = 6.dp,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+                shadowElevation = 0.dp,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                 modifier = Modifier
                     .align(androidx.compose.ui.Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -1214,7 +1196,7 @@ fun PostDetailScreen(
                             modifier = Modifier.weight(1f),
                             placeholder = {
                                 Text(
-                                    "Zeptej se...",
+                                    "Nějaká otázka k článku...",
                                 )
                             },
                             leadingIcon = {
@@ -1225,11 +1207,13 @@ fun PostDetailScreen(
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
-                            trailingIcon = if (aiInputText.isNotBlank()) {{
-                                IconButton(onClick = { aiInputText = ""; aiInputExpanded = false }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Smazat")
+                            trailingIcon = {
+                                if (aiInputText.isNotBlank()) {
+                                    IconButton(onClick = { aiInputText = ""; aiInputExpanded = false }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Smazat")
+                                    }
                                 }
-                            }} else null,
+                            },
                             singleLine = !aiInputExpanded,
                             maxLines = if (aiInputExpanded) 4 else 1,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -1259,7 +1243,7 @@ fun PostDetailScreen(
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
+                        SmallFloatingActionButton(
                             onClick = {
                                 if (aiInputText.isNotBlank()) {
                                     if (hasAiConsent(context)) {
@@ -1277,18 +1261,37 @@ fun PostDetailScreen(
                                     }
                                 }
                             },
-                            enabled = aiInputText.isNotBlank()
+                            containerColor = if (aiInputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (aiInputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Odeslat",
-                                tint = if (aiInputText.isNotBlank())
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                contentDescription = "Odeslat"
                             )
                         }
                     }
+                }
+            }
+        }
+
+        // Floating select button (levitující) — zobrazuje se po podržení
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showFloatingSelectButton,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(end = 16.dp, bottom = if (loaded && isConnected) 88.dp else 16.dp)
+                    .zIndex(1f),
+                contentAlignment = androidx.compose.ui.Alignment.BottomEnd
+            ) {
+                FloatingActionButton(onClick = {
+                    showFloatingSelectButton = false
+                    navController.navigate(PlainTextRoute(postId = postId))
+                }) {
+                    Icon(Icons.Default.TextFields, contentDescription = "Vybrat text")
                 }
             }
         }

@@ -1,6 +1,7 @@
 package com.tobiso.tobisoappnative.components
 
 import androidx.compose.animation.*
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tobiso.tobisoappnative.tts.TtsManager
@@ -27,9 +29,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.animation.core.animateFloatAsState
 
 @Composable
 fun TtsPlayer(
@@ -44,22 +44,26 @@ fun TtsPlayer(
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         modifier = modifier
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
+            val cardShape = RoundedCornerShape(12.dp)
+            Card(
+                shape = cardShape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .animateContentSize(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                // Progress bar
+                // Progress bar (animated)
                 if (ttsStatus.progress > 0f) {
+                    val animatedProgress by animateFloatAsState(targetValue = ttsStatus.progress)
                     LinearProgressIndicator(
-                        progress = ttsStatus.progress,
+                        progress = animatedProgress,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 4.dp)
@@ -79,8 +83,8 @@ fun TtsPlayer(
                 }
                 
                 // Build segment list once per currentText
-                                // maximize / minimize state for the player window
-                                var isMaximized by remember { mutableStateOf(true) }
+                // maximize / minimize state for the player window
+                var isMaximized by remember { mutableStateOf(true) }
                 val allSegments = remember(ttsStatus.currentText) {
                     if (ttsStatus.currentText.isNotBlank()) TextUtils.splitTextForTts(ttsStatus.currentText) else emptyList()
                 }
@@ -100,8 +104,12 @@ fun TtsPlayer(
                     }
                 }
 
-                // Render the LazyColumn only when maximized
-                if (isMaximized) {
+                // Render the LazyColumn only when maximized (animated)
+                AnimatedVisibility(
+                    visible = isMaximized,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
@@ -132,7 +140,10 @@ fun TtsPlayer(
                                     text = annotatedText,
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier
-                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.02f))
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.02f),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
                                         .padding(vertical = 2.dp)
                                 )
                             } else {
@@ -256,14 +267,16 @@ fun TtsPlayer(
                             }
                         }
 
-                        // Toggle maximize/minimize
+                        // Toggle maximize/minimize with rotation animation
+                        val rotation by animateFloatAsState(targetValue = if (isMaximized) 0f else 180f)
                         IconButton(
                             onClick = { isMaximized = !isMaximized }
                         ) {
                             Icon(
-                                if (isMaximized) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                Icons.Default.ExpandLess,
                                 contentDescription = if (isMaximized) "Minimalizovat" else "Maximalizovat",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.rotate(rotation)
                             )
                         }
 
@@ -304,9 +317,15 @@ fun TtsSpeedControl(
             Text("${String.format("%.1f", speed)}x")
         }
         
-        AnimatedVisibility(visible = showSpeedControl) {
+        AnimatedVisibility(visible = showSpeedControl,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
             Card(
-                modifier = Modifier.padding(top = 4.dp)
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.padding(top = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)

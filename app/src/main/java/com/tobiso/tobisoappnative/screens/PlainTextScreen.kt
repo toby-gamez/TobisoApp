@@ -38,6 +38,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.ui.Alignment
 import com.tobiso.tobisoappnative.components.TtsPlayer
+import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
 import androidx.compose.material.icons.filled.VolumeUp
 import com.tobiso.tobisoappnative.utils.TextUtils
 
@@ -48,10 +49,12 @@ fun PlainTextScreen(
     navController: NavController
 ) {
     val vm: PlainTextViewModel = hiltViewModel()
+    // Use the shared activity-scoped TtsViewModel so playback persists across navigation
+    val ttsViewModel: TtsViewModel = hiltViewModel()
     val postDetail by vm.postDetail.collectAsState()
     val postDetailError by vm.postDetailError.collectAsState()
     val isOffline by vm.isOffline.collectAsState()
-    val ttsManager = vm.getTtsManager()
+    val ttsManager = ttsViewModel.ttsManager
 
     var isLoading by remember { mutableStateOf(false) }
     LaunchedEffect(postId) {
@@ -178,11 +181,11 @@ fun PlainTextScreen(
                 scrollBehavior = scrollBehavior,
                 actions = {
                     // TTS button
-                    if (ttsManager != null && postDetail?.content != null) {
+                    if (postDetail?.content != null) {
                         IconButton(onClick = {
                             val plainText = TextUtils.extractPlainTextForTts(postDetail?.content ?: "")
                             if (plainText.isNotEmpty()) {
-                                vm.speakText(plainText)
+                                ttsViewModel.speak(plainText)
                             }
                         }) {
                             Icon(
@@ -320,9 +323,19 @@ fun PlainTextScreen(
                 }
             }
             
-            // Persistent TTS player is provided globally in MainActivity.MyApp().
-            // Do not render a local TtsPlayer here to avoid duplication and ensure
-            // playback continues across navigation.
+            // Show local TTS player for this screen (uses ViewModel's TtsManager).
+            // This uses the PlainTextViewModel's TtsManager instance so playback
+            // controls are available when viewing plain text.
+            // Use shared TTS manager so playback continues when leaving this screen
+            if (ttsViewModel.ttsManager != null) {
+                TtsPlayer(
+                    ttsManager = ttsViewModel.ttsManager,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(start = 8.dp, end = 8.dp, bottom = 12.dp)
+                )
+            }
         }
     }
 }

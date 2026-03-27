@@ -161,7 +161,12 @@ fun AiChatScreen(
         }
 
         // Input řádek
-        Surface(tonalElevation = 3.dp) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 3.dp,
+            shadowElevation = 0.dp,
+            shape = RoundedCornerShape(28.dp)
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,7 +177,7 @@ fun AiChatScreen(
                     value = inputText,
                     onValueChange = { inputText = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Zeptej se...") },
+                    placeholder = { Text("Nějaké doplňující otázky...") },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Filled.AutoAwesome,
@@ -192,25 +197,28 @@ fun AiChatScreen(
                             }
                         }
                     ),
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
+                SmallFloatingActionButton(
                     onClick = {
                         if (inputText.isNotBlank()) {
                             vm.onIntent(AiChatIntent.SendMessage(inputText))
                             inputText = ""
                         }
                     },
-                    enabled = inputText.isNotBlank() && !isLoading && !limitReached
+                    containerColor = if (inputText.isNotBlank() && !isLoading && !limitReached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (inputText.isNotBlank() && !isLoading && !limitReached) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Odeslat",
-                        tint = if (inputText.isNotBlank() && !isLoading && !limitReached)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        contentDescription = "Odeslat"
                     )
                 }
             }

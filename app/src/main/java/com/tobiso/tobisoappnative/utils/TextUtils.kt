@@ -1,6 +1,7 @@
 package com.tobiso.tobisoappnative.utils
 
 object TextUtils {
+    private val addendumRegex = Regex("\\(--DOD-(\\d+)--\\)")
     /**
      * Předzpracuje Markdown pro zobrazení:
      * - "->" na šipku "→"
@@ -14,7 +15,10 @@ object TextUtils {
         if (markdownContent.isBlank()) return markdownContent
 
         fun transformTextSegment(segment: String): String {
-            return segment.replace("->", "→")
+            return segment
+                .replace("->", "→")
+                // remove addendum markers like (--DOD-123--)
+                .replace(addendumRegex, "")
         }
 
         fun transformInlineCode(line: String): String {
@@ -91,6 +95,7 @@ object TextUtils {
             // Odstranění horizontálních čar
             .replace(Regex("^-{3,}$", RegexOption.MULTILINE), "")
             // Normalizace řádkových zlomů
+            .replace(addendumRegex, "")
             .replace(Regex("\\n\\s*\\n"), "\n\n")
             // Normalizace mezer
             .replace(Regex("\\s+"), " ")
@@ -171,6 +176,9 @@ object TextUtils {
 
         // Remove markdown images ![alt](url)
         s = s.replace(Regex("!\\[[^\\]]*\\]\\([^\\)]*\\)"), "")
+
+        // Remove addendum markers like (--DOD-123--)
+        s = s.replace(addendumRegex, "")
 
         // Remove heading lines completely
         s = s.replace(Regex("(?m)^[\\t ]*#{1,6}.*$"), "")

@@ -164,13 +164,27 @@ class TtsManager(private val context: Context) {
                                         val newShiftCount = totalWordsSpoken / 3
                                         if (newShiftCount > visibleShiftCount) {
                                             visibleShiftCount = newShiftCount.coerceAtMost(maxOf(0, currentTextSegments.size - 1))
-                                            val newVisible = currentTextSegments.drop(visibleShiftCount).take(3)
-                                            _status.value = _status.value.copy(
-                                                visibleSegments = newVisible,
-                                                currentSegmentText = newVisible.firstOrNull() ?: _status.value.currentSegmentText,
-                                                segmentWords = if (newVisible.isNotEmpty()) newVisible[0].split("\\s+".toRegex()).filter { it.isNotBlank() } else emptyList(),
-                                                currentWordIndex = currentWordIndex
-                                            )
+                                                    val newVisible = currentTextSegments.drop(visibleShiftCount).take(3)
+                                                    // Ensure currentSegmentText/segmentWords reflect the actual
+                                                    // current segment (currentSegmentIndex) rather than the
+                                                    // first element of the visible window which may differ.
+                                                    val currentSegText = if (currentSegmentIndex in currentTextSegments.indices) {
+                                                        currentTextSegments[currentSegmentIndex]
+                                                    } else {
+                                                        newVisible.firstOrNull() ?: _status.value.currentSegmentText
+                                                    }
+                                                    val currentSegWords = if (currentSegmentIndex in currentTextSegments.indices) {
+                                                        currentTextSegments[currentSegmentIndex].split("\\s+".toRegex()).filter { it.isNotBlank() }
+                                                    } else {
+                                                        if (newVisible.isNotEmpty()) newVisible[0].split("\\s+".toRegex()).filter { it.isNotBlank() } else emptyList()
+                                                    }
+
+                                                    _status.value = _status.value.copy(
+                                                        visibleSegments = newVisible,
+                                                        currentSegmentText = currentSegText,
+                                                        segmentWords = currentSegWords,
+                                                        currentWordIndex = currentWordIndex
+                                                    )
                                         }
                                     }
                                 }
@@ -200,13 +214,17 @@ class TtsManager(private val context: Context) {
         // Zastavíme případné předchozí přehrávání
         stop()
         
+        // Sanitize input (remove addendum markers and other markdown) so TTS
+        // always receives clean plain text regardless of caller.
+        val cleanedText = TextUtils.extractPlainTextForTts(text)
+
         // Rozdělíme text na menší segmenty pro lepší kontrolu pokroku
-        currentTextSegments = TextUtils.splitTextForTts(text)
+        currentTextSegments = TextUtils.splitTextForTts(cleanedText)
         currentSegmentIndex = 0
         currentUtteranceId = "utterance_${System.currentTimeMillis()}"
-        
+
         _status.value = _status.value.copy(
-            currentText = text,
+            currentText = cleanedText,
             progress = 0f,
             currentSegment = 1,
             totalSegments = currentTextSegments.size,
