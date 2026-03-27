@@ -79,6 +79,7 @@ fun ChangelogScreen(navController: NavController) {
             "znovupřidáno čtení článků",
             "velké optimalizace",
             "vylepšeno vyhledávání",
+            "přidána podpora pro karty se zdroji a autory obrázků",
         )),
         VersionInfo("2.7", listOf(
             "přidána podpora pro obrázky z nového serveru",
