@@ -43,17 +43,45 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
     val configuration = LocalConfiguration.current
     var isFullscreen by remember { mutableStateOf(false) }
     var originalOrientation by remember { mutableStateOf<Int?>(null) }
-    
+
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val decodedVideoUrl = Uri.decode(videoUrl)
-    
-    // Ujisti se, že URL je HTTPS pro bezpečnost
+
+    // Převod na HTTPS a logování
     val secureVideoUrl = when {
-        decodedVideoUrl.startsWith("http://") -> decodedVideoUrl.replace("http://", "https://")
-        decodedVideoUrl.startsWith("https://") -> decodedVideoUrl
-        decodedVideoUrl.startsWith("//") -> "https:$decodedVideoUrl"
+        decodedVideoUrl.startsWith("https://www.tobiso.com") -> decodedVideoUrl
+        decodedVideoUrl.startsWith("http://www.tobiso.com") -> decodedVideoUrl.replaceFirst("http://", "https://")
+        decodedVideoUrl.startsWith("https://tobiso.com") -> decodedVideoUrl.replaceFirst("https://tobiso.com", "https://www.tobiso.com")
+        decodedVideoUrl.startsWith("http://tobiso.com") -> decodedVideoUrl.replaceFirst("http://tobiso.com", "https://www.tobiso.com")
+        decodedVideoUrl.startsWith("//") -> "https://www.tobiso.com" + decodedVideoUrl.removePrefix("//tobiso.com").removePrefix("//www.tobiso.com")
         decodedVideoUrl.startsWith("/") -> "https://www.tobiso.com$decodedVideoUrl"
         else -> "https://www.tobiso.com/$decodedVideoUrl"
+    }
+    LaunchedEffect(videoUrl) {
+        Log.d("VideoPlayer", "Původní videoUrl: $videoUrl")
+        Log.d("VideoPlayer", "Decoded videoUrl: $decodedVideoUrl")
+        Log.d("VideoPlayer", "Výsledné secureVideoUrl: $secureVideoUrl")
+    }
+
+    // Pokud secureVideoUrl není HTTPS, zobraz chybu a nezkoušej přehrát
+    if (!secureVideoUrl.startsWith("https://")) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Přehrávač videa") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("URL videa není bezpečné (musí být HTTPS)", color = MaterialTheme.colorScheme.error)
+            }
+        }
+        return
     }
     
     if (videoUrl.isBlank()) {
@@ -128,6 +156,9 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
     var playerErrors by remember { mutableStateOf<List<String>>(emptyList()) }
     val exoPlayer = remember {
         Log.d("VideoPlayer", "Přehrávám video z URL: $secureVideoUrl")
+        if (!secureVideoUrl.startsWith("https://")) {
+            Log.e("VideoPlayer", "Chyba: secureVideoUrl není HTTPS: $secureVideoUrl")
+        }
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
             .setUserAgent("TobisoApp-Android/2.0.1")
@@ -140,7 +171,9 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                 "User-Agent" to "TobisoApp-Android/2.0.1"
             ))
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+        Log.d("VideoPlayer", "Vytvářím MediaItem z: $secureVideoUrl")
         val mediaItem = MediaItem.fromUri(secureVideoUrl.toUri())
+        Log.d("VideoPlayer", "MediaItem URI: ${mediaItem.localConfiguration?.uri}")
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(
                 androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory)
@@ -195,7 +228,6 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                 },
                 modifier = Modifier.fillMaxSize()
             )
-            
             // Tlačítko pro výstup z fullscreen v rohu
             IconButton(
                 onClick = { toggleFullscreen() },
@@ -224,7 +256,6 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                     actions = {
                         // Zobrazení aktivního multiplikátoru
                         MultiplierIndicator()
-                        
                         IconButton(onClick = { toggleFullscreen() }) {
                             Icon(Icons.Default.Fullscreen, contentDescription = "Fullscreen")
                         }
@@ -257,7 +288,6 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                             }
                         )
                 )
-                
                 if (playerErrors.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     playerErrors.forEach { err ->
