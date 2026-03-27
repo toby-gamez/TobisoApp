@@ -2,6 +2,7 @@ package com.tobiso.tobisoappnative.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import timber.log.Timber
 import coil.compose.AsyncImage
@@ -32,6 +33,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.painter.ColorPainter
 import kotlin.math.max
 import com.tobiso.tobisoappnative.utils.TextUtils
 import androidx.compose.material3.Text
@@ -195,8 +198,12 @@ fun SafeMarkdown(content: String?, modifier: Modifier = Modifier) {
                                 contentDescription = img.title.ifBlank { "image" },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(min = 120.dp, max = 400.dp)
                                     .padding(vertical = 6.dp)
-                                    .background(Color.White)
+                                    .background(Color.White),
+                                placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                                error = ColorPainter(MaterialTheme.colorScheme.onErrorContainer),
+                                contentScale = ContentScale.Crop
                             )
                             return
                         }

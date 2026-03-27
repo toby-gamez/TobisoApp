@@ -35,6 +35,10 @@ import java.io.FileOutputStream
 import java.lang.Exception
 import kotlinx.coroutines.withContext
 import android.provider.MediaStore
+import com.tobiso.tobisoappnative.components.ContentElement
+import com.tobiso.tobisoappnative.components.parseContentToElements
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @HiltViewModel
 class PostDetailViewModel @Inject constructor(
@@ -51,6 +55,19 @@ class PostDetailViewModel @Inject constructor(
 
     private val _postDetail = MutableStateFlow<Post?>(null)
     val postDetail: StateFlow<Post?> = _postDetail
+
+    // Parsed content and derived UI strings (moved heavy work to ViewModel)
+    private val _parsedContent = MutableStateFlow<List<ContentElement>>(emptyList())
+    val parsedContent: StateFlow<List<ContentElement>> = _parsedContent
+
+    private val _wordCountText = MutableStateFlow<String?>(null)
+    val wordCountText: StateFlow<String?> = _wordCountText
+
+    private val _createdFormatted = MutableStateFlow<String>("")
+    val createdFormatted: StateFlow<String> = _createdFormatted
+
+    private val _updatedFormatted = MutableStateFlow<String>("")
+    val updatedFormatted: StateFlow<String> = _updatedFormatted
 
     private val _postDetailError = MutableStateFlow<String?>(null)
     val postDetailError: StateFlow<String?> = _postDetailError
@@ -109,6 +126,8 @@ class PostDetailViewModel @Inject constructor(
                     _postDetail.value = post
                     _postDetailError.value = null
                     _isOffline.value = false
+                    // Compute derived values for UI off the main thread
+                    computeDerivedForPost(post)
                 },
                 onFailure = { e ->
                     _postDetailError.value = e.message
@@ -121,6 +140,42 @@ class PostDetailViewModel @Inject constructor(
     fun loadPosts() {
         viewModelScope.launch(Dispatchers.IO) {
             postsRepo.getPostsByCategory(null).onSuccess { _posts.value = it }
+        }
+    }
+
+    private fun computeDerivedForPost(post: Post?) {
+        viewModelScope.launch(Dispatchers.Default) {
+            val content = post?.content ?: ""
+            val parsed = try {
+                parseContentToElements(content, _isOffline.value, _posts.value)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            _parsedContent.value = parsed
+
+            _wordCountText.value = if (content.isBlank()) null else try {
+                val trimmed = content.trim()
+                val words = trimmed.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
+                val minutes = Math.ceil(words / 200.0).toInt().coerceAtLeast(1)
+                "$words slov | ~${minutes} min čtení"
+            } catch (e: Exception) { null }
+
+            // Format dates
+            try {
+                val locale = Locale("cs", "CZ")
+                val inputFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                val outputFormatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply { timeZone = java.util.TimeZone.getDefault() }
+                _createdFormatted.value = post?.createdAt?.let { ds ->
+                    try { inputFormatter.parse(ds)?.let { outputFormatter.format(it) } ?: ds } catch (_: Exception) { ds }
+                } ?: ""
+
+                val candidates = listOfNotNull(post?.lastEdit, post?.lastFix, post?.createdAt)
+                val latest = candidates.mapNotNull { ds -> try { inputFormatter.parse(ds) } catch (_: Exception) { null } }.maxOrNull()
+                _updatedFormatted.value = latest?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
+            } catch (e: Exception) {
+                _createdFormatted.value = post?.createdAt ?: ""
+                _updatedFormatted.value = post?.lastEdit ?: post?.lastFix ?: post?.createdAt ?: ""
+            }
         }
     }
 

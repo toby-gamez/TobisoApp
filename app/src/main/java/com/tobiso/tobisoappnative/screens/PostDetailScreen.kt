@@ -37,6 +37,8 @@ import androidx.compose.runtime.Composable
 import com.halilibo.richtext.ui.material3.RichText
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.remember
 import java.text.SimpleDateFormat
 import java.util.TimeZone
@@ -52,6 +54,8 @@ import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.Addendum
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -333,30 +337,8 @@ fun PostDetailScreen(
                     }
                 )
 
-                // Download progress indicator (appears while a PDF is being downloaded)
-                if (downloadProgress != null) {
-                    if (downloadProgress!! >= 0) {
-                        LinearProgressIndicator(
-                            progress = (downloadProgress!! / 100f),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Text(
-                            text = "Stahování: ${downloadProgress}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            textAlign = TextAlign.End
-                        )
-                    } else {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        Text(
-                            text = "Stahování…",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(8.dp)
-                        )
-                    }
-                }
+                // Download progress (isolated small composable to limit recompositions)
+                DownloadProgressBar(vm)
 
                 when {
                     postDetailError != null -> {
@@ -407,163 +389,118 @@ fun PostDetailScreen(
                                 }
                             }
                         } else {
-                            Column(
+                            val contentElements by vm.parsedContent.collectAsState()
+                            val wordCountText by vm.wordCountText.collectAsState()
+                            val createdFormatted by vm.createdFormatted.collectAsState()
+                            val updatedFormatted by vm.updatedFormatted.collectAsState()
+
+                            // Use LazyColumn for the article body to avoid composing everything at once
+                            LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(16.dp)
-                                    .verticalScroll(rememberScrollState())
                             ) {
-                                // Zobrazení počtu slov a času čtení
-                                postDetail?.content?.let { contentText ->
-                                val wordCountResult = remember(contentText) {
-                                    runCatching {
-                                        val trimmed = contentText.trim()
-                                        if (trimmed.isNotEmpty()) {
-                                            val words = trimmed.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
-                                            val minutes = Math.ceil(words / 200.0).toInt().coerceAtLeast(1)
-                                            "$words slov | ~${minutes} min čtení"
-                                        } else null
-                                    }.getOrNull()
-                                }
-                                
-                                wordCountResult?.let { infoText ->
-                                    Text(
-                                        text = infoText,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp),
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        textAlign = TextAlign.End
-                                    )
-                                }
-                            }
-                            postDetail?.content?.let { content ->
-                                val contentElements = remember(content, isOffline, posts) {
-                                    Timber.d("Parsování článku ID: $postId, délka: ${content.length}")
-                                    parseContentToElements(content, isOffline, posts)
+                                item {
+                                    Spacer(modifier = Modifier.height(4.dp))
                                 }
 
-                                Box(modifier = Modifier
-                                    .fillMaxWidth()
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onLongPress = {
-                                                showFloatingSelectButton = true
-                                            }
+                                item {
+                                    wordCountText?.let { infoText ->
+                                        Text(
+                                            text = infoText,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 8.dp),
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            textAlign = TextAlign.End
                                         )
                                     }
-                                ) {
-                                    ContentRenderer(
-                                        contentElements = contentElements,
-                                        isOffline = isOffline,
-                                        posts = posts,
-                                        addendums = addendums,
-                                        navController = navController,
-                                        onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true }
+
+                                    Box(modifier = Modifier
+                                        .fillMaxWidth()
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(onLongPress = { showFloatingSelectButton = true })
+                                        }
+                                    ) {
+                                        ContentRenderer(
+                                            contentElements = contentElements,
+                                            isOffline = isOffline,
+                                            posts = posts,
+                                            addendums = addendums,
+                                            navController = navController,
+                                            onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true }
+                                        )
+                                    }
+                                }
+
+                                item {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    if (loaded) Spacer(modifier = Modifier.height(20.dp))
+                                }
+
+                                item {
+                                    ExerciseButtonsRow(
+                                        hasExercises = hasExercises,
+                                        exercisesLoading = exercisesLoading,
+                                        exercises = exercises,
+                                        hasQuestions = hasQuestions || questions.isNotEmpty(),
+                                        onLoadExercises = {
+                                            coroutineScope.launch {
+                                                try {
+                                                    val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
+                                                        ?: postDetail?.categoryId
+                                                    vm.loadExercisesByPostId(postId, postCategoryId)
+                                                    android.widget.Toast.makeText(context, "Načítám cvičení…", android.widget.Toast.LENGTH_SHORT).show()
+                                                } catch (e: Exception) {
+                                                    Timber.e(e, "Error loading exercises")
+                                                    android.widget.Toast.makeText(context, "Chyba při načítání cvičení", android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        },
+                                        onOpenExercise = { id, type ->
+                                            coroutineScope.launch {
+                                                try {
+                                                    when (type) {
+                                                        "timeline" -> navController.navigate(ExerciseTimelineRoute(exerciseId = id))
+                                                        "drag-drop" -> navController.navigate(ExerciseDragDropRoute(exerciseId = id))
+                                                        "matching" -> navController.navigate(ExerciseMatchingRoute(exerciseId = id))
+                                                        "circuit" -> navController.navigate(ExerciseCircuitRoute(exerciseId = id))
+                                                        else -> android.widget.Toast.makeText(context, "Nepodporovaný typ cvičení: $type", android.widget.Toast.LENGTH_SHORT).show()
+                                                    }
+                                                } catch (e: Exception) {
+                                                    Timber.e(e, "Error opening exercise")
+                                                    android.widget.Toast.makeText(context, "Chyba při otevírání cvičení", android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        },
+                                        onOpenQuestions = { navController.navigate(QuestionsRoute(postId = postId)) }
                                     )
                                 }
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
 
-                            // Placeholder spacer to prevent content being hidden behind sticky bar (AI input bar only)
-                            if (loaded) {
-                                Spacer(modifier = Modifier.height(20.dp))
-                            }
-
-                            // Tlačítka Prověrka a Cvičení — inline v obsahu (pod body, nad souvisejícími články)
-                            ExerciseButtonsRow(
-                                hasExercises = hasExercises,
-                                exercisesLoading = exercisesLoading,
-                                exercises = exercises,
-                                hasQuestions = hasQuestions || questions.isNotEmpty(),
-                                onLoadExercises = {
-                                    coroutineScope.launch {
-                                        try {
-                                            val postCategoryId = posts.firstOrNull { it.id == postId }?.categoryId
-                                                ?: postDetail?.categoryId
-                                            vm.loadExercisesByPostId(postId, postCategoryId)
-                                            android.widget.Toast.makeText(context, "Načítám cvičení…", android.widget.Toast.LENGTH_SHORT).show()
-                                        } catch (e: Exception) {
-                                            Timber.e(e, "Error loading exercises")
-                                            android.widget.Toast.makeText(context, "Chyba při načítání cvičení", android.widget.Toast.LENGTH_SHORT).show()
-                                        }
+                                item {
+                                    val linkedPostIds = remember(contentElements) {
+                                        contentElements.mapNotNull { (it as? ContentElement.ClickableLink)?.postId }.toSet()
                                     }
-                                },
-                                onOpenExercise = { id, type ->
-                                    coroutineScope.launch {
-                                        try {
-                                            when (type) {
-                                                "timeline" -> navController.navigate(ExerciseTimelineRoute(exerciseId = id))
-                                                "drag-drop" -> navController.navigate(ExerciseDragDropRoute(exerciseId = id))
-                                                "matching" -> navController.navigate(ExerciseMatchingRoute(exerciseId = id))
-                                                "circuit" -> navController.navigate(ExerciseCircuitRoute(exerciseId = id))
-                                                else -> android.widget.Toast.makeText(context, "Nepodporovaný typ cvičení: $type", android.widget.Toast.LENGTH_SHORT).show()
-                                            }
-                                        } catch (e: Exception) {
-                                            Timber.e(e, "Error opening exercise")
-                                            android.widget.Toast.makeText(context, "Chyba při otevírání cvičení", android.widget.Toast.LENGTH_SHORT).show()
-                                        }
+                                    val filteredRelated = relatedPosts.filter { it.relatedPostId !in linkedPostIds }
+                                    RelatedPostsList(relatedPosts = filteredRelated, posts = posts, navController = navController)
+                                }
+
+                                item {
+                                    Text(
+                                        text = "Vytvořeno: $createdFormatted",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = TextAlign.Start
+                                    )
+                                    if (updatedFormatted.isNotBlank()) {
+                                        Text(
+                                            text = "Upraveno: $updatedFormatted",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            textAlign = TextAlign.Start
+                                        )
                                     }
-                                },
-                                onOpenQuestions = { navController.navigate(QuestionsRoute(postId = postId)) }
-                            )
-
-                            // Odstraníme duplicitní související články (pokud jsou již uvedeny v obsahu) a vykreslíme seznam
-                            val linkedPostIds = remember(content) {
-                                parseContentToElements(content, isOffline, posts)
-                                    .mapNotNull { (it as? ContentElement.ClickableLink)?.postId }
-                                    .toSet()
-                            }
-
-                            val filteredRelated = relatedPosts.filter { it.relatedPostId !in linkedPostIds }
-
-                            RelatedPostsList(relatedPosts = filteredRelated, posts = posts, navController = navController)
-                            
-                            val locale = java.util.Locale("cs", "CZ")
-                            // Parse server timestamps as UTC and display them in device's local timezone
-                            val inputFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
-                                timeZone = TimeZone.getTimeZone("UTC")
-                            }
-                            val outputFormatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
-                                timeZone = TimeZone.getDefault()
-                            }
-                            val createdFormatted = postDetail?.createdAt?.let { dateString ->
-                                try {
-                                    val date = inputFormatter.parse(dateString)
-                                    date?.let { outputFormatter.format(it) } ?: ""
-                                } catch (e: Exception) {
-                                    dateString // fallback to raw string
                                 }
-                            } ?: ""
-
-                            // Compute updatedFormatted as the most recent among lastEdit, lastFix (fallback to createdAt)
-                            val candidates = listOfNotNull(postDetail?.lastEdit, postDetail?.lastFix, postDetail?.createdAt)
-                            val latest = candidates.mapNotNull { ds ->
-                                try {
-                                    inputFormatter.parse(ds)
-                                } catch (e: Exception) {
-                                    null
-                                }
-                            }.maxOrNull()
-
-                            val updatedFormatted = latest?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
-                            Text(
-                                text = "Vytvořeno: $createdFormatted",
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Start
-                            )
-                            if (updatedFormatted.isNotBlank()) {
-                                Text(
-                                    text = "Upraveno: $updatedFormatted",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    textAlign = TextAlign.Start
-                                )
                             }
-                            postDetail?.filePath.takeIf { !it.isNullOrBlank() }?.let {
-                                Spacer(modifier = Modifier.height(16.dp))
-                            }
-                        }
                     }
                 }
             }
@@ -701,6 +638,34 @@ fun PostDetailScreen(
                 showAddendumDialog = false
                 selectedAddendum = null
             }
+        }
+    }
+}
+
+@Composable
+private fun DownloadProgressBar(vm: PostDetailViewModel, modifier: Modifier = Modifier) {
+    val downloadProgress by vm.downloadProgress.collectAsState()
+    if (downloadProgress != null) {
+        if (downloadProgress!! >= 0) {
+            LinearProgressIndicator(
+                progress = (downloadProgress!! / 100f),
+                modifier = modifier.fillMaxWidth()
+            )
+            Text(
+                text = "Stahování: ${downloadProgress}%",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                textAlign = TextAlign.End
+            )
+        } else {
+            LinearProgressIndicator(modifier = modifier.fillMaxWidth())
+            Text(
+                text = "Stahování…",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(8.dp)
+            )
         }
     }
 }
