@@ -42,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -393,53 +394,18 @@ fun HomeScreen(navController: NavHostController) {
                         }
                     }
 
-                    // Pomocná funkce: najde rekurzivně všechny ID potomků pro zadané rootId
-                    fun collectDescendantIds(rootId: Int, all: List<com.tobiso.tobisoappnative.model.Category>): Set<Int> {
-                        val map = all.groupBy { it.parentId }
-                        val result = mutableSetOf<Int>()
-                        fun dfs(id: Int) {
-                            result.add(id)
-                            val children = map[id] ?: emptyList()
-                            children.forEach { dfs(it.id) }
-                        }
-                        dfs(rootId)
-                        return result
-                    }
+                    val categoryMap = remember(categories) { categories.associateBy { it.id } }
+                    val newestPosts by vm.newestPosts.collectAsState()
 
-                    // Vypočítáme kombinovaný seznam: nejprve podle lastEdit, pak zbytek podle lastFix
-                    val combined = remember(posts, categories, selectedSubjectId) {
-                        // Filtrujeme články bez kategorie nebo z kategorie "More"
-                        val baseFiltered = posts.filter { p ->
-                            p.categoryId != null && categories.find { it.id == p.categoryId }?.name != "More"
-                        }
-
-                        // Pokud je vybrán subject, zjistíme jeho ID a potomky a aplikujeme filtr
-                        val subjectFiltered = selectedSubjectId?.let { sid ->
-                            val ids = collectDescendantIds(sid, categories)
-                            baseFiltered.filter { p -> p.categoryId != null && ids.contains(p.categoryId) }
-                        } ?: baseFiltered
-
-                        val withEdit = subjectFiltered.filter { !it.lastEdit.isNullOrBlank() }
-                            .sortedByDescending { parseDateToMillis(it.lastEdit) }
-
-                        val remaining = subjectFiltered.filter { it.lastEdit.isNullOrBlank() && !it.lastFix.isNullOrBlank() }
-                            .sortedByDescending { parseDateToMillis(it.lastFix) }
-
-                        val others = subjectFiltered.filter { it.lastEdit.isNullOrBlank() && it.lastFix.isNullOrBlank() }
-
-                        val list = mutableListOf<com.tobiso.tobisoappnative.model.Post>()
-                        list.addAll(withEdit)
-                        list.addAll(remaining)
-                        list.addAll(others)
-                        // remove duplicates just in case
-                        list.distinctBy { it.id }
+                    LaunchedEffect(state.posts, state.categories, selectedSubjectId) {
+                        vm.computeNewest(selectedSubjectId)
                     }
 
                     LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-                        items(combined) { post ->
+                        items(items = newestPosts, key = { it.id }) { post ->
                             PostListItem(
                                 post = post,
-                                categoryName = categories.find { it.id == post.categoryId }?.name ?: "Nezařazeno",
+                                categoryName = categoryMap[post.categoryId]?.name ?: "Nezařazeno",
                                 onClick = { navController.navigate(PostDetailRoute(postId = post.id)) }
                             )
                             Spacer(modifier = Modifier.height(8.dp))

@@ -37,6 +37,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.remember
 import java.text.SimpleDateFormat
 import java.util.TimeZone
@@ -97,6 +98,7 @@ import kotlin.math.max
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
 import com.tobiso.tobisoappnative.components.ContentRenderer
+import com.tobiso.tobisoappnative.components.ElementRenderer
 import com.tobiso.tobisoappnative.components.PostActionsRow
 import com.tobiso.tobisoappnative.components.ExerciseButtonsRow
 import com.tobiso.tobisoappnative.components.RelatedPostsList
@@ -393,18 +395,19 @@ fun PostDetailScreen(
                                             textAlign = TextAlign.End
                                         )
                                     }
+                                }
+                                // Render each content element as its own lazy item (virtualized)
+                                itemsIndexed(contentElements, key = { index, _ -> index }) { _, element ->
                                     androidx.compose.foundation.text.selection.SelectionContainer {
-                                        Box(modifier = Modifier
-                                            .fillMaxWidth()
-                                        ) {
-                                            ContentRenderer(
-                                                contentElements = contentElements,
+                                        Box(modifier = Modifier.fillMaxWidth()) {
+                                            ElementRenderer(
+                                                element = element,
                                                 isOffline = isOffline,
                                                 posts = posts,
                                                 addendums = addendums,
                                                 navController = navController,
                                                 onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true },
-                                                showImagePaths = false,
+                                                showImagePaths = false
                                             )
                                         }
                                     }
