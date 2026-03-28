@@ -394,21 +394,23 @@ fun PostDetailScreen(
                                             textAlign = TextAlign.End
                                         )
                                     }
-                                    Box(modifier = Modifier
-                                        .fillMaxWidth()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(onLongPress = { showFloatingSelectButton = true })
+                                    androidx.compose.foundation.text.selection.SelectionContainer {
+                                        Box(modifier = Modifier
+                                            .fillMaxWidth()
+                                            .pointerInput(Unit) {
+                                                detectTapGestures(onLongPress = { showFloatingSelectButton = true })
+                                            }
+                                        ) {
+                                            ContentRenderer(
+                                                contentElements = contentElements,
+                                                isOffline = isOffline,
+                                                posts = posts,
+                                                addendums = addendums,
+                                                navController = navController,
+                                                onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true },
+                                                showImagePaths = false,
+                                            )
                                         }
-                                    ) {
-                                        ContentRenderer(
-                                            contentElements = contentElements,
-                                            isOffline = isOffline,
-                                            posts = posts,
-                                            addendums = addendums,
-                                            navController = navController,
-                                            onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true },
-                                            showImagePaths = false,
-                                        )
                                     }
                                 }
                                 item {
