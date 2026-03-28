@@ -576,9 +576,27 @@ fun ContentRenderer(
                         }
                     }
                 }
-                is ContentElement.Image -> {
+                is ContentElement.Image, is ContentElement.ImageWithMeta -> {
+                    // Normalize element access
+                    val alt: String
+                    val url: String
+                    var caption: String? = null
+                    var source: String? = null
+                    var isTobiso = false
+                    if (element is ContentElement.Image) {
+                        alt = element.alt
+                        url = element.url
+                    } else {
+                        val meta = element as ContentElement.ImageWithMeta
+                        alt = meta.alt
+                        url = meta.url
+                        caption = meta.caption
+                        source = meta.source
+                        isTobiso = meta.isTobiso
+                    }
+
                     // Debug: ukažme původní URL a jak se upravuje
-                    val originalUrl = element.url
+                    val originalUrl = url
                     val baseAppliedUrl = if (originalUrl.startsWith("http")) originalUrl else "https://files.tobiso.com/" + originalUrl.removePrefix("/")
                     val isBlockedByOffline = isOffline && baseAppliedUrl.contains("images/")
                     val finalUrlForImage = if (isBlockedByOffline) null else baseAppliedUrl
@@ -587,12 +605,59 @@ fun ContentRenderer(
                         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                             coil.compose.AsyncImage(
                                 model = finalUrlForImage,
-                                contentDescription = element.alt,
+                                contentDescription = alt,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 120.dp, max = 400.dp)
                                     .padding(vertical = 6.dp)
                             )
+
+                            // Render caption/source card when present
+                            if (!caption.isNullOrBlank() || !source.isNullOrBlank()) {
+                                androidx.compose.material3.Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        if (!caption.isNullOrBlank()) {
+                                            Text(
+                                                text = caption,
+                                                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                        if (!source.isNullOrBlank()) {
+                                            val sourceParts = parseInlineParts(source, posts)
+                                            val sourceAnnotated = buildAnnotatedStringFromParts(sourceParts)
+                                            androidx.compose.foundation.text.ClickableText(
+                                                text = sourceAnnotated,
+                                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                                                modifier = Modifier.padding(top = 6.dp),
+                                                onClick = { offset ->
+                                                    sourceAnnotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
+                                                        val url = ann.item
+                                                        val linkPart = sourceParts.filterIsInstance<InlinePart.Link>().find { it.url == url }
+                                                        if (linkPart?.postId != null) {
+                                                            navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                                        } else if (!isOffline) {
+                                                            val fullUrl = if (url.startsWith("http")) url else "https://files.tobiso.com/" + url.removePrefix("/")
+                                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(fullUrl))
+                                                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                            try {
+                                                                navController.context.startActivity(intent)
+                                                            } catch (e: Exception) {
+                                                                timber.log.Timber.e(e, "Chyba při otevírání zdrojového odkazu")
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
                             if (showImagePaths) {
                                 Text(
                                     text = "Original: $originalUrl",
@@ -613,7 +678,7 @@ fun ContentRenderer(
                         }
                     } else {
                         Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                            Text("[Obrázek: ${element.alt} - nedostupný v offline režimu]", style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                            Text("[Obrázek: $alt - nedostupný v offline režimu]", style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
                             if (showImagePaths) {
                                 Text(
                                     text = "Original: $originalUrl",

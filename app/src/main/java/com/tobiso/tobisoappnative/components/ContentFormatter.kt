@@ -3,6 +3,8 @@
 package com.tobiso.tobisoappnative.components
 
 import com.tobiso.tobisoappnative.model.Post
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 val prefixRegex = Regex("^(ml-|sl-|li-|hv-|m-|ch-|f-|pr-|z-)")
 
@@ -22,6 +24,7 @@ sealed class ContentElement {
     data class ClickableLink(val text: String, val url: String, val postId: Int?) : ContentElement()
     data class VideoPlayer(val videoUrl: String, val posterUrl: String?) : ContentElement()
     data class Image(val alt: String, val url: String) : ContentElement()
+    data class ImageWithMeta(val alt: String, val url: String, val caption: String?, val source: String?, val isTobiso: Boolean) : ContentElement()
     data class AddendumReference(val addendumId: Int) : ContentElement()
     data class InlineText(val parts: List<InlinePart>) : ContentElement() // pro případné další použití
 }
@@ -58,6 +61,66 @@ fun parseContentToElements(
         elements.add(ContentElement.Intra(intraText))
         workingText = text.substring(0, first) + text.substring(second + 3)
     }
+
+    // Preprocess paragraphs to detect image+caption+source groups
+    fun preprocessImageGroups(contentStr: String): String {
+        if (contentStr.isBlank()) return contentStr
+        val paras = Regex("\r?\n[ \t]*\r?\n+").split(contentStr).map { it.trim() }.toMutableList()
+        val imgRx = Regex("^!\\[([^\\]]*)\\]\\(([^)]+)\\)\\s*$")
+        val out = mutableListOf<String>()
+        var idx = 0
+        while (idx < paras.size) {
+            val p = paras[idx]
+            if (p.isBlank()) { idx++; continue }
+            val m = imgRx.matchEntire(p)
+            if (m == null) {
+                out.add(p)
+                idx++
+                continue
+            }
+            // found an image paragraph
+            val alt = m.groupValues[1]
+            val src = m.groupValues[2]
+            // look ahead up to 3 paragraphs for Zdroj/Autor
+            var srcIdx = -1
+            var look = 0
+            var j = idx + 1
+            while (j < paras.size && look < 3) {
+                val cand = paras[j].trim()
+                if (cand.isNotEmpty()) {
+                    if (cand.startsWith("Zdroj") || cand.startsWith("Autor")) { srcIdx = j; break }
+                }
+                j++; look++
+            }
+            if (srcIdx < 0) {
+                out.add(p)
+                idx++
+                continue
+            }
+            val captionParts = mutableListOf<String>()
+            for (k in idx + 1 until srcIdx) {
+                val part = paras[k].trim()
+                if (part.isNotEmpty()) captionParts.add(part)
+            }
+            val captionText = if (captionParts.isEmpty()) "" else captionParts.joinToString(" ")
+            val sourceText = paras[srcIdx].trim()
+            val isTob = sourceText.contains("Tobiso", ignoreCase = true)
+
+            // encode parts to be safe in marker
+            val marker = listOf(
+                URLEncoder.encode(alt, "UTF-8"),
+                URLEncoder.encode(src, "UTF-8"),
+                URLEncoder.encode(captionText, "UTF-8"),
+                URLEncoder.encode(sourceText, "UTF-8"),
+                isTob.toString()
+            ).joinToString("::")
+            out.add("IMG_META::" + marker)
+            idx = srcIdx + 1
+        }
+        return out.joinToString("\n\n")
+    }
+
+    workingText = preprocessImageGroups(workingText)
 
     // 2. Rozdělení na řádky/bloky
     val lines = workingText.split("\n")
@@ -141,7 +204,24 @@ fun parseContentToElements(
             elements.add(ContentElement.Table(header, rows))
             continue
         }
-        // Obrázek ![alt](url)
+        // Paragraph-level image metadata marker injected by preprocessImageGroups
+        if (line.startsWith("IMG_META::")) {
+            val payload = line.removePrefix("IMG_META::")
+            val parts = payload.split("::")
+            if (parts.size >= 5) {
+                val alt = URLDecoder.decode(parts[0], "UTF-8")
+                val url = URLDecoder.decode(parts[1], "UTF-8")
+                val captionRaw = URLDecoder.decode(parts[2], "UTF-8")
+                val sourceRaw = URLDecoder.decode(parts[3], "UTF-8")
+                val isTob = parts[4].toBoolean()
+                val caption = if (captionRaw.isBlank()) null else captionRaw
+                elements.add(ContentElement.ImageWithMeta(alt, url, caption, sourceRaw, isTob))
+                i++
+                continue
+            }
+        }
+
+        // Obrázek ![alt](url) (fallback single-line image)
         val imageMatch = Regex("!\\[(.*?)]\\((.*?)\\)").find(line)
         if (imageMatch != null) {
             val alt = imageMatch.groupValues[1]
