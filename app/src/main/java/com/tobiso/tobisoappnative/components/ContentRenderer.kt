@@ -11,9 +11,13 @@ import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -70,18 +74,19 @@ fun ElementRenderer(
                     .background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium)
                     .padding(12.dp)
             ) {
-                Text(text = element.text, style = MaterialTheme.typography.bodyLarge)
+                Text(text = element.text, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
             }
         }
-        is ContentElement.Heading -> {
-            val annotated = remember(element.parts) { buildAnnotatedStringFromParts(element.parts) }
+        is ContentElement.Heading -> { 
+            val linkColor = MaterialTheme.colorScheme.primary
+            val annotated = remember(element.parts, linkColor) { buildAnnotatedStringFromParts(element.parts, linkColor) }
             val style = when (element.level) {
                 1 -> MaterialTheme.typography.headlineLarge
                 2 -> MaterialTheme.typography.headlineMedium
                 3 -> MaterialTheme.typography.headlineSmall
                 else -> MaterialTheme.typography.titleMedium
             }
-            Text(text = annotated, style = style, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
+            Text(text = annotated, style = style.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
         }
         is ContentElement.Paragraph -> RenderParagraph(element, isOffline, posts, addendums, navController, onAddendumSelected)
         is ContentElement.InlineText -> RenderInlineText(element, isOffline, posts, addendums, navController, onAddendumSelected)
@@ -91,41 +96,73 @@ fun ElementRenderer(
                 element.items.forEachIndexed { idx, item ->
                     Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)) {
                         Text("${idx + 1}.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp, top = 2.dp))
-                        Text(item, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text(item, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
                     }
                 }
             }
         }
         is ContentElement.CodeBlock -> {
             Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small).padding(12.dp)) {
-                Text(text = element.code, style = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace))
+                Text(text = element.code, style = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color = MaterialTheme.colorScheme.onBackground))
             }
         }
-        is ContentElement.BlockQuote -> {
+        is ContentElement.BlockQuote -> { 
             Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small).padding(12.dp)) {
-                Text(text = element.text, style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic))
+                Text(text = element.text, style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onBackground))
             }
         }
         is ContentElement.Table -> {
-            Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
-                    element.header.forEach { cell ->
-                        Text(text = cell, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).padding(4.dp))
+            // Render table in a Card with header background, vertical separators and selectable rows
+            var selectedRow by remember { mutableStateOf(-1) }
+            Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) { 
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    val columnCount = element.header.size
+                    // hide columns whose header is exactly "-"
+                    var visibleIndices = (0 until columnCount).filter { idx ->
+                        val h = element.header.getOrNull(idx)?.trim()
+                        h != "-"
                     }
-                }
-                element.rows.forEach { row ->
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        row.forEach { cell ->
-                            Text(text = cell, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(4.dp))
+                    if (visibleIndices.isEmpty()) visibleIndices = (0 until columnCount).toList()
+
+                    // Header with vertical separators
+                    Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primaryContainer)) {
+                        for ((idxIndex, i) in visibleIndices.withIndex()) {
+                            val cell = element.header.getOrNull(i) ?: ""
+                            Box(modifier = Modifier.weight(1f).padding(8.dp)) {
+                                Text(text = cell, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                            if (idxIndex < visibleIndices.size - 1) Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline))
                         }
+                    }
+                    Divider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+
+                    // Rows (clickable/selectable)
+                    element.rows.forEachIndexed { rowIdx, row ->
+                        val isSelected = rowIdx == selectedRow
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f))
+                                .clickable { selectedRow = rowIdx }
+                                .padding(vertical = 6.dp)
+                        ) {
+                            for ((idxIndex, i) in visibleIndices.withIndex()) {
+                                val cell = row.getOrNull(i) ?: ""
+                                Box(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) { 
+                                    Text(text = cell, style = MaterialTheme.typography.bodyMedium)
+                                }
+                                if (idxIndex < visibleIndices.size - 1) Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)))
+                            }
+                        }
+                        if (rowIdx < element.rows.size - 1) Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), thickness = 0.5.dp)
                     }
                 }
             }
         }
         is ContentElement.Image, is ContentElement.ImageWithMeta -> RenderImage(element, isOffline, posts, navController, showImagePaths)
         is ContentElement.VideoPlayer -> {
-            if (isOffline) Text(text = "*[Video nedostupné v offline režimu]*", modifier = Modifier.padding(vertical = 8.dp))
-            else DisableSelection {
+            if (isOffline) Text(text = "*[Video nedostupné v offline režimu]*", style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(vertical = 8.dp))
+            else DisableSelection { 
                 OutlinedButton(onClick = { navController.navigate(VideoPlayerRoute(videoUrl = Uri.encode(element.videoUrl))) }, modifier = Modifier.padding(vertical = 8.dp)) {
                     Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Přehrát video", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -136,7 +173,7 @@ fun ElementRenderer(
         is ContentElement.ClickableLink -> {
             val linkText = element.text.trim()
             if (linkText.isNotBlank()) {
-                Text(
+                Text( 
                     text = linkText,
                     style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.primary, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline),
                     modifier = Modifier.clickable {
@@ -167,15 +204,16 @@ private fun RenderParagraph(
     navController: NavController,
     onAddendumSelected: (Addendum) -> Unit
 ) {
-    val annotated = remember(element.parts) { buildAnnotatedStringFromParts(element.parts) }
+    val linkColor = MaterialTheme.colorScheme.primary
+    val annotated = remember(element.parts, linkColor) { buildAnnotatedStringFromParts(element.parts, linkColor) }
     val text = annotated.text
     val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
-    if (addendumRanges.isEmpty()) {
-        val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
-        if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
-        else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp), onClick = { offset ->
-            handleAnnotatedClick(annotated, offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected)
-        })
+        if (addendumRanges.isEmpty()) {
+            val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
+            if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(bottom = 8.dp))
+            else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(bottom = 8.dp), onClick = { offset ->
+                handleAnnotatedClick(annotated, offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected)
+            })
     } else {
         Row(modifier = Modifier.padding(bottom = 8.dp)) {
             var lastIndex = 0
@@ -185,20 +223,20 @@ private fun RenderParagraph(
                 if (lastIndex < start) {
                     val subAnnotated = annotated.subSequence(lastIndex, start)
                     val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge, onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
+                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
                 }
                 val addendumId = range.item.toIntOrNull()
                 val addendum = addendums.find { it.id == addendumId }
                 if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Default.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
                 lastIndex = end
             }
-            if (lastIndex < text.length) {
-                val subAnnotated = annotated.subSequence(lastIndex, text.length)
-                val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge)
-                else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge, onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
-            }
+                if (lastIndex < text.length) {
+                    val subAnnotated = annotated.subSequence(lastIndex, text.length)
+                    val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
+                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                }
         }
     }
 }
@@ -212,13 +250,14 @@ private fun RenderInlineText(
     navController: NavController,
     onAddendumSelected: (Addendum) -> Unit
 ) {
-    val annotated = remember(element.parts) { buildAnnotatedStringFromParts(element.parts) }
+    val linkColor = MaterialTheme.colorScheme.primary
+    val annotated = remember(element.parts, linkColor) { buildAnnotatedStringFromParts(element.parts, linkColor) }
     val text = annotated.text
     val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
     if (addendumRanges.isEmpty()) {
-        val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
-        if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge)
-        else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge, onClick = { offset -> handleAnnotatedClick(annotated, offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+           val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
+        if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+        else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
     } else {
         Row {
             var lastIndex = 0
@@ -228,8 +267,8 @@ private fun RenderInlineText(
                 if (lastIndex < start) {
                     val subAnnotated = annotated.subSequence(lastIndex, start)
                     val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge)
-                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge, onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
                 }
                 val addendumId = range.item.toIntOrNull()
                 val addendum = addendums.find { it.id == addendumId }
@@ -238,7 +277,7 @@ private fun RenderInlineText(
             }
             if (lastIndex < text.length) {
                 val subAnnotated = annotated.subSequence(lastIndex, text.length)
-                ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge, onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
             }
         }
     }
@@ -258,13 +297,14 @@ private fun RenderBulletList(
         element.items.forEach { itemParts ->
             Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = indent)) {
                 Text("•", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp, top = 2.dp))
-                val annotated = remember(itemParts) { buildAnnotatedStringFromParts(itemParts) }
+                val linkColor = MaterialTheme.colorScheme.primary
+                val annotated = remember(itemParts, linkColor) { buildAnnotatedStringFromParts(itemParts, linkColor) }
                 val text = annotated.text
                 val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
                 if (addendumRanges.isEmpty()) {
                     val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
-                    if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), onClick = { offset -> handleAnnotatedClick(annotated, offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                    if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
+                    else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f), onClick = { offset -> handleAnnotatedClick(annotated, offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
                 } else {
                     Row(modifier = Modifier.weight(1f)) {
                         var lastIndex = 0
@@ -273,18 +313,18 @@ private fun RenderBulletList(
                             if (lastIndex < start) {
                                 val subAnnotated = annotated.subSequence(lastIndex, start)
                                 val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                                if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge)
-                                else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge, onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                                if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+                                else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
                             }
                             val addendumId = range.item.toIntOrNull()
                             val addendum = addendums.find { it.id == addendumId }
                             if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Default.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
                             lastIndex = end
                         }
-                        if (lastIndex < text.length) {
-                            val subAnnotated = annotated.subSequence(lastIndex, text.length)
-                            ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge, onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
-                        }
+                            if (lastIndex < text.length) {
+                                val subAnnotated = annotated.subSequence(lastIndex, text.length)
+                                ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                            }
                     }
                 }
             }
@@ -316,13 +356,14 @@ private fun RenderImage(
                 DisableSelection {
                     Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Column(modifier = Modifier.padding(8.dp)) {
-                            if (!caption.isNullOrBlank()) Text(text = caption, style = MaterialTheme.typography.bodyMedium)
+                            if (!caption.isNullOrBlank()) Text(text = caption, style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground))
                             if (!source.isNullOrBlank()) {
                                 val sourceParts = remember(source) { parseInlineParts(source, posts) }
-                                val sourceAnnotated = remember(sourceParts) { buildAnnotatedStringFromParts(sourceParts) }
+                                val linkColor = MaterialTheme.colorScheme.primary
+                                val sourceAnnotated = remember(sourceParts, linkColor) { buildAnnotatedStringFromParts(sourceParts, linkColor) }
                                 val sourceUrlAnnotations = sourceAnnotated.getStringAnnotations("URL", 0, sourceAnnotated.length)
-                                if (sourceUrlAnnotations.isEmpty()) Text(text = sourceAnnotated, style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic), modifier = Modifier.padding(top = 6.dp))
-                                else ClickableText(text = sourceAnnotated, style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic), modifier = Modifier.padding(top = 6.dp), onClick = { offset ->
+                                if (sourceUrlAnnotations.isEmpty()) Text(text = sourceAnnotated, style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(top = 6.dp))
+                                else ClickableText(text = sourceAnnotated, style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(top = 6.dp), onClick = { offset ->
                                     sourceAnnotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
                                         val url = ann.item
                                         val linkPart = sourceParts.filterIsInstance<InlinePart.Link>().find { it.url == url }
@@ -341,18 +382,18 @@ private fun RenderImage(
                 }
             }
             if (showImagePaths) {
-                Text(text = "Original: $originalUrl", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 4.dp))
-                Text(text = "Used: $baseAppliedUrl", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 4.dp))
-                Text(text = "Offline blocked: $isBlockedByOffline", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 4.dp))
+                Text(text = "Original: $originalUrl", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(start = 4.dp))
+                Text(text = "Used: $baseAppliedUrl", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(start = 4.dp))
+                Text(text = "Offline blocked: $isBlockedByOffline", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(start = 4.dp))
             }
         }
     } else {
         Column(modifier = Modifier.padding(bottom = 8.dp)) {
-            Text("[Obrázek: $alt - nedostupný v offline režimu]", style = MaterialTheme.typography.bodySmall)
+            Text("[Obrázek: $alt - nedostupný v offline režimu]", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground))
             if (showImagePaths) {
-                Text(text = "Original: $originalUrl", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 4.dp))
-                Text(text = "Used: $baseAppliedUrl", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 4.dp))
-                Text(text = "Offline blocked: $isBlockedByOffline", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 4.dp))
+                Text(text = "Original: $originalUrl", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(start = 4.dp))
+                Text(text = "Used: $baseAppliedUrl", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(start = 4.dp))
+                Text(text = "Offline blocked: $isBlockedByOffline", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(start = 4.dp))
             }
         }
     }
@@ -389,7 +430,7 @@ private fun handleAnnotatedClick(
     }
 }
 
-fun buildAnnotatedStringFromParts(parts: List<InlinePart>): AnnotatedString {
+fun buildAnnotatedStringFromParts(parts: List<InlinePart>, linkColor: Color = Color.Unspecified): AnnotatedString {
     return buildAnnotatedString {
         for (part in parts) {
             when (part) {
@@ -399,7 +440,7 @@ fun buildAnnotatedStringFromParts(parts: List<InlinePart>): AnnotatedString {
                 is InlinePart.BoldItalic -> withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic)) { append(part.text) }
                 is InlinePart.Link -> {
                     val start = length
-                    val linkStyle = SpanStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)
+                    val linkStyle = if (linkColor != Color.Unspecified) SpanStyle(color = linkColor, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline) else SpanStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)
                     append(part.text)
                     addStyle(linkStyle, start, start + part.text.length)
                     addStringAnnotation("URL", part.url, start, start + part.text.length)

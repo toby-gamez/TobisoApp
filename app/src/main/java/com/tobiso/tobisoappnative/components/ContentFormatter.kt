@@ -192,16 +192,41 @@ fun parseContentToElements(
             elements.add(ContentElement.NumberedList(items))
             continue
         }
-        // Tabulka (řádek s | a další řádky s |)
-        if (line.contains("|") && i + 1 < lines.size && lines[i + 1].contains("|")) {
-            val header = line.split("|").map { it.trim() }
+        // Tabulka (řeší standardní Markdown tabulky s oddělovačem řádku s pomlčkami)
+        fun splitPipeLine(ln: String): List<String> {
+            var s = ln.trim()
+            if (s.startsWith("|")) s = s.substring(1)
+            if (s.endsWith("|")) s = s.substring(0, s.length - 1)
+            return s.split("|").map { it.trim() }
+        }
+
+        fun isTableSeparatorLine(ln: String): Boolean {
+            val s = ln.trim()
+            if (!s.contains("|")) return false
+            var t = s
+            if (t.startsWith("|")) t = t.substring(1)
+            if (t.endsWith("|")) t = t.substring(0, t.length - 1)
+            val parts = t.split("|").map { it.trim() }
+            if (parts.isEmpty()) return false
+            return parts.all { part ->
+                // valid separator part looks like --- or :---: with optional spaces
+                part.matches(Regex("^:?-+:?$"))
+            }
+        }
+
+        if (line.contains("|") && i + 1 < lines.size && isTableSeparatorLine(lines[i + 1])) {
+            val header = splitPipeLine(line)
             val rows = mutableListOf<List<String>>()
-            i++
-            while (i < lines.size && lines[i].contains("|")) {
-                rows.add(lines[i].split("|").map { it.trim() })
-                i++
+            var j = i + 2
+            while (j < lines.size && lines[j].contains("|")) {
+                val row = splitPipeLine(lines[j])
+                // pad row to header length if necessary
+                val padded = if (row.size < header.size) row + List(header.size - row.size) { "" } else row
+                rows.add(padded)
+                j++
             }
             elements.add(ContentElement.Table(header, rows))
+            i = j
             continue
         }
         // Paragraph-level image metadata marker injected by preprocessImageGroups
