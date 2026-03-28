@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -54,6 +56,8 @@ import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.zIndex
 import com.tobiso.tobisoappnative.utils.StreakUtils
 import com.tobiso.tobisoappnative.utils.parseDateToMillis
 import com.tobiso.tobisoappnative.utils.formatDateDisplay
@@ -62,6 +66,7 @@ import com.tobiso.tobisoappnative.utils.SortMode
 import com.tobiso.tobisoappnative.utils.loadSortMode
 import com.tobiso.tobisoappnative.utils.saveSortMode
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -235,11 +240,11 @@ fun HomeScreen(navController: NavHostController) {
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
             LargeTopAppBar(
+
                 title = {
-                    Image(
-                        painter = painterResource(id = logoRes),
-                        contentDescription = "Logo",
-                        modifier = Modifier.size(150.dp)
+                    Text("Učivo",
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1
                     )
                 },
                 actions = {
@@ -371,6 +376,10 @@ fun HomeScreen(navController: NavHostController) {
                     val rootSubjects = remember(categories) { categories.filter { it.parentId == null } }
                     val rootWithChildren = remember(categories) { rootSubjects.filter { root -> categories.any { it.parentId == root.id } } }
 
+                    val listState = rememberLazyListState()
+                    val coroutineScope = rememberCoroutineScope()
+                    var pendingScrollToTop by remember { mutableStateOf(false) }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -381,7 +390,18 @@ fun HomeScreen(navController: NavHostController) {
                     ) {
                         FilterChip(
                             selected = selectedSubjectId == null,
-                            onClick = { selectedSubjectId = null },
+                            onClick = {
+                                // If we're switching from a subject to "Vše", always set a pending scroll
+                                // so newly inserted items above the current first become visible.
+                                // If we're already on "Vše", only scroll now if not at the top.
+                                if (selectedSubjectId != null) {
+                                    selectedSubjectId = null
+                                    pendingScrollToTop = true
+                                } else {
+                                    val atTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+                                    if (!atTop) coroutineScope.launch { listState.animateScrollToItem(0) }
+                                }
+                            },
                             label = { Text("Vše") }
                         )
 
@@ -401,7 +421,14 @@ fun HomeScreen(navController: NavHostController) {
                         vm.computeNewest(selectedSubjectId)
                     }
 
-                    LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+                    LaunchedEffect(newestPosts) {
+                        if (pendingScrollToTop) {
+                            coroutineScope.launch { listState.animateScrollToItem(0) }
+                            pendingScrollToTop = false
+                        }
+                    }
+
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp)) {
                         items(items = newestPosts, key = { it.id }) { post ->
                             PostListItem(
                                 post = post,

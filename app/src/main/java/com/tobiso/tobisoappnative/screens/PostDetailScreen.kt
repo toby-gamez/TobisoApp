@@ -109,7 +109,7 @@ import kotlinx.serialization.json.JsonNull.content
 fun PostDetailScreen(
     postId: Int,
     navController: NavController,
-    ttsViewModel: TtsViewModel
+    ttsViewModel: TtsViewModel,
 ) {
     val vm: PostDetailViewModel = hiltViewModel()
     val postDetail by vm.postDetail.collectAsState()
@@ -250,11 +250,11 @@ fun PostDetailScreen(
                 LargeTopAppBar(
                     title = { 
                         val collapsedFraction = scrollBehavior.state.collapsedFraction
-                        val fontSize = (28 - (12 * collapsedFraction)).sp
+                        val fontSize = (28 - (15 * collapsedFraction)).sp
                         Text(
                             text = postDetail?.title ?: "Detail článku",
                             style = MaterialTheme.typography.headlineMedium.copy(fontSize = fontSize),
-                            maxLines = 1
+                            maxLines = 3
                         ) 
                     },
                     navigationIcon = {
@@ -378,7 +378,7 @@ fun PostDetailScreen(
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(16.dp)
+                                    .padding(start = 16.dp, end = 16.dp)
                             ) {
                                 item {
                                     Spacer(modifier = Modifier.height(4.dp))
