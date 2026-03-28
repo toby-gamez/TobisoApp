@@ -19,7 +19,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.tobiso.tobisoappnative"
+        applicationId = "com.tobiso.tobisoapp"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
