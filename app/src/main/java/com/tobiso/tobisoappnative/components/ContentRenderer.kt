@@ -31,7 +31,8 @@ fun ContentRenderer(
     posts: List<Post>,
     addendums: List<Addendum>,
     navController: NavController,
-    onAddendumSelected: (Addendum) -> Unit
+    onAddendumSelected: (Addendum) -> Unit,
+    showImagePaths: Boolean = false
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         contentElements.forEach { element ->
@@ -576,19 +577,61 @@ fun ContentRenderer(
                     }
                 }
                 is ContentElement.Image -> {
-                    // Pokud je obrázek offline, zobrazit placeholder
-                    val url = if (isOffline && element.url.contains("images/")) null else element.url
-                    if (url != null) {
-                        coil.compose.AsyncImage(
-                            model = url,
-                            contentDescription = element.alt,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 120.dp, max = 400.dp)
-                                .padding(vertical = 6.dp)
-                        )
+                    // Debug: ukažme původní URL a jak se upravuje
+                    val originalUrl = element.url
+                    val baseAppliedUrl = if (originalUrl.startsWith("http")) originalUrl else "https://files.tobiso.com/" + originalUrl.removePrefix("/")
+                    val isBlockedByOffline = isOffline && baseAppliedUrl.contains("images/")
+                    val finalUrlForImage = if (isBlockedByOffline) null else baseAppliedUrl
+
+                    if (finalUrlForImage != null) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                            coil.compose.AsyncImage(
+                                model = finalUrlForImage,
+                                contentDescription = element.alt,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 120.dp, max = 400.dp)
+                                    .padding(vertical = 6.dp)
+                            )
+                            if (showImagePaths) {
+                                Text(
+                                    text = "Original: $originalUrl",
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                                Text(
+                                    text = "Used: $baseAppliedUrl",
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                                Text(
+                                    text = "Offline blocked: $isBlockedByOffline",
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                            }
+                        }
                     } else {
-                        Text("[Obrázek: ${element.alt} - nedostupný v offline režimu]", style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                        Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                            Text("[Obrázek: ${element.alt} - nedostupný v offline režimu]", style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                            if (showImagePaths) {
+                                Text(
+                                    text = "Original: $originalUrl",
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                                Text(
+                                    text = "Used: $baseAppliedUrl",
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                                Text(
+                                    text = "Offline blocked: $isBlockedByOffline",
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                            }
+                        }
                     }
                 }
                 is ContentElement.VideoPlayer -> {

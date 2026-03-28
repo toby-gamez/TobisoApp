@@ -406,7 +406,8 @@ fun PostDetailScreen(
                                             posts = posts,
                                             addendums = addendums,
                                             navController = navController,
-                                            onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true }
+                                            onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true },
+                                            showImagePaths = false,
                                         )
                                     }
                                 }
