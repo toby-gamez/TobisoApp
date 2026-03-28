@@ -21,11 +21,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.PointsManager
+import com.tobiso.tobisoappnative.components.ContentRenderer
 import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
+import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.viewmodel.timeline.TimelineExerciseIntent
 import com.tobiso.tobisoappnative.viewmodel.timeline.TimelineExerciseViewModel
-import com.halilibo.richtext.commonmark.Markdown
-import com.halilibo.richtext.ui.material3.RichText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,9 +138,15 @@ fun TimelineExerciseScreen(
                         .padding(bottom = 16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        RichText {
-                            Markdown(instructions)
-                        }
+                        val contentElements = parseContentToElements(instructions, isOffline = state.isOffline, posts = emptyList())
+                        ContentRenderer(
+                            contentElements = contentElements,
+                            isOffline = state.isOffline,
+                            posts = emptyList(),
+                            addendums = emptyList(),
+                            navController = navController,
+                            onAddendumSelected = {}
+                        )
                     }
                 }
             }

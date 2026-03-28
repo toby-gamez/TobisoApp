@@ -16,14 +16,14 @@ import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.matching.MatchingExerciseIntent
 import com.tobiso.tobisoappnative.viewmodel.matching.MatchingExerciseEffect
 import com.tobiso.tobisoappnative.viewmodel.matching.MatchingExerciseViewModel
-import com.halilibo.richtext.commonmark.Markdown
-import com.halilibo.richtext.ui.material3.RichText
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.tobiso.tobisoappnative.model.*
 import com.tobiso.tobisoappnative.PointsManager
+import com.tobiso.tobisoappnative.components.ContentRenderer
 import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
+import com.tobiso.tobisoappnative.components.parseContentToElements
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -152,9 +152,15 @@ fun MatchingExerciseScreen(
                         .padding(bottom = 16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        RichText {
-                            Markdown(instructions)
-                        }
+                        val contentElements = parseContentToElements(instructions, isOffline = state.isOffline, posts = emptyList())
+                        ContentRenderer(
+                            contentElements = contentElements,
+                            isOffline = state.isOffline,
+                            posts = emptyList(),
+                            addendums = emptyList(),
+                            navController = navController,
+                            onAddendumSelected = {}
+                        )
                     }
                 }
             }

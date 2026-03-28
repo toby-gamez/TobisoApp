@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.commonizer.OptimisticNumberCommonizationEnabledKey.alias
 import java.util.Properties
 
 plugins {
@@ -5,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.ksp)
 }
 
 val localProperties = Properties().apply {
@@ -17,7 +19,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.tobiso.tobisoapp"
+        applicationId = "com.tobiso.tobisoappnative"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -76,7 +78,6 @@ android {
         debug {
             isDebuggable = true
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
             
             // Debug build config fields
             buildConfigField("boolean", "IS_PRODUCTION", "false")
@@ -155,7 +156,8 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
-    annotationProcessor(libs.hilt.android.compiler)
+    ksp(libs.hilt.android.compiler)
+    ksp(libs.androidx.room.compiler)
 
     // Room
     implementation(libs.androidx.room.runtime)

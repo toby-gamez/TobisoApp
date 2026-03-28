@@ -91,13 +91,6 @@ import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.zIndex
 import com.tobiso.tobisoappnative.components.InlineFraction
-import com.halilibo.richtext.markdown.node.AstHardLineBreak
-import com.halilibo.richtext.markdown.node.AstHtmlInline
-import com.halilibo.richtext.markdown.node.AstImage
-import com.halilibo.richtext.markdown.node.AstLink
-import com.halilibo.richtext.markdown.node.AstNode
-import com.halilibo.richtext.markdown.node.AstParagraph
-import com.halilibo.richtext.markdown.node.AstSoftLineBreak
 // removed all halilibo.richtext imports
 import com.tobiso.tobisoappnative.components.AddendumDialog
 import com.tobiso.tobisoappnative.components.AiInputBar
