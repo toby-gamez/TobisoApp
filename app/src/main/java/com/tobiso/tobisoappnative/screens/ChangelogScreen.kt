@@ -66,7 +66,7 @@ fun BulletPoint(text: String) {
 @Composable
 fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
-        VersionInfo("3.1", listOf(
+        VersionInfo("3.0.1", listOf(
             "oprava integrity kontroly"
         )),
         VersionInfo("3.0", listOf(
