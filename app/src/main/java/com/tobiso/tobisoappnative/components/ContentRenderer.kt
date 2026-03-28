@@ -17,6 +17,12 @@ import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.navigation.VideoPlayerRoute
 import com.tobiso.tobisoappnative.model.Addendum
 import com.tobiso.tobisoappnative.model.Post
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.withStyle
 
 @Composable
 fun ContentRenderer(
@@ -51,32 +57,68 @@ fun ContentRenderer(
                         else -> androidx.compose.material3.MaterialTheme.typography.titleMedium
                     }
                     Text(
-                        text = element.text,
+                        text = buildAnnotatedStringFromParts(element.parts),
                         style = style,
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                     )
                 }
                 is ContentElement.Paragraph -> {
                     Text(
-                        text = element.text,
+                        text = buildAnnotatedStringFromParts(element.parts),
                         style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
+                is ContentElement.InlineText -> {
+                    Text(
+                        text = buildAnnotatedStringFromParts(element.parts),
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+                    )
+                }
                 is ContentElement.BulletList -> {
+                    val indent = when (element.level) {
+                        1 -> 16.dp
+                        2 -> 32.dp
+                        3 -> 48.dp
+                        4 -> 64.dp
+                        else -> 16.dp
+                    }
                     Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                        element.items.forEach { item ->
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)) {
+                        element.items.forEach { itemParts ->
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = indent, bottom = 4.dp)) {
                                 Text(
                                     "•",
                                     style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
                                     color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(end = 8.dp, top = 2.dp)
                                 )
-                                Text(
-                                    item,
+                                val annotated = buildAnnotatedStringFromParts(itemParts)
+                                androidx.compose.foundation.text.ClickableText(
+                                    text = annotated,
                                     style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { offset ->
+                                        annotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
+                                            val linkPart = itemParts.filterIsInstance<InlinePart.Link>().find { link ->
+                                                val start = annotated.text.indexOf(link.text)
+                                                offset in start until (start + link.text.length)
+                                            }
+                                            if (linkPart != null) {
+                                                if (linkPart.postId != null) {
+                                                    navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                                } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                                    val url = linkPart.url
+                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
+                                                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    try {
+                                                        navController.context.startActivity(intent)
+                                                    } catch (e: Exception) {
+                                                        timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -191,7 +233,7 @@ fun ContentRenderer(
                             ),
                             modifier = Modifier.clickable {
                                 if (element.postId != null) {
-                                    navController.navigate("post/${element.postId}")
+                                    navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(element.postId))
                                 } else if (!isOffline) {
                                     val url = element.url
                                     val fullUrl = if (url.startsWith("http")) url else "https://files.tobiso.com/" + url.removePrefix("/")
@@ -220,4 +262,32 @@ fun ContentRenderer(
             }
         }
     }
-}
+    // DEBUG: Výpis ContentElementů až pod hlavním obsahem
+    Spacer(modifier = Modifier.height(48.dp))
+    Text(
+        text = "DEBUG ContentElements:\n" + contentElements.joinToString("\n") { it.toString() },
+        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(8.dp)
+    )
+    }
+
+    @Composable
+    fun buildAnnotatedStringFromParts(parts: List<InlinePart>): AnnotatedString {
+        return buildAnnotatedString {
+            for (part in parts) {
+                when (part) {
+                    is InlinePart.Text -> append(part.text)
+                    is InlinePart.Bold -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(part.text) }
+                    is InlinePart.Italic -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(part.text) }
+                    is InlinePart.BoldItalic -> withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic)) { append(part.text) }
+                    is InlinePart.Link -> {
+                        val start = length
+                        append(part.text)
+                        addStyle(SpanStyle(color = androidx.compose.material3.MaterialTheme.colorScheme.primary, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline), start, start + part.text.length)
+                        addStringAnnotation("URL", part.url, start, start + part.text.length)
+                    }
+                }
+            }
+        }
+    }

@@ -9,11 +9,12 @@ val prefixRegex = Regex("^(ml-|sl-|li-|hv-|m-|ch-|f-|pr-|z-)")
 // --- Custom Markdown Parser ---
 
 
+
 sealed class ContentElement {
     data class Intra(val text: String) : ContentElement()
-    data class Heading(val text: String, val level: Int) : ContentElement()
-    data class Paragraph(val text: String) : ContentElement()
-    data class BulletList(val items: List<String>) : ContentElement()
+    data class Heading(val parts: List<InlinePart>, val level: Int) : ContentElement()
+    data class Paragraph(val parts: List<InlinePart>) : ContentElement()
+        data class BulletList(val items: List<List<InlinePart>>, val level: Int) : ContentElement()
     data class NumberedList(val items: List<String>) : ContentElement()
     data class CodeBlock(val code: String) : ContentElement()
     data class BlockQuote(val text: String) : ContentElement()
@@ -22,7 +23,17 @@ sealed class ContentElement {
     data class VideoPlayer(val videoUrl: String, val posterUrl: String?) : ContentElement()
     data class Image(val alt: String, val url: String) : ContentElement()
     data class AddendumReference(val addendumId: Int) : ContentElement()
+    data class InlineText(val parts: List<InlinePart>) : ContentElement() // pro případné další použití
 }
+
+sealed class InlinePart {
+    data class Text(val text: String) : InlinePart()
+    data class Bold(val text: String) : InlinePart()
+    data class Italic(val text: String) : InlinePart()
+    data class BoldItalic(val text: String) : InlinePart()
+    data class Link(val text: String, val url: String, val postId: Int?) : InlinePart()
+}
+
 
 
 
@@ -52,11 +63,12 @@ fun parseContentToElements(
     var i = 0
     while (i < lines.size) {
         val line = lines[i].trimEnd()
+        var didAddBullet = false
         // Nadpisy
         if (line.startsWith("#")) {
             val level = line.takeWhile { it == '#' }.length
             val headingText = line.drop(level).trim()
-            elements.add(ContentElement.Heading(headingText, level))
+                elements.add(ContentElement.Heading(parseInlineParts(headingText, posts), level))
             i++
             continue
         }
@@ -83,22 +95,33 @@ fun parseContentToElements(
             elements.add(ContentElement.BlockQuote(quoteLines.joinToString("\n")))
             continue
         }
-        // Odrážky
-        if (line.matches("^[-*+] ".toRegex())) {
-            val items = mutableListOf(line.drop(2))
-            i++
-            while (i < lines.size && lines[i].matches("^[-*+] ".toRegex())) {
-                items.add(lines[i].drop(2))
+        // Odrážky (každý řádek začínající - , * , + je vždy odrážka, i kdyby byl sám)
+        // Podpora až 4 úrovní odrážek podle počtu mezer před "- "
+        val bulletLevels = listOf(
+            Regex("^- "),        // level 1
+            Regex("^  - "),      // level 2
+            Regex("^    - "),    // level 3
+            Regex("^      - ")   // level 4
+        )
+        for ((level, regex) in bulletLevels.withIndex()) {
+            if (regex.containsMatchIn(line)) {
+                val items = mutableListOf<List<InlinePart>>()
+                    items.add(parseInlineParts(line.replaceFirst(regex, ""), posts))
                 i++
+                while (i < lines.size && regex.containsMatchIn(lines[i].trimEnd())) {
+                        items.add(parseInlineParts(lines[i].trimEnd().replaceFirst(regex, ""), posts))
+                    i++
+                }
+                elements.add(ContentElement.BulletList(items, level + 1))
+                didAddBullet = true
+                break
             }
-            elements.add(ContentElement.BulletList(items))
-            continue
         }
         // Číslované odrážky
-        if (line.matches("^\\d+\\. ".toRegex())) {
-            val items = mutableListOf(line.replace("^\\d+\\. ".toRegex(), ""))
+            if (line.matches("^\\\\d+\\. ".toRegex())) {
+                val items = mutableListOf(line.replace("^\\\\d+\\. ".toRegex(), ""))
             i++
-            while (i < lines.size && lines[i].matches("^\\d+\\. ".toRegex())) {
+                while (i < lines.size && lines[i].matches("^\\\\d+\\. ".toRegex())) {
                 items.add(lines[i].replace("^\\d+\\. ".toRegex(), ""))
                 i++
             }
@@ -142,8 +165,8 @@ fun parseContentToElements(
             i++
             continue
         }
-        // Odkaz [text](url)
-        val linkMatch = Regex("(?<!!)\\[(.+?)\\]\\((.+?)\\)").find(line)
+        // Odkaz [text](url) - nyní řešíme pouze samostatné řádky, inline odkazy řeší parseInlineParts
+            val linkMatch = Regex("^(?<![!\\-\\\\d])\\[(.+?)\\]\\((.+?)\\)").find(line)
         if (linkMatch != null) {
             val linkText = linkMatch.groupValues[1]
             val url = linkMatch.groupValues[2]
@@ -157,11 +180,93 @@ fun parseContentToElements(
             continue
         }
         // Odstavec
-        if (line.isNotBlank()) {
-            elements.add(ContentElement.Paragraph(line))
+        if (!didAddBullet && line.isNotBlank()) {
+                elements.add(ContentElement.Paragraph(parseInlineParts(line, posts)))
         }
-        i++
+        if (!didAddBullet) {
+            i++
+        }
     }
     return elements
 }
+
+// --- Inline Markdown Parser pro tučné, kurzívu a inline odkazy ---
+fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> {
+    // Podpora **tučné**, *kurzíva*, ***tučné kurzíva***, [odkaz](url)
+    val result = mutableListOf<InlinePart>()
+    var i = 0
+    val n = text.length
+    while (i < n) {
+        when {
+            text.startsWith("***", i) -> {
+                val end = text.indexOf("***", i + 3)
+                if (end != -1) {
+                    result.add(InlinePart.BoldItalic(text.substring(i + 3, end)))
+                    i = end + 3
+                } else {
+                    result.add(InlinePart.Text("***"))
+                    i += 3
+                }
+            }
+            text.startsWith("**", i) -> {
+                val end = text.indexOf("**", i + 2)
+                if (end != -1) {
+                    result.add(InlinePart.Bold(text.substring(i + 2, end)))
+                    i = end + 2
+                } else {
+                    result.add(InlinePart.Text("**"))
+                    i += 2
+                }
+            }
+            text.startsWith("*", i) -> {
+                val end = text.indexOf("*", i + 1)
+                if (end != -1) {
+                    result.add(InlinePart.Italic(text.substring(i + 1, end)))
+                    i = end + 1
+                } else {
+                    result.add(InlinePart.Text("*"))
+                    i += 1
+                }
+            }
+            // Inline odkaz [text](url)
+            text.startsWith("[", i) -> {
+                val closeBracket = text.indexOf("]", i)
+                val openParen = if (closeBracket != -1) text.indexOf("(", closeBracket) else -1
+                val closeParen = if (openParen != -1) text.indexOf(")", openParen) else -1
+                if (closeBracket != -1 && openParen == closeBracket + 1 && closeParen != -1) {
+                    val linkText = text.substring(i + 1, closeBracket)
+                    val url = text.substring(openParen + 1, closeParen)
+                    var postId: Int? = null
+                    if (posts != null) {
+                        var filePath = url
+                        if (filePath.endsWith(".html")) filePath = filePath.removeSuffix(".html") + ".md"
+                        filePath = filePath.replace(prefixRegex, "")
+                        if (!filePath.startsWith("/")) filePath = "/$filePath"
+                        val post = posts.find { it.filePath == filePath }
+                        postId = post?.id
+                    }
+                    result.add(InlinePart.Link(linkText, url, postId))
+                    i = closeParen + 1
+                } else {
+                    result.add(InlinePart.Text("["))
+                    i += 1
+                }
+            }
+            else -> {
+                // Najdi další * nebo ** nebo *** nebo [
+                val next = listOf(
+                    text.indexOf("***", i),
+                    text.indexOf("**", i),
+                    text.indexOf("*", i),
+                    text.indexOf("[", i)
+                ).filter { it >= 0 }.minOrNull() ?: n
+                result.add(InlinePart.Text(text.substring(i, next)))
+                i = next
+            }
+        }
+    }
+    return result
+}
+
+// Přidání nové InlinePart pro odkazy
 
