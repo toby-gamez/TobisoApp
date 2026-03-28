@@ -49,7 +49,6 @@ import com.tobiso.tobisoappnative.navigation.FeedbackRoute
 import com.tobiso.tobisoappnative.navigation.HomeRoute
 import com.tobiso.tobisoappnative.navigation.MixedQuizRoute
 import com.tobiso.tobisoappnative.navigation.OfflineManagerRoute
-import com.tobiso.tobisoappnative.navigation.PlainTextRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 import com.tobiso.tobisoappnative.navigation.ProfileRoute
 import com.tobiso.tobisoappnative.navigation.QuestionsRoute
@@ -391,18 +390,6 @@ fun TobisoApp(navigateTo: String? = null) {
                                 val route: ExerciseCircuitRoute = backStackEntry.toRoute()
                                 com.tobiso.tobisoappnative.screens.CircuitExerciseScreen(
                                     exerciseId = route.exerciseId,
-                                    navController = navController
-                                )
-                            }
-                            composable<PlainTextRoute>(
-                                enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
-                                exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
-                                popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
-                                popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
-                            ) { backStackEntry ->
-                                val route: PlainTextRoute = backStackEntry.toRoute()
-                                com.tobiso.tobisoappnative.screens.PlainTextScreen(
-                                    postId = route.postId,
                                     navController = navController
                                 )
                             }

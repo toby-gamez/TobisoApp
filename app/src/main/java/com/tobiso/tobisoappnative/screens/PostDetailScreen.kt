@@ -6,7 +6,6 @@ import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseMatchingRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
-import com.tobiso.tobisoappnative.navigation.PlainTextRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 import com.tobiso.tobisoappnative.navigation.QuestionsRoute
 import com.tobiso.tobisoappnative.navigation.VideoPlayerRoute
@@ -219,7 +218,7 @@ fun PostDetailScreen(
         }
     }
 
-    var showFloatingSelectButton by remember { mutableStateOf(false) }
+    
     var aiInputText by remember { mutableStateOf("") }
     var aiInputExpanded by remember { mutableStateOf(false) }
     var showAiConsentDialog by remember { mutableStateOf(false) }
@@ -397,9 +396,6 @@ fun PostDetailScreen(
                                     androidx.compose.foundation.text.selection.SelectionContainer {
                                         Box(modifier = Modifier
                                             .fillMaxWidth()
-                                            .pointerInput(Unit) {
-                                                detectTapGestures(onLongPress = { showFloatingSelectButton = true })
-                                            }
                                         ) {
                                             ContentRenderer(
                                                 contentElements = contentElements,
@@ -483,13 +479,7 @@ fun PostDetailScreen(
         }
             // Long-press now only shows floating button; plain-text navigation is handled by the FAB.
 
-            // Auto-hide floating button after a short period
-            LaunchedEffect(showFloatingSelectButton) {
-                if (showFloatingSelectButton) {
-                    delay(4000)
-                    showFloatingSelectButton = false
-                }
-            }
+            
 
         // Sticky bottom action bar — AI + Prověrka + Cvičení
         // Nezobrazujeme bar dokud se nedokončí úvodní načítání (loaded=true) a nemáme internet
@@ -539,27 +529,7 @@ fun PostDetailScreen(
             }
         }
 
-        // Floating select button (levitující) — zobrazuje se po podržení
-        androidx.compose.animation.AnimatedVisibility(
-            visible = showFloatingSelectButton,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(end = 16.dp, bottom = if (loaded && isConnected) 88.dp else 16.dp)
-                    .zIndex(1f),
-                contentAlignment = androidx.compose.ui.Alignment.BottomEnd
-            ) {
-                FloatingActionButton(onClick = {
-                    showFloatingSelectButton = false
-                    navController.navigate(PlainTextRoute(postId = postId))
-                }) {
-                    Icon(Icons.Default.TextFields, contentDescription = "Vybrat text")
-                }
-            }
-        }
+        
 
         // Dialog pro vysvětlení permission
         if (showPermissionDialog) {

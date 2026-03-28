@@ -50,10 +50,6 @@ data class ExerciseMatchingRoute(val exerciseId: Int)
 
 @Serializable
 data class ExerciseCircuitRoute(val exerciseId: Int)
-
-@Serializable
-data class PlainTextRoute(val postId: Int)
-
 @Serializable
 data class VideoPlayerRoute(val videoUrl: String)
 
