@@ -32,6 +32,7 @@ sealed class InlinePart {
     data class Italic(val text: String) : InlinePart()
     data class BoldItalic(val text: String) : InlinePart()
     data class Link(val text: String, val url: String, val postId: Int?) : InlinePart()
+    data class Addendum(val addendumId: Int) : InlinePart()
 }
 
 
@@ -192,7 +193,7 @@ fun parseContentToElements(
 
 // --- Inline Markdown Parser pro tučné, kurzívu a inline odkazy ---
 fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> {
-    // Podpora **tučné**, *kurzíva*, ***tučné kurzíva***, [odkaz](url)
+    // Podpora **tučné**, *kurzíva*, ***tučné kurzíva***, [odkaz](url), (--DOD-číslo--)
     val result = mutableListOf<InlinePart>()
     var i = 0
     val n = text.length
@@ -228,6 +229,24 @@ fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> 
                     i += 1
                 }
             }
+            // Inline dodatek (--DOD-číslo--)
+            text.startsWith("(--DOD-", i) -> {
+                val end = text.indexOf("--)", i + 8)
+                if (end != -1) {
+                    val idStr = text.substring(i + 7, end)
+                    val id = idStr.toIntOrNull()
+                    if (id != null) {
+                        result.add(InlinePart.Addendum(id))
+                        i = end + 3
+                    } else {
+                        result.add(InlinePart.Text("(--DOD-"))
+                        i += 7
+                    }
+                } else {
+                    result.add(InlinePart.Text("(--DOD-"))
+                    i += 7
+                }
+            }
             // Inline odkaz [text](url)
             text.startsWith("[", i) -> {
                 val closeBracket = text.indexOf("]", i)
@@ -253,12 +272,13 @@ fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> 
                 }
             }
             else -> {
-                // Najdi další * nebo ** nebo *** nebo [
+                // Najdi další * nebo ** nebo *** nebo [ nebo (--DOD-
                 val next = listOf(
                     text.indexOf("***", i),
                     text.indexOf("**", i),
                     text.indexOf("*", i),
-                    text.indexOf("[", i)
+                    text.indexOf("[", i),
+                    text.indexOf("(--DOD-", i)
                 ).filter { it >= 0 }.minOrNull() ?: n
                 result.add(InlinePart.Text(text.substring(i, next)))
                 i = next

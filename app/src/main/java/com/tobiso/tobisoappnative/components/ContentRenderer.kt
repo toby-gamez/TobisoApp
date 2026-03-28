@@ -63,52 +63,125 @@ fun ContentRenderer(
                     )
                 }
                 is ContentElement.Paragraph -> {
-                    Text(
-                        text = buildAnnotatedStringFromParts(element.parts),
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-                is ContentElement.InlineText -> {
-                    Text(
-                        text = buildAnnotatedStringFromParts(element.parts),
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
-                    )
-                }
-                is ContentElement.BulletList -> {
-                    val indent = when (element.level) {
-                        1 -> 16.dp
-                        2 -> 32.dp
-                        3 -> 48.dp
-                        4 -> 64.dp
-                        else -> 16.dp
-                    }
-                    Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                        element.items.forEach { itemParts ->
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = indent, bottom = 4.dp)) {
-                                Text(
-                                    "•",
-                                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-                                    color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(end = 8.dp, top = 2.dp)
-                                )
-                                val annotated = buildAnnotatedStringFromParts(itemParts)
+                    val annotated = buildAnnotatedStringFromParts(element.parts)
+                    val text = annotated.text
+                    val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
+                    if (addendumRanges.isEmpty()) {
+                        androidx.compose.foundation.text.ClickableText(
+                            text = annotated,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            onClick = { offset ->
+                                // Odkaz
+                                annotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
+                                    val url = ann.item
+                                    val linkPart = element.parts.filterIsInstance<InlinePart.Link>().find { link ->
+                                        url == link.url
+                                    }
+                                    if (linkPart != null) {
+                                        if (linkPart.postId != null) {
+                                            navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                        } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
+                                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            try {
+                                                navController.context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                            }
+                                        }
+                                    }
+                                }
+                                // Inline dodatek
+                                annotated.getStringAnnotations("ADDENDUM", offset, offset).firstOrNull()?.let { ann ->
+                                    val addendumId = ann.item.toIntOrNull()
+                                    if (addendumId != null) {
+                                        val addendum = addendums.find { it.id == addendumId }
+                                        if (addendum != null) {
+                                            onAddendumSelected(addendum)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    } else {
+                        Row(modifier = Modifier.padding(bottom = 8.dp)) {
+                            var lastIndex = 0
+                            for (range in addendumRanges) {
+                                val start = range.start
+                                val end = range.end
+                                if (lastIndex < start) {
+                                    val subText = text.substring(lastIndex, start)
+                                    val subAnnotated = annotated.subSequence(lastIndex, start)
+                                    androidx.compose.foundation.text.ClickableText(
+                                        text = subAnnotated,
+                                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                                        onClick = { offset ->
+                                            val realOffset = lastIndex + offset
+                                            annotated.getStringAnnotations("URL", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                                val url = ann.item
+                                                val linkPart = element.parts.filterIsInstance<InlinePart.Link>().find { link ->
+                                                    url == link.url
+                                                }
+                                                if (linkPart != null) {
+                                                    if (linkPart.postId != null) {
+                                                        navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                                    } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
+                                                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                        try {
+                                                            navController.context.startActivity(intent)
+                                                        } catch (e: Exception) {
+                                                            timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            annotated.getStringAnnotations("ADDENDUM", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                                val addendumId = ann.item.toIntOrNull()
+                                                if (addendumId != null) {
+                                                    val addendum = addendums.find { it.id == addendumId }
+                                                    if (addendum != null) {
+                                                        onAddendumSelected(addendum)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                                val addendumId = range.item.toIntOrNull()
+                                val addendum = addendums.find { it.id == addendumId }
+                                if (addendum != null) {
+                                    androidx.compose.material3.IconButton(
+                                        onClick = { onAddendumSelected(addendum) },
+                                        modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Help,
+                                            contentDescription = "Zobrazit dodatek",
+                                            tint = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                lastIndex = end
+                            }
+                            if (lastIndex < text.length) {
+                                val subAnnotated = annotated.subSequence(lastIndex, text.length)
                                 androidx.compose.foundation.text.ClickableText(
-                                    text = annotated,
+                                    text = subAnnotated,
                                     style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.weight(1f),
                                     onClick = { offset ->
-                                        annotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
-                                            val linkPart = itemParts.filterIsInstance<InlinePart.Link>().find { link ->
-                                                val start = annotated.text.indexOf(link.text)
-                                                offset in start until (start + link.text.length)
+                                        val realOffset = lastIndex + offset
+                                        annotated.getStringAnnotations("URL", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                            val url = ann.item
+                                            val linkPart = element.parts.filterIsInstance<InlinePart.Link>().find { link ->
+                                                url == link.url
                                             }
                                             if (linkPart != null) {
                                                 if (linkPart.postId != null) {
                                                     navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
                                                 } else if (!isOffline && linkPart.url.startsWith("http")) {
-                                                    val url = linkPart.url
-                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
+                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
                                                     intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                                                     try {
                                                         navController.context.startActivity(intent)
@@ -118,8 +191,317 @@ fun ContentRenderer(
                                                 }
                                             }
                                         }
+                                        annotated.getStringAnnotations("ADDENDUM", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                            val addendumId = ann.item.toIntOrNull()
+                                            if (addendumId != null) {
+                                                val addendum = addendums.find { it.id == addendumId }
+                                                if (addendum != null) {
+                                                    onAddendumSelected(addendum)
+                                                }
+                                            }
+                                        }
                                     }
                                 )
+                            }
+                        }
+                    }
+                }
+                is ContentElement.InlineText -> {
+                    val annotated = buildAnnotatedStringFromParts(element.parts)
+                    val text = annotated.text
+                    val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
+                    if (addendumRanges.isEmpty()) {
+                        androidx.compose.foundation.text.ClickableText(
+                            text = annotated,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                            onClick = { offset ->
+                                annotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
+                                    val url = ann.item
+                                    val linkPart = element.parts.filterIsInstance<InlinePart.Link>().find { link ->
+                                        url == link.url
+                                    }
+                                    if (linkPart != null) {
+                                        if (linkPart.postId != null) {
+                                            navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                        } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
+                                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            try {
+                                                navController.context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                            }
+                                        }
+                                    }
+                                }
+                                annotated.getStringAnnotations("ADDENDUM", offset, offset).firstOrNull()?.let { ann ->
+                                    val addendumId = ann.item.toIntOrNull()
+                                    if (addendumId != null) {
+                                        val addendum = addendums.find { it.id == addendumId }
+                                        if (addendum != null) {
+                                            onAddendumSelected(addendum)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    } else {
+                        Row {
+                            var lastIndex = 0
+                            for (range in addendumRanges) {
+                                val start = range.start
+                                val end = range.end
+                                if (lastIndex < start) {
+                                    val subAnnotated = annotated.subSequence(lastIndex, start)
+                                    androidx.compose.foundation.text.ClickableText(
+                                        text = subAnnotated,
+                                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                                        onClick = { offset ->
+                                            val realOffset = lastIndex + offset
+                                            annotated.getStringAnnotations("URL", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                                val url = ann.item
+                                                val linkPart = element.parts.filterIsInstance<InlinePart.Link>().find { link ->
+                                                    url == link.url
+                                                }
+                                                if (linkPart != null) {
+                                                    if (linkPart.postId != null) {
+                                                        navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                                    } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
+                                                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                        try {
+                                                            navController.context.startActivity(intent)
+                                                        } catch (e: Exception) {
+                                                            timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            annotated.getStringAnnotations("ADDENDUM", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                                val addendumId = ann.item.toIntOrNull()
+                                                if (addendumId != null) {
+                                                    val addendum = addendums.find { it.id == addendumId }
+                                                    if (addendum != null) {
+                                                        onAddendumSelected(addendum)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                                val addendumId = range.item.toIntOrNull()
+                                val addendum = addendums.find { it.id == addendumId }
+                                if (addendum != null) {
+                                    androidx.compose.material3.IconButton(
+                                        onClick = { onAddendumSelected(addendum) },
+                                        modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Help,
+                                            contentDescription = "Zobrazit dodatek",
+                                            tint = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                lastIndex = end
+                            }
+                            if (lastIndex < text.length) {
+                                val subAnnotated = annotated.subSequence(lastIndex, text.length)
+                                androidx.compose.foundation.text.ClickableText(
+                                    text = subAnnotated,
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                                    onClick = { offset ->
+                                        val realOffset = lastIndex + offset
+                                        annotated.getStringAnnotations("URL", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                            val url = ann.item
+                                            val linkPart = element.parts.filterIsInstance<InlinePart.Link>().find { link ->
+                                                url == link.url
+                                            }
+                                            if (linkPart != null) {
+                                                if (linkPart.postId != null) {
+                                                    navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                                } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
+                                                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    try {
+                                                        navController.context.startActivity(intent)
+                                                    } catch (e: Exception) {
+                                                        timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        annotated.getStringAnnotations("ADDENDUM", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                            val addendumId = ann.item.toIntOrNull()
+                                            if (addendumId != null) {
+                                                val addendum = addendums.find { it.id == addendumId }
+                                                if (addendum != null) {
+                                                    onAddendumSelected(addendum)
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                is ContentElement.BulletList -> {
+                    val indent = when (element.level) {
+                        1 -> 16.dp
+                        2 -> 32.dp
+                        3 -> 48.dp
+                        4 -> 64.dp
+                        else -> 16.dp
+                    }
+                    Column(modifier = Modifier) {
+                        element.items.forEach { itemParts ->
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = indent)) {
+                                Text(
+                                    "•",
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                                    color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(end = 8.dp, top = 2.dp)
+                                )
+                                val annotated = buildAnnotatedStringFromParts(itemParts)
+                                val text = annotated.text
+                                val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
+                                if (addendumRanges.isEmpty()) {
+                                    androidx.compose.foundation.text.ClickableText(
+                                        text = annotated,
+                                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.weight(1f),
+                                        onClick = { offset ->
+                                            annotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
+                                                val url = ann.item
+                                                val linkPart = itemParts.filterIsInstance<InlinePart.Link>().find { link ->
+                                                    url == link.url
+                                                }
+                                                if (linkPart != null) {
+                                                    if (linkPart.postId != null) {
+                                                        navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                                    } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
+                                                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                        try {
+                                                            navController.context.startActivity(intent)
+                                                        } catch (e: Exception) {
+                                                            timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            annotated.getStringAnnotations("ADDENDUM", offset, offset).firstOrNull()?.let { ann ->
+                                                val addendumId = ann.item.toIntOrNull()
+                                                if (addendumId != null) {
+                                                    val addendum = addendums.find { it.id == addendumId }
+                                                    if (addendum != null) {
+                                                        onAddendumSelected(addendum)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    )
+                                } else {
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        var lastIndex = 0
+                                        for (range in addendumRanges) {
+                                            val start = range.start
+                                            val end = range.end
+                                            if (lastIndex < start) {
+                                                val subAnnotated = annotated.subSequence(lastIndex, start)
+                                                androidx.compose.foundation.text.ClickableText(
+                                                    text = subAnnotated,
+                                                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                                                    onClick = { offset ->
+                                                        val realOffset = lastIndex + offset
+                                                        annotated.getStringAnnotations("URL", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                                            val url = ann.item
+                                                            val linkPart = itemParts.filterIsInstance<InlinePart.Link>().find { link ->
+                                                                url == link.url
+                                                            }
+                                                            if (linkPart != null) {
+                                                                if (linkPart.postId != null) {
+                                                                    navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                                                } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
+                                                                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                                    try {
+                                                                        navController.context.startActivity(intent)
+                                                                    } catch (e: Exception) {
+                                                                        timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        annotated.getStringAnnotations("ADDENDUM", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                                            val addendumId = ann.item.toIntOrNull()
+                                                            if (addendumId != null) {
+                                                                val addendum = addendums.find { it.id == addendumId }
+                                                                if (addendum != null) {
+                                                                    onAddendumSelected(addendum)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                            val addendumId = range.item.toIntOrNull()
+                                            val addendum = addendums.find { it.id == addendumId }
+                                            if (addendum != null) {
+                                                androidx.compose.material3.IconButton(
+                                                    onClick = { onAddendumSelected(addendum) },
+                                                    modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Help,
+                                                        contentDescription = "Zobrazit dodatek",
+                                                        tint = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+                                            lastIndex = end
+                                        }
+                                        if (lastIndex < text.length) {
+                                            val subAnnotated = annotated.subSequence(lastIndex, text.length)
+                                            androidx.compose.foundation.text.ClickableText(
+                                                text = subAnnotated,
+                                                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                                                onClick = { offset ->
+                                                    val realOffset = lastIndex + offset
+                                                    annotated.getStringAnnotations("URL", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                                        val url = ann.item
+                                                        val linkPart = itemParts.filterIsInstance<InlinePart.Link>().find { link ->
+                                                            url == link.url
+                                                        }
+                                                        if (linkPart != null) {
+                                                            if (linkPart.postId != null) {
+                                                                navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                                            } else if (!isOffline && linkPart.url.startsWith("http")) {
+                                                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(linkPart.url))
+                                                                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                                try {
+                                                                    navController.context.startActivity(intent)
+                                                                } catch (e: Exception) {
+                                                                    timber.log.Timber.e(e, "Chyba při otevírání odkazu")
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    annotated.getStringAnnotations("ADDENDUM", realOffset, realOffset).firstOrNull()?.let { ann ->
+                                                        val addendumId = ann.item.toIntOrNull()
+                                                        if (addendumId != null) {
+                                                            val addendum = addendums.find { it.id == addendumId }
+                                                            if (addendum != null) {
+                                                                onAddendumSelected(addendum)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -250,14 +632,7 @@ fun ContentRenderer(
                     }
                 }
                 is ContentElement.AddendumReference -> {
-                    val addendum = addendums.find { it.id == element.addendumId }
-                    if (addendum != null) {
-                        androidx.compose.material3.IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(32.dp)) {
-                            Icon(imageVector = Icons.Default.Help, contentDescription = "Zobrazit dodatek", tint = androidx.compose.material3.MaterialTheme.colorScheme.primary)
-                        }
-                    } else {
-                        Text(text = "[Dodatek #${element.addendumId}]", style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    // NEZOBRAZUJEME NIC, inline tlačítka jsou řešena jinde
                 }
             }
         }
@@ -286,6 +661,11 @@ fun ContentRenderer(
                         append(part.text)
                         addStyle(SpanStyle(color = androidx.compose.material3.MaterialTheme.colorScheme.primary, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline), start, start + part.text.length)
                         addStringAnnotation("URL", part.url, start, start + part.text.length)
+                    }
+                    is InlinePart.Addendum -> {
+                        val start = length
+                        append("\uFFFC") // object replacement char for inline composable
+                        addStringAnnotation("ADDENDUM", part.addendumId.toString(), start, start + 1)
                     }
                 }
             }
