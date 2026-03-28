@@ -155,34 +155,17 @@ fun getSubjectColorByName(subjectName: String): Color {
 
 @Composable
 fun getSubjectColor(colorType: SubjectColorType): Color {
-    val isDarkTheme = isSystemInDarkTheme()
 
-    return if (isDarkTheme) {
-        // Šedější barvy pro tmavý režim
-        when (colorType) {
-            SubjectColorType.PRIMARY -> Color(0xFF9E9E9E)
-            SubjectColorType.SECONDARY -> Color(0xFF757575)
-            SubjectColorType.TERTIARY -> Color(0xFF616161)
-            SubjectColorType.ERROR -> Color(0xFF8C8C8C)
-            SubjectColorType.OUTLINE -> Color(0xFF666666)
-            SubjectColorType.PRIMARY_CONTAINER -> Color(0xFF7C7C7C)
-            SubjectColorType.SECONDARY_CONTAINER -> Color(0xFF696969)
-            SubjectColorType.TERTIARY_CONTAINER -> Color(0xFF545454)
-            SubjectColorType.SURFACE_VARIANT -> Color(0xFF424242)
-        }
-    } else {
-        // Barvy podle názvu předmětů pro světlý režim
-        when (colorType) {
-            SubjectColorType.PRIMARY -> Color(0xFF2196F3)        // Mluvnice - Modrá
-            SubjectColorType.SECONDARY -> Color(0xFF8B4513)      // Literatura - Hnědá
-            SubjectColorType.TERTIARY -> Color(0xFFFF9800)       // Sloh - Oranžová
-            SubjectColorType.PRIMARY_CONTAINER -> Color(0xFF9C27B0)     // Hudební výchova - Fialová
-            SubjectColorType.SECONDARY_CONTAINER -> Color(0xFF1976D2)   // Matematika - Tmavě modrá
-            SubjectColorType.ERROR -> Color(0xFFF44336)          // Chemie - Červená
-            SubjectColorType.TERTIARY_CONTAINER -> Color(0xFF607D8B)    // Fyzika - Modro-šedá
-            SubjectColorType.OUTLINE -> Color(0xFF4CAF50)        // Přírodopis - Zelená
-            SubjectColorType.SURFACE_VARIANT -> Color(0xFF795548)       // Zeměpis - Hnědá
-        }
+    return when (colorType) {
+        SubjectColorType.PRIMARY -> Color(0xFF2196F3)        // Mluvnice - Modrá
+        SubjectColorType.SECONDARY -> Color(0xFF8B4513)      // Literatura - Hnědá
+        SubjectColorType.TERTIARY -> Color(0xFFFF9800)       // Sloh - Oranžová
+        SubjectColorType.PRIMARY_CONTAINER -> Color(0xFF9C27B0)     // Hudební výchova - Fialová
+        SubjectColorType.SECONDARY_CONTAINER -> Color(0xFF1976D2)   // Matematika - Tmavě modrá
+        SubjectColorType.ERROR -> Color(0xFFF44336)          // Chemie - Červená
+        SubjectColorType.TERTIARY_CONTAINER -> Color(0xFF607D8B)    // Fyzika - Modro-šedá
+        SubjectColorType.OUTLINE -> Color(0xFF4CAF50)        // Přírodopis - Zelená
+        SubjectColorType.SURFACE_VARIANT -> Color(0xFF795548)       // Zeměpis - Hnědá
     }
 }
 
@@ -197,10 +180,10 @@ fun HomeScreen(navController: NavHostController) {
         Subject("Sloh", Icons.Default.Description, SubjectColorType.TERTIARY, "Tvorba textů a slohové útvary"),
         Subject("Hudební výchova", Icons.Default.LibraryMusic, SubjectColorType.PRIMARY_CONTAINER, "Hudební teorie, autoři, žánry, písně, díla a dějiny"),
         Subject("Matematika", Icons.Default.Calculate, SubjectColorType.SECONDARY_CONTAINER, "Algebra a geometrie"),
-        Subject("Chemie", Icons.Default.Science, SubjectColorType.ERROR, "Tělesa, látky, zákony, prvky a sloučeniny"),
-        Subject("Fyzika", Icons.Default.PrecisionManufacturing, SubjectColorType.TERTIARY_CONTAINER, "Zákony fyziky, elektřina, radioaktivita, veličiny, stroje a světlo"),
-        Subject("Přírodopis", Icons.Default.Eco, SubjectColorType.OUTLINE, "Lidské tělo, minerály a horniny"),
-        Subject("Zeměpis", Icons.Default.Public, SubjectColorType.SURFACE_VARIANT, "Vše o povrchu, obyvatelstvu, hospodářství a ochraně přírody ČR"),
+        Subject("Chemie", Icons.Default.Science, SubjectColorType.ERROR, "Tělesa, látky, zákony, prvky, sloučeniny a názvosloví"),
+        Subject("Fyzika", Icons.Default.PrecisionManufacturing, SubjectColorType.TERTIARY_CONTAINER, "Zákony fyziky, jevy, veličiny, stroje a světlo"),
+        Subject("Přírodopis", Icons.Default.Eco, SubjectColorType.OUTLINE, "Lidské tělo, minerály, horniny a geologie"),
+        Subject("Zeměpis", Icons.Default.Public, SubjectColorType.SURFACE_VARIANT, "Vše o ČR a globálních tématech"),
     )
     val context = LocalContext.current
     val columnCount = getColumnCount()
