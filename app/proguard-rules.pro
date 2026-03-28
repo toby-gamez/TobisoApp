@@ -168,7 +168,7 @@
 # SUPPRESS WARNINGS
 # =================================
 
-dontwarn sun.misc.Unsafe
+-dontwarn sun.misc.Unsafe
 # Removed gson internal warnings after migrating to kotlinx.serialization
 # =================================
 # DODATEČNÁ PRAVIDLA PRO MEDIA
