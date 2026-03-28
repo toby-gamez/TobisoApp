@@ -67,7 +67,7 @@ class UpdaterViewModel @Inject constructor(application: Application) : AndroidVi
     }
 
     private suspend fun fetchLatestVersionFromGithub(): ReleaseInfo = withContext(Dispatchers.IO) {
-        val url = URL("https://api.github.com/repos/toby-gamez/TobisoAppNative/releases/latest")
+        val url = URL("https://api.github.com/repositories/1041297894/releases/latest")
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         connection.connectTimeout = 5000
