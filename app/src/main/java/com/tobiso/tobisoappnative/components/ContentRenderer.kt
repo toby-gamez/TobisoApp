@@ -603,6 +603,8 @@ fun ContentRenderer(
                             Text("Video", color = androidx.compose.material3.MaterialTheme.colorScheme.primary)
                         }
                     }
+                    // Zabráníme zobrazení jakéhokoliv dalšího textu po videu
+                    return@forEach
                 }
                 is ContentElement.ClickableLink -> {
                     val linkText = element.text.trim()

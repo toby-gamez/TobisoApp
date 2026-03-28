@@ -150,12 +150,23 @@ fun parseContentToElements(
             i++
             continue
         }
-        // Video <video src="...">
-        val videoMatch = Regex("<video[^>]*src=\"([^\"]+)\"[^>]*>").find(line)
-        if (videoMatch != null) {
-            val videoUrl = videoMatch.groupValues[1]
+        // Video <video src="..."> ... </video>
+        val videoTagMatch = Regex("<video[^>]*src=\"([^\"]+)\"[^>]*>").find(line)
+        if (videoTagMatch != null) {
+            val videoUrl = videoTagMatch.groupValues[1]
             elements.add(ContentElement.VideoPlayer(videoUrl, null))
-            i++
+            // Najdi případný uzavírací tag </video> a přeskoč vše až do něj
+            if (line.contains("</video>")) {
+                i++ // pouze jeden řádek s <video>...</video>
+            } else {
+                i++
+                while (i < lines.size && !lines[i].contains("</video>")) {
+                    i++
+                }
+                if (i < lines.size && lines[i].contains("</video>")) {
+                    i++ // přeskoč řádek s </video>
+                }
+            }
             continue
         }
         // Dodatek (--DOD-číslo--)
