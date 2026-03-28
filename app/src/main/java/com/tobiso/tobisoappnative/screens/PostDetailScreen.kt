@@ -473,15 +473,6 @@ fun PostDetailScreen(
                                         )
                                     }
                                 }
-                                item {
-                                    Spacer(modifier = Modifier.height(48.dp))
-                                    Text(
-                                        text = "DEBUG ContentElements:\n" + contentElements.joinToString("\n") { it.toString() },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.padding(8.dp)
-                                    )
-                                }
                             }
                     }
                 }

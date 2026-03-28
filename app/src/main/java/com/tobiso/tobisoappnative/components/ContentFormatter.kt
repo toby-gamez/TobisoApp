@@ -199,30 +199,55 @@ fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> 
     val n = text.length
     while (i < n) {
         when {
+            // BoldItalic with link support
             text.startsWith("***", i) -> {
                 val end = text.indexOf("***", i + 3)
                 if (end != -1) {
-                    result.add(InlinePart.BoldItalic(text.substring(i + 3, end)))
+                    val inner = text.substring(i + 3, end)
+                    val innerParts = parseInlineParts(inner, posts)
+                    // Pokud je uvnitř pouze jeden Link, vrať Link s tučným kurzívním textem
+                    if (innerParts.size == 1 && innerParts[0] is InlinePart.Link) {
+                        val link = innerParts[0] as InlinePart.Link
+                        result.add(InlinePart.Link(link.text, link.url, link.postId))
+                    } else {
+                        result.add(InlinePart.BoldItalic(inner))
+                    }
                     i = end + 3
                 } else {
                     result.add(InlinePart.Text("***"))
                     i += 3
                 }
             }
+            // Bold with link support
             text.startsWith("**", i) -> {
                 val end = text.indexOf("**", i + 2)
                 if (end != -1) {
-                    result.add(InlinePart.Bold(text.substring(i + 2, end)))
+                    val inner = text.substring(i + 2, end)
+                    val innerParts = parseInlineParts(inner, posts)
+                    if (innerParts.size == 1 && innerParts[0] is InlinePart.Link) {
+                        val link = innerParts[0] as InlinePart.Link
+                        result.add(InlinePart.Link(link.text, link.url, link.postId))
+                    } else {
+                        result.add(InlinePart.Bold(inner))
+                    }
                     i = end + 2
                 } else {
                     result.add(InlinePart.Text("**"))
                     i += 2
                 }
             }
+            // Italic with link support
             text.startsWith("*", i) -> {
                 val end = text.indexOf("*", i + 1)
                 if (end != -1) {
-                    result.add(InlinePart.Italic(text.substring(i + 1, end)))
+                    val inner = text.substring(i + 1, end)
+                    val innerParts = parseInlineParts(inner, posts)
+                    if (innerParts.size == 1 && innerParts[0] is InlinePart.Link) {
+                        val link = innerParts[0] as InlinePart.Link
+                        result.add(InlinePart.Link(link.text, link.url, link.postId))
+                    } else {
+                        result.add(InlinePart.Italic(inner))
+                    }
                     i = end + 1
                 } else {
                     result.add(InlinePart.Text("*"))

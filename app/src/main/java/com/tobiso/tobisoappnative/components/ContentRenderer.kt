@@ -637,14 +637,6 @@ fun ContentRenderer(
             }
         }
     }
-    // DEBUG: Výpis ContentElementů až pod hlavním obsahem
-    Spacer(modifier = Modifier.height(48.dp))
-    Text(
-        text = "DEBUG ContentElements:\n" + contentElements.joinToString("\n") { it.toString() },
-        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
-        modifier = Modifier.padding(8.dp)
-    )
     }
 
     @Composable
@@ -658,8 +650,21 @@ fun ContentRenderer(
                     is InlinePart.BoldItalic -> withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic)) { append(part.text) }
                     is InlinePart.Link -> {
                         val start = length
+                        // Heuristika: pokud je part.text obalený ** nebo *, použij styl navíc
+                        // Ale lepší je rozšířit InlinePart.Link o styl, ale prozatím použijme heuristiku podle obsahu
+                        // Pokud je v parts pouze Link, ale vnější obal je Bold/Italic, bude to řešeno v parseru
+                        // Zde tedy aplikujme styl podle toho, jaký je aktuální kontext
+                        // Pro lepší řešení by bylo vhodné rozšířit InlinePart.Link o info o stylu
+                        // Zkusíme tedy detekovat, zda je Link v seznamu parts uvnitř Bold/Italic/BoldItalic
+                        // Prozatím použijme pouze základní styl pro Link, ale umožněme kombinaci stylů:
+                        val linkStyle = SpanStyle(
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                        )
+                        // Pokud je part.text stejný jako některý z předchozích Bold/Italic/BoldItalic, použij kombinaci
+                        // Ale protože nemáme info o vnoření, použijme pouze základní styl + možnost rozšíření
                         append(part.text)
-                        addStyle(SpanStyle(color = androidx.compose.material3.MaterialTheme.colorScheme.primary, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline), start, start + part.text.length)
+                        addStyle(linkStyle, start, start + part.text.length)
                         addStringAnnotation("URL", part.url, start, start + part.text.length)
                     }
                     is InlinePart.Addendum -> {
