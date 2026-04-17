@@ -4,11 +4,7 @@
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">tobiso.com</domain>
         <domain includeSubdomains="true">www.tobiso.com</domain>
-        <!-- Certificate pinning – hashi vygenerovány 2026-03-19 pomocí get_ssl_hash.sh -->
-        <pin-set expiration="2027-03-19">
-            <pin digest="SHA-256">i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=</pin>
-            <pin digest="SHA-256">r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg=</pin>
-        </pin-set>
+        <!-- Certificate pinning removed (using system trust anchors). -->
     </domain-config>
     
     <!-- Konfigurace pro ostatní služby -->

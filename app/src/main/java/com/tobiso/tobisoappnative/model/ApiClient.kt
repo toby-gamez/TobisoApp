@@ -5,7 +5,6 @@ import com.tobiso.tobisoappnative.config.SecurityConfig
 import com.tobiso.tobisoappnative.BuildConfig
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.CertificatePinner
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -22,58 +21,8 @@ object ApiClient {
         val credentials = SecurityConfig.getApiCredentials()
         val builder = OkHttpClient.Builder()
         
-        // Certificate pinning – support configurable pins via BuildConfig.CERT_PINS
-        // When non-empty, `CERT_PINS` should contain comma-separated sha256/... fingerprints.
-        // This allows rotating pins without editing Kotlin source.
-        val pinString = try { BuildConfig.CERT_PINS } catch (e: Throwable) { "" }
-        val backupPinString = try { BuildConfig.CERT_PINS_BACKUP } catch (e: Throwable) { "" }
-        val pinnedBuilder = CertificatePinner.Builder()
-
-        fun addPinsForHost(host: String, pins: List<String>) {
-            pins.forEach { pin -> pinnedBuilder.add(host, pin) }
-        }
-
-        if (pinString.isNullOrBlank()) {
-            // Fallback to bundled pins (generated 2026-03-19)
-            addPinsForHost("tobiso.com", listOf(
-                "sha256/i0rpPYzV8YE/KbZ7yWnCBqTdW5LcUhWRXomSrxWFkEU=",
-                "sha256/r/tLBf9qkHs3KP7qtA2tjoDCw4GSKnyoxjEycJRblyg="
-            ))
-
-            // Add backup pins (from build config if provided) or a bundled CA backup pin
-            if (!backupPinString.isNullOrBlank()) {
-                backupPinString.split(',')
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-                    .forEach { pin ->
-                        addPinsForHost("tobiso.com", listOf(pin))
-                        addPinsForHost("www.tobiso.com", listOf(pin))
-                    }
-            } else {
-                // Bundled backup CA pin (fallback) — replaced with current CA public-key pin
-                addPinsForHost("tobiso.com", listOf("sha256/kZwN96eHtZftBWrOZUsd6cA4es80n3NzSk/XtYz2EqQ="))
-                addPinsForHost("www.tobiso.com", listOf("sha256/kZwN96eHtZftBWrOZUsd6cA4es80n3NzSk/XtYz2EqQ="))
-            }
-        } else {
-            pinString.split(',')
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .forEach { pin ->
-                    addPinsForHost("tobiso.com", listOf(pin))
-                    addPinsForHost("www.tobiso.com", listOf(pin))
-                }
-
-            if (!backupPinString.isNullOrBlank()) {
-                backupPinString.split(',')
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-                    .forEach { pin ->
-                        addPinsForHost("tobiso.com", listOf(pin))
-                        addPinsForHost("www.tobiso.com", listOf(pin))
-                    }
-            }
-        }
-        builder.certificatePinner(pinnedBuilder.build())
+        // Certificate pinning removed per request — use system trust anchors.
+        Timber.w("Certificate pinning disabled; using system trust anchors")
         
         // Konfigurace timeouts pro produkci
         builder.connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
