@@ -148,8 +148,8 @@ fun ElementRenderer(
                         ) {
                             for ((idxIndex, i) in visibleIndices.withIndex()) {
                                 val cell = row.getOrNull(i) ?: ""
-                                Box(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) { 
-                                    Text(text = cell, style = MaterialTheme.typography.bodyMedium)
+                                Box(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                                    RenderTableCell(cell = cell, isOffline = isOffline)
                                 }
                                 if (idxIndex < visibleIndices.size - 1) Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)))
                             }
@@ -396,6 +396,30 @@ private fun RenderImage(
                 Text(text = "Offline blocked: $isBlockedByOffline", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(start = 4.dp))
             }
         }
+    }
+}
+
+private val tableCellImageRegex = Regex("""^!\[([^\]]*)\]\(([^)]+)\)$""")
+
+@Composable
+private fun RenderTableCell(cell: String, isOffline: Boolean) {
+    val imageMatch = remember(cell) { tableCellImageRegex.matchEntire(cell.trim()) }
+    if (imageMatch != null) {
+        val alt = imageMatch.groupValues[1]
+        val url = imageMatch.groupValues[2]
+        val resolvedUrl = if (url.startsWith("http")) url else "https://files.tobiso.com/" + url.removePrefix("/")
+        val isBlocked = isOffline && resolvedUrl.contains("images/")
+        if (isBlocked) {
+            Text(text = "[${alt.ifBlank { "obrázek" }}]", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground))
+        } else {
+            AsyncImage(
+                model = resolvedUrl,
+                contentDescription = alt,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 120.dp)
+            )
+        }
+    } else {
+        Text(text = cell, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
