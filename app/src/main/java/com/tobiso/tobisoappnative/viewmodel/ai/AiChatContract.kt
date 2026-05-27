@@ -17,7 +17,8 @@ data class AiChatState(
     val isLoading: Boolean = false,
     val remainingQuestions: Int? = null,
     val error: String? = null,
-    val limitReached: Boolean = false
+    val limitReached: Boolean = false,
+    val currentSessionId: Long = -1L
 ) : UiState
 
 sealed interface AiChatIntent : UiIntent {

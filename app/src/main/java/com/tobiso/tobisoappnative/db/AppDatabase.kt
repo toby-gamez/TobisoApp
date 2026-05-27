@@ -3,6 +3,7 @@ package com.tobiso.tobisoappnative.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.tobiso.tobisoappnative.db.dao.AddendumDao
+import com.tobiso.tobisoappnative.db.dao.AiChatDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
 import com.tobiso.tobisoappnative.db.dao.ExerciseDao
@@ -11,6 +12,8 @@ import com.tobiso.tobisoappnative.db.dao.QuestionDao
 import com.tobiso.tobisoappnative.db.dao.QuestionPostDao
 import com.tobiso.tobisoappnative.db.dao.RelatedPostDao
 import com.tobiso.tobisoappnative.db.entity.AddendumEntity
+import com.tobiso.tobisoappnative.db.entity.AiChatMessageEntity
+import com.tobiso.tobisoappnative.db.entity.AiChatSessionEntity
 import com.tobiso.tobisoappnative.db.entity.CategoryEntity
 import com.tobiso.tobisoappnative.db.entity.EventEntity
 import com.tobiso.tobisoappnative.db.entity.ExerciseEntity
@@ -28,9 +31,11 @@ import com.tobiso.tobisoappnative.db.entity.RelatedPostEntity
         EventEntity::class,
         AddendumEntity::class,
         RelatedPostEntity::class,
-        ExerciseEntity::class
+        ExerciseEntity::class,
+        AiChatSessionEntity::class,
+        AiChatMessageEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -42,4 +47,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun addendumDao(): AddendumDao
     abstract fun relatedPostDao(): RelatedPostDao
     abstract fun exerciseDao(): ExerciseDao
+    abstract fun aiChatDao(): AiChatDao
 }

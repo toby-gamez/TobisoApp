@@ -6,6 +6,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.tobiso.tobisoappnative.db.AppDatabase
 import com.tobiso.tobisoappnative.db.dao.AddendumDao
+import com.tobiso.tobisoappnative.db.dao.AiChatDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
 import com.tobiso.tobisoappnative.db.dao.ExerciseDao
@@ -25,11 +26,33 @@ import timber.log.Timber
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    // Placeholder migration to avoid destructive fallback. Add real migrations here when schema changes.
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(database: SupportSQLiteDatabase) {
-            // No-op migration: reserved for future schema changes.
-            Timber.d("Applying migration 1->2 (no-op)")
+            database.execSQL(
+                """CREATE TABLE IF NOT EXISTS ai_chat_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    postId INTEGER NOT NULL,
+                    postTitle TEXT NOT NULL,
+                    startedAt INTEGER NOT NULL,
+                    lastMessageAt INTEGER NOT NULL,
+                    lastMessagePreview TEXT NOT NULL DEFAULT '',
+                    messageCount INTEGER NOT NULL DEFAULT 0
+                )"""
+            )
+            database.execSQL(
+                """CREATE TABLE IF NOT EXISTS ai_chat_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    sessionId INTEGER NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    FOREIGN KEY(sessionId) REFERENCES ai_chat_sessions(id) ON DELETE CASCADE
+                )"""
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_ai_chat_messages_sessionId ON ai_chat_messages(sessionId)"
+            )
+            Timber.d("Applying migration 1->2: created ai_chat_sessions and ai_chat_messages tables")
         }
     }
 
@@ -63,4 +86,7 @@ object DatabaseModule {
 
     @Provides
     fun provideExerciseDao(db: AppDatabase): ExerciseDao = db.exerciseDao()
+
+    @Provides
+    fun provideAiChatDao(db: AppDatabase): AiChatDao = db.aiChatDao()
 }

@@ -1,24 +1,68 @@
 package com.tobiso.tobisoappnative.viewmodel.ai
-import timber.log.Timber
 
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.ViewModelProvider
 import com.tobiso.tobisoappnative.base.BaseViewModel
+import com.tobiso.tobisoappnative.db.dao.AiChatDao
+import com.tobiso.tobisoappnative.db.entity.AiChatMessageEntity
+import com.tobiso.tobisoappnative.db.entity.AiChatSessionEntity
 import com.tobiso.tobisoappnative.model.AiChatMessageDto
 import com.tobiso.tobisoappnative.model.AiChatRequest
 import com.tobiso.tobisoappnative.model.ApiClient
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
+import timber.log.Timber
 
-class AiChatViewModel(
-    private val postId: Int,
-    private val firstUserMessage: String
+@HiltViewModel(assistedFactory = AiChatViewModel.Factory::class)
+class AiChatViewModel @AssistedInject constructor(
+    @Assisted val postId: Int,
+    @Assisted("postTitle") val postTitle: String,
+    @Assisted("firstUserMessage") val firstUserMessage: String,
+    @Assisted val sessionId: Long,
+    private val aiChatDao: AiChatDao
 ) : BaseViewModel<AiChatState, AiChatIntent, AiChatEffect>(AiChatState()) {
 
+    @AssistedFactory
+    interface Factory {
+        fun create(
+            postId: Int,
+            @Assisted("postTitle") postTitle: String,
+            @Assisted("firstUserMessage") firstUserMessage: String,
+            sessionId: Long
+        ): AiChatViewModel
+    }
+
+    private val resolvedSessionId = CompletableDeferred<Long>()
+
     init {
-        if (firstUserMessage.isNotBlank()) {
-            onIntent(AiChatIntent.SendMessage(firstUserMessage))
+        if (sessionId >= 0L) {
+            resolvedSessionId.complete(sessionId)
+            viewModelScope.launch(Dispatchers.IO) {
+                val msgs = aiChatDao.getMessages(sessionId).map { ChatMessage(it.role, it.content) }
+                setState { copy(messages = msgs, currentSessionId = sessionId) }
+            }
+        } else {
+            viewModelScope.launch(Dispatchers.IO) {
+                val now = System.currentTimeMillis()
+                val sid = aiChatDao.insertSession(
+                    AiChatSessionEntity(
+                        postId = postId,
+                        postTitle = postTitle,
+                        startedAt = now,
+                        lastMessageAt = now
+                    )
+                )
+                resolvedSessionId.complete(sid)
+                setState { copy(currentSessionId = sid) }
+            }
+            if (firstUserMessage.isNotBlank()) {
+                onIntent(AiChatIntent.SendMessage(firstUserMessage))
+            }
         }
     }
 
@@ -52,6 +96,12 @@ class AiChatViewModel(
                         isLoading = false
                     )
                 }
+
+                val sid = resolvedSessionId.await()
+                val now = System.currentTimeMillis()
+                aiChatDao.insertMessage(AiChatMessageEntity(sessionId = sid, role = "user", content = trimmed, timestamp = now))
+                aiChatDao.insertMessage(AiChatMessageEntity(sessionId = sid, role = "assistant", content = response.answer, timestamp = now + 1))
+                aiChatDao.updateSession(sid, now, response.answer.take(80), currentState.messages.size)
             } catch (e: HttpException) {
                 if (e.code() == 429) {
                     setState { copy(limitReached = true, error = "Dosáhl jsi denního limitu dotazů. Zkus to zítra.", isLoading = false) }
@@ -64,14 +114,5 @@ class AiChatViewModel(
                 Timber.e(e, "Error asking AI")
             }
         }
-    }
-
-    class Factory(
-        private val postId: Int,
-        private val firstUserMessage: String
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            AiChatViewModel(postId, firstUserMessage) as T
     }
 }

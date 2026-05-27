@@ -32,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.navigation.NavDestination.Companion.hasRoute
 import com.tobiso.tobisoappnative.navigation.BOTTOM_BAR_ROUTES
+import com.tobiso.tobisoappnative.navigation.AiChatHistoryRoute
 import com.tobiso.tobisoappnative.navigation.AiChatRoute
 import com.tobiso.tobisoappnative.navigation.AllQuestionsRoute
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
@@ -481,8 +482,17 @@ fun TobisoApp(navigateTo: String? = null) {
                                     postId = route.postId,
                                     postTitle = route.postTitle,
                                     firstUserMessage = route.firstUserMessage,
+                                    sessionId = route.sessionId,
                                     navController = navController
                                 )
+                            }
+                            composable<AiChatHistoryRoute>(
+                                enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
+                                exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
+                                popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
+                                popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
+                            ) {
+                                com.tobiso.tobisoappnative.screens.AiChatHistoryScreen(navController = navController)
                             }
                         }
                     }

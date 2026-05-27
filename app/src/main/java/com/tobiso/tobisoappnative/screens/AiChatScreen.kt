@@ -22,7 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.ai.AiChatViewModel
 import com.tobiso.tobisoappnative.viewmodel.ai.AiChatIntent
@@ -36,11 +36,14 @@ fun AiChatScreen(
     postId: Int,
     postTitle: String,
     firstUserMessage: String,
-    navController: NavController,
-    vm: AiChatViewModel = viewModel(
-        factory = AiChatViewModel.Factory(postId, Uri.decode(firstUserMessage))
-    )
+    sessionId: Long = -1L,
+    navController: NavController
 ) {
+    val vm: AiChatViewModel = hiltViewModel<AiChatViewModel, AiChatViewModel.Factory>(
+        creationCallback = { factory ->
+            factory.create(postId, postTitle, Uri.decode(firstUserMessage), sessionId)
+        }
+    )
     val state by vm.uiState.collectAsState()
     val messages = state.messages
     val isLoading = state.isLoading
@@ -53,8 +56,16 @@ fun AiChatScreen(
     val scope = rememberCoroutineScope()
     var animatedIndices by remember { mutableStateOf(emptySet<Int>()) }
 
-    // Scroll na konec při nové zprávě
+    // For resumed sessions, messages from DB load asynchronously.
+    // Int.MAX_VALUE means "no new messages yet" — nothing animates.
+    // Once DB messages arrive, this is set to their count so only subsequent messages animate.
+    var newMessagesStartIndex by remember {
+        mutableStateOf(if (sessionId < 0L) 0 else Int.MAX_VALUE)
+    }
     LaunchedEffect(messages.size) {
+        if (newMessagesStartIndex == Int.MAX_VALUE && messages.isNotEmpty()) {
+            newMessagesStartIndex = messages.size
+        }
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
         }
@@ -117,7 +128,7 @@ fun AiChatScreen(
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
             itemsIndexed(items = messages, key = { _, msg -> msg.id }) { index, message ->
-                val shouldAnimate = message.role == "assistant" && index !in animatedIndices
+                val shouldAnimate = message.role == "assistant" && index >= newMessagesStartIndex && index !in animatedIndices
                 ChatBubble(
                     message = message,
                     animate = shouldAnimate,

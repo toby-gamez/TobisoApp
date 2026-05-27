@@ -75,7 +75,15 @@ object ShopRoute
 object BackpackRoute
 
 @Serializable
-data class AiChatRoute(val postId: Int, val postTitle: String, val firstUserMessage: String)
+data class AiChatRoute(
+    val postId: Int,
+    val postTitle: String,
+    val firstUserMessage: String,
+    val sessionId: Long = -1L
+)
+
+@Serializable
+object AiChatHistoryRoute
 
 /**
  * Routes where the bottom navigation bar should be visible.

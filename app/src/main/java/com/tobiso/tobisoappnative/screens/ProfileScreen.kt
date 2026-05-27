@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.navigation.AiChatHistoryRoute
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
 import com.tobiso.tobisoappnative.navigation.ShopRoute
 import com.tobiso.tobisoappnative.navigation.StreakRoute
@@ -288,6 +289,21 @@ fun ProfileScreen(navController: NavController) {
                         Column(Modifier.padding(16.dp)) {
                             Text("Oblíbené", style = MaterialTheme.typography.titleMedium)
                             Text("Tvé uložené útržky a články, které nevyuživáš. :(", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+
+                item(span = { GridItemSpan(1) }) {
+                    Card(
+                        modifier = cardModifier,
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { navController.navigate(AiChatHistoryRoute) }
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Nedávné AI chaty", style = MaterialTheme.typography.titleMedium)
+                            Text("Prohlédni si nebo pokračuj v předchozích konverzacích s AI asistentem.", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
