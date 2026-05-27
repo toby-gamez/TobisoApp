@@ -36,6 +36,8 @@ sealed class InlinePart {
     data class BoldItalic(val text: String) : InlinePart()
     data class Link(val text: String, val url: String, val postId: Int?) : InlinePart()
     data class Addendum(val addendumId: Int) : InlinePart()
+    data class Strikethrough(val parts: List<InlinePart>) : InlinePart()
+    data class Fraction(val numerator: List<InlinePart>, val denominator: List<InlinePart>) : InlinePart()
 }
 
 
@@ -412,16 +414,120 @@ fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> 
                     i += 1
                 }
             }
+            // Strikethrough #s#...#s#
+            text.startsWith("#s#", i) -> {
+                val end = text.indexOf("#s#", i + 3)
+                if (end != -1) {
+                    result.add(InlinePart.Strikethrough(parseInlineParts(text.substring(i + 3, end), posts)))
+                    i = end + 3
+                } else {
+                    result.add(InlinePart.Text("#s#"))
+                    i += 3
+                }
+            }
+            // Fraction — supports {num}/{den}, {num}/token, token/{den}, token/token
+            text.startsWith("{", i) -> {
+                if (i > 0 && text[i - 1] == '/') {
+                    // token/{den} — numerator is the trailing token of the last Text part
+                    val closingIdx = text.indexOf("}", i + 1)
+                    if (closingIdx != -1) {
+                        val numStr = run {
+                            val lastText = result.lastOrNull() as? InlinePart.Text ?: return@run ""
+                            val beforeSlash = lastText.text.dropLast(1)
+                            val spaceIdx = beforeSlash.indexOfLast { it.isWhitespace() }
+                            val num = if (spaceIdx == -1) beforeSlash else beforeSlash.substring(spaceIdx + 1)
+                            val prefix = if (spaceIdx == -1) "" else beforeSlash.substring(0, spaceIdx + 1)
+                            result.removeLast()
+                            if (prefix.isNotEmpty()) result.add(InlinePart.Text(prefix))
+                            num
+                        }
+                        result.add(InlinePart.Fraction(
+                            numerator = parseInlineParts(numStr, posts),
+                            denominator = parseInlineParts(text.substring(i + 1, closingIdx), posts)
+                        ))
+                        i = closingIdx + 1
+                    } else {
+                        result.add(InlinePart.Text("{"))
+                        i += 1
+                    }
+                } else {
+                    // Find the closing brace of THIS { (not greedily searching for }/{)
+                    val closingBrace = text.indexOf("}", i + 1)
+                    if (closingBrace != -1) {
+                        val afterBrace = closingBrace + 1
+                        when {
+                            // {num}/{den}
+                            afterBrace + 1 < n && text[afterBrace] == '/' && text[afterBrace + 1] == '{' -> {
+                                val denClosing = text.indexOf("}", afterBrace + 2)
+                                if (denClosing != -1) {
+                                    result.add(InlinePart.Fraction(
+                                        numerator = parseInlineParts(text.substring(i + 1, closingBrace), posts),
+                                        denominator = parseInlineParts(text.substring(afterBrace + 2, denClosing), posts)
+                                    ))
+                                    i = denClosing + 1
+                                } else {
+                                    result.add(InlinePart.Text("{"))
+                                    i += 1
+                                }
+                            }
+                            // {num}/token
+                            afterBrace < n && text[afterBrace] == '/' &&
+                            afterBrace + 1 < n && text[afterBrace + 1] != '{' && !text[afterBrace + 1].isWhitespace() -> {
+                                val denStart = afterBrace + 1
+                                val denEnd = (denStart until n).firstOrNull { text[it].isWhitespace() } ?: n
+                                result.add(InlinePart.Fraction(
+                                    numerator = parseInlineParts(text.substring(i + 1, closingBrace), posts),
+                                    denominator = parseInlineParts(text.substring(denStart, denEnd), posts)
+                                ))
+                                i = denEnd
+                            }
+                            else -> {
+                                result.add(InlinePart.Text("{"))
+                                i += 1
+                            }
+                        }
+                    } else {
+                        result.add(InlinePart.Text("{"))
+                        i += 1
+                    }
+                }
+            }
             else -> {
-                // Najdi další * nebo ** nebo *** nebo [ nebo (--DOD-
                 val next = listOf(
                     text.indexOf("***", i),
                     text.indexOf("**", i),
                     text.indexOf("*", i),
                     text.indexOf("[", i),
-                    text.indexOf("(--DOD-", i)
+                    text.indexOf("(--DOD-", i),
+                    text.indexOf("#s#", i),
+                    text.indexOf("{", i)
                 ).filter { it >= 0 }.minOrNull() ?: n
-                result.add(InlinePart.Text(text.substring(i, next)))
+                val chunk = text.substring(i, next)
+                // Detect plain token/token fractions (e.g. 2/2, x/1) within text runs
+                var last = 0
+                var ci = 0
+                while (ci < chunk.length) {
+                    if (chunk[ci] == '/') {
+                        val numStart = (ci - 1 downTo last).firstOrNull { !chunk[it].isLetterOrDigit() }?.let { it + 1 } ?: last
+                        val numToken = chunk.substring(numStart, ci)
+                        val denEnd = (ci + 1 until chunk.length).firstOrNull { !chunk[it].isLetterOrDigit() } ?: chunk.length
+                        val denToken = chunk.substring(ci + 1, denEnd)
+                        if (numToken.isNotEmpty() && denToken.isNotEmpty()) {
+                            if (numStart > last) result.add(InlinePart.Text(chunk.substring(last, numStart)))
+                            result.add(InlinePart.Fraction(
+                                numerator = listOf(InlinePart.Text(numToken)),
+                                denominator = listOf(InlinePart.Text(denToken))
+                            ))
+                            last = denEnd
+                            ci = denEnd
+                        } else {
+                            ci++
+                        }
+                    } else {
+                        ci++
+                    }
+                }
+                if (last < chunk.length) result.add(InlinePart.Text(chunk.substring(last)))
                 i = next
             }
         }

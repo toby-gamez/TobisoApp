@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -21,8 +22,8 @@ import androidx.compose.material3.Text
 
 @Composable
 fun InlineFraction(
-    numerator: String,
-    denominator: String,
+    numerator: AnnotatedString,
+    denominator: AnnotatedString,
     modifier: Modifier = Modifier,
     lineThickness: Dp = 1.dp
 ) {

@@ -19,9 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -205,6 +207,18 @@ private fun RenderParagraph(
     onAddendumSelected: (Addendum) -> Unit
 ) {
     val linkColor = MaterialTheme.colorScheme.primary
+    if (hasFraction(element.parts)) {
+        RenderInlinePartsRow(
+            parts = element.parts,
+            style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground),
+            linkColor = linkColor,
+            modifier = Modifier.padding(bottom = 8.dp),
+            isOffline = isOffline,
+            posts = posts,
+            navController = navController
+        )
+        return
+    }
     val annotated = remember(element.parts, linkColor) { buildAnnotatedStringFromParts(element.parts, linkColor) }
     val text = annotated.text
     val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
@@ -251,6 +265,17 @@ private fun RenderInlineText(
     onAddendumSelected: (Addendum) -> Unit
 ) {
     val linkColor = MaterialTheme.colorScheme.primary
+    if (hasFraction(element.parts)) {
+        RenderInlinePartsRow(
+            parts = element.parts,
+            style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground),
+            linkColor = linkColor,
+            isOffline = isOffline,
+            posts = posts,
+            navController = navController
+        )
+        return
+    }
     val annotated = remember(element.parts, linkColor) { buildAnnotatedStringFromParts(element.parts, linkColor) }
     val text = annotated.text
     val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
@@ -298,33 +323,45 @@ private fun RenderBulletList(
             Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = indent)) {
                 Text("•", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp, top = 2.dp))
                 val linkColor = MaterialTheme.colorScheme.primary
-                val annotated = remember(itemParts, linkColor) { buildAnnotatedStringFromParts(itemParts, linkColor) }
-                val text = annotated.text
-                val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
-                if (addendumRanges.isEmpty()) {
-                    val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
-                    if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
-                    else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f), onClick = { offset -> handleAnnotatedClick(annotated, offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                if (hasFraction(itemParts)) {
+                    RenderInlinePartsRow(
+                        parts = itemParts,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground),
+                        linkColor = linkColor,
+                        modifier = Modifier.weight(1f),
+                        isOffline = isOffline,
+                        posts = posts,
+                        navController = navController
+                    )
                 } else {
-                    Row(modifier = Modifier.weight(1f)) {
-                        var lastIndex = 0
-                        for (range in addendumRanges) {
-                            val start = range.start; val end = range.end
-                            if (lastIndex < start) {
-                                val subAnnotated = annotated.subSequence(lastIndex, start)
-                                val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                                if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
-                                else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                    val annotated = remember(itemParts, linkColor) { buildAnnotatedStringFromParts(itemParts, linkColor) }
+                    val text = annotated.text
+                    val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
+                    if (addendumRanges.isEmpty()) {
+                        val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
+                        if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
+                        else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f), onClick = { offset -> handleAnnotatedClick(annotated, offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                    } else {
+                        Row(modifier = Modifier.weight(1f)) {
+                            var lastIndex = 0
+                            for (range in addendumRanges) {
+                                val start = range.start; val end = range.end
+                                if (lastIndex < start) {
+                                    val subAnnotated = annotated.subSequence(lastIndex, start)
+                                    val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
+                                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+                                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                                }
+                                val addendumId = range.item.toIntOrNull()
+                                val addendum = addendums.find { it.id == addendumId }
+                                if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Default.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
+                                lastIndex = end
                             }
-                            val addendumId = range.item.toIntOrNull()
-                            val addendum = addendums.find { it.id == addendumId }
-                            if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Default.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
-                            lastIndex = end
-                        }
                             if (lastIndex < text.length) {
                                 val subAnnotated = annotated.subSequence(lastIndex, text.length)
                                 ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
                             }
+                        }
                     }
                 }
             }
@@ -454,6 +491,72 @@ private fun handleAnnotatedClick(
     }
 }
 
+private sealed class InlineSegment {
+    data class TextGroup(val parts: List<InlinePart>) : InlineSegment()
+    data class FractionItem(val fraction: InlinePart.Fraction) : InlineSegment()
+}
+
+private fun segmentParts(parts: List<InlinePart>): List<InlineSegment> {
+    val result = mutableListOf<InlineSegment>()
+    var buffer = mutableListOf<InlinePart>()
+    for (part in parts) {
+        if (part is InlinePart.Fraction) {
+            if (buffer.isNotEmpty()) { result.add(InlineSegment.TextGroup(buffer.toList())); buffer = mutableListOf() }
+            result.add(InlineSegment.FractionItem(part))
+        } else {
+            buffer.add(part)
+        }
+    }
+    if (buffer.isNotEmpty()) result.add(InlineSegment.TextGroup(buffer.toList()))
+    return result
+}
+
+private fun hasFraction(parts: List<InlinePart>) = parts.any { it is InlinePart.Fraction }
+
+@Composable
+private fun RenderInlinePartsRow(
+    parts: List<InlinePart>,
+    style: TextStyle,
+    linkColor: Color,
+    modifier: Modifier = Modifier,
+    isOffline: Boolean = false,
+    posts: List<Post> = emptyList(),
+    navController: NavController? = null
+) {
+    val segments = remember(parts) { segmentParts(parts) }
+    FlowRow(itemVerticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = modifier) {
+        segments.forEach { segment ->
+            when (segment) {
+                is InlineSegment.TextGroup -> {
+                    val annotated = remember(segment.parts, linkColor) { buildAnnotatedStringFromParts(segment.parts, linkColor) }
+                    val urlAnnotations = annotated.getStringAnnotations("URL", 0, annotated.length)
+                    if (urlAnnotations.isEmpty() || navController == null) {
+                        Text(text = annotated, style = style)
+                    } else {
+                        ClickableText(text = annotated, style = style, onClick = { offset ->
+                            annotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
+                                val url = ann.item
+                                val linkPart = segment.parts.filterIsInstance<InlinePart.Link>().find { it.url == url }
+                                if (linkPart?.postId != null) navController.navigate(com.tobiso.tobisoappnative.navigation.PostDetailRoute(linkPart.postId))
+                                else if (!isOffline && url.startsWith("http")) {
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    try { navController.context.startActivity(intent) } catch (_: Exception) {}
+                                }
+                            }
+                        })
+                    }
+                }
+                is InlineSegment.FractionItem -> {
+                    val numAnnotated = remember(segment.fraction.numerator, linkColor) { buildAnnotatedStringFromParts(segment.fraction.numerator, linkColor) }
+                    val denAnnotated = remember(segment.fraction.denominator, linkColor) { buildAnnotatedStringFromParts(segment.fraction.denominator, linkColor) }
+                    InlineFraction(numerator = numAnnotated, denominator = denAnnotated)
+                }
+            }
+        }
+    }
+}
+
 fun buildAnnotatedStringFromParts(parts: List<InlinePart>, linkColor: Color = Color.Unspecified): AnnotatedString {
     return buildAnnotatedString {
         for (part in parts) {
@@ -473,6 +576,19 @@ fun buildAnnotatedStringFromParts(parts: List<InlinePart>, linkColor: Color = Co
                     val start = length
                     append("\uFFFC")
                     addStringAnnotation("ADDENDUM", part.addendumId.toString(), start, start + 1)
+                }
+                is InlinePart.Strikethrough -> {
+                    val start = length
+                    val inner = buildAnnotatedStringFromParts(part.parts, linkColor)
+                    append(inner)
+                    addStyle(SpanStyle(textDecoration = TextDecoration.LineThrough), start, start + inner.length)
+                }
+                is InlinePart.Fraction -> {
+                    // Fallback for contexts that can't render composables (e.g. table cells).
+                    // Proper visual rendering happens via RenderInlinePartsRow.
+                    append(buildAnnotatedStringFromParts(part.numerator, linkColor))
+                    append("/")
+                    append(buildAnnotatedStringFromParts(part.denominator, linkColor))
                 }
             }
         }
