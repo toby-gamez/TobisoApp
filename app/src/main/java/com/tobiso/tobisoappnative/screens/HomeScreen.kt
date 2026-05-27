@@ -6,6 +6,7 @@ import com.tobiso.tobisoappnative.navigation.StreakRoute
 
 import com.tobiso.tobisoappnative.R
 import com.tobiso.tobisoappnative.components.FloatingSearchBar
+import com.tobiso.tobisoappnative.components.GradeBadge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,8 +76,9 @@ fun PostListItem(
     categoryName: String,
     onClick: () -> Unit = {}
 ) {
-    val candidates = listOfNotNull(post.lastEdit, post.lastFix, post.createdAt)
+    val candidates = listOfNotNull(post.activeLastEdit, post.activeLastFix, post.createdAt)
     val latestMillis = candidates.mapNotNull { parseDateToMillis(it) }.maxOrNull()
+    val gradeName = post.activeVersion?.gradeName
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -102,11 +104,19 @@ fun PostListItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = formatDateOnly(latestMillis),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (gradeName != null) {
+                        GradeBadge(gradeName = gradeName)
+                    }
+                    Text(
+                        text = formatDateOnly(latestMillis),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

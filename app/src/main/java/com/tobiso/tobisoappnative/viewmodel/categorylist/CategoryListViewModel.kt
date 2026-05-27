@@ -4,9 +4,12 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.model.Category
+import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.Post
+import com.tobiso.tobisoappnative.model.PostSummaryResponse
 import com.tobiso.tobisoappnative.repository.FavoritesRepositoryImpl
 import com.tobiso.tobisoappnative.repository.PostsRepository
+import com.tobiso.tobisoappnative.utils.loadGradeId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +22,8 @@ import javax.inject.Inject
 data class CategoryListState(
     val categories: List<Category> = emptyList(),
     val posts: List<Post> = emptyList(),
+    val summaries: List<PostSummaryResponse> = emptyList(),
+    val grades: List<Grade> = emptyList(),
     val favoritePosts: List<Post> = emptyList(),
     val isLoading: Boolean = false,
     val isOffline: Boolean = false,
@@ -58,9 +63,10 @@ class CategoryListViewModel @Inject constructor(
 
     fun loadPosts(categoryId: Int?) {
         if (categoryId == null) return
+        val gradeId = loadGradeId(getApplication())
         viewModelScope.launch(Dispatchers.IO) {
             _state.value = _state.value.copy(isLoading = true)
-            postsRepo.getPostsByCategory(categoryId).fold(
+            postsRepo.getPostsByCategory(categoryId, gradeId).fold(
                 onSuccess = { posts ->
                     _state.value = _state.value.copy(posts = posts, isLoading = false, error = null)
                 },
@@ -72,6 +78,17 @@ class CategoryListViewModel @Inject constructor(
                     )
                 }
             )
+        }
+    }
+
+    fun loadGradesAndSummaries() {
+        viewModelScope.launch(Dispatchers.IO) {
+            postsRepo.getGrades().onSuccess { grades ->
+                _state.value = _state.value.copy(grades = grades)
+            }
+            postsRepo.getPostSummaries().onSuccess { summaries ->
+                _state.value = _state.value.copy(summaries = summaries)
+            }
         }
     }
 

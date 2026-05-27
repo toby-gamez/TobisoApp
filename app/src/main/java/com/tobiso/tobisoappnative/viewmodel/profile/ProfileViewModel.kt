@@ -3,6 +3,7 @@ package com.tobiso.tobisoappnative.viewmodel.profile
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.repository.OfflineRepositoryImpl
 import com.tobiso.tobisoappnative.repository.PostsRepository
@@ -93,5 +94,14 @@ class ProfileViewModel @Inject constructor(
 
     fun clearCopiedImagePath() {
         _copiedImagePath.value = null
+    }
+
+    private val _grades = MutableStateFlow<List<Grade>>(emptyList())
+    val grades: StateFlow<List<Grade>> = _grades
+
+    fun loadGrades() {
+        viewModelScope.launch(Dispatchers.IO) {
+            postsRepo.getGrades().onSuccess { _grades.value = it }
+        }
     }
 }

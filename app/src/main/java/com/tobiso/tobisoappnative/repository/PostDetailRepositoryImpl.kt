@@ -17,10 +17,10 @@ class PostDetailRepositoryImpl(
     private val offlineDataManager: OfflineDataManager
 ) : PostDetailRepository {
 
-    override suspend fun getPostDetail(postId: Int): Result<Post> {
+    override suspend fun getPostDetail(postId: Int, gradeId: Int?): Result<Post> {
         return try {
             if (NetworkUtils.isOnline(context)) {
-                Result.success(ApiClient.apiService.getPost(postId))
+                Result.success(ApiClient.apiService.getPost(postId, gradeId))
             } else {
                 val cached = offlineDataManager.getCachedPost(postId)
                 if (cached != null) Result.success(cached)

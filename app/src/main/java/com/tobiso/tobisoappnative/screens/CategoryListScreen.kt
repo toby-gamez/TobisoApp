@@ -19,6 +19,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.tobiso.tobisoappnative.model.Category
+import com.tobiso.tobisoappnative.model.Grade
+import com.tobiso.tobisoappnative.model.Post
+import com.tobiso.tobisoappnative.model.PostSummaryResponse
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -32,6 +35,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.TimeZone
 import com.tobiso.tobisoappnative.components.FloatingSearchBar
+import com.tobiso.tobisoappnative.components.GradeBadge
+import com.tobiso.tobisoappnative.utils.loadGradeId
 import com.tobiso.tobisoappnative.viewmodel.categorylist.CategoryListViewModel
 
 @Composable
@@ -47,9 +52,16 @@ fun CategoryListScreen(
     val categoryError = state.error
     val categoryLoading = state.isLoading
     val posts = state.posts
+    val summaries = state.summaries
+    val grades = state.grades
     val postError = state.error
     val postLoading = state.isLoading
-    LaunchedEffect(Unit) { vm.loadCategories() }
+    val context = LocalContext.current
+    val selectedGradeId = remember { loadGradeId(context) }
+    LaunchedEffect(Unit) {
+        vm.loadCategories()
+        vm.loadGradesAndSummaries()
+    }
 
     val parentCategory = categories.find { it.name == parentCategoryName }
     val filteredCategories = parentCategory?.let { parent ->
@@ -146,8 +158,13 @@ fun CategoryListScreen(
                 val filteredPosts = parentCategory?.let { parent ->
                     posts.filter { it.categoryId == parent.id }
                 } ?: emptyList()
+                val filteredSummaries = parentCategory?.let { parent ->
+                    summaries.filter { it.categoryId == parent.id }
+                } ?: emptyList()
+                val displayItems: List<Any> = if (filteredSummaries.isNotEmpty()) filteredSummaries else filteredPosts
+
                 // Zobrazení postů ke kategorii
-                if (filteredCategories.isEmpty() && filteredPosts.isEmpty()) {
+                if (filteredCategories.isEmpty() && displayItems.isEmpty()) {
                     item(span = { GridItemSpan(columns) }) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             if (postError != null) {
@@ -169,11 +186,46 @@ fun CategoryListScreen(
                         }
                     }
                 } else {
-                    items(filteredPosts) { post ->
+                    items(displayItems) { item ->
+                        val postId = when (item) {
+                            is PostSummaryResponse -> item.id
+                            is Post -> item.id
+                            else -> return@items
+                        }
+                        val postTitle = when (item) {
+                            is PostSummaryResponse -> item.title
+                            is Post -> (item as Post).title
+                            else -> ""
+                        }
+                        val lastEdit = when (item) {
+                            is PostSummaryResponse -> item.lastEdit
+                            is Post -> (item as Post).lastEdit
+                            else -> null
+                        }
+                        val lastFix = when (item) {
+                            is PostSummaryResponse -> item.lastFix
+                            is Post -> (item as Post).lastFix
+                            else -> null
+                        }
+                        val createdAt = when (item) {
+                            is Post -> (item as Post).createdAt
+                            else -> null
+                        }
+                        val gradeName = when (item) {
+                            is PostSummaryResponse -> bestMatchGradeName(item.availableGradeNames, selectedGradeId, grades)
+                            is Post -> (item as Post).activeVersion?.gradeName
+                            else -> null
+                        }
+                        val postForFavorite = when (item) {
+                            is Post -> item as Post
+                            is PostSummaryResponse -> Post(id = item.id, title = item.title, filePath = item.filePath, categoryId = item.categoryId)
+                            else -> null
+                        }
+
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { navController.navigate(PostDetailRoute(postId = post.id)) },
+                                .clickable { navController.navigate(PostDetailRoute(postId = postId)) },
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Row(
@@ -183,8 +235,7 @@ fun CategoryListScreen(
                                 Icon(Icons.Default.Description, contentDescription = "Post", modifier = Modifier.size(32.dp))
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = post.title, style = MaterialTheme.typography.titleMedium)
-                                    // Show the most recent timestamp among `lastEdit`, `lastFix`, `createdAt`
+                                    Text(text = postTitle, style = MaterialTheme.typography.titleMedium)
                                     val locale = java.util.Locale("cs", "CZ")
                                     val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
                                         timeZone = TimeZone.getTimeZone("UTC")
@@ -192,24 +243,23 @@ fun CategoryListScreen(
                                     val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
                                         timeZone = TimeZone.getDefault()
                                     }
-
-                                    val candidates = listOfNotNull(post.lastEdit, post.lastFix, post.createdAt)
+                                    val candidates = listOfNotNull(lastEdit, lastFix, createdAt)
                                     val latestDate = candidates.mapNotNull { ds ->
-                                        try {
-                                            inputFormatter.parse(ds)
-                                        } catch (e: Exception) {
-                                            null
-                                        }
+                                        try { inputFormatter.parse(ds) } catch (_: Exception) { null }
                                     }.maxOrNull()
-
                                     val formatted = latestDate?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
                                     if (formatted.isNotBlank()) {
                                         Text(text = "Upraveno: $formatted", style = MaterialTheme.typography.bodySmall)
                                     }
+                                    if (gradeName != null) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        GradeBadge(gradeName = gradeName)
+                                    }
                                 }
-                                val isFavorite = favoritePosts.any { it.id == post.id }
+                                val isFavorite = favoritePosts.any { it.id == postId }
                                 IconButton(onClick = {
-                                    if (isFavorite) vm.unsavePost(post.id) else vm.savePost(post)
+                                    if (isFavorite) vm.unsavePost(postId)
+                                    else postForFavorite?.let { vm.savePost(it) }
                                 }) {
                                     Icon(
                                         imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.Star,
@@ -224,7 +274,23 @@ fun CategoryListScreen(
                 }
             }
         }
+        }
     }
     }
+}
+
+fun bestMatchGradeName(
+    availableGradeNames: List<String>,
+    selectedGradeId: Int?,
+    grades: List<Grade>
+): String? {
+    if (availableGradeNames.isEmpty()) return null
+    if (selectedGradeId == null || grades.isEmpty()) return availableGradeNames.firstOrNull()
+    val selectedLevel = grades.find { it.id == selectedGradeId }?.level ?: return availableGradeNames.firstOrNull()
+    val withLevel = availableGradeNames.mapNotNull { name ->
+        grades.find { it.name == name }?.let { name to it.level }
     }
+    if (withLevel.isEmpty()) return availableGradeNames.firstOrNull()
+    return (withLevel.filter { it.second <= selectedLevel }.maxByOrNull { it.second }
+        ?: withLevel.maxByOrNull { it.second })?.first
 }

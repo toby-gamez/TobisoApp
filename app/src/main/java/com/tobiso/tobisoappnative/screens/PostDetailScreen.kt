@@ -97,6 +97,7 @@ import com.tobiso.tobisoappnative.components.AiInputBar
 import kotlin.math.max
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
+import com.tobiso.tobisoappnative.components.GradeBadge
 import com.tobiso.tobisoappnative.components.ContentRenderer
 import com.tobiso.tobisoappnative.components.ElementRenderer
 import com.tobiso.tobisoappnative.components.PostActionsRow
@@ -382,6 +383,10 @@ fun PostDetailScreen(
                             ) {
                                 item {
                                     Spacer(modifier = Modifier.height(4.dp))
+                                    postDetail?.activeVersion?.gradeName?.let {
+                                        GradeBadge(gradeName = it)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
                                 }
                                 item {
                                     wordCountText?.let { infoText ->

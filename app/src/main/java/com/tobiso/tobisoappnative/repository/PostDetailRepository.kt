@@ -8,7 +8,7 @@ import com.tobiso.tobisoappnative.model.RelatedPost
 import okhttp3.ResponseBody
 
 interface PostDetailRepository {
-    suspend fun getPostDetail(postId: Int): Result<Post>
+    suspend fun getPostDetail(postId: Int, gradeId: Int? = null): Result<Post>
     suspend fun getRelatedPosts(postId: Int, currentPost: Post?, allPosts: List<Post>): Result<List<RelatedPost>>
     suspend fun getAddendums(): Result<List<Addendum>>
     suspend fun getQuestionsForPost(postId: Int): Result<List<Question>>

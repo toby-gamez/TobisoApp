@@ -37,6 +37,7 @@ import kotlinx.coroutines.withContext
 import android.provider.MediaStore
 import com.tobiso.tobisoappnative.components.ContentElement
 import com.tobiso.tobisoappnative.components.parseContentToElements
+import com.tobiso.tobisoappnative.utils.loadGradeId
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -120,8 +121,9 @@ class PostDetailViewModel @Inject constructor(
     fun getTtsManager(): TtsManager = ttsManager
 
     fun loadPostDetail(postId: Int) {
+        val gradeId = loadGradeId(getApplication())
         viewModelScope.launch(Dispatchers.IO) {
-            detailRepo.getPostDetail(postId).fold(
+            detailRepo.getPostDetail(postId, gradeId).fold(
                 onSuccess = { post ->
                     _postDetail.value = post
                     _postDetailError.value = null
@@ -145,7 +147,7 @@ class PostDetailViewModel @Inject constructor(
 
     private fun computeDerivedForPost(post: Post?) {
         viewModelScope.launch(Dispatchers.Default) {
-            val content = post?.content ?: ""
+            val content = post?.activeContent ?: ""
             val parsed = try {
                 parseContentToElements(content, _isOffline.value, _posts.value)
             } catch (e: Exception) {
@@ -169,12 +171,12 @@ class PostDetailViewModel @Inject constructor(
                     try { inputFormatter.parse(ds)?.let { outputFormatter.format(it) } ?: ds } catch (_: Exception) { ds }
                 } ?: ""
 
-                val candidates = listOfNotNull(post?.lastEdit, post?.lastFix, post?.createdAt)
+                val candidates = listOfNotNull(post?.activeLastEdit, post?.activeLastFix, post?.createdAt)
                 val latest = candidates.mapNotNull { ds -> try { inputFormatter.parse(ds) } catch (_: Exception) { null } }.maxOrNull()
                 _updatedFormatted.value = latest?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
             } catch (e: Exception) {
                 _createdFormatted.value = post?.createdAt ?: ""
-                _updatedFormatted.value = post?.lastEdit ?: post?.lastFix ?: post?.createdAt ?: ""
+                _updatedFormatted.value = post?.activeLastEdit ?: post?.activeLastFix ?: post?.createdAt ?: ""
             }
         }
     }

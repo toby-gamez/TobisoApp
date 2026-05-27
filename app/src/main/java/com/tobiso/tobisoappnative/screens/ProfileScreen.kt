@@ -89,6 +89,10 @@ import com.tobiso.tobisoappnative.utils.getProfileName
 import com.tobiso.tobisoappnative.utils.saveProfileName
 import com.tobiso.tobisoappnative.utils.getProfileImageUri
 import com.tobiso.tobisoappnative.utils.saveProfileImageUri
+import com.tobiso.tobisoappnative.utils.loadGradeId
+import com.tobiso.tobisoappnative.utils.saveGradeId
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 
 // Image copying moved to ProfileViewModel to avoid IO on UI thread.
 
@@ -106,8 +110,10 @@ fun ProfileScreen(navController: NavController) {
     val otherCategoryId = 42
     val filteredPosts = posts.filter { it.categoryId == otherCategoryId }
 
+    val grades by vm.grades.collectAsState()
     LaunchedEffect(Unit) {
         vm.loadPosts(otherCategoryId)
+        vm.loadGrades()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -257,7 +263,12 @@ fun ProfileScreen(navController: NavController) {
                 item(span = { GridItemSpan(gridColumns) }) {
                     EquippedQuoteSection(navController = navController)
                 }
-                
+
+                // Výběr ročníku
+                item(span = { GridItemSpan(gridColumns) }) {
+                    GradeSelectorSection(grades = grades)
+                }
+
                 // Úspěchy
                 item(span = { GridItemSpan(gridColumns) }) {
                     AchievementsSection()
@@ -1333,6 +1344,63 @@ fun BadgeCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+@Composable
+fun GradeSelectorSection(grades: List<com.tobiso.tobisoappnative.model.Grade>) {
+    val context = LocalContext.current
+    var selectedGradeId by remember { mutableStateOf(loadGradeId(context)) }
+
+    LaunchedEffect(grades) {
+        if (selectedGradeId == null && grades.isNotEmpty()) {
+            val default = grades.find { it.level == 9 } ?: grades.last()
+            selectedGradeId = default.id
+            saveGradeId(context, default.id)
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(
+                text = "Ročník",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Zobrazí obsah přizpůsobený vybranému ročníku",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            if (grades.isEmpty()) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            } else {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    grades.forEach { grade ->
+                        FilterChip(
+                            selected = selectedGradeId == grade.id,
+                            onClick = {
+                                selectedGradeId = grade.id
+                                saveGradeId(context, grade.id)
+                            },
+                            label = { Text(grade.name) }
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -3,8 +3,10 @@ package com.tobiso.tobisoappnative.repository
 import android.content.Context
 import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.Category
+import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.model.Post
+import com.tobiso.tobisoappnative.model.PostSummaryResponse
 import com.tobiso.tobisoappnative.utils.NetworkUtils
 
 class PostsRepositoryImpl(
@@ -32,9 +34,9 @@ class PostsRepositoryImpl(
         }
     }
 
-    override suspend fun getPostsByCategory(categoryId: Int?): Result<List<Post>> {
+    override suspend fun getPostsByCategory(categoryId: Int?, gradeId: Int?): Result<List<Post>> {
         return try {
-            if (offlineDataManager.isCacheFresh(OfflineDataManager.CACHE_FRESHNESS_MINUTES)) {
+            if (gradeId == null && offlineDataManager.isCacheFresh(OfflineDataManager.CACHE_FRESHNESS_MINUTES)) {
                 val cached = if (categoryId != null)
                     offlineDataManager.getCachedPostsByCategory(categoryId)
                 else
@@ -42,7 +44,7 @@ class PostsRepositoryImpl(
                 if (cached != null) return Result.success(cached)
             }
             if (NetworkUtils.isOnline(context)) {
-                Result.success(ApiClient.apiService.getPosts(categoryId).toList())
+                Result.success(ApiClient.apiService.getPosts(categoryId, gradeId).toList())
             } else {
                 val cached = if (categoryId != null)
                     offlineDataManager.getCachedPostsByCategory(categoryId)
@@ -61,10 +63,10 @@ class PostsRepositoryImpl(
         }
     }
 
-    override suspend fun getPost(postId: Int): Result<Post> {
+    override suspend fun getPost(postId: Int, gradeId: Int?): Result<Post> {
         return try {
             if (NetworkUtils.isOnline(context)) {
-                Result.success(ApiClient.apiService.getPost(postId))
+                Result.success(ApiClient.apiService.getPost(postId, gradeId))
             } else {
                 val cached = offlineDataManager.getCachedPost(postId)
                 if (cached != null) Result.success(cached)
@@ -74,6 +76,22 @@ class PostsRepositoryImpl(
             val cached = offlineDataManager.getCachedPost(postId)
             if (cached != null) Result.success(cached)
             else Result.failure(e)
+        }
+    }
+
+    override suspend fun getPostSummaries(): Result<List<PostSummaryResponse>> {
+        return try {
+            Result.success(ApiClient.apiService.getPostSummaries().toList())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getGrades(): Result<List<Grade>> {
+        return try {
+            Result.success(ApiClient.apiService.getGrades().toList())
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

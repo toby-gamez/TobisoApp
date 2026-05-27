@@ -13,13 +13,25 @@ interface ApiService {
     suspend fun getCategories(): List<Category>
 
     @GET("pages")
-    suspend fun getPosts(@Query("categoryId") categoryId: Int? = null): List<Post>
+    suspend fun getPosts(
+        @Query("categoryId") categoryId: Int? = null,
+        @Query("gradeId") gradeId: Int? = null
+    ): List<Post>
 
     @GET("pages/links")
     suspend fun getPostLinks(): List<PostLink>
 
     @GET("pages/{id}")
-    suspend fun getPost(@Path("id") id: Int): Post
+    suspend fun getPost(
+        @Path("id") id: Int,
+        @Query("gradeId") gradeId: Int? = null
+    ): Post
+
+    @GET("Grades")
+    suspend fun getGrades(): List<Grade>
+
+    @GET("Posts/summaries")
+    suspend fun getPostSummaries(): List<PostSummaryResponse>
 
     @GET("Questions/post/{postId}")
     suspend fun getQuestionsByPostId(@Path("postId") postId: Int): List<Question>

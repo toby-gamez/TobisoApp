@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import com.tobiso.tobisoappnative.utils.parseDateToMillis
+import com.tobiso.tobisoappnative.utils.loadGradeId
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.Category
 import javax.inject.Inject
@@ -30,13 +31,14 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun load() {
+        val gradeId = loadGradeId(getApplication())
         viewModelScope.launch(Dispatchers.IO) {
             setState { copy(isLoading = true) }
             postsRepo.getCategories().fold(
                 onSuccess = { cats -> setState { copy(categories = cats, isOffline = false) } },
                 onFailure = { e -> setState { copy(isOffline = true, error = e.message) } }
             )
-            postsRepo.getPostsByCategory(null).fold(
+            postsRepo.getPostsByCategory(null, gradeId).fold(
                 onSuccess = { posts -> setState { copy(posts = posts) } },
                 onFailure = { /* categories error already set */ }
             )
