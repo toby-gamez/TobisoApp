@@ -6,8 +6,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.QuestionProgressManager
 import com.tobiso.tobisoappnative.model.Category
+import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.Question
+import com.tobiso.tobisoappnative.repository.ExerciseRepository
 import com.tobiso.tobisoappnative.repository.OfflineRepositoryImpl
 import com.tobiso.tobisoappnative.repository.PostsRepository
 import com.tobiso.tobisoappnative.repository.QuestionsRepository
@@ -32,6 +34,7 @@ class AllQuestionsViewModel @Inject constructor(
     application: Application,
     private val questionsRepo: QuestionsRepository,
     private val postsRepo: PostsRepository,
+    private val exerciseRepo: ExerciseRepository,
     private val offlineRepo: OfflineRepositoryImpl
 ) : AndroidViewModel(application) {
 
@@ -75,6 +78,10 @@ class AllQuestionsViewModel @Inject constructor(
     private val _categoryQuestionIdsMap = MutableStateFlow<Map<Int, List<Int>>>(emptyMap())
     val categoryQuestionIdsMap: StateFlow<Map<Int, List<Int>>> = _categoryQuestionIdsMap
 
+    // categoryId → exercises for that category
+    private val _categoryExercisesMap = MutableStateFlow<Map<Int, List<InteractiveExerciseResponse>>>(emptyMap())
+    val categoryExercisesMap: StateFlow<Map<Int, List<InteractiveExerciseResponse>>> = _categoryExercisesMap
+
     fun loadCategories() {
         viewModelScope.launch(Dispatchers.IO) {
             postsRepo.getCategories().onSuccess { cats ->
@@ -99,6 +106,8 @@ class AllQuestionsViewModel @Inject constructor(
                     val cats = _categories.value
                     recomputeCategoryMap(questions, posts, cats)
                     computeWeakCategories(cats, _categoryQuestionIdsMap.value)
+                    val exercises = exerciseRepo.getAllExercises(posts.map { it.id })
+                    buildCategoryExercisesMap(exercises)
                 },
                 onFailure = { e ->
                     _allQuestionsError.value = e.message
@@ -151,6 +160,16 @@ class AllQuestionsViewModel @Inject constructor(
             System.currentTimeMillis() / 86_400_000L
         }
         return _allQuestions.value.map { it.id }.shuffled(java.util.Random(seed)).take(count)
+    }
+
+    private fun buildCategoryExercisesMap(exercises: List<InteractiveExerciseResponse>) {
+        val map = mutableMapOf<Int, MutableList<InteractiveExerciseResponse>>()
+        exercises.filter { it.isActive != false }.forEach { ex ->
+            ex.categoryIds?.forEach { catId ->
+                map.getOrPut(catId) { mutableListOf() }.add(ex)
+            }
+        }
+        _categoryExercisesMap.value = map
     }
 
     private fun recomputeCategoryMap(

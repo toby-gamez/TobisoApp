@@ -174,7 +174,7 @@ fun HomeScreen(navController: NavHostController) {
     val subjects = remember(categories) {
         val rootCategories = categories.filter { it.parentId == null }
         rootCategories.mapIndexed { index, cat ->
-            Subject(cat.name, cat.fullPath ?: cat.name, subjectColors[index % subjectColors.size])
+            Subject(cat.name, cat.description ?: "", subjectColors[index % subjectColors.size])
         }
     }
     var selectedSubjectId by remember { mutableStateOf<Int?>(null) }
@@ -492,11 +492,13 @@ fun SubjectCard(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = subject.text,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (subject.text.isNotEmpty()) {
+                    Text(
+                        text = subject.text,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

@@ -1,12 +1,15 @@
 package com.tobiso.tobisoappnative.repository
 
+import android.content.Context
 import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.ExerciseValidationResult
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.model.ValidateSolutionRequest
 import com.tobiso.tobisoappnative.utils.NetworkUtils
-import android.content.Context
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 class ExerciseRepositoryImpl(
     private val context: Context,
@@ -29,6 +32,26 @@ class ExerciseRepositoryImpl(
             if (cached != null) Result.success(cached)
             else Result.failure(IllegalStateException("Cvičení není dostupné v offline režimu"))
         }
+    }
+
+    override suspend fun getAllExercises(postIds: List<Int>): List<InteractiveExerciseResponse> {
+        if (NetworkUtils.isOnline(context) && postIds.isNotEmpty()) {
+            return try {
+                val fetched = coroutineScope {
+                    postIds.map { postId ->
+                        async {
+                            runCatching { ApiClient.apiService.getExercisesByPostId(postId) }
+                                .getOrElse { emptyList() }
+                        }
+                    }.awaitAll()
+                }.flatten().distinctBy { it.id }
+                if (fetched.isNotEmpty()) offlineDataManager.upsertExercises(fetched)
+                fetched
+            } catch (e: Exception) {
+                offlineDataManager.getCachedExercises() ?: emptyList()
+            }
+        }
+        return offlineDataManager.getCachedExercises() ?: emptyList()
     }
 
     override suspend fun validateExercise(

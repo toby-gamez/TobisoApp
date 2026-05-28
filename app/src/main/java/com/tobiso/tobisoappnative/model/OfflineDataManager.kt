@@ -327,6 +327,26 @@ class OfflineDataManager(
             }
         }
 
+    suspend fun upsertExercises(exercises: List<InteractiveExerciseResponse>) =
+        withContext(Dispatchers.IO) {
+            try {
+                val entities = exercises.mapNotNull { runCatching { it.toEntity() }.getOrNull() }
+                exerciseDao.insertAll(entities)
+                exercisePostDao.insertAll(entities.flatMap { entity ->
+                    entity.postIdsJson?.let { raw ->
+                        runCatching { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(raw) }.getOrElse { emptyList() }
+                    }.orEmpty().map { postId -> ExercisePostEntity(entity.id, postId) }
+                })
+                exerciseCategoryDao.insertAll(entities.flatMap { entity ->
+                    entity.categoryIdsJson?.let { raw ->
+                        runCatching { kotlinx.serialization.json.Json.decodeFromString<List<Int>>(raw) }.getOrElse { emptyList() }
+                    }.orEmpty().map { catId -> ExerciseCategoryEntity(entity.id, catId) }
+                })
+            } catch (e: Exception) {
+                Timber.e(e, "Error upserting exercises")
+            }
+        }
+
     suspend fun getCachedExercise(exerciseId: Int): InteractiveExerciseResponse? =
         withContext(Dispatchers.IO) {
             try {

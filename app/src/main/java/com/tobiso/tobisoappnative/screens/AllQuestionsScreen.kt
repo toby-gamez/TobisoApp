@@ -32,6 +32,11 @@ import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.QuestionProgressManager
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
+import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
+import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseMatchingRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
 import com.tobiso.tobisoappnative.navigation.MixedQuizRoute
 import com.tobiso.tobisoappnative.navigation.StreakRoute
 import com.tobiso.tobisoappnative.utils.StreakUtils
@@ -50,6 +55,7 @@ fun AllQuestionsScreen(navController: NavController) {
     val categories by vm.categories.collectAsState()
     val weakCategories by vm.weakCategories.collectAsState()
     val categoryQuestionIdsMap by vm.categoryQuestionIdsMap.collectAsState()
+    val categoryExercisesMap by vm.categoryExercisesMap.collectAsState()
 
     var isRefreshing by remember { mutableStateOf(false) }
     var showTotalOverlay by remember { mutableStateOf(false) }
@@ -198,6 +204,7 @@ fun AllQuestionsScreen(navController: NavController) {
                         categories = categories,
                         weakCategories = weakCategories,
                         categoryQuestionIdsMap = categoryQuestionIdsMap,
+                        categoryExercisesMap = categoryExercisesMap,
                         navController = navController
                     )
                 }
@@ -214,6 +221,7 @@ private fun PracticeHubContent(
     categories: List<com.tobiso.tobisoappnative.model.Category>,
     weakCategories: List<WeakCategory>,
     categoryQuestionIdsMap: Map<Int, List<Int>>,
+    categoryExercisesMap: Map<Int, List<InteractiveExerciseResponse>>,
     navController: NavController
 ) {
     val rootCategories = remember(categories, categoryQuestionIdsMap) {
@@ -241,11 +249,18 @@ private fun PracticeHubContent(
                     allQuestionIds = allIds,
                     subcategories = categories.filter { it.parentId == cat.id },
                     categoryQuestionIdsMap = categoryQuestionIdsMap,
+                    categoryExercisesMap = categoryExercisesMap,
                     allCategories = categories,
                     onLaunch = { ids ->
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             sheetCategoryId = null
                             navController.navigate(MixedQuizRoute(ids.joinToString(",")))
+                        }
+                    },
+                    onNavigateExercise = { exercise ->
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            sheetCategoryId = null
+                            navigateToExercise(navController, exercise)
                         }
                     }
                 )
@@ -330,8 +345,10 @@ private fun TopicSheet(
     allQuestionIds: List<Int>,
     subcategories: List<com.tobiso.tobisoappnative.model.Category>,
     categoryQuestionIdsMap: Map<Int, List<Int>>,
+    categoryExercisesMap: Map<Int, List<InteractiveExerciseResponse>>,
     allCategories: List<com.tobiso.tobisoappnative.model.Category>,
-    onLaunch: (List<Int>) -> Unit
+    onLaunch: (List<Int>) -> Unit,
+    onNavigateExercise: (InteractiveExerciseResponse) -> Unit
 ) {
     val subjectIcon = IconPackManager.getSubjectIcon(category.name)
     val isEmoji = IconPackManager.isEmojiIcon(category.name)
@@ -421,38 +438,68 @@ private fun TopicSheet(
                 )
             }
         }
+
+        // Exercises for this category (and its direct subcategories)
+        val catIds = (listOf(category.id) + subcategories.map { it.id }).toSet()
+        val exercises = catIds
+            .flatMap { categoryExercisesMap[it] ?: emptyList() }
+            .distinctBy { it.id }
+
+        if (exercises.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(20.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Interaktivní cvičení",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            exercises.forEach { exercise ->
+                ExerciseRow(exercise = exercise, onClick = { onNavigateExercise(exercise) })
+            }
+        }
     }
 }
 
 @Composable
 private fun SubcategoryRow(
-    name: String,
+    category: com.tobiso.tobisoappnative.model.Category,
     ids: List<Int>,
     progress: Float?,
-    onLaunch: (List<Int>) -> Unit
+    allCategories: List<com.tobiso.tobisoappnative.model.Category>,
+    categoryQuestionIdsMap: Map<Int, List<Int>>,
+    onLaunch: (List<Int>) -> Unit,
+    indent: Int = 0
 ) {
+    val children = allCategories
+        .filter { it.parentId == category.id }
+        .mapNotNull { child -> (categoryQuestionIdsMap[child.id]?.takeIf { it.isNotEmpty() })?.let { child to it } }
+
+    val hasChildren = children.isNotEmpty()
     val expandable = ids.size > 15
-    var expanded by remember { mutableStateOf(false) }
-    val counts = listOf(10, 15).filter { it < ids.size }
+    var expanded by remember(category.id) { mutableStateOf(false) }
+
+    val startPad = (indent * 16 + 4).dp
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .then(
-                if (expandable) Modifier.clickable { expanded = !expanded }
-                else Modifier.clickable { onLaunch(ids.shuffled()) }
-            )
+            .clickable {
+                if (expandable || hasChildren) expanded = !expanded
+                else onLaunch(ids.shuffled())
+            }
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp, start = startPad, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = name,
+                    text = category.name,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = if (indent == 0) FontWeight.Medium else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -489,9 +536,10 @@ private fun SubcategoryRow(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
-                imageVector = if (expandable) {
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore
-                } else Icons.Default.ChevronRight,
+                imageVector = when {
+                    hasChildren || expandable -> if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore
+                    else -> Icons.Default.ChevronRight
+                },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                 modifier = Modifier.size(20.dp)
@@ -499,23 +547,40 @@ private fun SubcategoryRow(
         }
 
         if (expanded) {
-            Row(
-                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                counts.forEach { n ->
-                    ElevatedButton(
-                        onClick = { onLaunch(ids.shuffled().take(n)) },
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                    ) {
-                        Text("$n", style = MaterialTheme.typography.labelMedium)
+            if (hasChildren) {
+                // Show sub-subcategories as another list
+                Column(modifier = Modifier.padding(bottom = 4.dp)) {
+                    children.forEach { (child, childIds) ->
+                        val childProgress = QuestionProgressManager.instance
+                            .getProgressForQuestions(childIds.toSet())
+                        SubcategoryRow(
+                            category = child,
+                            ids = childIds,
+                            progress = if (childProgress < 0f) null else childProgress,
+                            allCategories = allCategories,
+                            categoryQuestionIdsMap = categoryQuestionIdsMap,
+                            onLaunch = onLaunch,
+                            indent = indent + 1
+                        )
                     }
                 }
-                Button(
-                    onClick = { onLaunch(ids.shuffled()) },
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+            } else {
+                // Leaf node — show count chips
+                val counts = listOf(10, 15).filter { it < ids.size }
+                Row(
+                    modifier = Modifier.padding(start = startPad, end = 4.dp, bottom = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Vše (${ids.size})", style = MaterialTheme.typography.labelMedium)
+                    counts.forEach { n ->
+                        ElevatedButton(
+                            onClick = { onLaunch(ids.shuffled().take(n)) },
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        ) { Text("$n", style = MaterialTheme.typography.labelMedium) }
+                    }
+                    Button(
+                        onClick = { onLaunch(ids.shuffled()) },
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    ) { Text("Vše (${ids.size})", style = MaterialTheme.typography.labelMedium) }
                 }
             }
         }
@@ -735,6 +800,62 @@ private fun CategoryCard(
                 )
             }
         }
+    }
+}
+
+private fun navigateToExercise(navController: NavController, exercise: InteractiveExerciseResponse) {
+    when (exercise.type) {
+        "timeline" -> navController.navigate(ExerciseTimelineRoute(exercise.id))
+        "drag-drop" -> navController.navigate(ExerciseDragDropRoute(exercise.id))
+        "matching" -> navController.navigate(ExerciseMatchingRoute(exercise.id))
+        "circuit" -> navController.navigate(ExerciseCircuitRoute(exercise.id))
+    }
+}
+
+@Composable
+private fun ExerciseRow(exercise: InteractiveExerciseResponse, onClick: () -> Unit) {
+    val (icon, label) = when (exercise.type) {
+        "timeline" -> Icons.Default.Timeline to "Časová osa"
+        "drag-drop" -> Icons.Default.DragIndicator to "Přetahování"
+        "matching" -> Icons.Default.CompareArrows to "Párování"
+        "circuit" -> Icons.Default.AccountTree to "Obvod"
+        else -> Icons.Default.Extension to "Cvičení"
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = exercise.title ?: "Cvičení",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
