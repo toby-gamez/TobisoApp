@@ -30,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -129,11 +128,10 @@ data class Subject(
 )
 
 @Composable
-fun getColumnCount(): Int {
-    val configuration = LocalConfiguration.current
+fun getColumnCount(maxWidth: androidx.compose.ui.unit.Dp): Int {
     return when {
-        configuration.screenWidthDp >= 840 -> 3
-        configuration.screenWidthDp >= 600 -> 2
+        maxWidth >= 840.dp -> 3
+        maxWidth >= 600.dp -> 2
         else -> 1
     }
 }
@@ -164,7 +162,7 @@ fun HomeScreen(navController: NavHostController) {
     val isDark = isSystemInDarkTheme()
     val logoRes = if (isDark) R.drawable.logo_dark else R.drawable.logo_light
     val context = LocalContext.current
-    val columnCount = getColumnCount()
+
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyGridState()
     val vm: HomeViewModel = hiltViewModel()
@@ -321,10 +319,12 @@ fun HomeScreen(navController: NavHostController) {
             )
             
             // Obsah podle režimu (předměty / nejnovější)
-            when (sortMode) {
-                SortMode.SUBJECTS -> {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(columnCount),
+            BoxWithConstraints {
+                val columns = getColumnCount(maxWidth)
+                when (sortMode) {
+                    SortMode.SUBJECTS -> {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(columns),
                         state = gridState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(8.dp)
@@ -407,6 +407,7 @@ fun HomeScreen(navController: NavHostController) {
                     }
                 }
             }
+        }
         }
         
         // Overlay pro celkové body

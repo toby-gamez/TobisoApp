@@ -24,14 +24,9 @@ class EncryptionManager private constructor() {
         private const val GCM_IV_LENGTH = 12
         private const val GCM_TAG_LENGTH = 16
         
-        @Volatile
-        private var INSTANCE: EncryptionManager? = null
+        private val INSTANCE by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { EncryptionManager() }
         
-        fun getInstance(): EncryptionManager {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: EncryptionManager().also { INSTANCE = it }
-            }
-        }
+        fun getInstance(): EncryptionManager = INSTANCE
     }
     
     private val keyStore: KeyStore = KeyStore.getInstance(KEYSTORE_PROVIDER).apply {

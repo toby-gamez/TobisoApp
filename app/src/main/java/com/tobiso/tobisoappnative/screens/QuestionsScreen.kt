@@ -31,6 +31,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import com.tobiso.tobisoappnative.PointsManager
+import com.tobiso.tobisoappnative.QuestionProgressManager
 import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
 import com.tobiso.tobisoappnative.components.CustomNumericKeyboard
 import com.tobiso.tobisoappnative.utils.normalizeText
@@ -108,11 +109,22 @@ fun QuestionsScreen(
     // Přidání bodů po dokončení kvízu
     LaunchedEffect(showResults) {
         if (showResults && !pointsAwarded && scorePercentage > 0) {
-            val points = scorePercentage / 10 // Procenta vydělená 10
+            val points = scorePercentage / 10
             PointsManager.instance.addPoints(points)
             awardedPoints = points
             pointsAwarded = true
             showPointsOverlay = true
+            val results = shuffledQuestions.mapIndexed { displayIndex, origIndex ->
+                val q = questions[origIndex]
+                val isCorrect = if (q.isTextQuestion) {
+                    normalizeText(textAnswers[displayIndex]?.trim() ?: "") ==
+                            normalizeText(q.correctTextAnswer?.trim() ?: "")
+                } else {
+                    selectedAnswers[displayIndex] == q.correctAnswer
+                }
+                q.id to isCorrect
+            }.toMap()
+            QuestionProgressManager.instance.recordResults(results)
         }
     }
     

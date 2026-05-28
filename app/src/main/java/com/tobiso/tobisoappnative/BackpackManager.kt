@@ -111,19 +111,11 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
         private const val KEY_EQUIPPED_PET = "equipped_pet"
         private const val KEY_EQUIPPED_ICON_PACK = "equipped_icon_pack"
 
-        @Volatile private var INSTANCE: BackpackManager? = null
-
-        val instance: BackpackManager
-            get() = INSTANCE ?: error("BackpackManager.initialize() must be called before use")
+        lateinit var instance: BackpackManager
+            private set
 
         fun initialize(context: Context) {
-            if (INSTANCE == null) {
-                synchronized(this) {
-                    if (INSTANCE == null) {
-                        INSTANCE = BackpackManager(context.applicationContext)
-                    }
-                }
-            }
+            instance = BackpackManager(context.applicationContext)
         }
     }
 }

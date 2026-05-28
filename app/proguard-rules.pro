@@ -72,5 +72,14 @@
     public static int e(...);
 }
 
+-assumenosideeffects class timber.log.Timber {
+    public static void v(...);
+    public static void d(...);
+    public static void i(...);
+    public static void w(...);
+    public static void e(...);
+    public static void wtf(...);
+}
+
 # Optimize for production
 -optimizations !code/simplification/arithmetic,!field/*,!class/merging/*,!code/allocation/variable

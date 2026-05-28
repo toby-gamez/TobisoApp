@@ -103,19 +103,11 @@ class StreakFreezeManager private constructor(context: Context) : IStreakFreezeM
         private const val KEY_USED_FREEZES = "used_freezes"
         private const val MAX_FREEZES = 3
 
-        @Volatile private var INSTANCE: StreakFreezeManager? = null
-
-        val instance: StreakFreezeManager
-            get() = INSTANCE ?: error("StreakFreezeManager.initialize() must be called before use")
+        lateinit var instance: StreakFreezeManager
+            private set
 
         fun initialize(context: Context) {
-            if (INSTANCE == null) {
-                synchronized(this) {
-                    if (INSTANCE == null) {
-                        INSTANCE = StreakFreezeManager(context.applicationContext)
-                    }
-                }
-            }
+            instance = StreakFreezeManager(context.applicationContext)
         }
     }
 }

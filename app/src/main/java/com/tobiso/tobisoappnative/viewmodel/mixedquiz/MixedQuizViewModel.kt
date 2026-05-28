@@ -2,9 +2,10 @@ package com.tobiso.tobisoappnative.viewmodel.mixedquiz
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
-import com.tobiso.tobisoappnative.PointsManager
+import com.tobiso.tobisoappnative.QuestionProgressManager
 import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
 import com.tobiso.tobisoappnative.domain.usecase.GetAllQuestionsUseCase
+import com.tobiso.tobisoappnative.manager.IPointsManager
 import com.tobiso.tobisoappnative.utils.NetworkUtils
 import com.tobiso.tobisoappnative.utils.normalizeText
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +16,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MixedQuizViewModel @Inject constructor(
     application: Application,
-    private val getAllQuestions: GetAllQuestionsUseCase
+    private val getAllQuestions: GetAllQuestionsUseCase,
+    private val pointsManager: IPointsManager
 ) : BaseAndroidViewModel<MixedQuizState, MixedQuizIntent, MixedQuizEffect>(
     application, MixedQuizState()
 ) {
@@ -133,8 +135,23 @@ class MixedQuizViewModel @Inject constructor(
 
         val points = correctAnswers * 2
         if (points > 0) {
-            PointsManager.instance.addPoints(points)
+            pointsManager.addPoints(points)
         }
+
+        val progressResults = s.shuffledIndices.mapIndexed { displayIndex, questionIndex ->
+            if (questionIndex >= s.mixedQuestions.size) return@mapIndexed null
+            val q = s.mixedQuestions[questionIndex]
+            val isCorrect = if (q.isTextQuestion) {
+                normalizeText(s.textAnswers[displayIndex]?.trim() ?: "") ==
+                        normalizeText(q.correctTextAnswer?.trim() ?: "")
+            } else {
+                val sel = s.selectedAnswers[displayIndex]
+                sel != null && sel >= 0 && sel < q.options.size && sel == q.correctAnswer
+            }
+            q.id to isCorrect
+        }.filterNotNull().toMap()
+        QuestionProgressManager.instance.recordResults(progressResults)
+
         setState { copy(showResults = true, pointsAwarded = true, awardedPoints = points, showPointsOverlay = points > 0) }
     }
 

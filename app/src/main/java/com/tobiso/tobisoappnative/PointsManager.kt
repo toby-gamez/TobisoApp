@@ -150,19 +150,11 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         private const val KEY_MULTIPLIER = "active_multiplier"
         private const val KEY_MULTIPLIER_END = "multiplier_end_time"
 
-        @Volatile private var INSTANCE: PointsManager? = null
-
-        val instance: PointsManager
-            get() = INSTANCE ?: error("PointsManager.initialize() must be called before use")
+        lateinit var instance: PointsManager
+            private set
 
         fun initialize(context: Context) {
-            if (INSTANCE == null) {
-                synchronized(this) {
-                    if (INSTANCE == null) {
-                        INSTANCE = PointsManager(context.applicationContext)
-                    }
-                }
-            }
+            instance = PointsManager(context.applicationContext)
         }
     }
 }

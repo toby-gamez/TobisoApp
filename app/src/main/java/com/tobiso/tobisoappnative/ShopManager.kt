@@ -135,19 +135,11 @@ class ShopManager private constructor(context: Context) : IShopManager {
         private const val KEY_PURCHASE_DATE_PREFIX = "purchased_date_"
         private const val KEY_COOLDOWN_PREFIX = "cooldown_"
 
-        @Volatile private var INSTANCE: ShopManager? = null
-
-        val instance: ShopManager
-            get() = INSTANCE ?: error("ShopManager.initialize() must be called before use")
+        lateinit var instance: ShopManager
+            private set
 
         fun initialize(context: Context) {
-            if (INSTANCE == null) {
-                synchronized(this) {
-                    if (INSTANCE == null) {
-                        INSTANCE = ShopManager(context.applicationContext)
-                    }
-                }
-            }
+            instance = ShopManager(context.applicationContext)
         }
     }
 }

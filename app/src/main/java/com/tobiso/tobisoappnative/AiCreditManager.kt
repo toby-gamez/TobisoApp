@@ -38,19 +38,11 @@ class AiCreditManager private constructor(context: Context) {
         private const val PREFS_NAME = "ai_credit_prefs"
         private const val KEY_DEVICE_ID = "device_id"
 
-        @Volatile private var INSTANCE: AiCreditManager? = null
-
-        val instance: AiCreditManager
-            get() = INSTANCE ?: error("AiCreditManager.initialize() must be called before use")
+        lateinit var instance: AiCreditManager
+            private set
 
         fun initialize(context: Context) {
-            if (INSTANCE == null) {
-                synchronized(this) {
-                    if (INSTANCE == null) {
-                        INSTANCE = AiCreditManager(context.applicationContext)
-                    }
-                }
-            }
+            instance = AiCreditManager(context.applicationContext)
         }
     }
 }

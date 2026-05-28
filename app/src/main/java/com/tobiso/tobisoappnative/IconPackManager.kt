@@ -105,19 +105,11 @@ class IconPackManager private constructor(context: Context) {
         private const val PREFS_NAME = "backpack_prefs"
         private const val KEY_ACTIVE_ICON_PACK = "equipped_icon_pack"
 
-        @Volatile private var INSTANCE: IconPackManager? = null
-
-        val instance: IconPackManager
-            get() = INSTANCE ?: error("IconPackManager.initialize() must be called before use")
+        lateinit var instance: IconPackManager
+            private set
 
         fun initialize(context: Context) {
-            if (INSTANCE == null) {
-                synchronized(this) {
-                    if (INSTANCE == null) {
-                        INSTANCE = IconPackManager(context.applicationContext)
-                    }
-                }
-            }
+            instance = IconPackManager(context.applicationContext)
         }
 
         // Delegations for direct access without .instance

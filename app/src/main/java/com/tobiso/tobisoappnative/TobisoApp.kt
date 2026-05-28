@@ -233,7 +233,9 @@ fun TobisoApp(navigateTo: String? = null) {
                         NavHost(
                             navController = navController,
                             startDestination = if (navigateTo == "calendar") CalendarRoute else HomeRoute,
-                            modifier = Modifier.padding(paddingValues)
+                            modifier = Modifier
+                                .padding(paddingValues)
+                                .imePadding()
                         ) {
                             composable<HomeRoute> {
                                 HomeScreen(navController = navController)

@@ -144,7 +144,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.serialization.json)
     // Needed for kotlinx.serialization runtime lookups used by retrofit serializer
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.10")
+
     
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
@@ -154,6 +154,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.room.testing)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
