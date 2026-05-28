@@ -79,9 +79,6 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            val lastEditMap = posts.associate { it.id to parseDateToMillis(it.lastEdit) }
-            val lastFixMap = posts.associate { it.id to parseDateToMillis(it.lastFix) }
-
             val baseFiltered = posts.filter { p ->
                 p.categoryId != null && categoryMap[p.categoryId]?.name != "More"
             }
@@ -91,15 +88,16 @@ class HomeViewModel @Inject constructor(
                 baseFiltered.filter { p -> p.categoryId != null && ids.contains(p.categoryId) }
             } ?: baseFiltered
 
-            val withEdit = subjectFiltered.filter { !it.lastEdit.isNullOrBlank() }
-                .sortedByDescending { lastEditMap[it.id] ?: Long.MIN_VALUE }
-
-            val remaining = subjectFiltered.filter { it.lastEdit.isNullOrBlank() && !it.lastFix.isNullOrBlank() }
-                .sortedByDescending { lastFixMap[it.id] ?: Long.MIN_VALUE }
-
-            val others = subjectFiltered.filter { it.lastEdit.isNullOrBlank() && it.lastFix.isNullOrBlank() }
-
-            val result = (withEdit + remaining + others).distinctBy { it.id }
+            val result = subjectFiltered
+                .map { p ->
+                    val lastEditMs = parseDateToMillis(p.activeLastEdit)
+                    val lastFixMs = parseDateToMillis(p.activeLastFix)
+                    val latestMs = lastEditMs ?: lastFixMs
+                    p to latestMs
+                }
+                .sortedByDescending { (_, latestMs) -> latestMs ?: Long.MIN_VALUE }
+                .map { (p, _) -> p }
+                .distinctBy { it.id }
             _newestPosts.value = result
         }
     }

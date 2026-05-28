@@ -50,6 +50,10 @@ class CalendarViewModel @Inject constructor(
         return currentState.events.filter { event -> doesEventOverlapDay(event, year, month, day) }
     }
 
+    fun getEventsForDay(events: List<Event>, year: Int, month: Int, day: Int): List<Event> {
+        return events.filter { event -> doesEventOverlapDay(event, year, month, day) }
+    }
+
     // ── Private implementation ─────────────────────────────────────────────────
 
     private fun doesEventOverlapDay(event: Event, year: Int, month: Int, day: Int): Boolean {
@@ -153,7 +157,18 @@ class CalendarViewModel @Inject constructor(
             val event = if (eventId < 0) {
                 LocalEventManager.getLocalEvent(context, eventId)
             } else {
-                try { ApiClient.apiService.getEvent(eventId) } catch (e: Exception) { null }
+                val apiEvent = try {
+                    ApiClient.apiService.getEvent(eventId)
+                } catch (e: Exception) {
+                    Timber.w(e, "API fetch failed for event $eventId, trying cache")
+                    null
+                }
+                apiEvent ?: try {
+                    offlineDataManager.getCachedEvents()?.find { it.id == eventId }
+                } catch (e: Exception) {
+                    Timber.w(e, "Cache lookup failed for event $eventId")
+                    null
+                }
             }
             setState { copy(detailEvent = event, detailEventLoading = false) }
         }

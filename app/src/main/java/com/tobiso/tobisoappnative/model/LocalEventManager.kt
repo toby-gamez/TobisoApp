@@ -11,17 +11,17 @@ import java.util.*
 
 object LocalEventManager {
     private const val LOCAL_EVENTS_FILE = "local_events.json"
-    private var nextLocalId = -1 // Používáme negativní ID pro místní eventy
-    
+
     private val json = Json { ignoreUnknownKeys = true }
-    
+
     private fun getLocalEventsFile(context: Context): File {
         return File(context.filesDir, LOCAL_EVENTS_FILE)
     }
-    
-    private fun getNextLocalId(): Int {
-        nextLocalId--
-        return nextLocalId
+
+    // Derives the next ID from existing events so it never conflicts after process death.
+    private fun getNextLocalId(existingEvents: List<Event>): Int {
+        val minExisting = existingEvents.minOfOrNull { it.id } ?: 0
+        return minOf(minExisting, 0) - 1
     }
     
     suspend fun loadLocalEvents(context: Context): List<Event> = withContext(Dispatchers.IO) {
@@ -67,7 +67,7 @@ object LocalEventManager {
     suspend fun addLocalEvent(context: Context, event: Event): Event {
         val events = loadLocalEvents(context).toMutableList()
         val newEvent = event.copy(
-            id = getNextLocalId(),
+            id = getNextLocalId(events),
             isLocal = true
         )
         events.add(newEvent)
@@ -155,41 +155,34 @@ object LocalEventManager {
         val instances = mutableListOf<Event>()
         val eventStart = event.getStartDateSafe()
         val eventEnd = event.getEndDateSafe()
-        val calendar = Calendar.getInstance()
-        
-        calendar.time = eventStart
         val duration = eventEnd.time - eventStart.time
-        
-        // Generuj instance na základě recurrence pattern
-        while (calendar.time.before(rangeEnd) || calendar.time == rangeStart) {
+
+        val calendar = Calendar.getInstance()
+        calendar.time = eventStart
+
+        while (calendar.time.before(rangeEnd)) {
             val instanceStart = calendar.time
             val instanceEnd = Date(instanceStart.time + duration)
-            
-            // Zkontroluj, jestli se instance překrývá s požadovaným rozsahem
-            if ((instanceStart.before(rangeEnd) || instanceStart == rangeEnd) &&
-                (instanceEnd.after(rangeStart) || instanceEnd == rangeStart)) {
-                
-                instances.add(event.copy(
-                    startDate = instanceStart,
-                    endDate = instanceEnd
-                ))
+
+            // Stop before adding if this occurrence is past the recurrence end date
+            if (event.recurrenceEndDate != null && instanceStart.after(event.recurrenceEndDate)) break
+
+            // Include if this instance overlaps [rangeStart, rangeEnd):
+            // instanceStart < rangeEnd is guaranteed by the outer while;
+            // !instanceEnd.before(rangeStart) covers instanceEnd >= rangeStart (including == for zero-duration events)
+            if (!instanceEnd.before(rangeStart)) {
+                instances.add(event.copy(startDate = instanceStart, endDate = instanceEnd))
             }
-            
-            // Zkontroluj recurrence end date
-            if (event.recurrenceEndDate != null && instanceStart.after(event.recurrenceEndDate)) {
-                break
-            }
-            
-            // Přesuň na další instanci podle vzoru
+
             when (event.recurrencePattern?.lowercase()) {
-                "daily" -> calendar.add(Calendar.DAY_OF_MONTH, 1)
-                "weekly" -> calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                "daily"   -> calendar.add(Calendar.DAY_OF_MONTH, 1)
+                "weekly"  -> calendar.add(Calendar.WEEK_OF_YEAR, 1)
                 "monthly" -> calendar.add(Calendar.MONTH, 1)
-                "yearly" -> calendar.add(Calendar.YEAR, 1)
-                else -> break // Neznámý pattern, zastav generování
+                "yearly"  -> calendar.add(Calendar.YEAR, 1)
+                else      -> break
             }
         }
-        
+
         return instances
     }
 }

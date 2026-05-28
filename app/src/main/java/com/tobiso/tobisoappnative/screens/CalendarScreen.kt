@@ -9,11 +9,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -71,7 +69,6 @@ fun CalendarScreen(
     val state by viewModel.uiState.collectAsState()
     val events = state.events
     val selectedDate = state.selectedDate
-    val selectedDateEvents = state.selectedDateEvents
     val isLoading = state.isLoading
     val error = state.error
     val homeState by homeVm.uiState.collectAsState()
@@ -105,6 +102,30 @@ fun CalendarScreen(
     var currentFilter by remember { mutableStateOf(EventFilter.ALL) }
     var showFilterDropdown by remember { mutableStateOf(false) }
 
+    // Derived: events for the selected date, stays fresh whenever events or selection changes
+    val selectedDateEvents = remember(events, selectedDate) {
+        selectedDate?.let { date ->
+            val cal = Calendar.getInstance().apply { time = date }
+            viewModel.getEventsForDay(
+                events,
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH),
+                cal.get(Calendar.DAY_OF_MONTH)
+            )
+        } ?: emptyList()
+    }
+
+    // Streak state (lives at top-level to survive TopAppBar recompositions)
+    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
+    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
+    val currentStreak = remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                com.tobiso.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
+            else 0
+        )
+    }
+
     LaunchedEffect(currentMonth, currentYear) {
         viewModel.onIntent(CalendarIntent.LoadEventsForMonth(currentYear, currentMonth))
     }
@@ -112,6 +133,12 @@ fun CalendarScreen(
     // Načtení dat pro FloatingSearchBar
     LaunchedEffect(Unit) {
         homeVm.onIntent(HomeIntent.Load)
+    }
+
+    LaunchedEffect(availableFreezes, usedFreezes) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            currentStreak.value = com.tobiso.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
+        }
     }
 
     // Zpracování one-shot efektů z CalendarViewModel
@@ -179,7 +206,7 @@ fun CalendarScreen(
                             expanded = showFilterDropdown,
                             onDismissRequest = { showFilterDropdown = false }
                         ) {
-                            EventFilter.values().forEach { filter ->
+                            EventFilter.entries.forEach { filter ->
                                 DropdownMenuItem(
                                     text = { 
                                         Row(
@@ -207,9 +234,8 @@ fun CalendarScreen(
                     }
                     
                     Spacer(modifier = Modifier.width(16.dp))
-                    
+
                     // Zobrazení bodů s novým designem
-                    val totalPoints by PointsManager.totalPoints.collectAsState()
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -240,18 +266,6 @@ fun CalendarScreen(
                     MultiplierIndicator()
                     
                     // Streak button s počtem dní (s freeze podporou)
-                    val currentStreak = remember { mutableStateOf(0) }
-                    
-                    // Sledování změn v freeze
-                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
-                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
-                    
-                    LaunchedEffect(availableFreezes, usedFreezes) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            currentStreak.value = com.tobiso.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
-                        }
-                    }
-                    
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable { navController?.navigate(StreakRoute) }
@@ -344,6 +358,7 @@ fun CalendarScreen(
                     CalendarGrid(
                         currentMonth = currentMonth,
                         currentYear = currentYear,
+                        events = events,
                         viewModel = viewModel,
                         eventFilter = currentFilter,
                         onDateClick = { date ->
@@ -461,9 +476,10 @@ fun CalendarScreen(
     if (showDeleteDialog && eventToDelete != null) {
         val currentEventToDelete = eventToDelete
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showDeleteDialog = false
                 eventToDelete = null
+                isDeleting = false
             },
             title = { Text("Smazat událost") },
             text = { 
@@ -541,6 +557,7 @@ fun CalendarHeader(
 fun CalendarGrid(
     currentMonth: Int,
     currentYear: Int,
+    events: List<Event>,
     viewModel: CalendarViewModel = hiltViewModel(),
     eventFilter: EventFilter = EventFilter.ALL,
     onDateClick: (Date) -> Unit,
@@ -585,13 +602,13 @@ fun CalendarGrid(
         val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
         
         // Vytvoř mřížku
-        val totalCells = ((adjustedFirstDay - 1 + daysInMonth) / 7 + 1) * 7
+        val totalCells = ((adjustedFirstDay - 1 + daysInMonth + 6) / 7) * 7
         
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
             modifier = Modifier.fillMaxWidth()
         ) {
-            items(totalCells) { index ->
+            items(totalCells, key = { it }) { index ->
                 val dayNumber = index - adjustedFirstDay + 2
                 
                 if (dayNumber in 1..daysInMonth) {
@@ -599,7 +616,7 @@ fun CalendarGrid(
                     dayCalendar.set(currentYear, currentMonth, dayNumber)
                     val dayDate = dayCalendar.time
                     
-                    val allDayEvents = viewModel.getEventsForDay(currentYear, currentMonth, dayNumber)
+                    val allDayEvents = viewModel.getEventsForDay(events, currentYear, currentMonth, dayNumber)
                     
                     // Filtruj události podle aktuálního filtru
                     val dayEvents = allDayEvents.filter { event ->
@@ -789,8 +806,8 @@ fun DateDetailCard(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                LazyColumn() {
-                    items(events) { event ->
+                Column {
+                    events.forEach { event ->
                         EventItem(
                             event = event,
                             timeFormat = timeFormat,
@@ -800,7 +817,7 @@ fun DateDetailCard(
                             onEdit = if (event.isLocalSafe()) { { onEditEvent(event) } } else null,
                             onDelete = if (event.isLocalSafe()) { { onDeleteEvent(event.id) } } else null
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
@@ -836,6 +853,7 @@ fun EventItem(
                 // Barevný indikátor
                 Box(
                     modifier = Modifier
+                        .padding(top = 2.dp)
                         .size(12.dp)
                         .background(
                             color = try {
@@ -845,7 +863,6 @@ fun EventItem(
                             },
                             shape = CircleShape
                         )
-                        .padding(top = 2.dp)
                 )
                 
                 Spacer(modifier = Modifier.width(8.dp))

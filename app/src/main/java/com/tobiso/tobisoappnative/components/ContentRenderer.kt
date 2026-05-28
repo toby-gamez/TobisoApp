@@ -130,8 +130,11 @@ fun ElementRenderer(
                     Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primaryContainer)) {
                         for ((idxIndex, i) in visibleIndices.withIndex()) {
                             val cell = element.header.getOrNull(i) ?: ""
+                            val cellParts = remember(cell, posts) { parseInlineParts(cell, posts) }
+                            val linkColor = MaterialTheme.colorScheme.primary
+                            val cellAnnotated = remember(cellParts, linkColor) { buildAnnotatedStringFromParts(cellParts, linkColor) }
                             Box(modifier = Modifier.weight(1f).padding(8.dp)) {
-                                Text(text = cell, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text(text = cellAnnotated, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimaryContainer)
                             }
                             if (idxIndex < visibleIndices.size - 1) Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline))
                         }
@@ -151,7 +154,7 @@ fun ElementRenderer(
                             for ((idxIndex, i) in visibleIndices.withIndex()) {
                                 val cell = row.getOrNull(i) ?: ""
                                 Box(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
-                                    RenderTableCell(cell = cell, isOffline = isOffline)
+                                    RenderTableCell(cell = cell, isOffline = isOffline, posts = posts)
                                 }
                                 if (idxIndex < visibleIndices.size - 1) Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)))
                             }
@@ -439,7 +442,7 @@ private fun RenderImage(
 private val tableCellImageRegex = Regex("""^!\[([^\]]*)\]\(([^)]+)\)$""")
 
 @Composable
-private fun RenderTableCell(cell: String, isOffline: Boolean) {
+private fun RenderTableCell(cell: String, isOffline: Boolean, posts: List<Post>) {
     val imageMatch = remember(cell) { tableCellImageRegex.matchEntire(cell.trim()) }
     if (imageMatch != null) {
         val alt = imageMatch.groupValues[1]
@@ -456,7 +459,10 @@ private fun RenderTableCell(cell: String, isOffline: Boolean) {
             )
         }
     } else {
-        Text(text = cell, style = MaterialTheme.typography.bodyMedium)
+        val parts = remember(cell, posts) { parseInlineParts(cell, posts) }
+        val linkColor = MaterialTheme.colorScheme.primary
+        val annotated = remember(parts, linkColor) { buildAnnotatedStringFromParts(parts, linkColor) }
+        Text(text = annotated, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
