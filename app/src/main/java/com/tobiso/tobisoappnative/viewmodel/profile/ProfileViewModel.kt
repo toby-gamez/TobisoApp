@@ -22,13 +22,13 @@ import java.io.InputStream
 class ProfileViewModel @Inject constructor(
     application: Application,
     private val postsRepo: PostsRepository,
-    private val offlineRepo: OfflineRepositoryImpl
+    private val offlineRepo: OfflineRepositoryImpl,
 ) : AndroidViewModel(application) {
 
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> = _posts
 
-    private val _postLoading = MutableStateFlow(false)
+    private val _postLoading = MutableStateFlow(value = false)
     val postLoading: StateFlow<Boolean> = _postLoading
 
     private val _isOffline = MutableStateFlow(false)
@@ -47,11 +47,10 @@ class ProfileViewModel @Inject constructor(
                 onSuccess = { posts ->
                     _posts.value = posts
                     _isOffline.value = false
-                },
-                onFailure = { e ->
-                    _isOffline.value = e is IllegalStateException
                 }
-            )
+            ) { e ->
+                _isOffline.value = e is IllegalStateException
+            }
             _postLoading.value = false
         }
     }
@@ -86,7 +85,7 @@ class ProfileViewModel @Inject constructor(
                 }
 
                 _copiedImagePath.value = file.absolutePath
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _copiedImagePath.value = null
             }
         }

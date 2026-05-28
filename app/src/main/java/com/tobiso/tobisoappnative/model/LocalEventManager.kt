@@ -6,7 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
 import java.util.*
 
 object LocalEventManager {
@@ -39,7 +40,7 @@ object LocalEventManager {
             // Použití Array místo TypeToken pro Android 15 kompatibilitu (kotlinx.serialization)
             val events: List<Event> = try {
                 json.decodeFromString<List<Event>>(jsonString)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 emptyList()
             }
             
@@ -68,7 +69,7 @@ object LocalEventManager {
         val events = loadLocalEvents(context).toMutableList()
         val newEvent = event.copy(
             id = getNextLocalId(events),
-            isLocal = true
+            isLocal = true,
         )
         events.add(newEvent)
         saveLocalEvents(context, events)
@@ -115,20 +116,6 @@ object LocalEventManager {
         return events.find { it.id == eventId }
     }
     
-    suspend fun getLocalEventsInRange(context: Context, startDate: Date, endDate: Date): List<Event> {
-        val allEvents = loadLocalEvents(context)
-        
-        return allEvents.filter { event ->
-            val eventStart = event.getStartDateSafe()
-            val eventEnd = event.getEndDateSafe()
-            
-            // Událost se překrývá s požadovaným rozsahem
-            eventStart.before(endDate) && eventEnd.after(startDate) ||
-            eventStart == startDate || eventStart == endDate ||
-            eventEnd == startDate || eventEnd == endDate
-        }
-    }
-    
     // Pomocná funkce pro generování eventů s opakováním
     suspend fun expandRecurringEvents(context: Context, startDate: Date, endDate: Date): List<Event> {
         val localEvents = loadLocalEvents(context)
@@ -164,8 +151,15 @@ object LocalEventManager {
             val instanceStart = calendar.time
             val instanceEnd = Date(instanceStart.time + duration)
 
-            // Stop before adding if this occurrence is past the recurrence end date
-            if (event.recurrenceEndDate != null && instanceStart.after(event.recurrenceEndDate)) break
+            // Stop if this occurrence's calendar date is after the recurrence end date's calendar date.
+            // Compare dates, not timestamps, so the end-date day itself is always included regardless
+            // of what time-of-day the recurrenceEndDate was set to.
+            if (event.recurrenceEndDate != null) {
+                val zone = ZoneId.systemDefault()
+                val instanceDay = Instant.ofEpochMilli(instanceStart.time).atZone(zone).toLocalDate()
+                val endDay = Instant.ofEpochMilli(event.recurrenceEndDate.time).atZone(zone).toLocalDate()
+                if (instanceDay.isAfter(endDay)) break
+            }
 
             // Include if this instance overlaps [rangeStart, rangeEnd):
             // instanceStart < rangeEnd is guaranteed by the outer while;

@@ -22,11 +22,10 @@ import javax.inject.Inject
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     application: Application,
-    private val offlineDataManager: OfflineDataManager
+    private val offlineDataManager: OfflineDataManager,
 ) : BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(application, CalendarState()) {
 
     private val apiDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-    private val context = application.applicationContext
 
     /** The month currently loaded – used for internal reloads after mutations. */
     private var lastLoadedYear = LocalDate.now().year
@@ -71,7 +70,7 @@ class CalendarViewModel @Inject constructor(
             return eventDate == targetDate
         }
 
-        return eventStart.time <= endOfDayMs && eventEnd.time >= startOfDayMs
+        return (eventStart.time <= endOfDayMs) && (eventEnd.time >= startOfDayMs)
     }
 
     private fun loadEventsForMonth(year: Int, month: Int) {
@@ -99,12 +98,12 @@ class CalendarViewModel @Inject constructor(
                         val cachedInRange = cached.filter { ev ->
                             val evStart = ev.getStartDateSafe()
                             val evEnd = ev.getEndDateSafe()
-                            (evStart.before(endDateObj) || evStart == endDateObj) &&
-                            (evEnd.after(startDateObj) || evEnd == startDateObj)
+                            ((evStart.before(endDateObj) || evStart == endDateObj)) &&
+                                    ((evEnd.after(startDateObj) || evEnd == startDateObj))
                         }
                         val localEvents = try {
-                            LocalEventManager.expandRecurringEvents(context, startDateObj, endDateObj)
-                        } catch (e: Exception) { emptyList() }
+                            LocalEventManager.expandRecurringEvents(getApplication(), startDateObj, endDateObj)
+                        } catch (_: Exception) { emptyList() }
                         setState { copy(events = cachedInRange + localEvents, isLoading = false) }
                         return@launch
                     }
@@ -126,8 +125,8 @@ class CalendarViewModel @Inject constructor(
                 }
 
                 val localEvents = try {
-                    LocalEventManager.expandRecurringEvents(context, startDateObj, endDateObj)
-                } catch (e: Exception) { emptyList() }
+                    LocalEventManager.expandRecurringEvents(getApplication(), startDateObj, endDateObj)
+                } catch (_: Exception) { emptyList() }
 
                 val allEvents = apiEvents.filter { it.startDate != null } + localEvents
                 setState { copy(events = allEvents) }
@@ -146,7 +145,7 @@ class CalendarViewModel @Inject constructor(
         val eventsForDay = getEventsForDay(
             localDate.year,
             localDate.monthValue - 1,
-            localDate.dayOfMonth
+            localDate.dayOfMonth,
         )
         setState { copy(selectedDate = date, selectedDateEvents = eventsForDay) }
     }
@@ -155,7 +154,7 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             setState { copy(detailEventLoading = true) }
             val event = if (eventId < 0) {
-                LocalEventManager.getLocalEvent(context, eventId)
+                LocalEventManager.getLocalEvent(getApplication(), eventId)
             } else {
                 val apiEvent = try {
                     ApiClient.apiService.getEvent(eventId)
@@ -177,12 +176,10 @@ class CalendarViewModel @Inject constructor(
     private fun addLocalEvent(event: Event) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val newEvent = LocalEventManager.addLocalEvent(context, event)
-                if (newEvent != null) {
-                    setState { copy(events = events + newEvent) }
-                    loadEventsForMonth(lastLoadedYear, lastLoadedMonth)
-                }
-                emitEffect(CalendarEffect.EventAdded(success = newEvent != null))
+                val newEvent = LocalEventManager.addLocalEvent(getApplication(), event)
+                setState { copy(events = events + newEvent) }
+                loadEventsForMonth(lastLoadedYear, lastLoadedMonth)
+                emitEffect(CalendarEffect.EventAdded(success = true))
             } catch (e: Exception) {
                 Timber.e(e, "Error adding local event")
                 emitEffect(CalendarEffect.EventAdded(success = false))
@@ -193,7 +190,7 @@ class CalendarViewModel @Inject constructor(
     private fun updateLocalEvent(event: Event) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val updatedEvent = LocalEventManager.updateLocalEvent(context, event)
+                val updatedEvent = LocalEventManager.updateLocalEvent(getApplication(), event)
                 if (updatedEvent != null) {
                     setState {
                         val updatedList = events.map { if (it.id == updatedEvent.id) updatedEvent else it }
@@ -217,7 +214,7 @@ class CalendarViewModel @Inject constructor(
     private fun deleteLocalEvent(eventId: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val deleted = LocalEventManager.deleteLocalEvent(context, eventId)
+                val deleted = LocalEventManager.deleteLocalEvent(getApplication(), eventId)
                 if (deleted) {
                     setState {
                         copy(

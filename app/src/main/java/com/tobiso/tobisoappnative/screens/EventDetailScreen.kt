@@ -40,6 +40,7 @@ fun EventDetailScreen(
     val event = state.detailEvent
     val isLoading = state.detailEventLoading
     var error by remember { mutableStateOf<String?>(null) }
+    var hasLoadingStarted by remember { mutableStateOf(false) }
 
     // Stavy pro editaci a mazání
     var showEditDialog by remember { mutableStateOf(false) }
@@ -48,6 +49,10 @@ fun EventDetailScreen(
 
     LaunchedEffect(eventId) {
         viewModel.onIntent(CalendarIntent.LoadEventDetail(eventId))
+    }
+
+    LaunchedEffect(isLoading) {
+        if (isLoading) hasLoadingStarted = true
     }
 
     // Zpracování one-shot efektů z CalendarViewModel
@@ -71,8 +76,8 @@ fun EventDetailScreen(
         }
     }
 
-    // Show error if event could not be loaded
-    if (!isLoading && event == null && error == null) {
+    // Show error only after a real load attempt has completed without finding an event
+    if (hasLoadingStarted && !isLoading && event == null && error == null) {
         error = "Nepodařilo se načíst detail události"
     }
 

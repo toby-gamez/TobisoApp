@@ -511,8 +511,16 @@ fun AddEditEventDialog(
     if (showRecurrenceEndDatePicker) {
         DatePickerDialog(
             initialDate = recurrenceEndDate ?: Date(),
-            onDateSelected = { 
-                recurrenceEndDate = it
+            onDateSelected = {
+                // Normalise to end-of-day so that the last recurrence day is fully included
+                val endOfDay = Calendar.getInstance().apply {
+                    time = it
+                    set(Calendar.HOUR_OF_DAY, 23)
+                    set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }.time
+                recurrenceEndDate = endOfDay
                 showRecurrenceEndDatePicker = false
             },
             onDismiss = { showRecurrenceEndDatePicker = false }

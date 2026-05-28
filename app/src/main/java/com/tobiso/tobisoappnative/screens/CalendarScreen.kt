@@ -5,13 +5,12 @@ import com.tobiso.tobisoappnative.navigation.EventDetailRoute
 import com.tobiso.tobisoappnative.navigation.StreakRoute
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -306,6 +305,7 @@ fun CalendarScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
                 // Header s navigací měsíců
@@ -601,64 +601,61 @@ fun CalendarGrid(
         // Počet dnů v měsíci
         val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
         
-        // Vytvoř mřížku
-        val totalCells = ((adjustedFirstDay - 1 + daysInMonth + 6) / 7) * 7
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(totalCells, key = { it }) { index ->
-                val dayNumber = index - adjustedFirstDay + 2
-                
-                if (dayNumber in 1..daysInMonth) {
-                    val dayCalendar = Calendar.getInstance()
-                    dayCalendar.set(currentYear, currentMonth, dayNumber)
-                    val dayDate = dayCalendar.time
-                    
-                    val allDayEvents = viewModel.getEventsForDay(events, currentYear, currentMonth, dayNumber)
-                    
-                    // Filtruj události podle aktuálního filtru
-                    val dayEvents = allDayEvents.filter { event ->
-                        when (eventFilter) {
-                            EventFilter.ALL -> true
-                            EventFilter.LOCAL -> event.isLocalSafe()
-                            EventFilter.REMOTE -> !event.isLocalSafe()
+        // Vytvoř mřížku — regular Column/Row (not lazy) so every cell always recomposes
+        // when events change; a calendar has at most 42 cells, all visible at once.
+        val numRows = ((adjustedFirstDay - 1 + daysInMonth + 6) / 7)
+
+        Column(modifier = Modifier.fillMaxWidth()) {
+            repeat(numRows) { rowIndex ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    repeat(7) { colIndex ->
+                        val index = rowIndex * 7 + colIndex
+                        val dayNumber = index - adjustedFirstDay + 2
+
+                        if (dayNumber in 1..daysInMonth) {
+                            val dayCalendar = Calendar.getInstance()
+                            dayCalendar.set(currentYear, currentMonth, dayNumber)
+                            val dayDate = dayCalendar.time
+
+                            val allDayEvents = viewModel.getEventsForDay(events, currentYear, currentMonth, dayNumber)
+
+                            val dayEvents = allDayEvents.filter { event ->
+                                when (eventFilter) {
+                                    EventFilter.ALL -> true
+                                    EventFilter.LOCAL -> event.isLocalSafe()
+                                    EventFilter.REMOTE -> !event.isLocalSafe()
+                                }
+                            }
+
+                            val isSelected = selectedDate?.let { selected ->
+                                val selectedCalendar = Calendar.getInstance().apply { time = selected }
+                                val dayCalendarForCheck = Calendar.getInstance().apply { time = dayDate }
+                                selectedCalendar.get(Calendar.YEAR) == dayCalendarForCheck.get(Calendar.YEAR) &&
+                                selectedCalendar.get(Calendar.MONTH) == dayCalendarForCheck.get(Calendar.MONTH) &&
+                                selectedCalendar.get(Calendar.DAY_OF_MONTH) == dayCalendarForCheck.get(Calendar.DAY_OF_MONTH)
+                            } ?: false
+
+                            Box(modifier = Modifier.weight(1f)) {
+                                CalendarDay(
+                                    day = dayNumber,
+                                    hasEvents = dayEvents.isNotEmpty(),
+                                    eventCount = dayEvents.size,
+                                    isToday = isToday(dayDate),
+                                    isSelected = isSelected,
+                                    onClick = { onDateClick(dayDate) },
+                                    onLongClick = { onDateLongClick(dayDate) }
+                                )
+                            }
+                        } else {
+                            // Empty cell
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .padding(2.dp)
+                            )
                         }
                     }
-                    
-                    // Zkontroluj, jestli je tento den vybraný
-                    val isSelected = selectedDate?.let { selected ->
-                        val selectedCalendar = Calendar.getInstance().apply { time = selected }
-                        val dayCalendarForCheck = Calendar.getInstance().apply { time = dayDate }
-                        
-                        selectedCalendar.get(Calendar.YEAR) == dayCalendarForCheck.get(Calendar.YEAR) &&
-                        selectedCalendar.get(Calendar.MONTH) == dayCalendarForCheck.get(Calendar.MONTH) &&
-                        selectedCalendar.get(Calendar.DAY_OF_MONTH) == dayCalendarForCheck.get(Calendar.DAY_OF_MONTH)
-                    } ?: false
-                    
-                    // Debug pro všechny dny - ne jen prosinec
-                    Timber.d("Day $dayNumber/$currentMonth: Found ${dayEvents.size} events")
-                    dayEvents.forEach { event ->
-                        Timber.d("  - ${event.getTitleSafe()} (AllDay: ${event.isAllDaySafe()})")
-                    }
-                    
-                    CalendarDay(
-                        day = dayNumber,
-                        hasEvents = dayEvents.isNotEmpty(),
-                        eventCount = dayEvents.size,
-                        isToday = isToday(dayDate),
-                        isSelected = isSelected,
-                        onClick = { onDateClick(dayDate) },
-                        onLongClick = { onDateLongClick(dayDate) }
-                    )
-                } else {
-                    // Prázdná buňka
-                    Box(
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .padding(2.dp)
-                    )
                 }
             }
         }

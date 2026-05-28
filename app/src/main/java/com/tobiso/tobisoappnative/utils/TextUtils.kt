@@ -2,70 +2,6 @@ package com.tobiso.tobisoappnative.utils
 
 object TextUtils {
     private val addendumRegex = Regex("\\(--DOD-(\\d+)--\\)")
-    /**
-     * Předzpracuje Markdown pro zobrazení:
-     * - "->" na šipku "→"
-     *
-     * Zlomky se nevykreslují jako HTML (CommonMark renderer inline HTML ignoruje).
-     * Pro „skutečné“ zlomky používáme vlastní inline rendering v `SafeMarkdown`.
-     *
-     * Neprovádí změny uvnitř code bloků (```...```) ani inline kódu (`...`).
-     */
-    fun preprocessMarkdownForDisplay(markdownContent: String): String {
-        if (markdownContent.isBlank()) return markdownContent
-
-        fun transformTextSegment(segment: String): String {
-            return segment
-                .replace("->", "→")
-                // remove addendum markers like (--DOD-123--)
-                .replace(addendumRegex, "")
-        }
-
-        fun transformInlineCode(line: String): String {
-            if (!line.contains('`')) return transformTextSegment(line)
-
-            val out = StringBuilder()
-            val chunk = StringBuilder()
-            var inInlineCode = false
-            for (ch in line) {
-                if (ch == '`') {
-                    if (!inInlineCode) {
-                        out.append(transformTextSegment(chunk.toString()))
-                        chunk.setLength(0)
-                        inInlineCode = true
-                        out.append('`')
-                    } else {
-                        out.append(chunk.toString())
-                        chunk.setLength(0)
-                        inInlineCode = false
-                        out.append('`')
-                    }
-                } else {
-                    chunk.append(ch)
-                }
-            }
-            if (chunk.isNotEmpty()) {
-                if (inInlineCode) out.append(chunk.toString()) else out.append(transformTextSegment(chunk.toString()))
-            }
-            return out.toString()
-        }
-
-        val lines = markdownContent.split('\n')
-        val sb = StringBuilder(markdownContent.length)
-        var inFence = false
-        for (index in lines.indices) {
-            val line = lines[index]
-            val trimmed = line.trimStart()
-            if (trimmed.startsWith("```")) {
-                inFence = !inFence
-                sb.append(line)
-            } else {
-                sb.append(if (inFence) line else transformInlineCode(line))
-            }
-            if (index != lines.lastIndex) sb.append('\n')
-        }
-        return sb.toString()
-    }
 
     /**
      * Extrahuje čistý text z markdown obsahu pro TTS
@@ -73,9 +9,9 @@ object TextUtils {
     fun extractPlainTextForTts(markdownContent: String): String {
         return markdownContent
             // Odstranění obrázků
-            .replace(Regex("!\\[.*?\\]\\(.*?\\)"), "")
+            .replace(Regex("!\\[.*?](?:\\(.*?\\))?"), "")
             // Nahrazení odkazů jen textem
-            .replace(Regex("\\[([^\\]]+)\\]\\([^\\)]+\\)"), "$1")
+            .replace(Regex("\\[([^]]+)](?:\\(.*?\\))?"), "$1")
             // Odstranění HTML tagů
             .replace(Regex("<[^>]+>"), "")
             // Odstranění video tagů
@@ -175,7 +111,7 @@ object TextUtils {
         s = s.replace(Regex("<[^>]+>"), "")
 
         // Remove markdown images ![alt](url)
-        s = s.replace(Regex("!\\[[^\\]]*\\]\\([^\\)]*\\)"), "")
+        s = s.replace(Regex("!\\[[^]]*]\\([^)]*\\)"), "")
 
         // Remove addendum markers like (--DOD-123--)
         s = s.replace(addendumRegex, "")
@@ -187,7 +123,7 @@ object TextUtils {
         s = s.replace(Regex("(?m)^[\\t ]*\\.{3,}\\s*$"), "")
 
         // Convert markdown links [text](url) -> text
-        s = s.replace(Regex("\\[([^\\]]+)\\]\\([^\\)]+\\)"), "$1")
+        s = s.replace(Regex("\\[([^]]+)]\\([^)]+\\)"), "$1")
 
         // Remove bold/italic markers but keep content
         s = s.replace(Regex("\\*\\*([^*]+)\\*\\*"), "$1")
