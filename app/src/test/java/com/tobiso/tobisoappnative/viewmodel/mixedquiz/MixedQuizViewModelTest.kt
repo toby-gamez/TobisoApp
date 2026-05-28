@@ -5,7 +5,6 @@ import com.tobiso.tobisoappnative.QuestionProgressManager
 import com.tobiso.tobisoappnative.domain.usecase.GetAllQuestionsUseCase
 import com.tobiso.tobisoappnative.fake.FakePointsManager
 import com.tobiso.tobisoappnative.model.Answer
-import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.Question
 import com.tobiso.tobisoappnative.utils.NetworkUtils
 import io.mockk.coEvery
@@ -15,7 +14,7 @@ import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -61,13 +60,13 @@ class MixedQuizViewModelTest {
     // ── Load ──────────────────────────────────────────────────────────────────
 
     @Test
-    fun `load populates mixedQuestions filtered by ids`() = runTest {
+    fun `load populates mixedQuestions filtered by ids`() = runBlocking {
         val q1 = makeQuestion(1)
         val q2 = makeQuestion(2)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1, q2) to emptyList())
 
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
 
         assertEquals(1, viewModel.uiState.value.mixedQuestions.size)
         assertEquals(1, viewModel.uiState.value.mixedQuestions[0].id)
@@ -76,35 +75,35 @@ class MixedQuizViewModelTest {
     }
 
     @Test
-    fun `load with multiple ids keeps all matching questions`() = runTest {
+    fun `load with multiple ids keeps all matching questions`() = runBlocking {
         val q1 = makeQuestion(1)
         val q2 = makeQuestion(2)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1, q2) to emptyList())
 
         viewModel.onIntent(MixedQuizIntent.Load("1,2"))
-        delay(200)
+        delay(100)
 
         assertEquals(2, viewModel.uiState.value.mixedQuestions.size)
     }
 
     @Test
-    fun `load sets error on use case failure`() = runTest {
+    fun `load sets error on use case failure`() = runBlocking {
         coEvery { getAllQuestions() } returns Result.failure(RuntimeException("Nepodařilo se načíst otázky"))
 
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
 
         assertFalse(viewModel.uiState.value.isLoading)
         assertTrue(viewModel.uiState.value.error != null)
     }
 
     @Test
-    fun `load sets isOffline when network unavailable`() = runTest {
+    fun `load sets isOffline when network unavailable`() = runBlocking {
         every { NetworkUtils.isOnline(any()) } returns false
         coEvery { getAllQuestions() } returns Result.success(emptyList<Question>() to emptyList())
 
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
 
         assertTrue(viewModel.uiState.value.isOffline)
     }
@@ -112,11 +111,11 @@ class MixedQuizViewModelTest {
     // ── StartQuiz ─────────────────────────────────────────────────────────────
 
     @Test
-    fun `startQuiz sets quizStarted and initialises shuffled indices`() = runTest {
+    fun `startQuiz sets quizStarted and initialises shuffled indices`() = runBlocking {
         val q1 = makeQuestion(1)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
 
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
 
@@ -128,10 +127,10 @@ class MixedQuizViewModelTest {
     }
 
     @Test
-    fun `startQuiz with empty questions does nothing`() = runTest {
+    fun `startQuiz with empty questions does nothing`() = runBlocking {
         coEvery { getAllQuestions() } returns Result.success(emptyList<Question>() to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load(""))
-        delay(200)
+        delay(100)
 
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
 
@@ -141,12 +140,12 @@ class MixedQuizViewModelTest {
     // ── Navigation ────────────────────────────────────────────────────────────
 
     @Test
-    fun `nextQuestion increments index when not at end`() = runTest {
+    fun `nextQuestion increments index when not at end`() = runBlocking {
         val q1 = makeQuestion(1)
         val q2 = makeQuestion(2)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1, q2) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1,2"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
 
         viewModel.onIntent(MixedQuizIntent.NextQuestion)
@@ -155,11 +154,11 @@ class MixedQuizViewModelTest {
     }
 
     @Test
-    fun `nextQuestion does not exceed last index`() = runTest {
+    fun `nextQuestion does not exceed last index`() = runBlocking {
         val q1 = makeQuestion(1)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
 
         viewModel.onIntent(MixedQuizIntent.NextQuestion)
@@ -168,12 +167,12 @@ class MixedQuizViewModelTest {
     }
 
     @Test
-    fun `previousQuestion decrements index when past first`() = runTest {
+    fun `previousQuestion decrements index when past first`() = runBlocking {
         val q1 = makeQuestion(1)
         val q2 = makeQuestion(2)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1, q2) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1,2"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
         viewModel.onIntent(MixedQuizIntent.NextQuestion)
 
@@ -183,11 +182,11 @@ class MixedQuizViewModelTest {
     }
 
     @Test
-    fun `previousQuestion does not go below zero`() = runTest {
+    fun `previousQuestion does not go below zero`() = runBlocking {
         val q1 = makeQuestion(1)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
 
         viewModel.onIntent(MixedQuizIntent.PreviousQuestion)
@@ -198,11 +197,11 @@ class MixedQuizViewModelTest {
     // ── SelectAnswer ──────────────────────────────────────────────────────────
 
     @Test
-    fun `selectAnswer stores answer for display index`() = runTest {
+    fun `selectAnswer stores answer for display index`() = runBlocking {
         val q1 = makeQuestion(1)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
 
         viewModel.onIntent(MixedQuizIntent.SelectAnswer(displayIndex = 0, answerIndex = 1))
@@ -213,11 +212,11 @@ class MixedQuizViewModelTest {
     // ── FinishQuiz ────────────────────────────────────────────────────────────
 
     @Test
-    fun `finishQuiz awards 2 points per correct answer`() = runTest {
+    fun `finishQuiz awards 2 points per correct answer`() = runBlocking {
         val q1 = makeQuestion(1, correctIdx = 0)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
         viewModel.onIntent(MixedQuizIntent.SelectAnswer(0, 0))
 
@@ -231,11 +230,11 @@ class MixedQuizViewModelTest {
     }
 
     @Test
-    fun `finishQuiz with all wrong answers awards zero points`() = runTest {
+    fun `finishQuiz with all wrong answers awards zero points`() = runBlocking {
         val q1 = makeQuestion(1, correctIdx = 0)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
         viewModel.onIntent(MixedQuizIntent.SelectAnswer(0, 1))
 
@@ -248,11 +247,11 @@ class MixedQuizViewModelTest {
     }
 
     @Test
-    fun `finishQuiz second call skips re-awarding points`() = runTest {
+    fun `finishQuiz second call skips re-awarding points`() = runBlocking {
         val q1 = makeQuestion(1, correctIdx = 0)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
         viewModel.onIntent(MixedQuizIntent.SelectAnswer(0, 0))
         viewModel.onIntent(MixedQuizIntent.FinishQuiz)
@@ -265,11 +264,11 @@ class MixedQuizViewModelTest {
     // ── RestartQuiz ───────────────────────────────────────────────────────────
 
     @Test
-    fun `restartQuiz resets quiz progress state`() = runTest {
+    fun `restartQuiz resets quiz progress state`() = runBlocking {
         val q1 = makeQuestion(1, correctIdx = 0)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
         viewModel.onIntent(MixedQuizIntent.SelectAnswer(0, 0))
         viewModel.onIntent(MixedQuizIntent.FinishQuiz)
@@ -287,11 +286,11 @@ class MixedQuizViewModelTest {
     // ── DismissPointsOverlay ──────────────────────────────────────────────────
 
     @Test
-    fun `dismissPointsOverlay hides points overlay`() = runTest {
+    fun `dismissPointsOverlay hides points overlay`() = runBlocking {
         val q1 = makeQuestion(1, correctIdx = 0)
         coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
         viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(200)
+        delay(100)
         viewModel.onIntent(MixedQuizIntent.StartQuiz)
         viewModel.onIntent(MixedQuizIntent.SelectAnswer(0, 0))
         viewModel.onIntent(MixedQuizIntent.FinishQuiz)

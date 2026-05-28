@@ -11,7 +11,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -50,11 +50,11 @@ class PostDetailViewModelTest {
     }
 
     @Test
-    fun `loadPostDetail populates postDetail on success`() = runTest {
+    fun `loadPostDetail populates postDetail on success`() = runBlocking {
         coEvery { repo.getPost(10, any()) } returns Result.success(samplePost)
 
         viewModel.loadPostDetail(10)
-        delay(200)
+        delay(100)
 
         assertEquals(samplePost, viewModel.postDetail.value)
         assertNull(viewModel.postDetailError.value)
@@ -62,11 +62,11 @@ class PostDetailViewModelTest {
     }
 
     @Test
-    fun `loadPostDetail sets error on network failure`() = runTest {
+    fun `loadPostDetail sets error on network failure`() = runBlocking {
         coEvery { repo.getPost(10, any()) } returns Result.failure(RuntimeException("Server error"))
 
         viewModel.loadPostDetail(10)
-        delay(200)
+        delay(100)
 
         assertNull(viewModel.postDetail.value)
         assertNotNull(viewModel.postDetailError.value)
@@ -74,43 +74,43 @@ class PostDetailViewModelTest {
     }
 
     @Test
-    fun `loadPostDetail sets isOffline on IllegalStateException`() = runTest {
+    fun `loadPostDetail sets isOffline on IllegalStateException`() = runBlocking {
         coEvery { repo.getPost(10, any()) } returns Result.failure(IllegalStateException("Offline"))
 
         viewModel.loadPostDetail(10)
-        delay(200)
+        delay(100)
 
         assertTrue(viewModel.isOffline.value)
     }
 
     @Test
-    fun `loadPosts populates posts list on success`() = runTest {
+    fun `loadPosts populates posts list on success`() = runBlocking {
         coEvery { repo.getPostsByCategory(null) } returns Result.success(listOf(samplePost))
 
         viewModel.loadPosts()
-        delay(200)
+        delay(100)
 
         assertEquals(1, viewModel.posts.value.size)
         assertEquals(10, viewModel.posts.value[0].id)
     }
 
     @Test
-    fun `loadPosts tolerates failure without affecting other state`() = runTest {
+    fun `loadPosts tolerates failure without affecting other state`() = runBlocking {
         coEvery { repo.getPostsByCategory(null) } returns Result.failure(RuntimeException("Timeout"))
 
         viewModel.loadPosts()
-        delay(200)
+        delay(100)
 
         assertTrue(viewModel.posts.value.isEmpty())
     }
 
     @Test
-    fun `loadRelatedPosts populates relatedPosts on success`() = runTest {
+    fun `loadRelatedPosts populates relatedPosts on success`() = runBlocking {
         val related = RelatedPost(id = 1, postId = 10, relatedPostId = 20, postTitle = "A", relatedPostTitle = "B")
         coEvery { repo.getRelatedPosts(10, any(), any()) } returns Result.success(listOf(related))
 
         viewModel.loadRelatedPosts(10)
-        delay(200)
+        delay(100)
 
         assertEquals(1, viewModel.relatedPosts.value.size)
         assertEquals(20, viewModel.relatedPosts.value[0].relatedPostId)
@@ -119,11 +119,11 @@ class PostDetailViewModelTest {
     }
 
     @Test
-    fun `loadRelatedPosts sets error on failure`() = runTest {
+    fun `loadRelatedPosts sets error on failure`() = runBlocking {
         coEvery { repo.getRelatedPosts(10, any(), any()) } returns Result.failure(RuntimeException("Not found"))
 
         viewModel.loadRelatedPosts(10)
-        delay(200)
+        delay(100)
 
         assertTrue(viewModel.relatedPosts.value.isEmpty())
         assertNotNull(viewModel.relatedPostsError.value)
@@ -131,17 +131,17 @@ class PostDetailViewModelTest {
     }
 
     @Test
-    fun `savePost delegates to favoritesRepo`() = runTest {
+    fun `savePost delegates to favoritesRepo`() = runBlocking {
         viewModel.savePost(samplePost)
-        delay(100)
+        delay(50)
 
         coVerify { favoritesRepo.savePost(samplePost) }
     }
 
     @Test
-    fun `unsavePost delegates to favoritesRepo`() = runTest {
+    fun `unsavePost delegates to favoritesRepo`() = runBlocking {
         viewModel.unsavePost(10)
-        delay(100)
+        delay(50)
 
         coVerify { favoritesRepo.unsavePost(10) }
     }

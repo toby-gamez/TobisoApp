@@ -206,6 +206,7 @@ fun AllQuestionsScreen(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PracticeHubContent(
     vm: AllQuestionsViewModel,
@@ -215,8 +216,41 @@ private fun PracticeHubContent(
     categoryQuestionIdsMap: Map<Int, List<Int>>,
     navController: NavController
 ) {
-    val rootCategories = remember(categories) {
-        categories.filter { it.parentId == null && it.name != "More" }
+    val rootCategories = remember(categories, categoryQuestionIdsMap) {
+        categories.filter { cat ->
+            cat.parentId == null &&
+                    cat.name != "More" &&
+                    (categoryQuestionIdsMap[cat.id]?.isNotEmpty() == true)
+        }
+    }
+
+    var sheetCategoryId by remember { mutableStateOf<Int?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    if (sheetCategoryId != null) {
+        val cat = categories.find { it.id == sheetCategoryId }
+        val allIds = categoryQuestionIdsMap[sheetCategoryId!!] ?: emptyList()
+        if (cat != null && allIds.isNotEmpty()) {
+            ModalBottomSheet(
+                onDismissRequest = { sheetCategoryId = null },
+                sheetState = sheetState
+            ) {
+                TopicSheet(
+                    category = cat,
+                    allQuestionIds = allIds,
+                    subcategories = categories.filter { it.parentId == cat.id },
+                    categoryQuestionIdsMap = categoryQuestionIdsMap,
+                    allCategories = categories,
+                    onLaunch = { ids ->
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            sheetCategoryId = null
+                            navController.navigate(MixedQuizRoute(ids.joinToString(",")))
+                        }
+                    }
+                )
+            }
+        }
     }
 
     LazyColumn(
@@ -224,7 +258,6 @@ private fun PracticeHubContent(
         contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Quick actions
         item {
             QuickActionsSection(
                 totalCount = allQuestionsCount,
@@ -243,7 +276,6 @@ private fun PracticeHubContent(
             )
         }
 
-        // Weak spots (only when data exists)
         if (weakCategories.isNotEmpty()) {
             item {
                 WeakSpotsSection(
@@ -256,7 +288,6 @@ private fun PracticeHubContent(
             }
         }
 
-        // Subject cards header
         item {
             Text(
                 text = "Procvičovat dle tématu",
@@ -266,7 +297,6 @@ private fun PracticeHubContent(
             )
         }
 
-        // Root category cards in 2-column rows
         items(rootCategories.chunked(2)) { row ->
             Row(
                 modifier = Modifier
@@ -284,18 +314,210 @@ private fun PracticeHubContent(
                         name = category.name,
                         questionCount = questionIds.size,
                         progress = if (progress < 0f) null else progress,
-                        onClick = {
-                            if (questionIds.isNotEmpty()) {
-                                navController.navigate(MixedQuizRoute(questionIds.joinToString(",")))
-                            }
-                        }
+                        onClick = { sheetCategoryId = category.id }
                     )
                 }
-                if (row.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
             }
             Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun TopicSheet(
+    category: com.tobiso.tobisoappnative.model.Category,
+    allQuestionIds: List<Int>,
+    subcategories: List<com.tobiso.tobisoappnative.model.Category>,
+    categoryQuestionIdsMap: Map<Int, List<Int>>,
+    allCategories: List<com.tobiso.tobisoappnative.model.Category>,
+    onLaunch: (List<Int>) -> Unit
+) {
+    val subjectIcon = IconPackManager.getSubjectIcon(category.name)
+    val isEmoji = IconPackManager.isEmojiIcon(category.name)
+    val total = allQuestionIds.size
+    val counts = listOf(10, 25, 50).filter { it < total }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        // Header
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (isEmoji && subjectIcon is String) {
+                Text(text = subjectIcon, fontSize = 28.sp)
+            } else {
+                Icon(
+                    imageVector = subjectIcon as? ImageVector ?: Icons.Default.MenuBook,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = category.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "$total otázek celkem",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Quick count chips
+        Text(
+            text = "Rychlý dril",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            counts.forEach { n ->
+                ElevatedButton(
+                    onClick = { onLaunch(allQuestionIds.shuffled().take(n)) },
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text("$n", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+            Button(
+                onClick = { onLaunch(allQuestionIds.shuffled()) },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Vše ($total)", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+
+        // Subcategories
+        val subcatsWithQuestions = subcategories
+            .mapNotNull { sub -> (categoryQuestionIdsMap[sub.id]?.takeIf { it.isNotEmpty() })?.let { sub to it } }
+
+        if (subcatsWithQuestions.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "Podkategorie",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            subcatsWithQuestions.forEach { (sub, ids) ->
+                val progress = QuestionProgressManager.instance.getProgressForQuestions(ids.toSet())
+                SubcategoryRow(
+                    category = sub,
+                    ids = ids,
+                    progress = if (progress < 0f) null else progress,
+                    allCategories = allCategories,
+                    categoryQuestionIdsMap = categoryQuestionIdsMap,
+                    onLaunch = onLaunch
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubcategoryRow(
+    name: String,
+    ids: List<Int>,
+    progress: Float?,
+    onLaunch: (List<Int>) -> Unit
+) {
+    val expandable = ids.size > 15
+    var expanded by remember { mutableStateOf(false) }
+    val counts = listOf(10, 15).filter { it < ids.size }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .then(
+                if (expandable) Modifier.clickable { expanded = !expanded }
+                else Modifier.clickable { onLaunch(ids.shuffled()) }
+            )
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (progress != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        LinearProgressIndicator(
+                            progress = { progress.coerceIn(0f, 1f) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
+                            color = when {
+                                progress >= 0.8f -> Color(0xFF4CAF50)
+                                progress >= 0.5f -> Color(0xFFFFC107)
+                                else -> MaterialTheme.colorScheme.error
+                            },
+                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "${ids.size}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = if (expandable) {
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore
+                } else Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        if (expanded) {
+            Row(
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                counts.forEach { n ->
+                    ElevatedButton(
+                        onClick = { onLaunch(ids.shuffled().take(n)) },
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text("$n", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+                Button(
+                    onClick = { onLaunch(ids.shuffled()) },
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text("Vše (${ids.size})", style = MaterialTheme.typography.labelMedium)
+                }
+            }
         }
     }
 }

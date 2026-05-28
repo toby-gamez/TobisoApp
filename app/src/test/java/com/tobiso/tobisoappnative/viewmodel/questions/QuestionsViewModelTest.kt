@@ -13,7 +13,7 @@ import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -57,11 +57,11 @@ class QuestionsViewModelTest {
     }
 
     @Test
-    fun `loadQuestions populates questions on success`() = runTest {
+    fun `loadQuestions populates questions on success`() = runBlocking {
         coEvery { repo.getQuestionsForPost(5) } returns Result.success(listOf(sampleQuestion))
 
         viewModel.loadQuestions(5)
-        delay(200)
+        delay(100)
 
         assertEquals(1, viewModel.questions.value.size)
         assertEquals("Co je to sloveso?", viewModel.questions.value[0].questionText)
@@ -70,11 +70,11 @@ class QuestionsViewModelTest {
     }
 
     @Test
-    fun `loadQuestions sets error on failure`() = runTest {
+    fun `loadQuestions sets error on failure`() = runBlocking {
         coEvery { repo.getQuestionsForPost(5) } returns Result.failure(RuntimeException("Chyba sítě"))
 
         viewModel.loadQuestions(5)
-        delay(200)
+        delay(100)
 
         assertTrue(viewModel.questions.value.isEmpty())
         assertEquals("Chyba sítě", viewModel.questionsError.value)
@@ -82,55 +82,55 @@ class QuestionsViewModelTest {
     }
 
     @Test
-    fun `loadQuestions sets offline error message when empty and offline`() = runTest {
+    fun `loadQuestions sets offline error message when empty and offline`() = runBlocking {
         every { NetworkUtils.isOnline(any()) } returns false
         coEvery { repo.getQuestionsForPost(5) } returns Result.success(emptyList())
 
         viewModel.loadQuestions(5)
-        delay(200)
+        delay(100)
 
         assertTrue(viewModel.questions.value.isEmpty())
-        assertTrue(viewModel.questionsError.value!!.contains("offline"))
+        assertTrue(viewModel.questionsError.value != null && viewModel.questionsError.value!!.contains("offline"))
         assertTrue(viewModel.isOffline.value)
     }
 
     @Test
-    fun `loadQuestions with non-empty result does not set offline error even when offline`() = runTest {
+    fun `loadQuestions with results does not set offline error even when offline`() = runBlocking {
         every { NetworkUtils.isOnline(any()) } returns false
         coEvery { repo.getQuestionsForPost(5) } returns Result.success(listOf(sampleQuestion))
 
         viewModel.loadQuestions(5)
-        delay(200)
+        delay(100)
 
         assertEquals(1, viewModel.questions.value.size)
         assertNull(viewModel.questionsError.value)
     }
 
     @Test
-    fun `loadPostDetail populates postDetail on success`() = runTest {
+    fun `loadPostDetail populates postDetail on success`() = runBlocking {
         coEvery { repo.getPost(5) } returns Result.success(samplePost)
 
         viewModel.loadPostDetail(5)
-        delay(200)
+        delay(100)
 
         assertEquals(samplePost, viewModel.postDetail.value)
     }
 
     @Test
-    fun `loadPostDetail tolerates failure without crashing`() = runTest {
+    fun `loadPostDetail tolerates failure without crashing`() = runBlocking {
         coEvery { repo.getPost(5) } returns Result.failure(RuntimeException("Not found"))
 
         viewModel.loadPostDetail(5)
-        delay(200)
+        delay(100)
 
         assertNull(viewModel.postDetail.value)
     }
 
     @Test
-    fun `clearQuestions resets questions and error state`() = runTest {
+    fun `clearQuestions resets questions and error state`() = runBlocking {
         coEvery { repo.getQuestionsForPost(5) } returns Result.success(listOf(sampleQuestion))
         viewModel.loadQuestions(5)
-        delay(200)
+        delay(100)
 
         viewModel.clearQuestions()
 
@@ -139,12 +139,12 @@ class QuestionsViewModelTest {
     }
 
     @Test
-    fun `isOffline reflects online status during load`() = runTest {
+    fun `isOffline reflects online status during load`() = runBlocking {
         every { NetworkUtils.isOnline(any()) } returns false
         coEvery { repo.getQuestionsForPost(5) } returns Result.success(listOf(sampleQuestion))
 
         viewModel.loadQuestions(5)
-        delay(200)
+        delay(100)
 
         assertTrue(viewModel.isOffline.value)
     }
