@@ -2,7 +2,6 @@ package com.tobiso.tobisoappnative.viewmodel.allquestions
 
 import android.app.Application
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.QuestionProgressManager
@@ -72,9 +71,17 @@ class AllQuestionsViewModel @Inject constructor(
     private val _weakCategories = MutableStateFlow<List<WeakCategory>>(emptyList())
     val weakCategories: StateFlow<List<WeakCategory>> = _weakCategories
 
+    // categoryId → list of question IDs; recomputed whenever questions or categories change
+    private val _categoryQuestionIdsMap = MutableStateFlow<Map<Int, List<Int>>>(emptyMap())
+    val categoryQuestionIdsMap: StateFlow<Map<Int, List<Int>>> = _categoryQuestionIdsMap
+
     fun loadCategories() {
         viewModelScope.launch(Dispatchers.IO) {
-            postsRepo.getCategories().onSuccess { _categories.value = it }
+            postsRepo.getCategories().onSuccess { cats ->
+                _categories.value = cats
+                recomputeCategoryMap(_allQuestions.value, _questionsPosts.value, cats)
+                computeWeakCategories(cats, _categoryQuestionIdsMap.value)
+            }
         }
     }
 
@@ -89,7 +96,9 @@ class AllQuestionsViewModel @Inject constructor(
                     _allQuestionsError.value = if (questions.isEmpty() && _isOffline.value)
                         "Otázky nejsou dostupné v offline režimu" else null
                     applyFilter()
-                    computeWeakCategories(questions, posts, _categories.value)
+                    val cats = _categories.value
+                    recomputeCategoryMap(questions, posts, cats)
+                    computeWeakCategories(cats, _categoryQuestionIdsMap.value)
                 },
                 onFailure = { e ->
                     _allQuestionsError.value = e.message
@@ -128,14 +137,8 @@ class AllQuestionsViewModel @Inject constructor(
         }
     }
 
-    fun getCategoryQuestionIds(categoryId: Int): List<Int> {
-        val posts = _questionsPosts.value
-        val questions = _allQuestions.value
-        val cats = _categories.value
-        val catIds = getAllSubcategoryIds(categoryId, cats)
-        val postIds = posts.filter { it.categoryId in catIds }.map { it.id }.toSet()
-        return questions.filter { it.postId in postIds }.map { it.id }
-    }
+    fun getCategoryQuestionIds(categoryId: Int): List<Int> =
+        _categoryQuestionIdsMap.value[categoryId] ?: emptyList()
 
     fun getRandomQuestionIds(count: Int): List<Int> {
         return _allQuestions.value.map { it.id }.shuffled().take(count)
@@ -150,19 +153,36 @@ class AllQuestionsViewModel @Inject constructor(
         return _allQuestions.value.map { it.id }.shuffled(java.util.Random(seed)).take(count)
     }
 
-    private fun computeWeakCategories(
+    private fun recomputeCategoryMap(
         questions: List<Question>,
         posts: List<Post>,
         cats: List<Category>
     ) {
+        if (questions.isEmpty() || cats.isEmpty()) return
+        // Build postId→categoryId lookup from whichever posts have categoryId set
+        val postCategoryMap = posts.mapNotNull { p -> p.categoryId?.let { p.id to it } }.toMap()
+        val map = mutableMapOf<Int, MutableList<Int>>()
+        for (cat in cats) {
+            val catIds = getAllSubcategoryIds(cat.id, cats)
+            val postIds = postCategoryMap.entries
+                .filter { it.value in catIds }
+                .map { it.key }
+                .toSet()
+            val qIds = questions.filter { it.postId in postIds }.map { it.id }
+            if (qIds.isNotEmpty()) map[cat.id] = qIds.toMutableList()
+        }
+        _categoryQuestionIdsMap.value = map
+    }
+
+    private fun computeWeakCategories(
+        cats: List<Category>,
+        catQuestionMap: Map<Int, List<Int>>
+    ) {
         val rootCats = cats.filter { it.parentId == null }
         val weak = rootCats.mapNotNull { cat ->
-            val catIds = getAllSubcategoryIds(cat.id, cats)
-            val postIds = posts.filter { it.categoryId in catIds }.map { it.id }.toSet()
-            val questionIds = questions.filter { it.postId in postIds }.map { it.id }.toSet()
-            if (questionIds.isEmpty()) return@mapNotNull null
+            val questionIds = (catQuestionMap[cat.id] ?: return@mapNotNull null).toSet()
             val progress = QuestionProgressManager.instance.getProgressForQuestions(questionIds)
-            if (progress < 0f) return@mapNotNull null // no attempts yet
+            if (progress < 0f) return@mapNotNull null
             WeakCategory(
                 categoryId = cat.id,
                 name = cat.name,
