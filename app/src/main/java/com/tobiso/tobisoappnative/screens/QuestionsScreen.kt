@@ -62,7 +62,7 @@ fun QuestionsScreen(
     var shuffledQuestions by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
     
     val context = LocalContext.current
-    val totalPoints by PointsManager.totalPoints.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
 
     
     
@@ -109,7 +109,7 @@ fun QuestionsScreen(
     LaunchedEffect(showResults) {
         if (showResults && !pointsAwarded && scorePercentage > 0) {
             val points = scorePercentage / 10 // Procenta vydělená 10
-            PointsManager.addPoints(points)
+            PointsManager.instance.addPoints(points)
             awardedPoints = points
             pointsAwarded = true
             showPointsOverlay = true

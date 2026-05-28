@@ -4,6 +4,7 @@ import android.content.Context
 import com.tobiso.tobisoappnative.manager.IStreakFreezeManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -19,8 +20,8 @@ class StreakFreezeManager private constructor(context: Context) : IStreakFreezeM
     override val usedFreezes: StateFlow<Set<String>> = _usedFreezes
 
     init {
-        _availableFreezes.value = prefs.getInt(KEY_FREEZE_COUNT, 0)
-        _usedFreezes.value = prefs.getStringSet(KEY_USED_FREEZES, emptySet()) ?: emptySet()
+        _availableFreezes.update { prefs.getInt(KEY_FREEZE_COUNT, 0) }
+        _usedFreezes.update { prefs.getStringSet(KEY_USED_FREEZES, emptySet()) ?: emptySet() }
     }
 
     override fun addStreakFreeze(): Boolean {
@@ -28,7 +29,7 @@ class StreakFreezeManager private constructor(context: Context) : IStreakFreezeM
         if (currentCount >= MAX_FREEZES) return false
         val newCount = currentCount + 1
         prefs.edit().putInt(KEY_FREEZE_COUNT, newCount).apply()
-        _availableFreezes.value = newCount
+        _availableFreezes.update { newCount }
         return true
     }
 
@@ -74,8 +75,8 @@ class StreakFreezeManager private constructor(context: Context) : IStreakFreezeM
             .putInt(KEY_FREEZE_COUNT, newCount)
             .putStringSet(KEY_USED_FREEZES, usedFreezesSet)
             .apply()
-        _availableFreezes.value = newCount
-        _usedFreezes.value = usedFreezesSet
+        _availableFreezes.update { newCount }
+        _usedFreezes.update { usedFreezesSet }
         return true
     }
 
@@ -87,8 +88,8 @@ class StreakFreezeManager private constructor(context: Context) : IStreakFreezeM
 
     override fun resetFreezes() {
         prefs.edit().clear().apply()
-        _availableFreezes.value = 0
-        _usedFreezes.value = emptySet()
+        _availableFreezes.update { 0 }
+        _usedFreezes.update { emptySet() }
     }
 
     private fun getStreakDays(): Set<String> {
@@ -116,17 +117,5 @@ class StreakFreezeManager private constructor(context: Context) : IStreakFreezeM
                 }
             }
         }
-
-        // Delegations for direct access without .instance
-        val availableFreezes get() = instance.availableFreezes
-        val usedFreezes get() = instance.usedFreezes
-
-        fun addStreakFreeze() = instance.addStreakFreeze()
-        fun checkAndAutoUseFreeze() = instance.checkAndAutoUseFreeze()
-        fun useFreeze(dateString: String) = instance.useFreeze(dateString)
-        fun getAvailableFreezes() = instance.getAvailableFreezes()
-        fun getUsedFreezes() = instance.getUsedFreezes()
-        fun isFreezeActive(dateString: String) = instance.isFreezeActive(dateString)
-        fun resetFreezes() = instance.resetFreezes()
     }
 }

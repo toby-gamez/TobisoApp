@@ -94,7 +94,7 @@ class IconPackManager private constructor(context: Context) {
     }
 
     fun getAvailableIconPacks(): List<ShopItem> {
-        return ShopManager.purchasedItems.value.mapNotNull { itemId ->
+        return ShopManager.instance.purchasedItems.value.mapNotNull { itemId ->
             ShopData.getItemById(itemId)?.takeIf { it.type == ShopItemType.ICON_PACK }
         }
     }

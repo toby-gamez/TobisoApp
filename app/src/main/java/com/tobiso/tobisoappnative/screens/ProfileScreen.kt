@@ -105,7 +105,7 @@ fun ProfileScreen(navController: NavController) {
     val postsState = vm.posts.collectAsState()
     val posts: List<Post> = postsState.value
     val postLoading by vm.postLoading.collectAsState()
-    val totalPoints by PointsManager.totalPoints.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
     val otherCategoryId = 42
     val filteredPosts = posts.filter { it.categoryId == otherCategoryId }
@@ -153,7 +153,7 @@ fun ProfileScreen(navController: NavController) {
                     MultiplierIndicator()
                     
                     // Zobrazení bodů s novým designem
-                    val totalPoints by PointsManager.totalPoints.collectAsState()
+                    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -185,8 +185,8 @@ fun ProfileScreen(navController: NavController) {
                     val currentStreak = remember { mutableStateOf(0) }
                     
                     // Sledování změn v freeze
-                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
-                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
+                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsState()
+                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsState()
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -595,7 +595,7 @@ fun ProfileSection(navController: NavController) {
         profileImageUri = getProfileImageUri(context)
         
         // Zkontroluj, jestli má zobrazit bublinu - pouze pokud má vybavené zvířátko
-        val equippedPet = BackpackManager.equippedPet.value
+        val equippedPet = BackpackManager.instance.equippedPet.value
         if (equippedPet != null && shouldShowBubble(context)) {
             currentBubbleText = getRandomBubbleForPet(equippedPet.petIcon)
             showPetBubble = true
@@ -685,7 +685,7 @@ fun ProfileSection(navController: NavController) {
                 }
                 
                 // Vybavené zvířátko vlevo dolů
-                val equippedPet by BackpackManager.equippedPet.collectAsState()
+                val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
                 equippedPet?.petIcon?.let { petIcon ->
                     Box(
                         modifier = Modifier
@@ -949,7 +949,7 @@ fun ProfileSection(navController: NavController) {
 
 @Composable
 fun EquippedQuoteSection(navController: NavController) {
-    val equippedQuote by BackpackManager.equippedQuote.collectAsState()
+    val equippedQuote by BackpackManager.instance.equippedQuote.collectAsState()
     
     equippedQuote?.quote?.let { quote ->
         Card(
@@ -1100,7 +1100,7 @@ data class BadgeData(
 @Composable
 fun AchievementsSection() {
     val context = LocalContext.current
-    val totalEarnedPoints by PointsManager.totalEarnedPoints.collectAsState()
+    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsState()
     val achievements = remember { generatePointsAchievements().toSortedMap() }
     
     // Získání dosažených achievementů bodů

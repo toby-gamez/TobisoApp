@@ -6,9 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.time.Instant
 import java.time.ZoneId
-import java.util.*
+import java.util.Date
 
 object LocalEventManager {
     private const val LOCAL_EVENTS_FILE = "local_events.json"
@@ -143,36 +142,31 @@ object LocalEventManager {
         val eventStart = event.getStartDateSafe()
         val eventEnd = event.getEndDateSafe()
         val duration = eventEnd.time - eventStart.time
+        val zone = ZoneId.systemDefault()
 
-        val calendar = Calendar.getInstance()
-        calendar.time = eventStart
+        var current = eventStart.toInstant().atZone(zone).toLocalDateTime()
 
-        while (calendar.time.before(rangeEnd)) {
-            val instanceStart = calendar.time
+        val rangeEndLocal = rangeEnd.toInstant().atZone(zone).toLocalDateTime()
+
+        while (current.toInstant(zone.rules.getOffset(current)).isBefore(rangeEnd.toInstant())) {
+            val instanceStart = Date.from(current.toInstant(zone.rules.getOffset(current)))
             val instanceEnd = Date(instanceStart.time + duration)
 
-            // Stop if this occurrence's calendar date is after the recurrence end date's calendar date.
-            // Compare dates, not timestamps, so the end-date day itself is always included regardless
-            // of what time-of-day the recurrenceEndDate was set to.
             if (event.recurrenceEndDate != null) {
-                val zone = ZoneId.systemDefault()
-                val instanceDay = Instant.ofEpochMilli(instanceStart.time).atZone(zone).toLocalDate()
-                val endDay = Instant.ofEpochMilli(event.recurrenceEndDate.time).atZone(zone).toLocalDate()
-                if (instanceDay.isAfter(endDay)) break
+                val endDay = event.recurrenceEndDate.toInstant().atZone(zone).toLocalDate()
+                if (current.toLocalDate().isAfter(endDay)) break
             }
 
-            // Include if this instance overlaps [rangeStart, rangeEnd):
-            // instanceStart < rangeEnd is guaranteed by the outer while;
-            // !instanceEnd.before(rangeStart) covers instanceEnd >= rangeStart (including == for zero-duration events)
-            if (!instanceEnd.before(rangeStart)) {
+            val rangeStartLocal = rangeStart.toInstant().atZone(zone).toLocalDateTime()
+            if (!instanceEnd.toInstant().isBefore(rangeStart.toInstant())) {
                 instances.add(event.copy(startDate = instanceStart, endDate = instanceEnd))
             }
 
-            when (event.recurrencePattern?.lowercase()) {
-                "daily"   -> calendar.add(Calendar.DAY_OF_MONTH, 1)
-                "weekly"  -> calendar.add(Calendar.WEEK_OF_YEAR, 1)
-                "monthly" -> calendar.add(Calendar.MONTH, 1)
-                "yearly"  -> calendar.add(Calendar.YEAR, 1)
+            current = when (event.recurrencePattern?.lowercase()) {
+                "daily"   -> current.plusDays(1)
+                "weekly"  -> current.plusWeeks(1)
+                "monthly" -> current.plusMonths(1)
+                "yearly"  -> current.plusYears(1)
                 else      -> break
             }
         }

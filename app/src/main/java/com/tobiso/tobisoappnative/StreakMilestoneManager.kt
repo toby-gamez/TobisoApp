@@ -39,7 +39,7 @@ object StreakMilestoneManager {
                     newMilestonesFound = true
                     Timber.d("🎉 NEW MILESTONE ACHIEVED: $days days - awarding $points points")
 
-                    PointsManager.addPointsForMilestone(points, days)
+                    PointsManager.instance.addPointsForMilestone(points, days)
                     milestonesPrefs.edit().putBoolean(milestoneKey, true).apply()
 
                     Timber.d("Points added and milestone marked as achieved")

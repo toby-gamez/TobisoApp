@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
         recordAppOpen()
 
         // DŮLEŽITÉ: Kontrola freeze PŘED přidáním dnešního dne
-        StreakFreezeManager.checkAndAutoUseFreeze()
+        StreakFreezeManager.instance.checkAndAutoUseFreeze()
 
         // Přidat dnešní den do řady (pokud už tam není)
         addTodayToStreak(this)

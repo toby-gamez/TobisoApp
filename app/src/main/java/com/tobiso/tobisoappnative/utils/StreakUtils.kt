@@ -26,7 +26,7 @@ object StreakUtils {
      */
     fun getAllActiveDays(context: Context): Set<String> {
         val streakDays = getStreakDays(context)
-        val freezeDays = StreakFreezeManager.getUsedFreezes()
+        val freezeDays = StreakFreezeManager.instance.getUsedFreezes()
         return (streakDays + freezeDays).toSet()
     }
     

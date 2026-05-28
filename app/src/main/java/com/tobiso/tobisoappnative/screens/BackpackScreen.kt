@@ -41,9 +41,9 @@ fun BackpackScreen(
     navController: NavController,
     vm: BackpackViewModel = hiltViewModel()
 ) {
-    val backpackItems by BackpackManager.backpackItems.collectAsState()
-    val equippedQuote by BackpackManager.equippedQuote.collectAsState()
-    val equippedPet by BackpackManager.equippedPet.collectAsState()
+    val backpackItems by BackpackManager.instance.backpackItems.collectAsState()
+    val equippedQuote by BackpackManager.instance.equippedQuote.collectAsState()
+    val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
 
     val selectedItem by vm.selectedItem.collectAsState()
     val showItemDialog by vm.showItemDialog.collectAsState()
@@ -72,7 +72,7 @@ fun BackpackScreen(
 
             // Default - první kategorie s obsahem
             BackpackCategory.entries.firstOrNull { category ->
-                BackpackManager.getItemsByCategory(category).isNotEmpty()
+                BackpackManager.instance.getItemsByCategory(category).isNotEmpty()
             } ?: BackpackCategory.QUOTES
         }
     }
@@ -146,7 +146,7 @@ fun BackpackScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(BackpackCategory.entries.filter { category ->
-                    BackpackManager.getItemsByCategory(category).isNotEmpty()
+                    BackpackManager.instance.getItemsByCategory(category).isNotEmpty()
                 }) { category ->
                     BackpackCategoryChip(
                         category = category,
@@ -182,7 +182,7 @@ fun BackpackScreen(
                 
                 // Všechny kategorie pod sebou
                 BackpackCategory.entries.forEach { category ->
-                    val categoryItems = BackpackManager.getItemsByCategory(category)
+                    val categoryItems = BackpackManager.instance.getItemsByCategory(category)
                     
                     if (categoryItems.isNotEmpty()) {
                         // Uloží pozici headeru
@@ -210,7 +210,7 @@ fun BackpackScreen(
                                 isEquipped = when (backpackItem.shopItem.type) {
                                     ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == backpackItem.shopItem.id
                                     ShopItemType.PET -> equippedPet?.id == backpackItem.shopItem.id
-                                    ShopItemType.ICON_PACK -> BackpackManager.equippedIconPack.collectAsState().value?.id == backpackItem.shopItem.id
+                                    ShopItemType.ICON_PACK -> BackpackManager.instance.equippedIconPack.collectAsState().value?.id == backpackItem.shopItem.id
                                     else -> false
                                 },
                                 onClick = {
@@ -244,7 +244,7 @@ fun BackpackScreen(
                 isEquipped = when (item.shopItem.type) {
                     ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == item.shopItem.id
                     ShopItemType.PET -> equippedPet?.id == item.shopItem.id
-                    ShopItemType.ICON_PACK -> BackpackManager.equippedIconPack.collectAsState().value?.id == item.shopItem.id
+                    ShopItemType.ICON_PACK -> BackpackManager.instance.equippedIconPack.collectAsState().value?.id == item.shopItem.id
                     else -> false
                 },
                 onEquip = { vm.equipItem(item) },

@@ -76,8 +76,6 @@ import com.tobiso.tobisoappnative.utils.saveAiConsent
 import com.tobiso.tobisoappnative.components.AiConsentDialog
 import java.io.File
 import java.io.FileOutputStream
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Build
 import androidx.compose.runtime.saveable.rememberSaveable
 import android.provider.MediaStore
@@ -135,8 +133,6 @@ fun PostDetailScreen(
     var selectedAddendum by remember { mutableStateOf<Addendum?>(null) }
     var showAddendumDialog by remember { mutableStateOf(false) }
     var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
-    var pendingPdfDownload by rememberSaveable { mutableStateOf(false) }
-
     val context = LocalContext.current
 
     val isConnected by vm.isConnected.collectAsState()
@@ -147,22 +143,6 @@ fun PostDetailScreen(
     val downloadError by vm.downloadError.collectAsState()
 
     val downloadPdf: (Int) -> Unit = { id -> vm.startDownloadAndSavePdf(id) }
-    
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted && pendingPdfDownload) {
-            pendingPdfDownload = false
-            postDetail?.id?.let { downloadPdf(it) }
-        } else if (!isGranted) {
-            pendingPdfDownload = false
-            android.widget.Toast.makeText(
-                context,
-                "Pro stažení PDF je potřeba oprávnění k úložišti",
-                android.widget.Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
 
     // Open downloaded PDF when ViewModel reports a saved URI
     LaunchedEffect(downloadUri) {
@@ -283,23 +263,7 @@ fun PostDetailScreen(
                                 }
                             },
                             onDownloadClick = {
-                                postDetail?.id?.let { id ->
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                        downloadPdf(id)
-                                    } else {
-                                        val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
-                                            context,
-                                            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                                        if (hasPermission) {
-                                            downloadPdf(id)
-                                        } else {
-                                            pendingPdfDownload = true
-                                            permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                        }
-                                    }
-                                }
+                                postDetail?.id?.let { id -> downloadPdf(id) }
                             },
                             onShareClick = {
                                 postDetail?.id?.let { id ->
@@ -403,18 +367,16 @@ fun PostDetailScreen(
                                 }
                                 // Render each content element as its own lazy item (virtualized)
                                 itemsIndexed(contentElements, key = { index, _ -> index }) { _, element ->
-                                    androidx.compose.foundation.text.selection.SelectionContainer {
-                                        Box(modifier = Modifier.fillMaxWidth()) {
-                                            ElementRenderer(
-                                                element = element,
-                                                isOffline = isOffline,
-                                                posts = posts,
-                                                addendums = addendums,
-                                                navController = navController,
-                                                onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true },
-                                                showImagePaths = false
-                                            )
-                                        }
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        ElementRenderer(
+                                            element = element,
+                                            isOffline = isOffline,
+                                            posts = posts,
+                                            addendums = addendums,
+                                            navController = navController,
+                                            onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true },
+                                            showImagePaths = false
+                                        )
                                     }
                                 }
                                 item {
@@ -546,15 +508,14 @@ fun PostDetailScreen(
         if (showPermissionDialog) {
             AlertDialog(
                 onDismissRequest = { showPermissionDialog = false },
-                title = { Text("Oprávnění k úložišti") },
-                text = { Text("Pro stažení PDF souboru potřebujeme přístup k úložišti vašeho zařízení.") },
+                title = { Text("Ukládání PDF") },
+                text = { Text("PDF soubor bude uložen do složky Download/.") },
                 confirmButton = {
                     TextButton(onClick = {
                         showPermissionDialog = false
-                        pendingPdfDownload = true
-                        permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        postDetail?.id?.let { downloadPdf(it) }
                     }) {
-                        Text("Povolit")
+                        Text("Stáhnout")
                     }
                 },
                 dismissButton = {

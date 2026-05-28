@@ -11,12 +11,30 @@ class TtsViewModel @Inject constructor(application: Application) : AndroidViewMo
 
     val ttsManager: TtsManager = TtsManager(application)
 
-    fun speak(text: String) = ttsManager.speak(text)
-    fun pause() = ttsManager.pause()
-    fun resume() = ttsManager.resume()
-    fun stop() = ttsManager.stop()
-    fun skipToNext() = ttsManager.skipToNext()
-    fun skipToPrevious() = ttsManager.skipToPrevious()
+    fun speak(text: String) {
+        ttsManager.ensureInitialized()
+        ttsManager.speak(text)
+    }
+    fun pause() {
+        ttsManager.ensureInitialized()
+        ttsManager.pause()
+    }
+    fun resume() {
+        ttsManager.ensureInitialized()
+        ttsManager.resume()
+    }
+    fun stop() {
+        ttsManager.ensureInitialized()
+        ttsManager.stop()
+    }
+    fun skipToNext() {
+        ttsManager.ensureInitialized()
+        ttsManager.skipToNext()
+    }
+    fun skipToPrevious() {
+        ttsManager.ensureInitialized()
+        ttsManager.skipToPrevious()
+    }
 
     override fun onCleared() {
         super.onCleared()

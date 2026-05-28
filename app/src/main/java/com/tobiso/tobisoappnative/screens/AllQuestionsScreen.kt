@@ -128,7 +128,7 @@ fun AllQuestionsScreen(
                     MultiplierIndicator()
                     
                     // Zobrazení bodů s novým designem
-                    val totalPoints by PointsManager.totalPoints.collectAsState()
+                    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -159,8 +159,8 @@ fun AllQuestionsScreen(
                     val currentStreak = remember { mutableStateOf(0) }
                     
                     // Sledování změn v freeze
-                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
-                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
+                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsState()
+                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsState()
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -208,7 +208,7 @@ fun AllQuestionsScreen(
             )
             
             if (showTotalOverlay) {
-                val totalPoints by PointsManager.totalPoints.collectAsState()
+                val totalPoints by PointsManager.instance.totalPoints.collectAsState()
                 FullScreenTotalPointsOverlay(totalPoints = totalPoints)
                 LaunchedEffect(showTotalOverlay) {
                     kotlinx.coroutines.delay(2200)

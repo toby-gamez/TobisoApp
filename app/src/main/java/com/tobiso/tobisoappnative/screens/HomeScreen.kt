@@ -124,77 +124,45 @@ fun PostListItem(
 
 data class Subject(
     val name: String,
-    val icon: ImageVector,
-    val colorType: SubjectColorType,
     val text: String,
+    val color: Color,
 )
-
-enum class SubjectColorType {
-    PRIMARY, SECONDARY, TERTIARY, ERROR, OUTLINE,
-    PRIMARY_CONTAINER, SECONDARY_CONTAINER, TERTIARY_CONTAINER,
-    SURFACE_VARIANT
-}
 
 @Composable
 fun getColumnCount(): Int {
     val configuration = LocalConfiguration.current
     return when {
-        configuration.screenWidthDp >= 840 -> 3  // Tablet landscape
-        configuration.screenWidthDp >= 600 -> 2  // Tablet portrait / velký mobil
-        else -> 1  // Mobil
+        configuration.screenWidthDp >= 840 -> 3
+        configuration.screenWidthDp >= 600 -> 2
+        else -> 1
     }
 }
 
-// Funkce pro získání barvy podle názvu předmětu
-@Composable 
-fun getSubjectColorByName(subjectName: String): Color {
-    val colorType = when (subjectName) {
-        "Mluvnice" -> SubjectColorType.PRIMARY
-        "Literatura" -> SubjectColorType.SECONDARY  
-        "Sloh" -> SubjectColorType.TERTIARY
-        "Hudební výchova" -> SubjectColorType.PRIMARY_CONTAINER
-        "Matematika" -> SubjectColorType.SECONDARY_CONTAINER
-        "Chemie" -> SubjectColorType.ERROR
-        "Fyzika" -> SubjectColorType.TERTIARY_CONTAINER
-        "Přírodopis" -> SubjectColorType.OUTLINE
-        "Zeměpis" -> SubjectColorType.SURFACE_VARIANT
-        else -> SubjectColorType.PRIMARY // Výchozí barva
-    }
-    return getSubjectColor(colorType)
-}
+val subjectColors = listOf(
+    Color(0xFF2196F3), Color(0xFF8B4513), Color(0xFFFF9800), Color(0xFF9C27B0),
+    Color(0xFF1976D2), Color(0xFFF44336), Color(0xFF607D8B), Color(0xFF4CAF50),
+    Color(0xFF795548), Color(0xFFE91E63), Color(0xFF00BCD4), Color(0xFF673AB7)
+)
 
-@Composable
-fun getSubjectColor(colorType: SubjectColorType): Color {
+val subjectNameColorMap = mapOf(
+    "Mluvnice" to Color(0xFF2196F3),
+    "Literatura" to Color(0xFF8B4513),
+    "Sloh" to Color(0xFFFF9800),
+    "Hudební výchova" to Color(0xFF9C27B0),
+    "Matematika" to Color(0xFF1976D2),
+    "Chemie" to Color(0xFFF44336),
+    "Fyzika" to Color(0xFF607D8B),
+    "Přírodopis" to Color(0xFF4CAF50),
+    "Zeměpis" to Color(0xFF795548),
+)
 
-    return when (colorType) {
-        SubjectColorType.PRIMARY -> Color(0xFF2196F3)        // Mluvnice - Modrá
-        SubjectColorType.SECONDARY -> Color(0xFF8B4513)      // Literatura - Hnědá
-        SubjectColorType.TERTIARY -> Color(0xFFFF9800)       // Sloh - Oranžová
-        SubjectColorType.PRIMARY_CONTAINER -> Color(0xFF9C27B0)     // Hudební výchova - Fialová
-        SubjectColorType.SECONDARY_CONTAINER -> Color(0xFF1976D2)   // Matematika - Tmavě modrá
-        SubjectColorType.ERROR -> Color(0xFFF44336)          // Chemie - Červená
-        SubjectColorType.TERTIARY_CONTAINER -> Color(0xFF607D8B)    // Fyzika - Modro-šedá
-        SubjectColorType.OUTLINE -> Color(0xFF4CAF50)        // Přírodopis - Zelená
-        SubjectColorType.SURFACE_VARIANT -> Color(0xFF795548)       // Zeměpis - Hnědá
-    }
-}
+fun getSubjectColorByName(subjectName: String): Color = subjectNameColorMap[subjectName] ?: Color(0xFF2196F3)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController) {
     val isDark = isSystemInDarkTheme()
     val logoRes = if (isDark) R.drawable.logo_dark else R.drawable.logo_light
-    val subjects = listOf(
-        Subject("Mluvnice", Icons.Default.Spellcheck, SubjectColorType.PRIMARY, "Gramatika a pravopis českého jazyka"),
-        Subject("Literatura", Icons.Default.MenuBook, SubjectColorType.SECONDARY, "Česká a světová literatura"),
-        Subject("Sloh", Icons.Default.Description, SubjectColorType.TERTIARY, "Tvorba textů a slohové útvary"),
-        Subject("Hudební výchova", Icons.Default.LibraryMusic, SubjectColorType.PRIMARY_CONTAINER, "Hudební teorie, autoři, žánry, písně, díla a dějiny"),
-        Subject("Matematika", Icons.Default.Calculate, SubjectColorType.SECONDARY_CONTAINER, "Algebra a geometrie"),
-        Subject("Chemie", Icons.Default.Science, SubjectColorType.ERROR, "Tělesa, látky, zákony, prvky, sloučeniny a názvosloví"),
-        Subject("Fyzika", Icons.Default.PrecisionManufacturing, SubjectColorType.TERTIARY_CONTAINER, "Zákony fyziky, jevy, veličiny, stroje a světlo"),
-        Subject("Přírodopis", Icons.Default.Eco, SubjectColorType.OUTLINE, "Lidské tělo, minerály, horniny a geologie"),
-        Subject("Zeměpis", Icons.Default.Public, SubjectColorType.SURFACE_VARIANT, "Vše o ČR a globálních tématech"),
-    )
     val context = LocalContext.current
     val columnCount = getColumnCount()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -205,13 +173,19 @@ fun HomeScreen(navController: NavHostController) {
     val state by vm.uiState.collectAsState()
     val posts = state.posts
     val categories = state.categories
+    val subjects = remember(categories) {
+        val rootCategories = categories.filter { it.parentId == null }
+        rootCategories.mapIndexed { index, cat ->
+            Subject(cat.name, cat.fullPath ?: cat.name, subjectColors[index % subjectColors.size])
+        }
+    }
     var selectedSubjectId by remember { mutableStateOf<Int?>(null) }
     
     LaunchedEffect(Unit) { 
         vm.onIntent(HomeIntent.Load)
     }
     
-    val totalPoints by PointsManager.totalPoints.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
     var showTotalOverlay by remember { mutableStateOf(false) }
     val offlineDownloading = state.offlineDownloading
     val offlineProgress = state.offlineDownloadProgress
@@ -311,8 +285,8 @@ fun HomeScreen(navController: NavHostController) {
                     val currentStreak = remember { mutableStateOf(0) }
                     
                     // Sledování změn v freeze
-                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
-                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
+                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsState()
+                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsState()
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -465,7 +439,7 @@ fun SubjectCard(
 ) {
     ElevatedCard(
         onClick = onClick,
-        modifier = modifier.height(100.dp),
+        modifier = modifier.heightIn(min = 100.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
     ) {
@@ -499,9 +473,9 @@ fun SubjectCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (subjectIcon is ImageVector) subjectIcon else subject.icon,
+                        imageVector = subjectIcon as ImageVector,
                         contentDescription = subject.name,
-                        tint = getSubjectColor(subject.colorType),
+                        tint = subject.color,
                         modifier = Modifier.size(32.dp)
                     )
                 }

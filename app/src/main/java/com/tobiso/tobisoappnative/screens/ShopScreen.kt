@@ -48,10 +48,10 @@ fun ShopScreen(
     navController: NavController,
     vm: ShopViewModel = hiltViewModel()
 ) {
-    val totalPoints by PointsManager.totalPoints.collectAsState()
-    val purchasedItemIds by ShopManager.purchasedItems.collectAsState()
-    val activeMultiplier by PointsManager.activeMultiplier.collectAsState()
-    val availableFreezes by StreakFreezeManager.availableFreezes.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
+    val purchasedItemIds by ShopManager.instance.purchasedItems.collectAsState()
+    val activeMultiplier by PointsManager.instance.activeMultiplier.collectAsState()
+    val availableFreezes by StreakFreezeManager.instance.availableFreezes.collectAsState()
 
     val selectedItem by vm.selectedItem.collectAsState()
     val showPurchaseDialog by vm.showPurchaseDialog.collectAsState()
@@ -225,12 +225,12 @@ fun ShopScreen(
                     ShopItemCard(
                         item = item,
                         isPurchased = when (item.type) {
-                            ShopItemType.STREAK_FREEZE -> !ShopManager.canPurchaseStreakFreeze()
+                            ShopItemType.STREAK_FREEZE -> !ShopManager.instance.canPurchaseStreakFreeze()
                             else -> purchasedItemIds.contains(item.id)
                         },
                         canAfford = totalPoints >= item.price,
-                        isOnCooldown = ShopManager.isOnCooldown(item.id),
-                        cooldownTimeLeft = ShopManager.getCooldownTimeLeft(item.id),
+                        isOnCooldown = ShopManager.instance.isOnCooldown(item.id),
+                        cooldownTimeLeft = ShopManager.instance.getCooldownTimeLeft(item.id),
                         onClick = {
                             vm.selectItem(item, purchasedItemIds)
                         }
@@ -272,8 +272,8 @@ fun ShopScreen(
         selectedItem?.let { item ->
             UsePowerUpDialog(
                 item = item,
-                isOnCooldown = ShopManager.isOnCooldown(item.id),
-                cooldownTimeLeft = ShopManager.getCooldownTimeLeft(item.id),
+                isOnCooldown = ShopManager.instance.isOnCooldown(item.id),
+                cooldownTimeLeft = ShopManager.instance.getCooldownTimeLeft(item.id),
                 onConfirm = { vm.confirmUsePowerUp() },
                 onDismiss = { vm.dismissUsePowerUpDialog() }
             )
@@ -639,7 +639,7 @@ fun ShopItemCard(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "${StreakFreezeManager.getAvailableFreezes()}/3",
+                                    text = "${StreakFreezeManager.instance.getAvailableFreezes()}/3",
                                     color = MaterialTheme.colorScheme.primary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
@@ -681,7 +681,7 @@ fun ShopItemCard(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "${StreakFreezeManager.getAvailableFreezes()}/3",
+                                        text = "${StreakFreezeManager.instance.getAvailableFreezes()}/3",
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -964,7 +964,7 @@ fun PurchaseDialog(
                 if (item.type == ShopItemType.STREAK_FREEZE) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Aktuálně vlastníš: ${StreakFreezeManager.getAvailableFreezes()}/3 Zmražení",
+                        text = "Aktuálně vlastníš: ${StreakFreezeManager.instance.getAvailableFreezes()}/3 Zmražení",
                         color = MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.Medium
                     )
@@ -1046,7 +1046,7 @@ fun PurchaseDialog(
         confirmButton = {
             if (!isPurchased) {
                 val canPurchase = if (item.type == ShopItemType.STREAK_FREEZE) {
-                    totalPoints >= item.price && ShopManager.canPurchaseStreakFreeze()
+                    totalPoints >= item.price && ShopManager.instance.canPurchaseStreakFreeze()
                 } else {
                     totalPoints >= item.price
                 }
@@ -1056,7 +1056,7 @@ fun PurchaseDialog(
                     enabled = canPurchase
                 ) {
                     Text(
-                        if (item.type == ShopItemType.STREAK_FREEZE && !ShopManager.canPurchaseStreakFreeze()) {
+                        if (item.type == ShopItemType.STREAK_FREEZE && !ShopManager.instance.canPurchaseStreakFreeze()) {
                             "Maximum dosaženo"
                         } else {
                             "Koupit"

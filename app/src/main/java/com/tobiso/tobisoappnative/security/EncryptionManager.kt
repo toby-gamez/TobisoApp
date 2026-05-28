@@ -66,8 +66,8 @@ class EncryptionManager private constructor() {
     /**
      * Zašifruje data pomocí AES-256-GCM
      */
-    fun encrypt(plaintext: String): String? {
-        try {
+    fun encrypt(plaintext: String): Result<String> {
+        return try {
             val secretKey = keyStore.getKey(KEY_ALIAS, null) as SecretKey
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.ENCRYPT_MODE, secretKey)
@@ -75,25 +75,19 @@ class EncryptionManager private constructor() {
             val iv = cipher.iv
             val cipherText = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
             
-            // Kombinuj IV a šifrovaný text
             val encryptedData = iv + cipherText
-            return Base64.encodeToString(encryptedData, Base64.NO_WRAP)
-            
+            Result.success(Base64.encodeToString(encryptedData, Base64.NO_WRAP))
         } catch (e: Exception) {
             Timber.e("Chyba při šifrování: ${e.message}")
-            return null
+            Result.failure(e)
         }
     }
     
-    /**
-     * Dešifruje data pomocí AES-256-GCM
-     */
-    fun decrypt(encryptedData: String): String? {
-        try {
+    fun decrypt(encryptedData: String): Result<String> {
+        return try {
             val secretKey = keyStore.getKey(KEY_ALIAS, null) as SecretKey
             val decodedData = Base64.decode(encryptedData, Base64.NO_WRAP)
             
-            // Rozděl IV a šifrovaný text
             val iv = decodedData.sliceArray(0 until GCM_IV_LENGTH)
             val cipherText = decodedData.sliceArray(GCM_IV_LENGTH until decodedData.size)
             
@@ -102,11 +96,10 @@ class EncryptionManager private constructor() {
             cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmParameterSpec)
             
             val plaintext = cipher.doFinal(cipherText)
-            return String(plaintext, Charsets.UTF_8)
-            
+            Result.success(String(plaintext, Charsets.UTF_8))
         } catch (e: Exception) {
             Timber.e("Chyba při dešifrování: ${e.message}")
-            return null
+            Result.failure(e)
         }
     }
     
@@ -138,10 +131,11 @@ class EncryptionManager private constructor() {
      * Bezpečné uložení stringu do SharedPreferences s šifrováním
      */
     fun secureStoreString(context: Context, key: String, value: String): Boolean {
-        val encryptedValue = encrypt(value) ?: return false
+        val encryptedResult = encrypt(value)
+        if (encryptedResult.isFailure) return false
         return try {
             val prefs = context.getSharedPreferences("secure_prefs", Context.MODE_PRIVATE)
-            prefs.edit().putString(key, encryptedValue).apply()
+            prefs.edit().putString(key, encryptedResult.getOrThrow()).apply()
             true
         } catch (e: Exception) {
             Timber.e("Chyba při ukládání: ${e.message}")
@@ -149,14 +143,11 @@ class EncryptionManager private constructor() {
         }
     }
     
-    /**
-     * Bezpečné načtení stringu z SharedPreferences s dešifrováním
-     */
     fun secureRetrieveString(context: Context, key: String): String? {
         return try {
             val prefs = context.getSharedPreferences("secure_prefs", Context.MODE_PRIVATE)
             val encryptedValue = prefs.getString(key, null) ?: return null
-            decrypt(encryptedValue)
+            decrypt(encryptedValue).getOrNull()
         } catch (e: Exception) {
             Timber.e("Chyba při načítání: ${e.message}")
             null

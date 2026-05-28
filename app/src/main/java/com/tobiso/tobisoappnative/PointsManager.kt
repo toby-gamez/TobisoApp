@@ -5,6 +5,7 @@ import com.tobiso.tobisoappnative.manager.IPointsManager
 import com.tobiso.tobisoappnative.utils.checkPointsAchievements
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 
 class PointsManager private constructor(context: Context) : IPointsManager {
 
@@ -39,8 +40,8 @@ class PointsManager private constructor(context: Context) : IPointsManager {
             totalEarnedPointsValue = points
             prefs.edit().putInt(KEY_TOTAL_EARNED_POINTS, totalEarnedPointsValue).apply()
         }
-        _totalPoints.value = points
-        _totalEarnedPoints.value = totalEarnedPointsValue
+        _totalPoints.update { points }
+        _totalEarnedPoints.update { totalEarnedPointsValue }
         checkActiveMultiplier()
     }
 
@@ -49,22 +50,21 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         val multipliedAmount = (amount * _activeMultiplier.value).toInt()
         points += multipliedAmount
         totalEarnedPointsValue += multipliedAmount
-        _lastAddedPoints.value = multipliedAmount
-        _totalPoints.value = points
-        _totalEarnedPoints.value = totalEarnedPointsValue
+        _lastAddedPoints.update { multipliedAmount }
+        _totalPoints.update { points }
+        _totalEarnedPoints.update { totalEarnedPointsValue }
         savePoints()
         saveTotalEarnedPoints()
-        // Kontrola achievementů po přidání bodů
         checkPointsAchievements(appContext)
     }
 
     override fun addPointsForMilestone(amount: Int, milestoneDay: Int) {
         points += amount
         totalEarnedPointsValue += amount
-        _lastAddedPoints.value = amount
-        _lastMilestone.value = milestoneDay
-        _totalPoints.value = points
-        _totalEarnedPoints.value = totalEarnedPointsValue
+        _lastAddedPoints.update { amount }
+        _lastMilestone.update { milestoneDay }
+        _totalPoints.update { points }
+        _totalEarnedPoints.update { totalEarnedPointsValue }
         savePoints()
         saveTotalEarnedPoints()
     }
@@ -72,18 +72,18 @@ class PointsManager private constructor(context: Context) : IPointsManager {
     override fun addPointsForAchievement(amount: Int, achievementPoints: Int) {
         points += amount
         totalEarnedPointsValue += amount
-        _lastAddedPoints.value = amount
-        _lastAchievement.value = achievementPoints
-        _totalPoints.value = points
-        _totalEarnedPoints.value = totalEarnedPointsValue
+        _lastAddedPoints.update { amount }
+        _lastAchievement.update { achievementPoints }
+        _totalPoints.update { points }
+        _totalEarnedPoints.update { totalEarnedPointsValue }
         savePoints()
         saveTotalEarnedPoints()
     }
 
     override fun resetLastAddedPoints() {
-        _lastAddedPoints.value = 0
-        _lastMilestone.value = null
-        _lastAchievement.value = null
+        _lastAddedPoints.update { 0 }
+        _lastMilestone.update { null }
+        _lastAchievement.update { null }
     }
 
     override fun getPoints(): Int = points
@@ -93,7 +93,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
     override fun subtractPoints(amount: Int): Boolean {
         if (points < amount) return false
         points -= amount
-        _totalPoints.value = points
+        _totalPoints.update { points }
         savePoints()
         return true
     }
@@ -104,7 +104,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
             .putFloat(KEY_MULTIPLIER, multiplier)
             .putLong(KEY_MULTIPLIER_END, endTime)
             .apply()
-        _activeMultiplier.value = multiplier
+        _activeMultiplier.update { multiplier }
     }
 
     override fun getMultiplierTimeLeft(): Long {
@@ -136,9 +136,9 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         val endTime = prefs.getLong(KEY_MULTIPLIER_END, 0)
         val currentTime = System.currentTimeMillis()
         if (endTime > currentTime) {
-            _activeMultiplier.value = prefs.getFloat(KEY_MULTIPLIER, 1.0f)
+            _activeMultiplier.update { prefs.getFloat(KEY_MULTIPLIER, 1.0f) }
         } else {
-            _activeMultiplier.value = 1.0f
+            _activeMultiplier.update { 1.0f }
             prefs.edit().remove(KEY_MULTIPLIER).remove(KEY_MULTIPLIER_END).apply()
         }
     }
@@ -164,25 +164,5 @@ class PointsManager private constructor(context: Context) : IPointsManager {
                 }
             }
         }
-
-        // Delegations for direct access without .instance
-        val totalPoints get() = instance.totalPoints
-        val lastAddedPoints get() = instance.lastAddedPoints
-        val lastMilestone get() = instance.lastMilestone
-        val lastAchievement get() = instance.lastAchievement
-        val activeMultiplier get() = instance.activeMultiplier
-        val totalEarnedPoints get() = instance.totalEarnedPoints
-
-        fun addPoints(amount: Int) = instance.addPoints(amount)
-        fun addPointsForMilestone(amount: Int, milestoneDay: Int) = instance.addPointsForMilestone(amount, milestoneDay)
-        fun addPointsForAchievement(amount: Int, achievementPoints: Int) = instance.addPointsForAchievement(amount, achievementPoints)
-        fun resetLastAddedPoints() = instance.resetLastAddedPoints()
-        fun getPoints() = instance.getPoints()
-        fun getTotalEarnedPoints() = instance.getTotalEarnedPoints()
-        fun subtractPoints(amount: Int) = instance.subtractPoints(amount)
-        fun activateMultiplier(multiplier: Float, durationMinutes: Int) = instance.activateMultiplier(multiplier, durationMinutes)
-        fun getMultiplierTimeLeft() = instance.getMultiplierTimeLeft()
-        fun getMultiplierTimeLeftInSeconds() = instance.getMultiplierTimeLeftInSeconds()
-        fun isMultiplierActive() = instance.isMultiplierActive()
     }
 }

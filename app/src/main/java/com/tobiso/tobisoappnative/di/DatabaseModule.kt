@@ -14,6 +14,7 @@ import com.tobiso.tobisoappnative.db.dao.ExercisePostDao
 import com.tobiso.tobisoappnative.db.dao.PostDao
 import com.tobiso.tobisoappnative.db.dao.QuestionDao
 import com.tobiso.tobisoappnative.db.dao.QuestionPostDao
+import com.tobiso.tobisoappnative.db.dao.FeedbackDao
 import com.tobiso.tobisoappnative.db.dao.RelatedPostDao
 import dagger.Module
 import dagger.Provides
@@ -27,7 +28,7 @@ import timber.log.Timber
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    private val MIGRATION_1_2 = object : Migration(1, 2) {
+    val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL(
                 """CREATE TABLE IF NOT EXISTS ai_chat_sessions (
@@ -57,7 +58,7 @@ object DatabaseModule {
         }
     }
 
-    private val MIGRATION_2_3 = object : Migration(2, 3) {
+    val MIGRATION_2_3 = object : Migration(2, 3) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("ALTER TABLE posts ADD COLUMN versionsJson TEXT")
             database.execSQL("ALTER TABLE questions_posts ADD COLUMN versionsJson TEXT")
@@ -65,7 +66,7 @@ object DatabaseModule {
         }
     }
 
-    private val MIGRATION_3_4 = object : Migration(3, 4) {
+    val MIGRATION_3_4 = object : Migration(3, 4) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL(
                 """CREATE TABLE IF NOT EXISTS exercise_post (
@@ -81,11 +82,28 @@ object DatabaseModule {
         }
     }
 
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """CREATE TABLE IF NOT EXISTS pending_feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    platform TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    retryCount INTEGER NOT NULL DEFAULT 0
+                )"""
+            )
+            Timber.d("Applying migration 4->5: added pending_feedback table")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "tobiso_offline.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
 
     @Provides
@@ -117,4 +135,7 @@ object DatabaseModule {
 
     @Provides
     fun provideAiChatDao(db: AppDatabase): AiChatDao = db.aiChatDao()
+
+    @Provides
+    fun provideFeedbackDao(db: AppDatabase): FeedbackDao = db.feedbackDao()
 }

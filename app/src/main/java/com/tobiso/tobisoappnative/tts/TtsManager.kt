@@ -36,6 +36,7 @@ data class TtsStatus(
 class TtsManager(private val context: Context) {
     private var textToSpeech: TextToSpeech? = null
     private var currentUtteranceId: String? = null
+    private var initializationStarted = false
     
     private val _status = MutableStateFlow(TtsStatus())
     val status: StateFlow<TtsStatus> = _status.asStateFlow()
@@ -53,8 +54,11 @@ class TtsManager(private val context: Context) {
     private var lastAbsoluteWordIndex = -1
     private var visibleShiftCount = 0
     
-    init {
-        initializeTts()
+    fun ensureInitialized() {
+        if (!initializationStarted) {
+            initializationStarted = true
+            initializeTts()
+        }
     }
     
     private fun initializeTts() {

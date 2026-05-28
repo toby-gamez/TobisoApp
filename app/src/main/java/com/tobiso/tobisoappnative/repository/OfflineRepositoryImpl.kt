@@ -6,13 +6,11 @@ import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.Category
 import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.consumeEach
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.utils.NetworkUtils
@@ -185,31 +183,41 @@ class OfflineRepositoryImpl(
             onProgress(startProgress + span * 0.75f)
 
             val exercises = mutableListOf<InteractiveExerciseResponse>()
-            // Fetch exercises concurrently but limit concurrency to avoid overwhelming the server/device.
-            // Guard against empty posts list when computing progress to avoid division by zero.
             val postsCount = posts.size.coerceAtLeast(1)
+            val channel = Channel<Pair<Int, List<InteractiveExerciseResponse>>>(MAX_CONCURRENT_EXERCISE_DOWNLOADS)
             coroutineScope {
-                val semaphore = Semaphore(MAX_CONCURRENT_EXERCISE_DOWNLOADS)
-                val completed = AtomicInteger(0)
-                val deferreds = posts.map { post ->
-                    async {
-                        semaphore.withPermit {
+                var submitted = 0
+                var completed = 0
+                // Launch bounded workers (at most MAX_CONCURRENT_EXERCISE_DOWNLOADS at a time)
+                repeat(MAX_CONCURRENT_EXERCISE_DOWNLOADS) {
+                    launch {
+                        while (true) {
+                            val idx = submitted++
+                            if (idx >= posts.size) break
+                            val post = posts[idx]
                             val list = try {
                                 retryWithBackoff { ApiClient.apiService.getExercisesByPostId(post.id) }
                             } catch (e: Exception) {
                                 Timber.w(e, "getExercisesByPostId failed for ${post.id}: ${e.message}")
                                 emptyList()
                             }
-                            val done = completed.incrementAndGet()
-                            if (done % 10 == 0) {
-                                onProgress(startProgress + span * (0.75f + 0.18f * (done.toFloat() / postsCount)))
-                            }
-                            list
+                            channel.send(Pair(idx, list))
                         }
                     }
                 }
-                val results = deferreds.awaitAll()
-                results.forEach { exercises.addAll(it) }
+                // Collect results in order
+                val results = mutableMapOf<Int, List<InteractiveExerciseResponse>>()
+                repeat(postsCount) {
+                    val (idx, list) = channel.receive()
+                    results[idx] = list
+                    completed++
+                    if (completed % 10 == 0) {
+                        onProgress(startProgress + span * (0.75f + 0.18f * (completed.toFloat() / postsCount)))
+                    }
+                }
+                for (i in 0 until postsCount) {
+                    results[i]?.let { exercises.addAll(it) }
+                }
             }
             onProgress(startProgress + span * 0.93f)
 

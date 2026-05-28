@@ -1,8 +1,15 @@
 package com.tobiso.tobisoappnative.viewmodel.feedback
 import timber.log.Timber
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.tobiso.tobisoappnative.FeedbackSyncWorker
+import com.tobiso.tobisoappnative.db.AppDatabase
+import com.tobiso.tobisoappnative.db.entity.FeedbackEntity
 import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.FeedbackDto
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,7 +20,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class FeedbackViewModel @Inject constructor() : ViewModel() {
+class FeedbackViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
 
     private val _name = MutableStateFlow("")
     val name: StateFlow<String> = _name
@@ -67,8 +74,28 @@ class FeedbackViewModel @Inject constructor() : ViewModel() {
                 ApiClient.apiService.sendFeedback(dto)
                 _isSuccess.value = true
             } catch (e: Exception) {
-                Timber.e(e, "Error sending feedback")
-                _isError.value = true
+                Timber.e(e, "Error sending feedback, queueing for later")
+                try {
+                    val entity = FeedbackEntity(
+                        name = _name.value,
+                        email = _email.value,
+                        message = _message.value,
+                        platform = "Aplikace"
+                    )
+                    val db = AppDatabase.getInstance(getApplication())
+                    db.feedbackDao().insert(entity)
+                    val syncWork = OneTimeWorkRequestBuilder<FeedbackSyncWorker>()
+                        .build()
+                    WorkManager.getInstance(getApplication()).enqueueUniqueWork(
+                        "feedback_sync",
+                        ExistingWorkPolicy.REPLACE,
+                        syncWork
+                    )
+                    _isSuccess.value = true
+                } catch (e2: Exception) {
+                    Timber.e(e2, "Failed to queue feedback")
+                    _isError.value = true
+                }
             } finally {
                 _isLoading.value = false
             }

@@ -12,7 +12,7 @@ import retrofit2.Retrofit
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 object ApiClient {
-    private const val BASE_URL = "https://www.tobiso.com/api/"
+    private val BASE_URL: String by lazy { BuildConfig.API_BASE_URL }
 
     /**
      * Vytvoří bezpečný OkHttpClient s produkční SSL konfigurací
@@ -21,8 +21,22 @@ object ApiClient {
         val credentials = SecurityConfig.getApiCredentials()
         val builder = OkHttpClient.Builder()
         
-        // Certificate pinning removed per request — use system trust anchors.
-        Timber.w("Certificate pinning disabled; using system trust anchors")
+        // Certificate pinning using BuildConfig fields
+        val pins = BuildConfig.CERT_PINS.takeIf { it.isNotBlank() }
+        val backupPins = BuildConfig.CERT_PINS_BACKUP.takeIf { it.isNotBlank() }
+        if (pins != null) {
+            val pinner = okhttp3.CertificatePinner.Builder()
+            pins.split(",").filter { it.isNotBlank() }.forEach { pin ->
+                pinner.add("www.tobiso.com", pin.trim())
+            }
+            backupPins?.split(",")?.filter { it.isNotBlank() }?.forEach { pin ->
+                pinner.add("www.tobiso.com", pin.trim())
+            }
+            builder.certificatePinner(pinner.build())
+            Timber.i("Certificate pinning enabled")
+        } else {
+            Timber.w("Certificate pinning disabled; using system trust anchors")
+        }
         
         // Konfigurace timeouts pro produkci
         builder.connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
@@ -100,11 +114,6 @@ object ApiClient {
     }
 
     val apiService: ApiService by lazy {
-        // Kontrola při inicializaci
-        if (SecurityConfig.isRunningOnEmulator()) {
-            Timber.i("Aplikace běží na emulátoru")
-        }
-        
         // Použij kotlinx.serialization pro Retrofit
         val json = Json { ignoreUnknownKeys = true }
         val contentType = "application/json".toMediaType()

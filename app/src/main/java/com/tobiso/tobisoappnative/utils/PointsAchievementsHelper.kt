@@ -31,7 +31,7 @@ fun generatePointsAchievements(): Map<Int, Int> {
 }
 
 fun checkPointsAchievements(context: Context) {
-    val totalEarnedPoints = PointsManager.getTotalEarnedPoints()
+    val totalEarnedPoints = PointsManager.instance.getTotalEarnedPoints()
     val achievements = generatePointsAchievements()
 
     val achievementsPrefs = context.getSharedPreferences("points_achievements", Context.MODE_PRIVATE)
@@ -46,7 +46,7 @@ fun checkPointsAchievements(context: Context) {
                 newAchievementsFound = true
                 Timber.d("🏆 NEW ACHIEVEMENT UNLOCKED: $requiredPoints points - awarding $rewardPoints points")
 
-                PointsManager.addPointsForAchievement(rewardPoints, requiredPoints)
+                PointsManager.instance.addPointsForAchievement(rewardPoints, requiredPoints)
                 achievementsPrefs.edit().putBoolean(achievementKey, true).apply()
             }
         }

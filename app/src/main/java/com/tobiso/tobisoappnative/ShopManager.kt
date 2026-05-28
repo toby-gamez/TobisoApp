@@ -6,6 +6,7 @@ import com.tobiso.tobisoappnative.manager.IShopManager
 import com.tobiso.tobisoappnative.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 
 class ShopManager private constructor(context: Context) : IShopManager {
 
@@ -40,7 +41,7 @@ class ShopManager private constructor(context: Context) : IShopManager {
             purchasedSet.add(ShopData.CLASSIC_ICON_PACK_ID)
             savePurchasedItem(ShopData.CLASSIC_ICON_PACK_ID)
         }
-        _purchasedItems.value = purchasedSet
+        _purchasedItems.update { purchasedSet }
     }
 
     private fun savePurchasedItem(itemId: Int) {
@@ -58,32 +59,32 @@ class ShopManager private constructor(context: Context) : IShopManager {
         prefs.edit().remove("${KEY_PURCHASED_PREFIX}$itemId").apply()
         val currentItems = _purchasedItems.value.toMutableSet()
         currentItems.remove(itemId)
-        _purchasedItems.value = currentItems
+        _purchasedItems.update { currentItems }
     }
 
     override fun purchaseItem(item: ShopItem): Boolean {
-        val success = PointsManager.subtractPoints(item.price)
+        val success = PointsManager.instance.subtractPoints(item.price)
         if (!success) return false
 
         return when (item.type) {
             ShopItemType.STREAK_FREEZE -> {
-                val freezeAdded = StreakFreezeManager.addStreakFreeze()
+                val freezeAdded = StreakFreezeManager.instance.addStreakFreeze()
                 if (!freezeAdded) {
-                    PointsManager.addPoints(item.price)
+                    PointsManager.instance.addPoints(item.price)
                     return false
                 }
                 true
             }
             else -> {
                 if (isItemPurchased(item.id)) {
-                    PointsManager.addPoints(item.price)
+                    PointsManager.instance.addPoints(item.price)
                     return false
                 }
                 val currentItems = _purchasedItems.value.toMutableSet()
                 currentItems.add(item.id)
-                _purchasedItems.value = currentItems
+                _purchasedItems.update { currentItems }
                 savePurchasedItem(item.id)
-                BackpackManager.refreshItems()
+                BackpackManager.instance.refreshItems()
                 true
             }
         }
@@ -91,7 +92,7 @@ class ShopManager private constructor(context: Context) : IShopManager {
 
     override fun isItemPurchased(itemId: Int): Boolean = _purchasedItems.value.contains(itemId)
 
-    override fun canPurchaseStreakFreeze(): Boolean = StreakFreezeManager.getAvailableFreezes() < 3
+    override fun canPurchaseStreakFreeze(): Boolean = StreakFreezeManager.instance.getAvailableFreezes() < 3
 
     override fun getPurchasedItemIds(): Set<Int> = _purchasedItems.value
 
@@ -103,10 +104,10 @@ class ShopManager private constructor(context: Context) : IShopManager {
             item.multiplier != null &&
             item.durationMinutes != null
         ) {
-            PointsManager.activateMultiplier(item.multiplier, item.durationMinutes)
+            PointsManager.instance.activateMultiplier(item.multiplier, item.durationMinutes)
             removePurchasedItem(item.id)
             setCooldown(item.id, 180) // 180 minut = 3 hodiny
-            BackpackManager.refreshItems()
+            BackpackManager.instance.refreshItems()
             return true
         }
         return false
@@ -148,18 +149,5 @@ class ShopManager private constructor(context: Context) : IShopManager {
                 }
             }
         }
-
-        // Delegations for direct access without .instance
-        val purchasedItems get() = instance.purchasedItems
-
-        fun init() = instance.init()
-        fun purchaseItem(item: ShopItem) = instance.purchaseItem(item)
-        fun isItemPurchased(itemId: Int) = instance.isItemPurchased(itemId)
-        fun canPurchaseStreakFreeze() = instance.canPurchaseStreakFreeze()
-        fun getPurchasedItemIds() = instance.getPurchasedItemIds()
-        fun usePowerUp(item: ShopItem) = instance.usePowerUp(item)
-        fun isOnCooldown(itemId: Int) = instance.isOnCooldown(itemId)
-        fun getCooldownTimeLeft(itemId: Int) = instance.getCooldownTimeLeft(itemId)
-        fun getPurchaseDate(itemId: Int) = instance.getPurchaseDate(itemId)
     }
 }

@@ -55,12 +55,12 @@ fun StreakScreen(
     val maxStreak by vm.maxStreak.collectAsState()
 
     // Sledování změn v Streak Freeze pro přepočítání
-    val usedFreezes by StreakFreezeManager.usedFreezes.collectAsState()
+    val usedFreezes by StreakFreezeManager.instance.usedFreezes.collectAsState()
     val today = remember { Calendar.getInstance() }
     val currentDateString = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(today.time) }
 
     // Inicializace a sledování Streak Freezes
-    val availableFreezes by StreakFreezeManager.availableFreezes.collectAsState()
+    val availableFreezes by StreakFreezeManager.instance.availableFreezes.collectAsState()
 
     LaunchedEffect(Unit) {
         vm.init()
@@ -374,7 +374,7 @@ fun CalendarStreak(
             ) {
                 for (day in week) {
                     val isActive = day.fullDate != null && streakDays.contains(day.fullDate)
-                    val isFreezed = day.fullDate != null && StreakFreezeManager.isFreezeActive(day.fullDate)
+                    val isFreezed = day.fullDate != null && StreakFreezeManager.instance.isFreezeActive(day.fullDate)
                     val isToday = day.fullDate == todayString
 
                     Box(

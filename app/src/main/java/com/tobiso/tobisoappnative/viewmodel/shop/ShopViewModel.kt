@@ -34,7 +34,7 @@ class ShopViewModel @Inject constructor() : ViewModel() {
         _selectedItem.value = item
         when (item.type) {
             ShopItemType.POINTS_MULTIPLIER -> {
-                if (ShopManager.isOnCooldown(item.id)) {
+                if (ShopManager.instance.isOnCooldown(item.id)) {
                     // Na cooldownu - nezobrazuj dialog
                     return
                 } else if (purchasedItemIds.contains(item.id)) {
@@ -54,7 +54,7 @@ class ShopViewModel @Inject constructor() : ViewModel() {
 
     fun confirmPurchase() {
         val item = _selectedItem.value ?: return
-        val success = ShopManager.purchaseItem(item)
+        val success = ShopManager.instance.purchaseItem(item)
         if (success) {
             _showSuccessMessage.value = true
         } else {
@@ -72,11 +72,11 @@ class ShopViewModel @Inject constructor() : ViewModel() {
 
     fun confirmUsePowerUp() {
         val item = _selectedItem.value ?: return
-        val success = ShopManager.usePowerUp(item)
+        val success = ShopManager.instance.usePowerUp(item)
         if (success) {
             _showSuccessMessage.value = true
         } else {
-            _errorMessage.value = if (ShopManager.isOnCooldown(item.id))
+            _errorMessage.value = if (ShopManager.instance.isOnCooldown(item.id))
                 "Power-up je na cooldownu!" else "Chyba při aktivaci power-upu!"
             _showErrorMessage.value = true
         }

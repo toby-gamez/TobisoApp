@@ -6,6 +6,7 @@ import com.tobiso.tobisoappnative.manager.IBackpackManager
 import com.tobiso.tobisoappnative.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 
 class BackpackManager private constructor(context: Context) : IBackpackManager {
 
@@ -31,29 +32,28 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
     }
 
     private fun loadBackpackItems() {
-        val purchasedItemIds = ShopManager.purchasedItems.value
+        val purchasedItemIds = ShopManager.instance.purchasedItems.value
         val backpackItemsList = mutableListOf<BackpackItem>()
 
         purchasedItemIds.forEach { itemId ->
             val shopItem = ShopData.getItemById(itemId)
             if (shopItem != null && shopItem.type != ShopItemType.POINTS_MULTIPLIER) {
-                val purchaseDate = ShopManager.getPurchaseDate(itemId)
+                val purchaseDate = ShopManager.instance.getPurchaseDate(itemId)
                     .takeIf { it > 0L } ?: System.currentTimeMillis()
                 backpackItemsList.add(BackpackItem(shopItem = shopItem, purchaseDate = purchaseDate))
             }
         }
 
-        // Ujisti se, že "Klasické ikony" jsou vždycky v aktovce
         val hasClassicIconPack = backpackItemsList.any { it.shopItem.id == ShopData.CLASSIC_ICON_PACK_ID }
         if (!hasClassicIconPack) {
-            val classicPurchaseDate = ShopManager.getPurchaseDate(ShopData.CLASSIC_ICON_PACK_ID)
+            val classicPurchaseDate = ShopManager.instance.getPurchaseDate(ShopData.CLASSIC_ICON_PACK_ID)
                 .takeIf { it > 0L } ?: System.currentTimeMillis()
             ShopData.getItemById(ShopData.CLASSIC_ICON_PACK_ID)?.let {
                 backpackItemsList.add(BackpackItem(shopItem = it, purchaseDate = classicPurchaseDate))
             }
         }
 
-        _backpackItems.value = backpackItemsList
+        _backpackItems.update { backpackItemsList }
     }
 
     private fun loadEquippedItems() {
@@ -125,17 +125,5 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
                 }
             }
         }
-
-        // Delegations for direct access without .instance
-        val backpackItems get() = instance.backpackItems
-        val equippedQuote get() = instance.equippedQuote
-        val equippedPet get() = instance.equippedPet
-        val equippedIconPack get() = instance.equippedIconPack
-
-        fun equipQuote(quote: ShopItem?) = instance.equipQuote(quote)
-        fun equipPet(pet: ShopItem?) = instance.equipPet(pet)
-        fun equipIconPack(iconPack: ShopItem?) = instance.equipIconPack(iconPack)
-        fun getItemsByCategory(category: BackpackCategory) = instance.getItemsByCategory(category)
-        fun refreshItems() = instance.refreshItems()
     }
 }

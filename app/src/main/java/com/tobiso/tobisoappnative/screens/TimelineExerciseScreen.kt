@@ -37,7 +37,7 @@ fun TimelineExerciseScreen(
     val state by vm.uiState.collectAsState()
 
     val context = LocalContext.current
-    val totalPoints by PointsManager.totalPoints.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
     var pointsAwarded by rememberSaveable { mutableStateOf(false) }
     var showPointsOverlay by rememberSaveable { mutableStateOf(false) }
     var awardedPoints by rememberSaveable { mutableStateOf(0) }
@@ -47,7 +47,7 @@ fun TimelineExerciseScreen(
             val score = state.validationResult?.score ?: 0
             if (score > 0) {
                 val points = score / 10
-                PointsManager.addPoints(points)
+                PointsManager.instance.addPoints(points)
                 awardedPoints = points
                 pointsAwarded = true
                 showPointsOverlay = true

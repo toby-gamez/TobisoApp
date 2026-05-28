@@ -40,7 +40,7 @@ fun MixedQuizScreen(
 ) {
     val vm: MixedQuizViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
-    val totalPoints by PointsManager.totalPoints.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
 
     LaunchedEffect(questionIds) {
         vm.onIntent(MixedQuizIntent.Load(questionIds))

@@ -102,9 +102,9 @@ fun TobisoApp(navigateTo: String? = null) {
     val categoryError = mainState.categoryError
     val isOffline = mainState.isOffline
     val hasUserDismissedNoInternet = mainState.hasUserDismissedNoInternet
-    val lastAddedPoints by PointsManager.lastAddedPoints.collectAsState()
-    val lastMilestone by PointsManager.lastMilestone.collectAsState()
-    val lastAchievement by PointsManager.lastAchievement.collectAsState()
+    val lastAddedPoints by PointsManager.instance.lastAddedPoints.collectAsState()
+    val lastMilestone by PointsManager.instance.lastMilestone.collectAsState()
+    val lastAchievement by PointsManager.instance.lastAchievement.collectAsState()
     var showOverlay by remember { mutableStateOf(false) }
     var overlayPoints by remember { mutableStateOf(0) }
     var showTotalOverlay by remember { mutableStateOf(false) }
@@ -142,7 +142,7 @@ fun TobisoApp(navigateTo: String? = null) {
         StreakMilestoneManager.checkStreakMilestones(context)
         checkPointsAchievements(context)
     }
-    val totalPoints by PointsManager.totalPoints.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
 
     // Funkce pro zobrazení pouze celkového počtu bodů
     fun showTotalPointsOverlay() {
@@ -151,53 +151,40 @@ fun TobisoApp(navigateTo: String? = null) {
 
     // LaunchedEffect pro milník overlay (priorita)
     LaunchedEffect(lastMilestone) {
-        if (lastMilestone != null) {
-            Timber.d("=== MILESTONE OVERLAY DEBUG ===")
-            Timber.d("Milestone detected: $lastMilestone days")
-            Timber.d("Points to show: $lastAddedPoints")
-            Timber.d("Total points: $totalPoints")
+        val capturedMilestone = lastMilestone ?: return@LaunchedEffect
+        val capturedPoints = lastAddedPoints
 
-            overlayPoints = lastAddedPoints
-            milestoneDay = lastMilestone ?: 0
-            showMilestoneOverlay = true
-            delay(3000) // Delší zobrazení pro milník
-            showMilestoneOverlay = false
-            PointsManager.resetLastAddedPoints()
-
-            Timber.d("Milestone overlay finished and reset")
-            Timber.d("=== END MILESTONE OVERLAY DEBUG ===")
-        }
+        overlayPoints = capturedPoints
+        milestoneDay = capturedMilestone
+        showMilestoneOverlay = true
+        delay(3000)
+        showMilestoneOverlay = false
+        PointsManager.instance.resetLastAddedPoints()
     }
 
     // LaunchedEffect pro achievement overlay (priorita)
     LaunchedEffect(lastAchievement) {
-        if (lastAchievement != null) {
-            Timber.d("=== ACHIEVEMENT OVERLAY DEBUG ===")
-            Timber.d("Achievement detected: $lastAchievement points")
-            Timber.d("Points to show: $lastAddedPoints")
-            Timber.d("Total points: $totalPoints")
+        val capturedAchievement = lastAchievement ?: return@LaunchedEffect
+        val capturedPoints = lastAddedPoints
 
-            overlayPoints = lastAddedPoints
-            achievementPoints = lastAchievement ?: 0
-            showAchievementOverlay = true
-            delay(3000) // Delší zobrazení pro achievement
-            showAchievementOverlay = false
-            PointsManager.resetLastAddedPoints()
-
-            Timber.d("Achievement overlay finished and reset")
-            Timber.d("=== END ACHIEVEMENT OVERLAY DEBUG ===")
-        }
+        overlayPoints = capturedPoints
+        achievementPoints = capturedAchievement
+        showAchievementOverlay = true
+        delay(3000)
+        showAchievementOverlay = false
+        PointsManager.instance.resetLastAddedPoints()
     }
 
     // LaunchedEffect pro běžný overlay (body s přičítáním)
     LaunchedEffect(lastAddedPoints) {
-        if (lastAddedPoints != 0 && lastMilestone == null && lastAchievement == null) {
-            overlayPoints = lastAddedPoints
-            showOverlay = true
-            delay(2500)
-            showOverlay = false
-            PointsManager.resetLastAddedPoints()
-        }
+        if (lastAddedPoints == 0 || lastMilestone != null || lastAchievement != null) return@LaunchedEffect
+        val capturedPoints = lastAddedPoints
+
+        overlayPoints = capturedPoints
+        showOverlay = true
+        delay(2500)
+        showOverlay = false
+        PointsManager.instance.resetLastAddedPoints()
     }
 
     // LaunchedEffect pro druhý overlay (celkový počet bodů)
@@ -205,14 +192,6 @@ fun TobisoApp(navigateTo: String? = null) {
         if (showTotalOverlay) {
             delay(2500)
             showTotalOverlay = false
-        }
-    }
-
-    // LaunchedEffect pro milník overlay
-    LaunchedEffect(showMilestoneOverlay) {
-        if (showMilestoneOverlay) {
-            delay(3000)
-            showMilestoneOverlay = false
         }
     }
 

@@ -11,11 +11,12 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.tobiso.tobisoappnative.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 class UpdateCheckWorker(
     private val context: Context,
@@ -74,18 +75,23 @@ class UpdateCheckWorker(
 }
 
 suspend fun fetchLatestVersionFromGithub(): String? = withContext(Dispatchers.IO) {
-    val url = URL("https://api.github.com/repos/toby-gamez/TobisoAppNative/releases/latest")
-    val connection = url.openConnection() as HttpURLConnection
-    connection.requestMethod = "GET"
-    connection.connectTimeout = 5000
-    connection.readTimeout = 5000
-    connection.connect()
-    if (connection.responseCode != 200) {
-        return@withContext null
+    try {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        val request = Request.Builder()
+            .url("https://api.github.com/repos/toby-gamez/TobisoAppNative/releases/latest")
+            .header("User-Agent", "TobisoApp-Android/${BuildConfig.VERSION_NAME}")
+            .build()
+        val response = client.newCall(request).execute()
+        if (!response.isSuccessful) return@withContext null
+        val body = response.body?.string() ?: return@withContext null
+        val json = JSONObject(body)
+        val tag = json.getString("tag_name")
+        return@withContext tag.removePrefix("v")
+    } catch (_: Exception) {
+        null
     }
-    val response = connection.inputStream.bufferedReader().use { it.readText() }
-    val json = JSONObject(response)
-    val tag = json.getString("tag_name")
-    return@withContext tag.removePrefix("v")
 }
 

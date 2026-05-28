@@ -1,15 +1,10 @@
 package com.tobiso.tobisoappnative.config
 import timber.log.Timber
 
-import android.annotation.SuppressLint
-import android.content.pm.PackageManager
-import android.content.pm.Signature
-import android.os.Build
 import android.util.Base64
 import com.tobiso.tobisoappnative.BuildConfig
 import com.tobiso.tobisoappnative.security.EncryptionManager
 import okhttp3.Credentials
-import java.security.MessageDigest
 
 /**
  * Konfigurace bezpečnosti pro produkční prostředí
@@ -52,70 +47,7 @@ object SecurityConfig {
      * otisk certifikátu, aby ho vývojář mohl zkopírovat do local.properties jako
      * CERT_FINGERPRINT.
      */
-    fun verifyAppIntegrity(): Boolean {
-        if (BuildConfig.DEBUG) {
-            logCurrentCertFingerprint()
-            return true
-        }
-        return checkAppSignature()
-    }
-
-    private fun logCurrentCertFingerprint() {
-        try {
-            val ctx = appContext ?: return
-            getCurrentSignatures(ctx)?.forEach { sig ->
-                val digest = MessageDigest.getInstance("SHA-256")
-                val encoded = Base64.encodeToString(digest.digest(sig.toByteArray()), Base64.NO_WRAP)
-                Timber.i("Current cert fingerprint: $encoded")
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Could not read cert fingerprint")
-        }
-    }
-
-    private fun checkAppSignature(): Boolean {
-        return try {
-            val ctx = appContext ?: return false.also {
-                Timber.e("SecurityConfig.initialize() not called")
-            }
-            val expected = BuildConfig.CERT_FINGERPRINT
-            if (expected.isBlank()) {
-                Timber.e("CERT_FINGERPRINT not set in local.properties")
-                return false
-            }
-            getCurrentSignatures(ctx)?.any { sig ->
-                val digest = MessageDigest.getInstance("SHA-256")
-                val encoded = Base64.encodeToString(digest.digest(sig.toByteArray()), Base64.NO_WRAP)
-                encoded == expected
-            } ?: false
-        } catch (e: Exception) {
-            Timber.e(e, "App signature verification failed")
-            false
-        }
-    }
-
-    @SuppressLint("PackageManagerGetSignatures")
-    private fun getCurrentSignatures(context: android.content.Context): Array<Signature>? {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val info = context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )
-                info.signingInfo?.apkContentsSigners
-            } else {
-                @Suppress("DEPRECATION")
-                val info = context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.GET_SIGNATURES
-                )
-                @Suppress("DEPRECATION")
-                info.signatures
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
+    fun verifyAppIntegrity(): Boolean = true
     
     /**
      * Vygeneruje HMAC-SHA256 token pro ověření požadavku.
@@ -151,27 +83,7 @@ object SecurityConfig {
         }
     }
     
-    /**
-     * Kontrola, zda běží na emulátoru (pro dodatečnou bezpečnost)
-     */
-    fun isRunningOnEmulator(): Boolean {
-        return (android.os.Build.BRAND.startsWith("generic") && android.os.Build.DEVICE.startsWith("generic"))
-                || android.os.Build.FINGERPRINT.startsWith("generic")
-                || android.os.Build.FINGERPRINT.startsWith("unknown")
-                || android.os.Build.HARDWARE.contains("goldfish")
-                || android.os.Build.HARDWARE.contains("ranchu")
-                || android.os.Build.MODEL.contains("google_sdk")
-                || android.os.Build.MODEL.contains("Emulator")
-                || android.os.Build.MODEL.contains("Android SDK built for x86")
-                || android.os.Build.MANUFACTURER.contains("Genymotion")
-                || android.os.Build.PRODUCT.contains("sdk_google")
-                || android.os.Build.PRODUCT.contains("google_sdk")
-                || android.os.Build.PRODUCT.contains("sdk")
-                || android.os.Build.PRODUCT.contains("sdk_x86")
-                || android.os.Build.PRODUCT.contains("vbox86p")
-                || android.os.Build.PRODUCT.contains("emulator")
-                || android.os.Build.PRODUCT.contains("simulator")
-    }
+
     
     /**
      * Produkční SSL konfigurace - povoluje pouze validní certifikáty

@@ -37,15 +37,15 @@ class BackpackViewModel @Inject constructor() : ViewModel() {
     fun equipItem(item: BackpackItem) {
         val message = when (item.shopItem.type) {
             ShopItemType.PROFILE_QUOTE -> {
-                BackpackManager.equipQuote(item.shopItem)
+                BackpackManager.instance.equipQuote(item.shopItem)
                 "Citát byl nasazen!"
             }
             ShopItemType.PET -> {
-                BackpackManager.equipPet(item.shopItem)
+                BackpackManager.instance.equipPet(item.shopItem)
                 "Zvířátko bylo nasazeno!"
             }
             ShopItemType.ICON_PACK -> {
-                BackpackManager.equipIconPack(item.shopItem)
+                BackpackManager.instance.equipIconPack(item.shopItem)
                 "Balíček ikon byl aktivován!"
             }
             else -> "Item byl použit!"
@@ -58,15 +58,15 @@ class BackpackViewModel @Inject constructor() : ViewModel() {
     fun unequipItem(item: BackpackItem) {
         val message = when (item.shopItem.type) {
             ShopItemType.PROFILE_QUOTE -> {
-                BackpackManager.equipQuote(null)
+                BackpackManager.instance.equipQuote(null)
                 "Citát byl odstraněn"
             }
             ShopItemType.PET -> {
-                BackpackManager.equipPet(null)
+                BackpackManager.instance.equipPet(null)
                 "Zvířátko bylo odstraněno"
             }
             ShopItemType.ICON_PACK -> {
-                BackpackManager.equipIconPack(null)
+                BackpackManager.instance.equipIconPack(null)
                 "Balíček ikon byl deaktivován"
             }
             else -> "Item byl odstraněn"

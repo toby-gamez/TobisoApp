@@ -84,7 +84,7 @@ fun CalendarScreen(
     // States pro TopAppBar
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showTotalOverlay by remember { mutableStateOf(false) }
-    val totalPoints by PointsManager.totalPoints.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
     val context = LocalContext.current
 
     // Stavy pro dialog přidání/úpravy eventu
@@ -115,8 +115,8 @@ fun CalendarScreen(
     }
 
     // Streak state (lives at top-level to survive TopAppBar recompositions)
-    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.availableFreezes.collectAsState()
-    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.usedFreezes.collectAsState()
+    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsState()
+    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsState()
     val currentStreak = remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
