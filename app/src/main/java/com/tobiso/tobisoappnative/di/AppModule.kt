@@ -6,6 +6,7 @@ import com.tobiso.tobisoappnative.db.dao.AddendumDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
 import com.tobiso.tobisoappnative.db.dao.ExerciseDao
+import com.tobiso.tobisoappnative.db.dao.ExerciseCategoryDao
 import com.tobiso.tobisoappnative.db.dao.ExercisePostDao
 import com.tobiso.tobisoappnative.db.dao.PostDao
 import com.tobiso.tobisoappnative.db.dao.QuestionDao
@@ -19,8 +20,6 @@ import com.tobiso.tobisoappnative.repository.ExerciseRepository
 import com.tobiso.tobisoappnative.repository.ExerciseRepositoryImpl
 import com.tobiso.tobisoappnative.repository.FavoritesRepositoryImpl
 import com.tobiso.tobisoappnative.repository.OfflineRepositoryImpl
-import com.tobiso.tobisoappnative.repository.PostDetailRepository
-import com.tobiso.tobisoappnative.repository.PostDetailRepositoryImpl
 import com.tobiso.tobisoappnative.repository.PostsRepository
 import com.tobiso.tobisoappnative.repository.PostsRepositoryImpl
 import com.tobiso.tobisoappnative.repository.QuestionsRepository
@@ -49,11 +48,12 @@ object AppModule {
         relatedPostDao: RelatedPostDao,
         exerciseDao: ExerciseDao,
         exercisePostDao: ExercisePostDao,
+        exerciseCategoryDao: ExerciseCategoryDao,
         db: com.tobiso.tobisoappnative.db.AppDatabase
     ): OfflineDataManager = OfflineDataManager(
         context, categoryDao, postDao, questionPostDao,
         questionDao, eventDao, addendumDao, relatedPostDao,
-        exerciseDao, exercisePostDao, db
+        exerciseDao, exercisePostDao, exerciseCategoryDao, db
     )
 
     @Provides
@@ -62,13 +62,6 @@ object AppModule {
         @ApplicationContext context: Context,
         offlineDataManager: OfflineDataManager
     ): PostsRepository = PostsRepositoryImpl(context, offlineDataManager)
-
-    @Provides
-    @Singleton
-    fun providePostDetailRepository(
-        @ApplicationContext context: Context,
-        offlineDataManager: OfflineDataManager
-    ): PostDetailRepository = PostDetailRepositoryImpl(context, offlineDataManager)
 
     @Provides
     @Singleton

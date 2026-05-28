@@ -97,6 +97,14 @@ interface ApiService {
     @POST("ai/ask")
     suspend fun askAi(
         @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
         @Body request: AiChatRequest
     ): AiChatResponse
+
+    // AI credits purchase endpoint
+    @POST("ai/credits")
+    suspend fun addAiCredits(
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: AddAiCreditsRequest
+    ): AddAiCreditsResponse
 }

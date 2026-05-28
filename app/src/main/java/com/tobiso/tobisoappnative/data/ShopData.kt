@@ -483,6 +483,28 @@ object ShopData {
                 category = ShopCategory.PETS,
                 type = ShopItemType.PET,
                 petIcon = "🐭"
+            ),
+
+            // AI otázky kategorie
+            ShopItem(
+                id = 80,
+                name = "+5 AI otázek",
+                description = "Odemkne 5 extra dotazů na 24 hodin od nákupu",
+                price = 40,
+                category = ShopCategory.AI_QUESTIONS,
+                type = ShopItemType.AI_CREDIT,
+                creditCount = 5,
+                powerUpIcon = "🤖"
+            ),
+            ShopItem(
+                id = 81,
+                name = "+10 AI otázek",
+                description = "Odemkne 10 extra dotazů na 24 hodin od nákupu",
+                price = 70,
+                category = ShopCategory.AI_QUESTIONS,
+                type = ShopItemType.AI_CREDIT,
+                creditCount = 10,
+                powerUpIcon = "🤖"
             )
         )
     }

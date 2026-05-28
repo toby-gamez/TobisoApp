@@ -226,6 +226,7 @@ fun ShopScreen(
                         item = item,
                         isPurchased = when (item.type) {
                             ShopItemType.STREAK_FREEZE -> !ShopManager.instance.canPurchaseStreakFreeze()
+                            ShopItemType.AI_CREDIT -> false
                             else -> purchasedItemIds.contains(item.id)
                         },
                         canAfford = totalPoints >= item.price,
@@ -260,7 +261,10 @@ fun ShopScreen(
             PurchaseDialog(
                 item = item,
                 totalPoints = totalPoints,
-                isPurchased = purchasedItemIds.contains(item.id),
+                isPurchased = when (item.type) {
+                    ShopItemType.AI_CREDIT -> false
+                    else -> purchasedItemIds.contains(item.id)
+                },
                 onConfirm = { vm.confirmPurchase() },
                 onDismiss = { vm.dismissPurchaseDialog() }
             )
@@ -442,6 +446,30 @@ fun ShopItemCard(
                 Spacer(modifier = Modifier.height(12.dp))
             }
             
+            // Pro AI kredity zobrazíme robot emoji
+            if (item.type == ShopItemType.AI_CREDIT && item.powerUpIcon != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(
+                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = item.powerUpIcon, fontSize = 48.sp)
+                        Text(
+                            text = "+${item.creditCount} otázek / 24 h",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             // Pro balíčky ikon zobrazíme preview ikon
             if (item.type == ShopItemType.ICON_PACK && item.subjectIcons != null) {
                 Box(
@@ -827,7 +855,7 @@ fun PurchaseDialog(
                         3.0f -> Color(0xFF9C27B0) // Fialová
                         else -> MaterialTheme.colorScheme.primary
                     }
-                    
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -845,10 +873,34 @@ fun PurchaseDialog(
                             color = powerUpColor
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(12.dp))
                 }
-                
+
+                // Pro AI kredity zobrazíme robot emoji
+                if (item.type == ShopItemType.AI_CREDIT && item.powerUpIcon != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(
+                                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = item.powerUpIcon, fontSize = 36.sp)
+                            Text(
+                                text = "+${item.creditCount} otázek / 24 h",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 // Pro balíčky ikon zobrazíme kompletní seznam
                 if (item.type == ShopItemType.ICON_PACK && item.subjectIcons != null) {
                     Box(

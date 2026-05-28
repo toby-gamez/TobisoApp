@@ -8,8 +8,8 @@ import com.tobiso.tobisoappnative.db.entity.QuestionPostEntity
 
 @Dao
 interface QuestionPostDao {
-    @Query("SELECT * FROM questions_posts")
-    suspend fun getAll(): List<QuestionPostEntity>
+    @Query("SELECT * FROM questions_posts LIMIT :limit OFFSET :offset")
+    suspend fun getAll(limit: Int = -1, offset: Int = 0): List<QuestionPostEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(posts: List<QuestionPostEntity>)

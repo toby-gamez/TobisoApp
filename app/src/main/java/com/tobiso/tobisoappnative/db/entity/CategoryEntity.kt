@@ -13,8 +13,8 @@ data class CategoryEntity(
     val name: String,
     val slug: String? = null,
     val parentId: Int? = null,
-    val parentJson: String? = null,     // kotlinx.serialization-serialized Category?
-    val childrenJson: String? = null,   // kotlinx.serialization-serialized List<Category>?
+    val parentJson: String? = null,
+    val childrenJson: String? = null,
     val fullPath: String? = null
 )
 
@@ -23,8 +23,8 @@ fun CategoryEntity.toDomain(): Category = Category(
     name = name,
     slug = slug,
     parentId = parentId,
-    parent = parentJson?.let { try { json.decodeFromString<Category>(it) } catch (e: Exception) { null } },
-    children = childrenJson?.let { try { json.decodeFromString<List<Category>>(it) } catch (e: Exception) { null } },
+    parent = null,
+    children = null,
     fullPath = fullPath
 )
 
@@ -33,7 +33,7 @@ fun Category.toEntity(): CategoryEntity = CategoryEntity(
     name = name,
     slug = slug,
     parentId = parentId,
-    parentJson = parent?.let { json.encodeToString(Category.serializer(), it) },
-    childrenJson = children?.let { json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Category.serializer()), it) },
+    parentJson = null,
+    childrenJson = null,
     fullPath = fullPath
 )

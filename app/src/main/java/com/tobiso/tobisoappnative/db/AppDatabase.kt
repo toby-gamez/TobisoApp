@@ -9,6 +9,7 @@ import com.tobiso.tobisoappnative.db.dao.AiChatDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
 import com.tobiso.tobisoappnative.db.dao.ExerciseDao
+import com.tobiso.tobisoappnative.db.dao.ExerciseCategoryDao
 import com.tobiso.tobisoappnative.db.dao.ExercisePostDao
 import com.tobiso.tobisoappnative.db.dao.FeedbackDao
 import com.tobiso.tobisoappnative.db.dao.PostDao
@@ -21,6 +22,7 @@ import com.tobiso.tobisoappnative.db.entity.AiChatSessionEntity
 import com.tobiso.tobisoappnative.db.entity.CategoryEntity
 import com.tobiso.tobisoappnative.db.entity.EventEntity
 import com.tobiso.tobisoappnative.db.entity.ExerciseEntity
+import com.tobiso.tobisoappnative.db.entity.ExerciseCategoryEntity
 import com.tobiso.tobisoappnative.db.entity.ExercisePostEntity
 import com.tobiso.tobisoappnative.db.entity.FeedbackEntity
 import com.tobiso.tobisoappnative.db.entity.PostEntity
@@ -39,11 +41,12 @@ import com.tobiso.tobisoappnative.db.entity.RelatedPostEntity
         RelatedPostEntity::class,
         ExerciseEntity::class,
         ExercisePostEntity::class,
+        ExerciseCategoryEntity::class,
         AiChatSessionEntity::class,
         AiChatMessageEntity::class,
         FeedbackEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -56,6 +59,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun relatedPostDao(): RelatedPostDao
     abstract fun exerciseDao(): ExerciseDao
     abstract fun exercisePostDao(): ExercisePostDao
+    abstract fun exerciseCategoryDao(): ExerciseCategoryDao
     abstract fun aiChatDao(): AiChatDao
     abstract fun feedbackDao(): FeedbackDao
 
@@ -69,7 +73,8 @@ abstract class AppDatabase : RoomDatabase() {
                         com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_1_2,
                         com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_2_3,
                         com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_3_4,
-                        com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_4_5
+                        com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_4_5,
+                        com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_5_6
                     )
                     .build().also { INSTANCE = it }
             }

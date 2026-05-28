@@ -8,8 +8,8 @@ import com.tobiso.tobisoappnative.db.entity.AddendumEntity
 
 @Dao
 interface AddendumDao {
-    @Query("SELECT * FROM addendums")
-    suspend fun getAll(): List<AddendumEntity>
+    @Query("SELECT * FROM addendums LIMIT :limit OFFSET :offset")
+    suspend fun getAll(limit: Int = -1, offset: Int = 0): List<AddendumEntity>
 
     @Query("SELECT * FROM addendums WHERE id = :addendumId LIMIT 1")
     suspend fun getById(addendumId: Int): AddendumEntity?

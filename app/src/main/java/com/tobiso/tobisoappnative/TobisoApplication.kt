@@ -23,6 +23,7 @@ class TobisoApplication : Application() {
             ShopManager.initialize(this)
             IconPackManager.initialize(this)
             BackpackManager.initialize(this)
+            AiCreditManager.initialize(this)
         } catch (e: Exception) {
             Timber.e(e, "Critical initialization error – app may not function correctly")
         }

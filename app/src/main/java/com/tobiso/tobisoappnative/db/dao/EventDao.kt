@@ -8,8 +8,8 @@ import com.tobiso.tobisoappnative.db.entity.EventEntity
 
 @Dao
 interface EventDao {
-    @Query("SELECT * FROM events")
-    suspend fun getAll(): List<EventEntity>
+    @Query("SELECT * FROM events LIMIT :limit OFFSET :offset")
+    suspend fun getAll(limit: Int = -1, offset: Int = 0): List<EventEntity>
 
     @Query("SELECT * FROM events WHERE id = :eventId LIMIT 1")
     suspend fun getById(eventId: Int): EventEntity?

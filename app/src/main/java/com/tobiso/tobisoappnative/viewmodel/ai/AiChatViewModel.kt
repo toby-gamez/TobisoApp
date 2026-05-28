@@ -1,6 +1,7 @@
 package com.tobiso.tobisoappnative.viewmodel.ai
 
 import androidx.lifecycle.viewModelScope
+import com.tobiso.tobisoappnative.AiCreditManager
 import com.tobiso.tobisoappnative.base.BaseViewModel
 import com.tobiso.tobisoappnative.db.dao.AiChatDao
 import com.tobiso.tobisoappnative.db.entity.AiChatMessageEntity
@@ -64,6 +65,15 @@ class AiChatViewModel @AssistedInject constructor(
                 onIntent(AiChatIntent.SendMessage(firstUserMessage))
             }
         }
+
+        // When the user purchases bonus credits, re-enable the chat input
+        viewModelScope.launch {
+            AiCreditManager.instance.bonusRemaining.collect { bonus ->
+                if (bonus > 0 && currentState.limitReached) {
+                    setState { copy(limitReached = false, error = null) }
+                }
+            }
+        }
     }
 
     override fun onIntent(intent: AiChatIntent) {
@@ -88,7 +98,9 @@ class AiChatViewModel @AssistedInject constructor(
                     question = trimmed,
                     conversationHistory = history
                 )
-                val response = ApiClient.apiService.askAi("tobiso-android", request)
+                val deviceId = AiCreditManager.instance.deviceId
+                val response = ApiClient.apiService.askAi("tobiso-android", deviceId, request)
+                AiCreditManager.instance.updateBonusRemaining(response.remainingQuestions)
                 setState {
                     copy(
                         messages = messages + ChatMessage("assistant", response.answer),
@@ -104,7 +116,7 @@ class AiChatViewModel @AssistedInject constructor(
                 aiChatDao.updateSession(sid, now, response.answer.take(80), currentState.messages.size)
             } catch (e: HttpException) {
                 if (e.code() == 429) {
-                    setState { copy(limitReached = true, error = "Dosáhl jsi denního limitu dotazů. Zkus to zítra.", isLoading = false) }
+                    setState { copy(limitReached = true, error = "Dosáhl jsi denního limitu dotazů. Zkus to zítra nebo si dokup otázky v obchodě.", isLoading = false) }
                 } else {
                     setState { copy(error = "Chyba serveru (${e.code()}). Zkus to znovu.", isLoading = false) }
                 }

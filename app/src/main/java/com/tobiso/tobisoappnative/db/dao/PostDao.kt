@@ -8,11 +8,11 @@ import com.tobiso.tobisoappnative.db.entity.PostEntity
 
 @Dao
 interface PostDao {
-    @Query("SELECT * FROM posts")
-    suspend fun getAll(): List<PostEntity>
+    @Query("SELECT * FROM posts LIMIT :limit OFFSET :offset")
+    suspend fun getAll(limit: Int = -1, offset: Int = 0): List<PostEntity>
 
-    @Query("SELECT * FROM posts WHERE categoryId = :categoryId")
-    suspend fun getByCategory(categoryId: Int): List<PostEntity>
+    @Query("SELECT * FROM posts WHERE categoryId = :categoryId LIMIT :limit OFFSET :offset")
+    suspend fun getByCategory(categoryId: Int, limit: Int = -1, offset: Int = 0): List<PostEntity>
 
     @Query("SELECT * FROM posts WHERE id = :postId LIMIT 1")
     suspend fun getById(postId: Int): PostEntity?

@@ -9,11 +9,13 @@ import com.tobiso.tobisoappnative.db.dao.AddendumDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
 import com.tobiso.tobisoappnative.db.dao.ExerciseDao
+import com.tobiso.tobisoappnative.db.dao.ExerciseCategoryDao
 import com.tobiso.tobisoappnative.db.dao.ExercisePostDao
 import com.tobiso.tobisoappnative.db.dao.PostDao
 import com.tobiso.tobisoappnative.db.dao.QuestionDao
 import com.tobiso.tobisoappnative.db.dao.QuestionPostDao
 import com.tobiso.tobisoappnative.db.dao.RelatedPostDao
+import com.tobiso.tobisoappnative.db.entity.ExerciseCategoryEntity
 import com.tobiso.tobisoappnative.db.entity.ExercisePostEntity
 import com.tobiso.tobisoappnative.db.entity.toDomain
 import com.tobiso.tobisoappnative.db.entity.toEntity
@@ -45,6 +47,7 @@ class OfflineDataManager(
     private val relatedPostDao: RelatedPostDao,
     private val exerciseDao: ExerciseDao,
     private val exercisePostDao: ExercisePostDao,
+    private val exerciseCategoryDao: ExerciseCategoryDao,
     private val db: AppDatabase
 ) {
 
@@ -122,12 +125,18 @@ class OfflineDataManager(
             addendumDao.insertAll(addendums.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip addendum ${it.id}: ${e.message}"); null } })
             exerciseDao.deleteAll()
             exercisePostDao.deleteAll()
+            exerciseCategoryDao.deleteAll()
             val exerciseEntities = exercises.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip exercise ${it.id}: ${e.message}"); null } }
             exerciseDao.insertAll(exerciseEntities)
             exercisePostDao.insertAll(exerciseEntities.flatMap { entity ->
                 entity.postIdsJson?.let { raw ->
                     runCatching { Json.decodeFromString<List<Int>>(raw) }.getOrElse { emptyList() }
                 }.orEmpty().map { postId -> ExercisePostEntity(entity.id, postId) }
+            })
+            exerciseCategoryDao.insertAll(exerciseEntities.flatMap { entity ->
+                entity.categoryIdsJson?.let { raw ->
+                    runCatching { Json.decodeFromString<List<Int>>(raw) }.getOrElse { emptyList() }
+                }.orEmpty().map { categoryId -> ExerciseCategoryEntity(entity.id, categoryId) }
             })
         }
 

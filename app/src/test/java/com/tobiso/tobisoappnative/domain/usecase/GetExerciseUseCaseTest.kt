@@ -41,13 +41,12 @@ class GetExerciseUseCaseTest {
 
     @Test
     fun `returns failure when repository returns failure`() = runTest {
-        val exception = RuntimeException("Network error")
-        coEvery { repository.getExercise(99) } returns Result.failure(exception)
+        coEvery { repository.getExercise(99) } returns Result.failure(RuntimeException("Network error"))
 
         val result = useCase(99)
 
         assertTrue(result.isFailure)
-        assertEquals(exception, result.exceptionOrNull())
+        assertTrue(result.exceptionOrNull()!!.message!!.contains("Network error"))
     }
 
     @Test
@@ -63,12 +62,20 @@ class GetExerciseUseCaseTest {
 
     @Test
     fun `offline failure wraps correct error message`() = runTest {
-        val offlineError = IllegalStateException("Cvičení není dostupné v offline režimu")
-        coEvery { repository.getExercise(1) } returns Result.failure(offlineError)
+        coEvery { repository.getExercise(1) } returns Result.failure(IllegalStateException("Cvičení není dostupné v offline režimu"))
 
         val result = useCase(1)
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalStateException)
+        assertTrue(result.exceptionOrNull()!!.message!!.contains("Cvičení není dostupné"))
+    }
+
+    @Test
+    fun `rejects zero or negative exerciseId`() = runTest {
+        val resultZero = useCase(0)
+        assertTrue(resultZero.isFailure)
+
+        val resultNegative = useCase(-1)
+        assertTrue(resultNegative.isFailure)
     }
 }

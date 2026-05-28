@@ -1,12 +1,20 @@
 package com.tobiso.tobisoappnative.viewmodel.shop
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tobiso.tobisoappnative.AiCreditManager
+import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.ShopManager
+import com.tobiso.tobisoappnative.model.AddAiCreditsRequest
+import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.ShopItem
 import com.tobiso.tobisoappnative.model.ShopItemType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,12 +38,14 @@ class ShopViewModel @Inject constructor() : ViewModel() {
     private val _errorMessage = MutableStateFlow("")
     val errorMessage: StateFlow<String> = _errorMessage
 
+    private val _isPurchasing = MutableStateFlow(false)
+    val isPurchasing: StateFlow<Boolean> = _isPurchasing
+
     fun selectItem(item: ShopItem, purchasedItemIds: Set<Int>) {
         _selectedItem.value = item
         when (item.type) {
             ShopItemType.POINTS_MULTIPLIER -> {
                 if (ShopManager.instance.isOnCooldown(item.id)) {
-                    // Na cooldownu - nezobrazuj dialog
                     return
                 } else if (purchasedItemIds.contains(item.id)) {
                     _showUsePowerUpDialog.value = true
@@ -54,6 +64,16 @@ class ShopViewModel @Inject constructor() : ViewModel() {
 
     fun confirmPurchase() {
         val item = _selectedItem.value ?: return
+        _showPurchaseDialog.value = false
+        _selectedItem.value = null
+
+        if (item.type == ShopItemType.AI_CREDIT) {
+            viewModelScope.launch(Dispatchers.IO) {
+                purchaseAiCredits(item)
+            }
+            return
+        }
+
         val success = ShopManager.instance.purchaseItem(item)
         if (success) {
             _showSuccessMessage.value = true
@@ -61,8 +81,48 @@ class ShopViewModel @Inject constructor() : ViewModel() {
             _errorMessage.value = "Nedostatek bodů pro nákup tohoto itemu!"
             _showErrorMessage.value = true
         }
-        _showPurchaseDialog.value = false
-        _selectedItem.value = null
+    }
+
+    private suspend fun purchaseAiCredits(item: ShopItem) {
+        val count = item.creditCount ?: return
+        _isPurchasing.value = true
+
+        val pointsDeducted = PointsManager.instance.subtractPoints(item.price)
+        if (!pointsDeducted) {
+            _errorMessage.value = "Nedostatek bodů pro nákup tohoto itemu!"
+            _showErrorMessage.value = true
+            _isPurchasing.value = false
+            return
+        }
+
+        try {
+            val manager = AiCreditManager.instance
+            val deviceId = manager.deviceId
+            val validUntilUtc = (System.currentTimeMillis() / 1000L) + 86400L
+            val signature = manager.signCreditRequest(deviceId, count, validUntilUtc)
+            val request = AddAiCreditsRequest(
+                deviceId = deviceId,
+                count = count,
+                validUntilUtc = validUntilUtc,
+                signature = signature
+            )
+            val response = ApiClient.apiService.addAiCredits(deviceId, request)
+            if (response.success) {
+                manager.updateBonusRemaining(response.totalRemainingToday)
+                _showSuccessMessage.value = true
+            } else {
+                PointsManager.instance.addPoints(item.price)
+                _errorMessage.value = "Nepodařilo se zakoupit AI kredity. Zkus to znovu."
+                _showErrorMessage.value = true
+            }
+        } catch (e: Exception) {
+            PointsManager.instance.addPoints(item.price)
+            _errorMessage.value = "Nepodařilo se spojit se serverem. Body vráceny."
+            _showErrorMessage.value = true
+            Timber.e(e, "Failed to purchase AI credits")
+        } finally {
+            _isPurchasing.value = false
+        }
     }
 
     fun dismissPurchaseDialog() {

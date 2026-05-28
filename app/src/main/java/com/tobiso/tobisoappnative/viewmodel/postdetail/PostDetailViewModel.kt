@@ -14,9 +14,11 @@ import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.Question
 import com.tobiso.tobisoappnative.model.RelatedPost
 import com.tobiso.tobisoappnative.repository.FavoritesRepositoryImpl
-import com.tobiso.tobisoappnative.repository.PostDetailRepository
 import com.tobiso.tobisoappnative.repository.PostsRepository
 import com.tobiso.tobisoappnative.tts.TtsManager
+import com.tobiso.tobisoappnative.components.ContentElement
+import com.tobiso.tobisoappnative.components.parseContentToElements
+import com.tobiso.tobisoappnative.utils.loadGradeId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.ResponseBody
 import javax.inject.Inject
 import android.content.ContentValues
@@ -33,18 +36,14 @@ import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
 import java.lang.Exception
-import kotlinx.coroutines.withContext
 import android.provider.MediaStore
-import com.tobiso.tobisoappnative.components.ContentElement
-import com.tobiso.tobisoappnative.components.parseContentToElements
-import com.tobiso.tobisoappnative.utils.loadGradeId
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @HiltViewModel
 class PostDetailViewModel @Inject constructor(
     application: Application,
-    private val detailRepo: PostDetailRepository,
+    private val detailRepo: PostsRepository,
     private val postsRepo: PostsRepository,
     private val favoritesRepo: FavoritesRepositoryImpl
 ) : AndroidViewModel(application) {
@@ -123,7 +122,7 @@ class PostDetailViewModel @Inject constructor(
     fun loadPostDetail(postId: Int) {
         val gradeId = loadGradeId(getApplication())
         viewModelScope.launch(Dispatchers.IO) {
-            detailRepo.getPostDetail(postId, gradeId).fold(
+            detailRepo.getPost(postId, gradeId).fold(
                 onSuccess = { post ->
                     _postDetail.value = post
                     _postDetailError.value = null

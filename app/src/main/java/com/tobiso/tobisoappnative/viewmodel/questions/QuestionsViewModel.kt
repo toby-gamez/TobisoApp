@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.Question
-import com.tobiso.tobisoappnative.repository.PostDetailRepository
+import com.tobiso.tobisoappnative.repository.PostsRepository
 import com.tobiso.tobisoappnative.utils.NetworkUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -16,8 +16,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class QuestionsViewModel @Inject constructor(
-    application: Application,
-    private val repo: PostDetailRepository
+    private val repo: PostsRepository,
+    application: Application
 ) : AndroidViewModel(application) {
 
     private val _questions = MutableStateFlow<List<Question>>(emptyList())
@@ -38,7 +38,7 @@ class QuestionsViewModel @Inject constructor(
     fun loadPostDetail(postId: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             _isOffline.value = !NetworkUtils.isOnline(getApplication())
-            repo.getPostDetail(postId).fold(
+            repo.getPost(postId).fold(
                 onSuccess = { _postDetail.value = it },
                 onFailure = { /* non-fatal, questions still load */ }
             )

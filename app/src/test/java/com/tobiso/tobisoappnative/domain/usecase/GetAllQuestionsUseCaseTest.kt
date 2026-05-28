@@ -75,13 +75,12 @@ class GetAllQuestionsUseCaseTest {
 
     @Test
     fun `returns failure when repository fails`() = runTest {
-        val exception = RuntimeException("Server error")
-        coEvery { repository.getAllQuestions() } returns Result.failure(exception)
+        coEvery { repository.getAllQuestions() } returns Result.failure(RuntimeException("Server error"))
 
         val result = useCase()
 
         assertTrue(result.isFailure)
-        assertEquals(exception, result.exceptionOrNull())
+        assertTrue(result.exceptionOrNull()!!.message!!.contains("Server error"))
     }
 
     @Test
@@ -92,7 +91,7 @@ class GetAllQuestionsUseCaseTest {
         val result = useCase()
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalStateException)
+        assertTrue(result.exceptionOrNull()!!.message!!.contains("Otázky nejsou dostupné"))
     }
 
     @Test

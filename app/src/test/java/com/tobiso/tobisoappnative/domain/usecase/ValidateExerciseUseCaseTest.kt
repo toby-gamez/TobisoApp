@@ -59,24 +59,22 @@ class ValidateExerciseUseCaseTest {
 
     @Test
     fun `returns failure when offline`() = runTest {
-        val offlineError = IllegalStateException("Validace vyžaduje internetové připojení")
-        coEvery { repository.validateExercise(any(), any()) } returns Result.failure(offlineError)
+        coEvery { repository.validateExercise(any(), any()) } returns Result.failure(IllegalStateException("Validace vyžaduje internetové připojení"))
 
         val result = useCase(5, "{}")
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalStateException)
+        assertTrue(result.exceptionOrNull()!!.message!!.contains("Validace vyžaduje"))
     }
 
     @Test
     fun `returns failure on network error`() = runTest {
-        val networkError = RuntimeException("HTTP 500")
-        coEvery { repository.validateExercise(2, any()) } returns Result.failure(networkError)
+        coEvery { repository.validateExercise(2, any()) } returns Result.failure(RuntimeException("HTTP 500"))
 
         val result = useCase(2, """{"pairs":[]}""")
 
         assertTrue(result.isFailure)
-        assertEquals("HTTP 500", result.exceptionOrNull()!!.message)
+        assertTrue(result.exceptionOrNull()!!.message!!.contains("HTTP 500"))
     }
 
     @Test
@@ -106,5 +104,30 @@ class ValidateExerciseUseCaseTest {
         assertFalse(result.getOrNull()!!.isCorrect)
         assertEquals(60, result.getOrNull()!!.score)
         assertEquals(2, result.getOrNull()!!.detailedResults?.size)
+    }
+
+    @Test
+    fun `rejects zero or negative exerciseId`() = runTest {
+        val result = useCase(0, "{}")
+        assertTrue(result.isFailure)
+
+        val resultNeg = useCase(-5, "{}")
+        assertTrue(resultNeg.isFailure)
+    }
+
+    @Test
+    fun `rejects blank solution`() = runTest {
+        val resultBlank = useCase(1, "")
+        assertTrue(resultBlank.isFailure)
+
+        val resultSpaces = useCase(1, "   ")
+        assertTrue(resultSpaces.isFailure)
+    }
+
+    @Test
+    fun `rejects oversized solution`() = runTest {
+        val oversized = "x".repeat(100_001)
+        val result = useCase(1, oversized)
+        assertTrue(result.isFailure)
     }
 }

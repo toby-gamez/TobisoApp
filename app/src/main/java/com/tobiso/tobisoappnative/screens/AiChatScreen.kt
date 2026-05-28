@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.tobiso.tobisoappnative.navigation.ShopRoute
 import com.tobiso.tobisoappnative.viewmodel.ai.AiChatViewModel
 import com.tobiso.tobisoappnative.viewmodel.ai.AiChatIntent
 import com.tobiso.tobisoappnative.viewmodel.ai.ChatMessage
@@ -169,6 +170,17 @@ fun AiChatScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             )
+        }
+
+        if (limitReached) {
+            Button(
+                onClick = { navController.navigate(ShopRoute) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                Text("🤖 Koupit více otázek v obchodě")
+            }
         }
 
         // Input řádek
