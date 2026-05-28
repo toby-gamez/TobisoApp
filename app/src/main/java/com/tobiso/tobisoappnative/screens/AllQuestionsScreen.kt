@@ -27,7 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.tobiso.tobisoappnative.IconPackManager
 import com.tobiso.tobisoappnative.PointsManager
+import com.tobiso.tobisoappnative.QuestionProgressManager
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.navigation.MixedQuizRoute
@@ -47,6 +49,7 @@ fun AllQuestionsScreen(navController: NavController) {
     val isOffline by vm.isOffline.collectAsState()
     val categories by vm.categories.collectAsState()
     val weakCategories by vm.weakCategories.collectAsState()
+    val categoryQuestionIdsMap by vm.categoryQuestionIdsMap.collectAsState()
 
     var isRefreshing by remember { mutableStateOf(false) }
     var showTotalOverlay by remember { mutableStateOf(false) }
@@ -194,6 +197,7 @@ fun AllQuestionsScreen(navController: NavController) {
                         allQuestionsCount = allQuestions.size,
                         categories = categories,
                         weakCategories = weakCategories,
+                        categoryQuestionIdsMap = categoryQuestionIdsMap,
                         navController = navController
                     )
                 }
@@ -208,9 +212,12 @@ private fun PracticeHubContent(
     allQuestionsCount: Int,
     categories: List<com.tobiso.tobisoappnative.model.Category>,
     weakCategories: List<WeakCategory>,
+    categoryQuestionIdsMap: Map<Int, List<Int>>,
     navController: NavController
 ) {
-    val rootCategories = remember(categories) { categories.filter { it.parentId == null } }
+    val rootCategories = remember(categories) {
+        categories.filter { it.parentId == null && it.name != "More" }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -242,7 +249,7 @@ private fun PracticeHubContent(
                 WeakSpotsSection(
                     weakCategories = weakCategories,
                     onCategoryClick = { catId ->
-                        val ids = vm.getCategoryQuestionIds(catId)
+                        val ids = categoryQuestionIdsMap[catId] ?: emptyList()
                         if (ids.isNotEmpty()) navController.navigate(MixedQuizRoute(ids.joinToString(",")))
                     }
                 )
@@ -268,13 +275,10 @@ private fun PracticeHubContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 row.forEach { category ->
-                    val questionIds = remember(category.id) {
-                        vm.getCategoryQuestionIds(category.id).toSet()
-                    }
-                    val progress = remember(category.id) {
-                        com.tobiso.tobisoappnative.QuestionProgressManager.instance
-                            .getProgressForQuestions(questionIds)
-                    }
+                    val questionIds = categoryQuestionIdsMap[category.id] ?: emptyList()
+                    val progress = if (questionIds.isNotEmpty())
+                        QuestionProgressManager.instance.getProgressForQuestions(questionIds.toSet())
+                    else -1f
                     CategoryCard(
                         modifier = Modifier.weight(1f),
                         name = category.name,
@@ -452,6 +456,9 @@ private fun CategoryCard(
     progress: Float?,
     onClick: () -> Unit
 ) {
+    val subjectIcon = IconPackManager.getSubjectIcon(name)
+    val isEmoji = IconPackManager.isEmojiIcon(name)
+
     Card(
         modifier = modifier.clickable(enabled = questionCount > 0, onClick = onClick),
         colors = CardDefaults.cardColors(
@@ -460,12 +467,20 @@ private fun CategoryCard(
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Icon(
-                imageVector = Icons.Default.MenuBook,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
+            if (isEmoji && subjectIcon is String) {
+                Text(
+                    text = subjectIcon,
+                    fontSize = 24.sp,
+                    modifier = Modifier.size(28.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = subjectIcon as? ImageVector ?: Icons.Default.MenuBook,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = name,
