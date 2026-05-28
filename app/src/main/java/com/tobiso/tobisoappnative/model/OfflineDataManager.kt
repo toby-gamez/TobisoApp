@@ -9,10 +9,12 @@ import com.tobiso.tobisoappnative.db.dao.AddendumDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
 import com.tobiso.tobisoappnative.db.dao.ExerciseDao
+import com.tobiso.tobisoappnative.db.dao.ExercisePostDao
 import com.tobiso.tobisoappnative.db.dao.PostDao
 import com.tobiso.tobisoappnative.db.dao.QuestionDao
 import com.tobiso.tobisoappnative.db.dao.QuestionPostDao
 import com.tobiso.tobisoappnative.db.dao.RelatedPostDao
+import com.tobiso.tobisoappnative.db.entity.ExercisePostEntity
 import com.tobiso.tobisoappnative.db.entity.toDomain
 import com.tobiso.tobisoappnative.db.entity.toEntity
 import com.tobiso.tobisoappnative.db.entity.toQuestionPostEntity
@@ -42,6 +44,7 @@ class OfflineDataManager(
     private val addendumDao: AddendumDao,
     private val relatedPostDao: RelatedPostDao,
     private val exerciseDao: ExerciseDao,
+    private val exercisePostDao: ExercisePostDao,
     private val db: AppDatabase
 ) {
 
@@ -118,7 +121,14 @@ class OfflineDataManager(
             addendumDao.deleteAll()
             addendumDao.insertAll(addendums.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip addendum ${it.id}: ${e.message}"); null } })
             exerciseDao.deleteAll()
-            exerciseDao.insertAll(exercises.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip exercise ${it.id}: ${e.message}"); null } })
+            exercisePostDao.deleteAll()
+            val exerciseEntities = exercises.mapNotNull { runCatching { it.toEntity() }.getOrElse { e -> Timber.w("skip exercise ${it.id}: ${e.message}"); null } }
+            exerciseDao.insertAll(exerciseEntities)
+            exercisePostDao.insertAll(exerciseEntities.flatMap { entity ->
+                entity.postIdsJson?.let { raw ->
+                    runCatching { Json.decodeFromString<List<Int>>(raw) }.getOrElse { emptyList() }
+                }.orEmpty().map { postId -> ExercisePostEntity(entity.id, postId) }
+            })
         }
 
         // Nastavit metadata PO úspěšné transakci
@@ -130,8 +140,10 @@ class OfflineDataManager(
 
     suspend fun saveEvents(events: List<Event>) = withContext(Dispatchers.IO) {
         try {
-            eventDao.deleteRemoteEvents()
-            eventDao.insertAll(events.map { it.toEntity() })
+            db.withTransaction {
+                eventDao.deleteRemoteEvents()
+                eventDao.insertAll(events.map { it.toEntity() })
+            }
             metaPrefs.edit().putLong(KEY_EVENTS_LAST_UPDATE, System.currentTimeMillis()).apply()
         } catch (e: Exception) {
             Timber.e(e, "Error saving events")
@@ -294,8 +306,16 @@ class OfflineDataManager(
 
     suspend fun getCachedExercisesByPostId(postId: Int): List<InteractiveExerciseResponse>? =
         withContext(Dispatchers.IO) {
-            // postIds is stored as JSON string; filter in-memory after loading all exercises.
-            getCachedExercises()?.filter { it.postIds?.contains(postId) == true }
+            try {
+                val exerciseIds = exercisePostDao.getExerciseIdsForPost(postId)
+                if (exerciseIds.isEmpty()) return@withContext emptyList()
+                exerciseDao.getAll()
+                    .filter { it.id in exerciseIds }
+                    .mapNotNull { runCatching { it.toDomain() }.getOrNull() }
+            } catch (e: Exception) {
+                Timber.e(e, "Error loading exercises by post")
+                null
+            }
         }
 
     suspend fun getCachedExercise(exerciseId: Int): InteractiveExerciseResponse? =

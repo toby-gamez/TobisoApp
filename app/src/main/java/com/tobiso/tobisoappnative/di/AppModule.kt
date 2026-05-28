@@ -6,6 +6,7 @@ import com.tobiso.tobisoappnative.db.dao.AddendumDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
 import com.tobiso.tobisoappnative.db.dao.ExerciseDao
+import com.tobiso.tobisoappnative.db.dao.ExercisePostDao
 import com.tobiso.tobisoappnative.db.dao.PostDao
 import com.tobiso.tobisoappnative.db.dao.QuestionDao
 import com.tobiso.tobisoappnative.db.dao.QuestionPostDao
@@ -47,10 +48,12 @@ object AppModule {
         addendumDao: AddendumDao,
         relatedPostDao: RelatedPostDao,
         exerciseDao: ExerciseDao,
+        exercisePostDao: ExercisePostDao,
         db: com.tobiso.tobisoappnative.db.AppDatabase
     ): OfflineDataManager = OfflineDataManager(
         context, categoryDao, postDao, questionPostDao,
-        questionDao, eventDao, addendumDao, relatedPostDao, exerciseDao, db
+        questionDao, eventDao, addendumDao, relatedPostDao,
+        exerciseDao, exercisePostDao, db
     )
 
     @Provides

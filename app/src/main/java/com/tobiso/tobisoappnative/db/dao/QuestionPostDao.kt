@@ -17,6 +17,4 @@ interface QuestionPostDao {
     @Query("DELETE FROM questions_posts")
     suspend fun deleteAll()
 
-    @Query("SELECT COUNT(*) FROM questions_posts")
-    suspend fun count(): Int
 }

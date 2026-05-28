@@ -12,7 +12,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import java.text.SimpleDateFormat
 import java.util.*
@@ -20,17 +20,15 @@ import java.util.*
 class NotificationWorker(
     private val context: Context,
     workerParams: WorkerParameters
-) : Worker(context, workerParams) {
+) : CoroutineWorker(context, workerParams) {
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         val hour = inputData.getInt("hour", 17)
         val isCritical = inputData.getBoolean("critical", false)
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         
-        // Kontrola, zda byla aplikace dnes otevřena
         val wasAppOpenedToday = checkIfAppWasOpenedToday(context, today)
         
-        // Pošli notifikaci pouze pokud aplikace NEBYLA dnes otevřena
         if (!wasAppOpenedToday) {
             showNotification(hour, isCritical)
         }

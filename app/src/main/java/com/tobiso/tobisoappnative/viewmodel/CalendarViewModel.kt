@@ -2,6 +2,7 @@ package com.tobiso.tobisoappnative.viewmodel
 import timber.log.Timber
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
 import com.tobiso.tobisoappnative.model.ApiClient
@@ -22,14 +23,23 @@ import javax.inject.Inject
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     application: Application,
+    savedStateHandle: SavedStateHandle,
     private val offlineDataManager: OfflineDataManager,
-) : BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(application, CalendarState()) {
+) : BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(
+    application, CalendarState(), savedStateHandle
+) {
 
     private val apiDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-    /** The month currently loaded – used for internal reloads after mutations. */
-    private var lastLoadedYear = LocalDate.now().year
-    private var lastLoadedMonth = LocalDate.now().monthValue - 1  // 0-indexed (Calendar convention)
+    private var lastLoadedYear = savedStateHandle.get<Int>("lastLoadedYear") ?: LocalDate.now().year
+    private var lastLoadedMonth = savedStateHandle.get<Int>("lastLoadedMonth")
+        ?: (LocalDate.now().monthValue - 1)
+
+    init {
+        savedStateHandle.get<Long>("selectedDateMillis")?.let { millis ->
+            setState { copy(selectedDate = Date(millis)) }
+        }
+    }
 
     override fun onIntent(intent: CalendarIntent) {
         when (intent) {
@@ -76,6 +86,8 @@ class CalendarViewModel @Inject constructor(
     private fun loadEventsForMonth(year: Int, month: Int) {
         lastLoadedYear = year
         lastLoadedMonth = month
+        savedStateHandle?.set("lastLoadedYear", year)
+        savedStateHandle?.set("lastLoadedMonth", month)
         viewModelScope.launch(Dispatchers.IO) {
             setState { copy(isLoading = true, error = null) }
 
@@ -148,6 +160,7 @@ class CalendarViewModel @Inject constructor(
             localDate.dayOfMonth,
         )
         setState { copy(selectedDate = date, selectedDateEvents = eventsForDay) }
+        savedStateHandle?.set("selectedDateMillis", date.time)
     }
 
     private fun loadEventDetail(eventId: Int) {

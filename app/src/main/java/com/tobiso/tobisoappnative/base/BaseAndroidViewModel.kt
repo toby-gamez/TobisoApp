@@ -2,6 +2,7 @@ package com.tobiso.tobisoappnative.base
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,10 +16,14 @@ import androidx.lifecycle.viewModelScope
 /**
  * Use this as base class when you need Application context (e.g. for NetworkUtils, DataStore).
  * For ViewModels that don't need context, use [BaseViewModel] instead.
+ *
+ * Pass [savedStateHandle] to persist critical state across process death.
+ * Hilt injects the handle automatically; pass it through from the concrete ViewModel.
  */
 abstract class BaseAndroidViewModel<S : UiState, I : UiIntent, E : UiEffect>(
     application: Application,
-    initialState: S
+    initialState: S,
+    protected val savedStateHandle: SavedStateHandle? = null
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(initialState)

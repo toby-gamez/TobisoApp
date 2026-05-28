@@ -10,6 +10,7 @@ import com.tobiso.tobisoappnative.db.dao.AiChatDao
 import com.tobiso.tobisoappnative.db.dao.CategoryDao
 import com.tobiso.tobisoappnative.db.dao.EventDao
 import com.tobiso.tobisoappnative.db.dao.ExerciseDao
+import com.tobiso.tobisoappnative.db.dao.ExercisePostDao
 import com.tobiso.tobisoappnative.db.dao.PostDao
 import com.tobiso.tobisoappnative.db.dao.QuestionDao
 import com.tobiso.tobisoappnative.db.dao.QuestionPostDao
@@ -64,11 +65,27 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """CREATE TABLE IF NOT EXISTS exercise_post (
+                    exerciseId INTEGER NOT NULL,
+                    postId INTEGER NOT NULL,
+                    PRIMARY KEY(exerciseId, postId)
+                )"""
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_exercise_post_postId ON exercise_post(postId)"
+            )
+            Timber.d("Applying migration 3->4: added exercise_post join table")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "tobiso_offline.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
     @Provides
@@ -94,6 +111,9 @@ object DatabaseModule {
 
     @Provides
     fun provideExerciseDao(db: AppDatabase): ExerciseDao = db.exerciseDao()
+
+    @Provides
+    fun provideExercisePostDao(db: AppDatabase): ExercisePostDao = db.exercisePostDao()
 
     @Provides
     fun provideAiChatDao(db: AppDatabase): AiChatDao = db.aiChatDao()

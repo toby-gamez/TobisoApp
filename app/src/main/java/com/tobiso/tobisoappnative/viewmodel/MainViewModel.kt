@@ -2,6 +2,7 @@ package com.tobiso.tobisoappnative.viewmodel
 import timber.log.Timber
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
 import com.tobiso.tobisoappnative.model.OfflineDataManager
@@ -25,16 +26,24 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     application: Application,
+    savedStateHandle: SavedStateHandle,
     private val offlineDataManager: OfflineDataManager,
     private val offlineRepo: OfflineRepositoryImpl
-) : BaseAndroidViewModel<MainState, MainIntent, MainEffect>(application, MainState()) {
+) : BaseAndroidViewModel<MainState, MainIntent, MainEffect>(
+    application, MainState(), savedStateHandle
+) {
 
     private var isFirstLoad = true
 
-    // Expose connectivity Flow from NetworkUtils so composables can collect from the ViewModel
     val connectivityFlow: Flow<Boolean> = NetworkUtils.observeConnectivityAsFlow(getApplication())
 
     init {
+        savedStateHandle.get<Boolean>("hasUserDismissedNoInternet")?.let {
+            setState { copy(hasUserDismissedNoInternet = it) }
+        }
+        savedStateHandle.get<Boolean>("searchBarExpanded")?.let {
+            setState { copy(searchBarExpanded = it) }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             setState { copy(isOffline = !NetworkUtils.isOnline(getApplication())) }
         }
@@ -44,12 +53,21 @@ class MainViewModel @Inject constructor(
         when (intent) {
             MainIntent.LoadCategories -> loadCategories()
             MainIntent.EnableOfflineMode -> viewModelScope.launch(Dispatchers.IO) { loadOfflineData() }
-            MainIntent.ConfirmOfflineModeTransition -> setState { copy(hasUserDismissedNoInternet = true) }
-            MainIntent.ResetNoInternetDismiss -> setState { copy(hasUserDismissedNoInternet = false) }
+            MainIntent.ConfirmOfflineModeTransition -> {
+                setState { copy(hasUserDismissedNoInternet = true) }
+                savedStateHandle?.set("hasUserDismissedNoInternet", true)
+            }
+            MainIntent.ResetNoInternetDismiss -> {
+                setState { copy(hasUserDismissedNoInternet = false) }
+                savedStateHandle?.set("hasUserDismissedNoInternet", false)
+            }
             MainIntent.RefreshNetworkState -> viewModelScope.launch(Dispatchers.IO) {
                 setState { copy(isOffline = !NetworkUtils.isOnline(getApplication())) }
             }
-            is MainIntent.SetSearchBarExpanded -> setState { copy(searchBarExpanded = intent.expanded) }
+            is MainIntent.SetSearchBarExpanded -> {
+                setState { copy(searchBarExpanded = intent.expanded) }
+                savedStateHandle?.set("searchBarExpanded", intent.expanded)
+            }
         }
     }
 
