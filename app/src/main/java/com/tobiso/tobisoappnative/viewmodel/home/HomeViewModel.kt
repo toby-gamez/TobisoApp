@@ -6,7 +6,6 @@ import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
 import com.tobiso.tobisoappnative.repository.OfflineRepositoryImpl
 import com.tobiso.tobisoappnative.repository.PostsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -32,7 +31,7 @@ class HomeViewModel @Inject constructor(
 
     private fun load() {
         val gradeId = loadGradeId(getApplication())
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             setState { copy(isLoading = true) }
             postsRepo.getCategories().fold(
                 onSuccess = { cats -> setState { copy(categories = cats, isOffline = false) } },
@@ -53,7 +52,7 @@ class HomeViewModel @Inject constructor(
 
     // Public: request recompute on background dispatcher. Provide a selected root subject id or null (all).
     fun computeNewest(selectedSubjectId: Int?) {
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch {
             val categories = uiState.value.categories
             val posts = uiState.value.posts
 
@@ -103,7 +102,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun downloadAllOfflineData() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             setState { copy(offlineDownloading = true) }
             val success = offlineRepo.downloadAllData { progress ->
                 setState { copy(offlineDownloadProgress = progress) }

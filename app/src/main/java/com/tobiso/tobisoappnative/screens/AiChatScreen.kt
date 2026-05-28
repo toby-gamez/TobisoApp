@@ -1,6 +1,12 @@
 package com.tobiso.tobisoappnative.screens
 
 import android.net.Uri
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +25,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -138,25 +147,7 @@ fun AiChatScreen(
             }
 
             if (isLoading) {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+                item { ThinkingBubble() }
             }
         }
 
@@ -244,6 +235,62 @@ fun AiChatScreen(
                         contentDescription = "Odeslat"
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThinkingBubble() {
+    val infiniteTransition = rememberInfiniteTransition(label = "thinking")
+    val shimmerOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerOffset"
+    )
+    var textWidth by remember { mutableFloatStateOf(0f) }
+    val baseColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val shimmerBrush = if (textWidth > 0f) {
+        Brush.linearGradient(
+            colors = listOf(
+                baseColor.copy(alpha = 0.3f),
+                baseColor,
+                baseColor.copy(alpha = 0.3f),
+            ),
+            start = Offset(shimmerOffset * textWidth * 2f - textWidth, 0f),
+            end = Offset(shimmerOffset * textWidth * 2f, 0f)
+        )
+    } else {
+        Brush.linearGradient(listOf(baseColor, baseColor))
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Přemýšlím",
+                    style = MaterialTheme.typography.bodyMedium.copy(brush = shimmerBrush),
+                    modifier = Modifier.onSizeChanged { textWidth = it.width.toFloat() }
+                )
             }
         }
     }

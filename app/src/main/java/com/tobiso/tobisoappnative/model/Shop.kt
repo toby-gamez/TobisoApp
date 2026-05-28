@@ -3,11 +3,11 @@ package com.tobiso.tobisoappnative.model
 // Kategorie obchodu
 enum class ShopCategory(val displayName: String) {
     STREAK("Řada"),
+    AI_QUESTIONS("AI otázky"),
     QUOTES("Citáty"),
     SUBJECTS("Balíčky ikon"),
     POWER_UPS("Power-upy"),
-    PETS("Zvířátka"),
-    AI_QUESTIONS("AI otázky")
+    PETS("Zvířátka")
 }
 
 // Typ itemu v obchodě

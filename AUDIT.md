@@ -12,7 +12,7 @@
 
 | Area | Score | Rationale |
 |------|-------|-----------|
-| **Architecture** | 8/10 | Duplicate repos consolidated (PostDetail→merged into Posts), use cases now validate inputs/wrap errors, offline feedback queue |
+| **Architecture** | 9/10 | OfflineRepository god class split into per-type fetchers, duplicate repos consolidated, use cases validate inputs/wrap errors, offline feedback queue |
 | **Kotlin Quality** | 8/10 | MutableStateFlow races fixed, companion delegations removed, Calendar→java.time, DateSerializer fixed, use cases with validation |
 | **Android-Specific** | 8/10 | AlarmManager→WorkManager, TTS lazy init, overlay races consolidated, scoped storage, aiChat network checks fixed |
 | **Security** | 8/10 | FileProvider restricted, security theater removed, cert pinning re-enabled, game state excluded from backup, scoped storage only |
@@ -62,11 +62,11 @@ data class FeedbackDto(
 **Issue**: All three use cases are one-line delegations to repository, containing zero business logic, validation, error transformation, or logging. This is an anemic domain model anti-pattern — the domain layer adds no value.  
 **Fix**: Move business rules into use cases (e.g., validate exercise IDs, transform errors to domain-specific sealed results, enforce business constraints).
 
-### 1.3 HIGH: `OfflineRepositoryImpl` is a monolithic god class ⏳ PARTIAL
+### 1.3 HIGH: `OfflineRepositoryImpl` is a monolithic god class ✅ DONE
 
-**File**: `repository/OfflineRepositoryImpl.kt` (239 lines)  
-**Issue**: `downloadAllData()` / `downloadAndSaveRemaining()` is a massive method handling ALL data types (categories, posts, questions, exercises, addendums, events, grades). It has hardcoded progress percentages, manual concurrency with `Semaphore`, and duplicated retry logic. Single responsibility violated.  
-**Fix**: Split into dedicated fetchers per data type, or use a WorkManager-based sync pipeline with proper progress reporting.
+**File**: `repository/OfflineRepositoryImpl.kt` (240 lines)  
+**Issue**: `downloadAllData()` / `downloadAndSaveRemaining()` was a massive method handling ALL data types.  
+**Fix**: Extracted per-type fetcher methods (`fetchCategories`, `fetchPosts`, `fetchQuestions`, `fetchExercises`, etc.), `ProgressTracker` helper, and `retryWithBackoff` helper. The orchestrator methods `downloadAllData` and `downloadAndSaveRemaining` are now clean sequences of delegations.
 
 ### 1.4 MEDIUM: ViewModel does not use `SavedStateHandle` ✅ DONE
 
