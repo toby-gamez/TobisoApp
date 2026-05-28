@@ -312,11 +312,14 @@ fun TimelineExerciseScreen(
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
+                    val shuffledAvailableEvents = remember(state.availableEvents) {
+                        state.availableEvents.shuffled()
+                    }
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(state.availableEvents.filter { !state.orderedEvents.contains(it.id) }) { event ->
+                        items(shuffledAvailableEvents.filter { !state.orderedEvents.contains(it.id) }) { event ->
                             OutlinedCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
