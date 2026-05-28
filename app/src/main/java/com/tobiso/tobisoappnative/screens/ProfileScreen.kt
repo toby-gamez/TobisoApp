@@ -314,7 +314,7 @@ fun ProfileScreen(navController: NavController) {
                     ) {
                         Column(Modifier.padding(16.dp)) {
                             Text("Nedávné AI chaty", style = MaterialTheme.typography.titleMedium)
-                            Text("Prohlédni si nebo pokračuj v předchozích konverzacích s AI asistentem.", style = MaterialTheme.typography.bodySmall)
+                            Text("Prohlédni si nebo pokračuj v předchozích AI konverzacích.", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }

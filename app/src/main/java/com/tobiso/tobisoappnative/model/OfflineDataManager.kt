@@ -18,6 +18,8 @@ import com.tobiso.tobisoappnative.db.entity.toEntity
 import com.tobiso.tobisoappnative.db.entity.toQuestionPostEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -49,6 +51,7 @@ class OfflineDataManager(
         const val CACHE_FRESHNESS_MINUTES = 15
         private const val KEY_LAST_UPDATE_FORMATTED = "last_update_formatted"
         private const val KEY_EVENTS_LAST_UPDATE = "events_last_update_timestamp"
+        private const val KEY_GRADES_JSON = "cached_grades"
 
         private val csTimeFormatter = DateTimeFormatter.ofPattern(
             "dd. MM. yyyy 'v' HH:mm", Locale.forLanguageTag("cs-CZ")
@@ -133,6 +136,17 @@ class OfflineDataManager(
         } catch (e: Exception) {
             Timber.e(e, "Error saving events")
         }
+    }
+
+    fun saveGrades(grades: List<Grade>) {
+        runCatching { Json.encodeToString(grades) }
+            .onSuccess { metaPrefs.edit().putString(KEY_GRADES_JSON, it).apply() }
+            .onFailure { Timber.e(it, "Error saving grades") }
+    }
+
+    fun getCachedGrades(): List<Grade> {
+        val json = metaPrefs.getString(KEY_GRADES_JSON, null) ?: return emptyList()
+        return runCatching { Json.decodeFromString<List<Grade>>(json) }.getOrElse { emptyList() }
     }
 
     suspend fun saveAddendums(addendums: List<Addendum>) = withContext(Dispatchers.IO) {

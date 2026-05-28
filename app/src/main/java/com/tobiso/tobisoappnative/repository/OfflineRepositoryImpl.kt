@@ -4,6 +4,7 @@ import timber.log.Timber
 import android.content.Context
 import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.Category
+import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -172,6 +173,15 @@ class OfflineRepositoryImpl(
                 Timber.w(e, "getAddendums failed: ${e.message}")
                 emptyList()
             }
+
+            val grades: List<Grade> = try {
+                retryWithBackoff { ApiClient.apiService.getGrades().toList() }
+            } catch (e: Exception) {
+                Timber.w(e, "getGrades failed: ${e.message}")
+                emptyList()
+            }
+            if (grades.isNotEmpty()) offlineDataManager.saveGrades(grades)
+
             onProgress(startProgress + span * 0.75f)
 
             val exercises = mutableListOf<InteractiveExerciseResponse>()

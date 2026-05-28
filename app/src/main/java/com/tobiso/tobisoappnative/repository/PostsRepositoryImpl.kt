@@ -8,6 +8,7 @@ import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.PostSummaryResponse
 import com.tobiso.tobisoappnative.utils.NetworkUtils
+import com.tobiso.tobisoappnative.utils.filterVersionForGrade
 
 class PostsRepositoryImpl(
     private val context: Context,
@@ -50,16 +51,26 @@ class PostsRepositoryImpl(
                     offlineDataManager.getCachedPostsByCategory(categoryId)
                 else
                     offlineDataManager.getCachedPosts()
-                if (cached != null) Result.success(cached)
-                else Result.failure(IllegalStateException("Články nejsou dostupné v offline režimu"))
+                if (cached != null) {
+                    val posts = if (gradeId != null) {
+                        val grades = offlineDataManager.getCachedGrades()
+                        cached.map { it.filterVersionForGrade(gradeId, grades) }
+                    } else cached
+                    Result.success(posts)
+                } else Result.failure(IllegalStateException("Články nejsou dostupné v offline režimu"))
             }
         } catch (e: Exception) {
             val cached = if (categoryId != null)
                 offlineDataManager.getCachedPostsByCategory(categoryId)
             else
                 offlineDataManager.getCachedPosts()
-            if (cached != null) Result.success(cached)
-            else Result.failure(e)
+            if (cached != null) {
+                val posts = if (gradeId != null) {
+                    val grades = offlineDataManager.getCachedGrades()
+                    cached.map { it.filterVersionForGrade(gradeId, grades) }
+                } else cached
+                Result.success(posts)
+            } else Result.failure(e)
         }
     }
 
@@ -69,13 +80,21 @@ class PostsRepositoryImpl(
                 Result.success(ApiClient.apiService.getPost(postId, gradeId))
             } else {
                 val cached = offlineDataManager.getCachedPost(postId)
-                if (cached != null) Result.success(cached)
-                else Result.failure(IllegalStateException("Článek není dostupný v offline režimu"))
+                if (cached != null) {
+                    val post = if (gradeId != null) {
+                        cached.filterVersionForGrade(gradeId, offlineDataManager.getCachedGrades())
+                    } else cached
+                    Result.success(post)
+                } else Result.failure(IllegalStateException("Článek není dostupný v offline režimu"))
             }
         } catch (e: Exception) {
             val cached = offlineDataManager.getCachedPost(postId)
-            if (cached != null) Result.success(cached)
-            else Result.failure(e)
+            if (cached != null) {
+                val post = if (gradeId != null) {
+                    cached.filterVersionForGrade(gradeId, offlineDataManager.getCachedGrades())
+                } else cached
+                Result.success(post)
+            } else Result.failure(e)
         }
     }
 
@@ -91,7 +110,9 @@ class PostsRepositoryImpl(
         return try {
             Result.success(ApiClient.apiService.getGrades().toList())
         } catch (e: Exception) {
-            Result.failure(e)
+            val cached = offlineDataManager.getCachedGrades()
+            if (cached.isNotEmpty()) Result.success(cached)
+            else Result.failure(e)
         }
     }
 

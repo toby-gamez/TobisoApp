@@ -10,6 +10,7 @@ import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.Question
 import com.tobiso.tobisoappnative.model.RelatedPost
 import com.tobiso.tobisoappnative.utils.NetworkUtils
+import com.tobiso.tobisoappnative.utils.filterVersionForGrade
 import okhttp3.ResponseBody
 
 class PostDetailRepositoryImpl(
@@ -23,13 +24,21 @@ class PostDetailRepositoryImpl(
                 Result.success(ApiClient.apiService.getPost(postId, gradeId))
             } else {
                 val cached = offlineDataManager.getCachedPost(postId)
-                if (cached != null) Result.success(cached)
-                else Result.failure(IllegalStateException("Článek není dostupný v offline režimu"))
+                if (cached != null) {
+                    val post = if (gradeId != null) {
+                        cached.filterVersionForGrade(gradeId, offlineDataManager.getCachedGrades())
+                    } else cached
+                    Result.success(post)
+                } else Result.failure(IllegalStateException("Článek není dostupný v offline režimu"))
             }
         } catch (e: Exception) {
             val cached = offlineDataManager.getCachedPost(postId)
-            if (cached != null) Result.success(cached)
-            else Result.failure(e)
+            if (cached != null) {
+                val post = if (gradeId != null) {
+                    cached.filterVersionForGrade(gradeId, offlineDataManager.getCachedGrades())
+                } else cached
+                Result.success(post)
+            } else Result.failure(e)
         }
     }
 

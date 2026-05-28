@@ -3,6 +3,9 @@ package com.tobiso.tobisoappnative.db.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.tobiso.tobisoappnative.model.Post
+import com.tobiso.tobisoappnative.model.PostVersion
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Separate table for posts fetched via getPostsForQuestions() endpoint.
@@ -17,7 +20,8 @@ data class QuestionPostEntity(
     val createdAt: String? = null,
     val lastFix: String? = null,
     val lastEdit: String? = null,
-    val categoryId: Int? = null
+    val categoryId: Int? = null,
+    val versionsJson: String? = null
 )
 
 fun QuestionPostEntity.toDomain(): Post = Post(
@@ -28,7 +32,8 @@ fun QuestionPostEntity.toDomain(): Post = Post(
     createdAt = createdAt,
     lastFix = lastFix,
     lastEdit = lastEdit,
-    categoryId = categoryId
+    categoryId = categoryId,
+    versions = versionsJson?.let { runCatching { Json.decodeFromString<List<PostVersion>>(it) }.getOrNull() }
 )
 
 fun Post.toQuestionPostEntity(): QuestionPostEntity = QuestionPostEntity(
@@ -39,5 +44,6 @@ fun Post.toQuestionPostEntity(): QuestionPostEntity = QuestionPostEntity(
     createdAt = createdAt,
     lastFix = lastFix,
     lastEdit = lastEdit,
-    categoryId = categoryId
+    categoryId = categoryId,
+    versionsJson = versions?.let { runCatching { Json.encodeToString(it) }.getOrNull() }
 )

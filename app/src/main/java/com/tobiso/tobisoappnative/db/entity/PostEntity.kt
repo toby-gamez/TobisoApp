@@ -4,6 +4,9 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.tobiso.tobisoappnative.model.Post
+import com.tobiso.tobisoappnative.model.PostVersion
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Entity(
     tableName = "posts",
@@ -17,7 +20,8 @@ data class PostEntity(
     val createdAt: String? = null,
     val lastFix: String? = null,
     val lastEdit: String? = null,
-    val categoryId: Int? = null
+    val categoryId: Int? = null,
+    val versionsJson: String? = null
 )
 
 fun PostEntity.toDomain(): Post = Post(
@@ -28,7 +32,8 @@ fun PostEntity.toDomain(): Post = Post(
     createdAt = createdAt,
     lastFix = lastFix,
     lastEdit = lastEdit,
-    categoryId = categoryId
+    categoryId = categoryId,
+    versions = versionsJson?.let { runCatching { Json.decodeFromString<List<PostVersion>>(it) }.getOrNull() }
 )
 
 fun Post.toEntity(): PostEntity = PostEntity(
@@ -39,5 +44,6 @@ fun Post.toEntity(): PostEntity = PostEntity(
     createdAt = createdAt,
     lastFix = lastFix,
     lastEdit = lastEdit,
-    categoryId = categoryId
+    categoryId = categoryId,
+    versionsJson = versions?.let { runCatching { Json.encodeToString(it) }.getOrNull() }
 )
