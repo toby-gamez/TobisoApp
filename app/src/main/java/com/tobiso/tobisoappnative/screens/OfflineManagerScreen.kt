@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.offlinemanager.OfflineManagerViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalView
@@ -65,7 +65,7 @@ fun OfflineManagerScreen(
                 if (offlineDownloading) {
                     Box(modifier = Modifier.padding(end = 8.dp)) {
                         CircularProgressIndicator(
-                            progress = offlineProgress.coerceIn(0f, 1f),
+                            progress = { offlineProgress.coerceIn(0f, 1f) },
                             modifier = Modifier.size(28.dp),
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.primary

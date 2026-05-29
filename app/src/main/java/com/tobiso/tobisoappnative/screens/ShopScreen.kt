@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.ShopManager
@@ -517,8 +518,8 @@ fun ShopItemCard(
                                                     Icon(
                                                         imageVector = when (subjectIcon.icon) {
                                                             "edit" -> Icons.Default.Edit
-                                                            "library_books" -> Icons.Default.LibraryBooks
-                                                            "article" -> Icons.Default.Article
+                                                            "library_books" -> Icons.AutoMirrored.Filled.LibraryBooks
+                                                            "article" -> Icons.AutoMirrored.Filled.Article
                                                             "music_note" -> Icons.Default.MusicNote
                                                             "functions" -> Icons.Default.Functions
                                                             "biotech" -> Icons.Default.Biotech
@@ -527,7 +528,7 @@ fun ShopItemCard(
                                                             "language" -> Icons.Default.Language
                                                             // Přidáno mapování pro klasické ikony
                                                             "spellcheck" -> Icons.Default.Spellcheck
-                                                            "menu_book" -> Icons.Default.MenuBook
+                                                            "menu_book" -> Icons.AutoMirrored.Filled.MenuBook
                                                             "description" -> Icons.Default.Description
                                                             "library_music" -> Icons.Default.LibraryMusic
                                                             "calculate" -> Icons.Default.Calculate
@@ -954,8 +955,8 @@ fun PurchaseDialog(
                                                         Icon(
                                                             imageVector = when (subjectIcon.icon) {
                                                                 "edit" -> Icons.Default.Edit
-                                                                "library_books" -> Icons.Default.LibraryBooks
-                                                                "article" -> Icons.Default.Article
+                                                                "library_books" -> Icons.AutoMirrored.Filled.LibraryBooks
+                                                                "article" -> Icons.AutoMirrored.Filled.Article
                                                                 "music_note" -> Icons.Default.MusicNote
                                                                 "functions" -> Icons.Default.Functions
                                                                 "biotech" -> Icons.Default.Biotech
@@ -964,7 +965,7 @@ fun PurchaseDialog(
                                                                 "language" -> Icons.Default.Language
                                                                 // Přidáno mapování pro klasické ikony
                                                                 "spellcheck" -> Icons.Default.Spellcheck
-                                                                "menu_book" -> Icons.Default.MenuBook
+                                                            "menu_book" -> Icons.AutoMirrored.Filled.MenuBook
                                                                 "description" -> Icons.Default.Description
                                                                 "library_music" -> Icons.Default.LibraryMusic
                                                                 "calculate" -> Icons.Default.Calculate

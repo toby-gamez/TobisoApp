@@ -64,7 +64,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.filled.Stars
@@ -220,7 +220,7 @@ fun ProfileScreen(navController: NavController) {
                     if (offlineDownloading) {
                         Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
-                                progress = offlineProgress.coerceIn(0f, 1f),
+                                progress = { offlineProgress.coerceIn(0f, 1f) },
                                 strokeWidth = 2.dp,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -647,16 +647,16 @@ fun ProfileSection(navController: NavController) {
                 ) {
                     if (profileImageUri != null) {
                         AsyncImage(
-                            model = File(profileImageUri),
-                            contentDescription = "Profilový obrázek",
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Person,
+                        model = File(profileImageUri!!),
+                        contentDescription = "Profilový obrázek",
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Person,
                             contentDescription = "Profilový obrázek",
                             modifier = Modifier.size(32.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -793,7 +793,7 @@ fun ProfileSection(navController: NavController) {
             ) {
                 if (profileImageUri != null) {
                     AsyncImage(
-                        model = File(profileImageUri),
+                        model = File(profileImageUri!!),
                         contentDescription = "Profilový obrázek",
                         modifier = Modifier
                             .fillMaxSize()

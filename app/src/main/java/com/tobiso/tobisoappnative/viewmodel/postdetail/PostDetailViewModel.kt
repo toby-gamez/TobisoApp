@@ -163,7 +163,7 @@ class PostDetailViewModel @Inject constructor(
 
             // Format dates
             try {
-                val locale = Locale("cs", "CZ")
+                val locale = Locale.forLanguageTag("cs-CZ")
                 val inputFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
                 val outputFormatter = SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply { timeZone = java.util.TimeZone.getDefault() }
                 _createdFormatted.value = post?.createdAt?.let { ds ->

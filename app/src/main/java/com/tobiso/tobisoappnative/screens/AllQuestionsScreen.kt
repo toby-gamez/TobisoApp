@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -25,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.IconPackManager
 import com.tobiso.tobisoappnative.PointsManager
@@ -56,6 +57,8 @@ fun AllQuestionsScreen(navController: NavController) {
     val weakCategories by vm.weakCategories.collectAsState()
     val categoryQuestionIdsMap by vm.categoryQuestionIdsMap.collectAsState()
     val categoryExercisesMap by vm.categoryExercisesMap.collectAsState()
+    val allExercises by vm.allExercises.collectAsState()
+    val questionsPosts by vm.questionsPosts.collectAsState()
 
     var isRefreshing by remember { mutableStateOf(false) }
     var showTotalOverlay by remember { mutableStateOf(false) }
@@ -156,7 +159,7 @@ fun AllQuestionsScreen(navController: NavController) {
                         if (offlineDownloading) {
                             Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator(
-                                    progress = offlineProgress.coerceIn(0f, 1f),
+                                    progress = { offlineProgress.coerceIn(0f, 1f) },
                                     strokeWidth = 2.dp,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -205,6 +208,8 @@ fun AllQuestionsScreen(navController: NavController) {
                         weakCategories = weakCategories,
                         categoryQuestionIdsMap = categoryQuestionIdsMap,
                         categoryExercisesMap = categoryExercisesMap,
+                        allExercises = allExercises,
+                        posts = questionsPosts,
                         navController = navController
                     )
                 }
@@ -222,6 +227,8 @@ private fun PracticeHubContent(
     weakCategories: List<WeakCategory>,
     categoryQuestionIdsMap: Map<Int, List<Int>>,
     categoryExercisesMap: Map<Int, List<InteractiveExerciseResponse>>,
+    allExercises: List<InteractiveExerciseResponse>,
+    posts: List<com.tobiso.tobisoappnative.model.Post>,
     navController: NavController
 ) {
     val rootCategories = remember(categories, categoryQuestionIdsMap) {
@@ -235,6 +242,10 @@ private fun PracticeHubContent(
     var sheetCategoryId by remember { mutableStateOf<Int?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+
+    val visibleExercises = remember(allExercises) { allExercises.filter { it.type != "circuit" } }
+    var exercisesExpanded by remember { mutableStateOf(false) }
+    val displayedExercises = if (exercisesExpanded) visibleExercises else visibleExercises.take(3)
 
     if (sheetCategoryId != null) {
         val cat = categories.find { it.id == sheetCategoryId }
@@ -287,7 +298,10 @@ private fun PracticeHubContent(
                 onAll = {
                     val ids = vm.getRandomQuestionIds(allQuestionsCount)
                     if (ids.isNotEmpty()) navController.navigate(MixedQuizRoute(ids.joinToString(",")))
-                }
+                },
+                onRandomExercise = if (visibleExercises.isNotEmpty()) {
+                    { vm.getRandomExercise()?.let { navigateToExercise(navController, it) } }
+                } else null
             )
         }
 
@@ -300,6 +314,40 @@ private fun PracticeHubContent(
                         if (ids.isNotEmpty()) navController.navigate(MixedQuizRoute(ids.joinToString(",")))
                     }
                 )
+            }
+        }
+
+        if (visibleExercises.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Interaktivní cvičení",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp)
+                )
+            }
+            items(displayedExercises) { exercise ->
+                val contextLabel = remember(exercise, categories, posts) {
+                    exercise.categoryIds?.firstOrNull()?.let { catId -> categories.find { it.id == catId }?.name }
+                        ?: exercise.postIds?.firstOrNull()?.let { postId -> posts.find { it.id == postId }?.title }
+                }
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    ExerciseRow(
+                        exercise = exercise,
+                        contextLabel = contextLabel,
+                        onClick = { navigateToExercise(navController, exercise) }
+                    )
+                }
+            }
+            if (visibleExercises.size > 3) {
+                item {
+                    TextButton(
+                        onClick = { exercisesExpanded = !exercisesExpanded },
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    ) {
+                        Text(if (exercisesExpanded) "Zobrazit méně" else "Zobrazit vše (${visibleExercises.size})")
+                    }
+                }
             }
         }
 
@@ -367,7 +415,7 @@ private fun TopicSheet(
                 Text(text = subjectIcon, fontSize = 28.sp)
             } else {
                 Icon(
-                    imageVector = subjectIcon as? ImageVector ?: Icons.Default.MenuBook,
+                    imageVector = subjectIcon as? ImageVector ?: Icons.AutoMirrored.Filled.MenuBook,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
@@ -592,7 +640,8 @@ private fun QuickActionsSection(
     totalCount: Int,
     onQuickDrill: () -> Unit,
     onDailyChallenge: () -> Unit,
-    onAll: () -> Unit
+    onAll: () -> Unit,
+    onRandomExercise: (() -> Unit)?
 ) {
     Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)) {
         Text(
@@ -624,10 +673,19 @@ private fun QuickActionsSection(
             QuickActionCard(
                 title = "Vše",
                 subtitle = "$totalCount otázek",
-                icon = Icons.Default.LibraryBooks,
+                icon = Icons.AutoMirrored.Filled.LibraryBooks,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 onClick = onAll
             )
+            if (onRandomExercise != null) {
+                QuickActionCard(
+                    title = "Náhodné cvičení",
+                    subtitle = "Interaktivní cvičení",
+                    icon = Icons.Default.Shuffle,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    onClick = onRandomExercise
+                )
+            }
         }
     }
 }
@@ -684,7 +742,7 @@ private fun WeakSpotsSection(
     Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = Icons.Default.TrendingDown,
+                imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(20.dp)
@@ -762,7 +820,7 @@ private fun CategoryCard(
                 )
             } else {
                 Icon(
-                    imageVector = subjectIcon as? ImageVector ?: Icons.Default.MenuBook,
+                    imageVector = subjectIcon as? ImageVector ?: Icons.AutoMirrored.Filled.MenuBook,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
@@ -813,14 +871,19 @@ private fun navigateToExercise(navController: NavController, exercise: Interacti
 }
 
 @Composable
-private fun ExerciseRow(exercise: InteractiveExerciseResponse, onClick: () -> Unit) {
-    val (icon, label) = when (exercise.type) {
+private fun ExerciseRow(
+    exercise: InteractiveExerciseResponse,
+    contextLabel: String? = null,
+    onClick: () -> Unit
+) {
+    val (icon, typeLabel) = when (exercise.type) {
         "timeline" -> Icons.Default.Timeline to "Časová osa"
         "drag-drop" -> Icons.Default.DragIndicator to "Přetahování"
-        "matching" -> Icons.Default.CompareArrows to "Párování"
+        "matching" -> Icons.AutoMirrored.Filled.CompareArrows to "Párování"
         "circuit" -> Icons.Default.AccountTree to "Obvod"
         else -> Icons.Default.Extension to "Cvičení"
     }
+    val subtitle = if (contextLabel != null) "$typeLabel · $contextLabel" else typeLabel
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -845,9 +908,11 @@ private fun ExerciseRow(exercise: InteractiveExerciseResponse, onClick: () -> Un
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = label,
+                text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
         Icon(

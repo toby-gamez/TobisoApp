@@ -12,8 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Whatshot
@@ -27,7 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.StreakFreezeManager
 import com.tobiso.tobisoappnative.viewmodel.streak.StreakViewModel
@@ -249,7 +249,7 @@ fun CalendarSection(
                 }
                 onMonthChange(newMonth, newYear)
             }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Předchozí měsíc")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Předchozí měsíc")
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -274,7 +274,7 @@ fun CalendarSection(
                 }
                 onMonthChange(newMonth, newYear)
             }) {
-                Icon(Icons.Default.ArrowForward, contentDescription = "Další měsíc")
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Další měsíc")
             }
         }
 

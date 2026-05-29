@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.matching.MatchingExerciseIntent
 import com.tobiso.tobisoappnative.viewmodel.matching.MatchingExerciseEffect

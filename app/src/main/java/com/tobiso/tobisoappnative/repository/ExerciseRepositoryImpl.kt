@@ -17,38 +17,51 @@ class ExerciseRepositoryImpl(
 ) : ExerciseRepository {
 
     override suspend fun getExercise(exerciseId: Int): Result<InteractiveExerciseResponse> {
-        val isOnline = NetworkUtils.isOnline(context)
-        return if (isOnline) {
+        val cached = offlineDataManager.getCachedExercise(exerciseId)
+        if (cached != null) return Result.success(cached)
+
+        return if (NetworkUtils.isOnline(context)) {
             try {
-                Result.success(ApiClient.apiService.getExercise(exerciseId))
+                val fetched = ApiClient.apiService.getExercise(exerciseId)
+                offlineDataManager.upsertExercises(listOf(fetched))
+                Result.success(fetched)
             } catch (e: Exception) {
-                // Network failed – fall back to cache
-                val cached = offlineDataManager.getCachedExercise(exerciseId)
-                if (cached != null) Result.success(cached)
-                else Result.failure(e)
+                Result.failure(e)
             }
         } else {
-            val cached = offlineDataManager.getCachedExercise(exerciseId)
-            if (cached != null) Result.success(cached)
-            else Result.failure(IllegalStateException("Cvičení není dostupné v offline režimu"))
+            Result.failure(IllegalStateException("Cvičení není dostupné v offline režimu"))
         }
     }
 
     override suspend fun getAllExercises(postIds: List<Int>): List<InteractiveExerciseResponse> {
-        if (NetworkUtils.isOnline(context) && postIds.isNotEmpty()) {
+        val cached = offlineDataManager.getCachedExercises()
+        if (!cached.isNullOrEmpty()) return cached
+
+        if (NetworkUtils.isOnline(context)) {
             return try {
-                val fetched = coroutineScope {
-                    postIds.map { postId ->
-                        async {
-                            runCatching { ApiClient.apiService.getExercisesByPostId(postId) }
-                                .getOrElse { emptyList() }
-                        }
-                    }.awaitAll()
-                }.flatten().distinctBy { it.id }
+                val fetched = ApiClient.apiService.getAllExercises()
                 if (fetched.isNotEmpty()) offlineDataManager.upsertExercises(fetched)
                 fetched
-            } catch (e: Exception) {
-                offlineDataManager.getCachedExercises() ?: emptyList()
+            } catch (_: Exception) {
+                // Bulk endpoint absent — fall back to per-post calls
+                if (postIds.isNotEmpty()) {
+                    try {
+                        val fetched = coroutineScope {
+                            postIds.map { postId ->
+                                async {
+                                    runCatching { ApiClient.apiService.getExercisesByPostId(postId) }
+                                        .getOrElse { emptyList() }
+                                }
+                            }.awaitAll()
+                        }.flatten().distinctBy { it.id }
+                        if (fetched.isNotEmpty()) offlineDataManager.upsertExercises(fetched)
+                        fetched
+                    } catch (_: Exception) {
+                        offlineDataManager.getCachedExercises() ?: emptyList()
+                    }
+                } else {
+                    offlineDataManager.getCachedExercises() ?: emptyList()
+                }
             }
         }
         return offlineDataManager.getCachedExercises() ?: emptyList()

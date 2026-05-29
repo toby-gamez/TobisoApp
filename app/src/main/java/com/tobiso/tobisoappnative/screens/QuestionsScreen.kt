@@ -24,7 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.questions.QuestionsViewModel
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -589,7 +589,7 @@ fun QuestionsScreen(
                             ) {
                                 // Progress bar
                                 LinearProgressIndicator(
-                                    progress = (currentQuestionIndex + 1).toFloat() / totalQuestions,
+                                    progress = { (currentQuestionIndex + 1).toFloat() / totalQuestions },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 

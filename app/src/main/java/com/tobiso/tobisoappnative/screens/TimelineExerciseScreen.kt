@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.components.ContentRenderer
@@ -255,9 +255,7 @@ fun TimelineExerciseScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            if (eventId != null) {
-                                                vm.onIntent(TimelineExerciseIntent.RemoveEvent(eventId))
-                                            }
+                                            vm.onIntent(TimelineExerciseIntent.RemoveEvent(eventId))
                                         }
                                 ) {
                                     Row(
@@ -273,7 +271,7 @@ fun TimelineExerciseScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = event?.label ?: "(nepřiřazeno)",
+                                            text = event.label,
                                             style = MaterialTheme.typography.bodyMedium,
                                             modifier = Modifier.weight(1f)
                                         )

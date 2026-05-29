@@ -69,7 +69,7 @@ class TtsManager(private val context: Context) {
                 TextToSpeech.SUCCESS -> {
                     textToSpeech?.let { tts ->
                         // Nastavíme češtinu
-                        val localeResult = tts.setLanguage(Locale("cs", "CZ"))
+                        val localeResult = tts.setLanguage(Locale.forLanguageTag("cs-CZ"))
                         
                         if (localeResult == TextToSpeech.LANG_MISSING_DATA ||
                             localeResult == TextToSpeech.LANG_NOT_SUPPORTED) {
@@ -137,6 +137,7 @@ class TtsManager(private val context: Context) {
                                 }
                             }
                             
+                            @Suppress("OVERRIDE_DEPRECATION")
                             override fun onError(utteranceId: String) {
                                 _status.value = _status.value.copy(
                                     state = TtsState.ERROR,

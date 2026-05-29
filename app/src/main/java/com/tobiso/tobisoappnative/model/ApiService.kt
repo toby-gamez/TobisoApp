@@ -81,6 +81,9 @@ interface ApiService {
     suspend fun sendFeedback(@Body feedback: FeedbackDto)
 
     // Interactive Exercise endpoints
+    @GET("InteractiveExercises")
+    suspend fun getAllExercises(): List<InteractiveExerciseResponse>
+
     @GET("InteractiveExercises/post/{postId}")
     suspend fun getExercisesByPostId(@Path("postId") postId: Int): List<InteractiveExerciseResponse>
 

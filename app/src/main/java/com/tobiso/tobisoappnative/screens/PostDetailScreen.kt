@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.postdetail.PostDetailViewModel
 import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -566,7 +566,7 @@ private fun DownloadProgressBar(vm: PostDetailViewModel, modifier: Modifier = Mo
     if (downloadProgress != null) {
         if (downloadProgress!! >= 0) {
             LinearProgressIndicator(
-                progress = (downloadProgress!! / 100f),
+                progress = { (downloadProgress!! / 100f) },
                 modifier = modifier.fillMaxWidth()
             )
             Text(

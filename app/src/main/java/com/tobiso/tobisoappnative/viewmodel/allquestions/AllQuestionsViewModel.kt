@@ -82,6 +82,10 @@ class AllQuestionsViewModel @Inject constructor(
     private val _categoryExercisesMap = MutableStateFlow<Map<Int, List<InteractiveExerciseResponse>>>(emptyMap())
     val categoryExercisesMap: StateFlow<Map<Int, List<InteractiveExerciseResponse>>> = _categoryExercisesMap
 
+    // all active exercises, shown in the top-level exercises section
+    private val _allExercises = MutableStateFlow<List<InteractiveExerciseResponse>>(emptyList())
+    val allExercises: StateFlow<List<InteractiveExerciseResponse>> = _allExercises
+
     fun loadCategories() {
         viewModelScope.launch(Dispatchers.IO) {
             postsRepo.getCategories().onSuccess { cats ->
@@ -107,7 +111,8 @@ class AllQuestionsViewModel @Inject constructor(
                     recomputeCategoryMap(questions, posts, cats)
                     computeWeakCategories(cats, _categoryQuestionIdsMap.value)
                     val exercises = exerciseRepo.getAllExercises(posts.map { it.id })
-                    buildCategoryExercisesMap(exercises)
+                    _allExercises.value = exercises.filter { it.isActive != false }
+                    buildCategoryExercisesMap(exercises, posts)
                 },
                 onFailure = { e ->
                     _allQuestionsError.value = e.message
@@ -153,6 +158,9 @@ class AllQuestionsViewModel @Inject constructor(
         return _allQuestions.value.map { it.id }.shuffled().take(count)
     }
 
+    fun getRandomExercise(): InteractiveExerciseResponse? =
+        _allExercises.value.filter { it.type != "circuit" }.randomOrNull()
+
     fun getDailyQuestionIds(count: Int = 20): List<Int> {
         val seed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             LocalDate.now().toEpochDay()
@@ -162,12 +170,18 @@ class AllQuestionsViewModel @Inject constructor(
         return _allQuestions.value.map { it.id }.shuffled(java.util.Random(seed)).take(count)
     }
 
-    private fun buildCategoryExercisesMap(exercises: List<InteractiveExerciseResponse>) {
+    private fun buildCategoryExercisesMap(
+        exercises: List<InteractiveExerciseResponse>,
+        posts: List<Post> = emptyList()
+    ) {
+        val postCategoryMap = posts.mapNotNull { p -> p.categoryId?.let { p.id to it } }.toMap()
         val map = mutableMapOf<Int, MutableList<InteractiveExerciseResponse>>()
         exercises.filter { it.isActive != false }.forEach { ex ->
-            ex.categoryIds?.forEach { catId ->
-                map.getOrPut(catId) { mutableListOf() }.add(ex)
-            }
+            // Prefer direct categoryIds; fall back to deriving category from postIds
+            val catIds = ex.categoryIds?.toSet()?.takeIf { it.isNotEmpty() }
+                ?: ex.postIds?.mapNotNull { postCategoryMap[it] }?.toSet()
+                ?: emptySet()
+            catIds.forEach { catId -> map.getOrPut(catId) { mutableListOf() }.add(ex) }
         }
         _categoryExercisesMap.value = map
     }

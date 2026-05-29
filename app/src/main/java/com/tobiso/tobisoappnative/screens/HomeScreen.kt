@@ -22,6 +22,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -37,7 +38,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import com.tobiso.tobisoappnative.viewmodel.home.HomeViewModel
 import com.tobiso.tobisoappnative.viewmodel.home.HomeIntent
 import com.tobiso.tobisoappnative.viewmodel.home.HomeEffect
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -125,6 +126,7 @@ data class Subject(
     val name: String,
     val text: String,
     val color: Color,
+    val description: String = "",
 )
 
 @Composable
@@ -136,25 +138,30 @@ fun getColumnCount(maxWidth: androidx.compose.ui.unit.Dp): Int {
     }
 }
 
-val subjectColors = listOf(
+data class SubjectConfig(
+    val color: Color,
+    val description: String,
+)
+
+val subjectConfigMap = mapOf(
+    "Český jazyk" to SubjectConfig(Color(0xFF2196F3), "Gramatika a pravopis českého jazyka"),
+    "Literatura" to SubjectConfig(Color(0xFF8B4513), "Česká a světová literatura"),
+    "Sloh" to SubjectConfig(Color(0xFFFF9800), "Tvorba textů a slohové útvary"),
+    "Hudební výchova" to SubjectConfig(Color(0xFF9C27B0), "Hudební teorie, autoři, žánry, písně, díla a dějiny"),
+    "Matematika" to SubjectConfig(Color(0xFF1976D2), "Algebra a geometrie"),
+    "Chemie" to SubjectConfig(Color(0xFFF44336), "Tělesa, látky, zákony, prvky, sloučeniny a názvosloví"),
+    "Fyzika" to SubjectConfig(Color(0xFF607D8B), "Zákony fyziky, jevy, veličiny, stroje a světlo"),
+    "Přírodopis" to SubjectConfig(Color(0xFF4CAF50), "Lidské tělo, minerály, horniny a geologie"),
+    "Zeměpis" to SubjectConfig(Color(0xFF795548), "Vše o ČR a globálních tématech"),
+)
+
+val subjectColorsFallback = listOf(
     Color(0xFF2196F3), Color(0xFF8B4513), Color(0xFFFF9800), Color(0xFF9C27B0),
     Color(0xFF1976D2), Color(0xFFF44336), Color(0xFF607D8B), Color(0xFF4CAF50),
     Color(0xFF795548), Color(0xFFE91E63), Color(0xFF00BCD4), Color(0xFF673AB7)
 )
 
-val subjectNameColorMap = mapOf(
-    "Mluvnice" to Color(0xFF2196F3),
-    "Literatura" to Color(0xFF8B4513),
-    "Sloh" to Color(0xFFFF9800),
-    "Hudební výchova" to Color(0xFF9C27B0),
-    "Matematika" to Color(0xFF1976D2),
-    "Chemie" to Color(0xFFF44336),
-    "Fyzika" to Color(0xFF607D8B),
-    "Přírodopis" to Color(0xFF4CAF50),
-    "Zeměpis" to Color(0xFF795548),
-)
-
-fun getSubjectColorByName(subjectName: String): Color = subjectNameColorMap[subjectName] ?: Color(0xFF2196F3)
+fun getSubjectColorByName(subjectName: String): Color = subjectConfigMap[subjectName]?.color ?: Color(0xFF2196F3)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -174,7 +181,8 @@ fun HomeScreen(navController: NavHostController) {
     val subjects = remember(categories) {
         val rootCategories = categories.filter { it.parentId == null }
         rootCategories.mapIndexed { index, cat ->
-            Subject(cat.name, cat.description ?: "", subjectColors[index % subjectColors.size])
+            val config = subjectConfigMap[cat.name]
+            Subject(cat.name, cat.description ?: config?.description ?: "", config?.color ?: subjectColorsFallback[index % subjectColorsFallback.size], config?.description ?: "")
         }
     }
     var selectedSubjectId by remember { mutableStateOf<Int?>(null) }
@@ -215,7 +223,7 @@ fun HomeScreen(navController: NavHostController) {
                 actions = {
                     // Dropdown pro výběr zobrazení (předměty / nejnovější)
                     IconButton(onClick = { dropdownExpanded = true }) {
-                        Icon(imageVector = Icons.Default.Sort, contentDescription = "Řazení")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Řazení")
                     }
                     DropdownMenu(
                         expanded = dropdownExpanded,
@@ -271,7 +279,7 @@ fun HomeScreen(navController: NavHostController) {
                     if (offlineDownloading) {
                         Box(modifier = Modifier.padding(end = 8.dp)) {
                             CircularProgressIndicator(
-                                progress = offlineProgress.coerceIn(0f, 1f),
+                                progress = { offlineProgress.coerceIn(0f, 1f) },
                                 modifier = Modifier.size(28.dp),
                                 strokeWidth = 2.dp,
                                 color = MaterialTheme.colorScheme.primary
@@ -492,9 +500,9 @@ fun SubjectCard(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                if (subject.text.isNotEmpty()) {
+                if (subject.description.isNotEmpty()) {
                     Text(
-                        text = subject.text,
+                        text = subject.description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

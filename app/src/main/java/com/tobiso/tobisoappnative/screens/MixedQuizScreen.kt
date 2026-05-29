@@ -9,6 +9,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,7 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
@@ -401,7 +402,7 @@ fun MixedQuizScreen(
                                     modifier = Modifier.padding(16.dp),
                                     verticalAlignment = Alignment.Top
                                 ) {
-                                    Icon(Icons.Filled.Article, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                                    Icon(Icons.AutoMirrored.Filled.Article, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text("Články (${uniquePostIds.size})", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f))
@@ -449,7 +450,7 @@ fun MixedQuizScreen(
                                     .verticalScroll(rememberScrollState())
                             ) {
                                 LinearProgressIndicator(
-                                    progress = (state.currentQuestionIndex + 1).toFloat() / totalQuestions,
+                                    progress = { (state.currentQuestionIndex + 1).toFloat() / totalQuestions },
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
