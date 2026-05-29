@@ -25,6 +25,9 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
     private val _equippedIconPack = MutableStateFlow<ShopItem?>(null)
     override val equippedIconPack: StateFlow<ShopItem?> = _equippedIconPack
 
+    private val _equippedTheme = MutableStateFlow<ShopItem?>(null)
+    override val equippedTheme: StateFlow<ShopItem?> = _equippedTheme
+
     init {
         loadBackpackItems()
         loadEquippedItems()
@@ -37,7 +40,7 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
 
         purchasedItemIds.forEach { itemId ->
             val shopItem = ShopData.getItemById(itemId)
-            if (shopItem != null && shopItem.type != ShopItemType.POINTS_MULTIPLIER) {
+            if (shopItem != null && shopItem.type != ShopItemType.POINTS_MULTIPLIER && shopItem.type != ShopItemType.MYSTERY_BOX) {
                 val purchaseDate = ShopManager.instance.getPurchaseDate(itemId)
                     .takeIf { it > 0L } ?: System.currentTimeMillis()
                 backpackItemsList.add(BackpackItem(shopItem = shopItem, purchaseDate = purchaseDate))
@@ -71,6 +74,9 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
         } else {
             ShopData.getItemById(ShopData.CLASSIC_ICON_PACK_ID)?.let { equipIconPack(it) }
         }
+
+        val equippedThemeId = prefs.getInt(KEY_EQUIPPED_THEME, -1)
+        if (equippedThemeId != -1) _equippedTheme.value = ShopData.getItemById(equippedThemeId)
     }
 
     override fun equipQuote(quote: ShopItem?) {
@@ -89,6 +95,11 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
         IconPackManager.setActiveIconPack(iconPack)
     }
 
+    override fun equipTheme(theme: ShopItem?) {
+        prefs.edit().putInt(KEY_EQUIPPED_THEME, theme?.id ?: -1).apply()
+        _equippedTheme.value = theme
+    }
+
     override fun getItemsByCategory(category: BackpackCategory): List<BackpackItem> {
         return _backpackItems.value.filter { backpackItem ->
             when (category) {
@@ -97,6 +108,7 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
                 BackpackCategory.PETS -> backpackItem.shopItem.type == ShopItemType.PET
                 BackpackCategory.POWER_UPS -> backpackItem.shopItem.type == ShopItemType.POINTS_MULTIPLIER
                 BackpackCategory.STREAK_ITEMS -> backpackItem.shopItem.type == ShopItemType.STREAK_FREEZE
+                BackpackCategory.PROFILE_THEMES -> backpackItem.shopItem.type == ShopItemType.PROFILE_THEME
             }
         }
     }
@@ -110,6 +122,7 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
         private const val KEY_EQUIPPED_QUOTE = "equipped_quote"
         private const val KEY_EQUIPPED_PET = "equipped_pet"
         private const val KEY_EQUIPPED_ICON_PACK = "equipped_icon_pack"
+        private const val KEY_EQUIPPED_THEME = "equipped_theme"
 
         lateinit var instance: BackpackManager
             private set

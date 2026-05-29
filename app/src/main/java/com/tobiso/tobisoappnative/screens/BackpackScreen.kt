@@ -20,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +32,7 @@ import com.tobiso.tobisoappnative.BackpackManager
 import com.tobiso.tobisoappnative.IconPackManager
 import com.tobiso.tobisoappnative.model.*
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
+import com.tobiso.tobisoappnative.model.ProfileThemeData
 import com.tobiso.tobisoappnative.viewmodel.backpack.BackpackViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -44,6 +46,7 @@ fun BackpackScreen(
     val backpackItems by BackpackManager.instance.backpackItems.collectAsState()
     val equippedQuote by BackpackManager.instance.equippedQuote.collectAsState()
     val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
+    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsState()
 
     val selectedItem by vm.selectedItem.collectAsState()
     val showItemDialog by vm.showItemDialog.collectAsState()
@@ -211,6 +214,7 @@ fun BackpackScreen(
                                     ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == backpackItem.shopItem.id
                                     ShopItemType.PET -> equippedPet?.id == backpackItem.shopItem.id
                                     ShopItemType.ICON_PACK -> BackpackManager.instance.equippedIconPack.collectAsState().value?.id == backpackItem.shopItem.id
+                                    ShopItemType.PROFILE_THEME -> equippedTheme?.id == backpackItem.shopItem.id
                                     else -> false
                                 },
                                 onClick = {
@@ -245,6 +249,7 @@ fun BackpackScreen(
                     ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == item.shopItem.id
                     ShopItemType.PET -> equippedPet?.id == item.shopItem.id
                     ShopItemType.ICON_PACK -> BackpackManager.instance.equippedIconPack.collectAsState().value?.id == item.shopItem.id
+                    ShopItemType.PROFILE_THEME -> equippedTheme?.id == item.shopItem.id
                     else -> false
                 },
                 onEquip = { vm.equipItem(item) },
@@ -325,6 +330,29 @@ fun BackpackItemCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+            // Pro motivy profilu zobrazíme emoji na gradientu
+            if (backpackItem.shopItem.type == ShopItemType.PROFILE_THEME && backpackItem.shopItem.powerUpIcon != null) {
+                val themeColors = ProfileThemeData.getThemeColors(backpackItem.shopItem.id)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                listOf(
+                                    themeColors?.primary ?: MaterialTheme.colorScheme.primary,
+                                    themeColors?.secondary ?: MaterialTheme.colorScheme.tertiary
+                                )
+                            ),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = backpackItem.shopItem.powerUpIcon, fontSize = 54.sp)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             // Pro zvířátka zobrazíme emoji ikonu nahoře
             if (backpackItem.shopItem.type == ShopItemType.PET && backpackItem.shopItem.petIcon != null) {
                 Box(
@@ -537,6 +565,29 @@ fun BackpackItemDialog(
         },
         text = {
             Column {
+                // Pro motivy profilu zobrazíme emoji na gradientu
+                if (backpackItem.shopItem.type == ShopItemType.PROFILE_THEME && backpackItem.shopItem.powerUpIcon != null) {
+                    val themeColors = ProfileThemeData.getThemeColors(backpackItem.shopItem.id)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    listOf(
+                                        themeColors?.primary ?: MaterialTheme.colorScheme.primary,
+                                        themeColors?.secondary ?: MaterialTheme.colorScheme.tertiary
+                                    )
+                                ),
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = backpackItem.shopItem.powerUpIcon, fontSize = 54.sp)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 // Pro zvířátka zobrazíme emoji ikonu
                 if (backpackItem.shopItem.type == ShopItemType.PET && backpackItem.shopItem.petIcon != null) {
                     Box(
@@ -692,21 +743,24 @@ fun BackpackItemDialog(
         confirmButton = {
             if (backpackItem.shopItem.type == ShopItemType.PROFILE_QUOTE || 
                 backpackItem.shopItem.type == ShopItemType.PET ||
-                backpackItem.shopItem.type == ShopItemType.ICON_PACK) {
+                backpackItem.shopItem.type == ShopItemType.ICON_PACK ||
+                backpackItem.shopItem.type == ShopItemType.PROFILE_THEME) {
                 if (isEquipped) {
-                    Button(onClick = onUnequip) {
-                        Text(when (backpackItem.shopItem.type) {
-                            ShopItemType.ICON_PACK -> "Deaktivovat"
-                            else -> "Odebrat"
-                        })
-                    }
-                } else {
-                    Button(onClick = onEquip) {
-                        Text(when (backpackItem.shopItem.type) {
-                            ShopItemType.ICON_PACK -> "Aktivovat"
-                            else -> "Nasadit"
-                        })
-                    }
+                Button(onClick = onUnequip) {
+                    Text(when (backpackItem.shopItem.type) {
+                        ShopItemType.ICON_PACK -> "Deaktivovat"
+                        ShopItemType.PROFILE_THEME -> "Odebrat motiv"
+                        else -> "Odebrat"
+                    })
+                }
+            } else {
+                Button(onClick = onEquip) {
+                    Text(when (backpackItem.shopItem.type) {
+                        ShopItemType.ICON_PACK -> "Aktivovat"
+                        ShopItemType.PROFILE_THEME -> "Nasadi motiv"
+                        else -> "Nasadit"
+                    })
+                }
                 }
             }
         },

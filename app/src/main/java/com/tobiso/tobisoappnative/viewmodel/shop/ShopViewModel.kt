@@ -32,6 +32,9 @@ class ShopViewModel @Inject constructor() : ViewModel() {
     private val _showSuccessMessage = MutableStateFlow(false)
     val showSuccessMessage: StateFlow<Boolean> = _showSuccessMessage
 
+    private val _successMessage = MutableStateFlow("")
+    val successMessage: StateFlow<String> = _successMessage
+
     private val _showErrorMessage = MutableStateFlow(false)
     val showErrorMessage: StateFlow<Boolean> = _showErrorMessage
 
@@ -40,6 +43,12 @@ class ShopViewModel @Inject constructor() : ViewModel() {
 
     private val _isPurchasing = MutableStateFlow(false)
     val isPurchasing: StateFlow<Boolean> = _isPurchasing
+
+    private val _showMysteryBoxOverlay = MutableStateFlow(false)
+    val showMysteryBoxOverlay: StateFlow<Boolean> = _showMysteryBoxOverlay
+
+    private val _mysteryBoxRewardText = MutableStateFlow("")
+    val mysteryBoxRewardText: StateFlow<String> = _mysteryBoxRewardText
 
     fun selectItem(item: ShopItem, purchasedItemIds: Set<Int>) {
         _selectedItem.value = item
@@ -74,8 +83,24 @@ class ShopViewModel @Inject constructor() : ViewModel() {
             return
         }
 
+        if (item.type == ShopItemType.MYSTERY_BOX) {
+            val success = ShopManager.instance.purchaseItem(item)
+            if (success) {
+                val reward = ShopManager.instance.lastMysteryBoxReward.value
+                    ?: "Tajemná krabice byla otevřena! 🎁"
+                _mysteryBoxRewardText.value = reward
+                _showMysteryBoxOverlay.value = true
+                ShopManager.instance.clearMysteryBoxReward()
+            } else {
+                _errorMessage.value = "Nedostatek bodů pro nákup tohoto itemu!"
+                _showErrorMessage.value = true
+            }
+            return
+        }
+
         val success = ShopManager.instance.purchaseItem(item)
         if (success) {
+            _successMessage.value = "Nákup proběhl úspěšně! ✅"
             _showSuccessMessage.value = true
         } else {
             _errorMessage.value = "Nedostatek bodů pro nákup tohoto itemu!"
@@ -147,6 +172,11 @@ class ShopViewModel @Inject constructor() : ViewModel() {
     fun dismissUsePowerUpDialog() {
         _showUsePowerUpDialog.value = false
         _selectedItem.value = null
+    }
+
+    fun dismissMysteryBoxOverlay() {
+        _showMysteryBoxOverlay.value = false
+        _mysteryBoxRewardText.value = ""
     }
 
     fun clearSuccessMessage() {

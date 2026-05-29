@@ -22,6 +22,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.outlined.Backpack
@@ -36,6 +37,7 @@ import com.tobiso.tobisoappnative.ShopManager
 import com.tobiso.tobisoappnative.StreakFreezeManager
 import com.tobiso.tobisoappnative.data.ShopData
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
+import com.tobiso.tobisoappnative.components.MysteryBoxOpeningOverlay
 import com.tobiso.tobisoappnative.model.*
 import com.tobiso.tobisoappnative.IconPackManager
 import com.tobiso.tobisoappnative.viewmodel.shop.ShopViewModel
@@ -58,8 +60,11 @@ fun ShopScreen(
     val showPurchaseDialog by vm.showPurchaseDialog.collectAsState()
     val showUsePowerUpDialog by vm.showUsePowerUpDialog.collectAsState()
     val showSuccessMessage by vm.showSuccessMessage.collectAsState()
+    val successMessage by vm.successMessage.collectAsState()
     val showErrorMessage by vm.showErrorMessage.collectAsState()
     val errorMessage by vm.errorMessage.collectAsState()
+    val showMysteryBoxOverlay by vm.showMysteryBoxOverlay.collectAsState()
+    val mysteryBoxRewardText by vm.mysteryBoxRewardText.collectAsState()
 
     // Pro scroll k sekcím - trackování pozic nadpisů
     val listState = rememberLazyListState()
@@ -228,6 +233,7 @@ fun ShopScreen(
                         isPurchased = when (item.type) {
                             ShopItemType.STREAK_FREEZE -> !ShopManager.instance.canPurchaseStreakFreeze()
                             ShopItemType.AI_CREDIT -> false
+                            ShopItemType.MYSTERY_BOX -> false
                             else -> purchasedItemIds.contains(item.id)
                         },
                         canAfford = totalPoints >= item.price,
@@ -300,6 +306,14 @@ fun ShopScreen(
             vm.clearErrorMessage()
         }
     }
+
+    // Mystery Box opening overlay
+    if (showMysteryBoxOverlay) {
+        MysteryBoxOpeningOverlay(
+            rewardText = mysteryBoxRewardText,
+            onDismiss = { vm.dismissMysteryBoxOverlay() }
+        )
+    }
     
     // Snackbar pro zprávy
     if (showSuccessMessage) {
@@ -316,7 +330,7 @@ fun ShopScreen(
                 )
             ) {
                 Text(
-                    text = "✅ Úspěch!",
+                    text = successMessage,
                     modifier = Modifier.padding(16.dp),
                     color = MaterialTheme.colorScheme.onPrimary,
                     textAlign = TextAlign.Center
@@ -447,6 +461,54 @@ fun ShopItemCard(
                 Spacer(modifier = Modifier.height(12.dp))
             }
             
+            // Pro motivy profilu zobrazíme emoji na gradientu
+            if (item.type == ShopItemType.PROFILE_THEME && item.powerUpIcon != null) {
+                val themeColors = ProfileThemeData.getThemeColors(item.id)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                listOf(
+                                    themeColors?.primary ?: MaterialTheme.colorScheme.primary,
+                                    themeColors?.secondary ?: MaterialTheme.colorScheme.tertiary
+                                )
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = item.powerUpIcon, fontSize = 54.sp)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Pro tajemnou krabici zobrazíme dárek s otazníkem
+            if (item.type == ShopItemType.MYSTERY_BOX && item.powerUpIcon != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(
+                            Color(0xFFFFF3E0).copy(alpha = 0.8f),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = item.powerUpIcon, fontSize = 54.sp)
+                        Text(
+                            text = "?",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFE65100)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             // Pro AI kredity zobrazíme robot emoji
             if (item.type == ShopItemType.AI_CREDIT && item.powerUpIcon != null) {
                 Box(
@@ -897,6 +959,49 @@ fun PurchaseDialog(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                // Pro motivy profilu zobrazíme emoji na gradientu v dialogu
+                if (item.type == ShopItemType.PROFILE_THEME && item.powerUpIcon != null) {
+                    val themeColors = ProfileThemeData.getThemeColors(item.id)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    listOf(
+                                        themeColors?.primary ?: MaterialTheme.colorScheme.primary,
+                                        themeColors?.secondary ?: MaterialTheme.colorScheme.tertiary
+                                    )
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = item.powerUpIcon, fontSize = 48.sp)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                // Pro tajemnou krabici zobrazíme dárek v dialogu
+                if (item.type == ShopItemType.MYSTERY_BOX && item.powerUpIcon != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(
+                                Color(0xFFFFF3E0).copy(alpha = 0.8f),
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = item.powerUpIcon, fontSize = 48.sp)
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))

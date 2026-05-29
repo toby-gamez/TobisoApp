@@ -25,22 +25,15 @@ import androidx.compose.ui.unit.sp
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.tobiso.tobisoappnative.utils.generatePointsAchievements
 import com.tobiso.tobisoappnative.viewmodel.profile.ProfileViewModel
 import com.tobiso.tobisoappnative.model.Post
-import androidx.compose.material.icons.outlined.Backpack
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,9 +44,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.Color
 import coil.compose.AsyncImage
-import androidx.compose.ui.platform.LocalDensity
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.TimeZone
 import java.io.File
 import androidx.compose.animation.*
@@ -63,13 +53,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Whatshot
-import androidx.compose.material.icons.filled.Stars
-import androidx.compose.material.icons.filled.Work
-import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.font.FontWeight
@@ -78,13 +63,12 @@ import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.BackpackManager
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import com.tobiso.tobisoappnative.components.ImageCropperDialog
-import com.tobiso.tobisoappnative.components.FloatingSearchBar
+import com.tobiso.tobisoappnative.model.ProfileThemeData
+import androidx.compose.ui.graphics.Brush
+
 import com.tobiso.tobisoappnative.utils.getProfileName
 import com.tobiso.tobisoappnative.utils.saveProfileName
 import com.tobiso.tobisoappnative.utils.getProfileImageUri
@@ -230,18 +214,8 @@ fun ProfileScreen(navController: NavController) {
                 scrollBehavior = scrollBehavior
             )
 
-            val configuration = LocalConfiguration.current
-            val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-            val gridColumns = if (isLandscape) 3 else 1
-            val cardModifier = Modifier
-                .padding(8.dp)
-            val cardShape = RoundedCornerShape(16.dp)
-
             if (postLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
@@ -249,176 +223,115 @@ fun ProfileScreen(navController: NavController) {
                     }
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(gridColumns),
+                LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(8.dp)
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                // Profilová sekce
-                item(span = { GridItemSpan(gridColumns) }) {
-                    ProfileSection(navController = navController)
-                }
-                
-                // Vybavený citát
-                item(span = { GridItemSpan(gridColumns) }) {
-                    EquippedQuoteSection(navController = navController)
-                }
+                    item { ProfileSection(navController = navController) }
+                    item { EquippedQuoteSection(navController = navController) }
+                    item { GradeSelectorSection(grades = grades) }
+                    item { AchievementsSection() }
 
-                // Výběr ročníku
-                item(span = { GridItemSpan(gridColumns) }) {
-                    GradeSelectorSection(grades = grades)
-                }
-
-                // Úspěchy
-                item(span = { GridItemSpan(gridColumns) }) {
-                    AchievementsSection()
-                }
-
-                    item(span = { GridItemSpan(1) }) {
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate(OfflineManagerRoute) }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text("Správce offline dat", style = MaterialTheme.typography.titleMedium)
-                                Text("Správa a stažení offline dat", style = MaterialTheme.typography.bodySmall)
-                            }
+                    item { ProfileSectionHeader("Aktivita") }
+                    item {
+                        ProfileNavGroup {
+                            ProfileNavRow(
+                                icon = Icons.Default.Whatshot,
+                                title = "Streak",
+                                subtitle = "Sleduj svou sérii a zmrazování",
+                                onClick = { navController.navigate(StreakRoute) }
+                            )
                         }
                     }
 
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate(FavoritesRoute) }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("Oblíbené", style = MaterialTheme.typography.titleMedium)
-                            Text("Tvé uložené útržky a články, které nevyuživáš. :(", style = MaterialTheme.typography.bodySmall)
+                    item { ProfileSectionHeader("Knihovna") }
+                    item {
+                        ProfileNavGroup {
+                            ProfileNavRow(
+                                icon = Icons.Default.Favorite,
+                                title = "Oblíbené",
+                                subtitle = "Tvé uložené útržky a články",
+                                onClick = { navController.navigate(FavoritesRoute) }
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                            ProfileNavRow(
+                                icon = Icons.Default.Forum,
+                                title = "Nedávné AI chaty",
+                                subtitle = "Prohlédni nebo pokračuj v konverzacích",
+                                onClick = { navController.navigate(AiChatHistoryRoute) }
+                            )
                         }
                     }
-                }
 
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate(AiChatHistoryRoute) }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("Nedávné AI chaty", style = MaterialTheme.typography.titleMedium)
-                            Text("Prohlédni si nebo pokračuj v předchozích AI konverzacích.", style = MaterialTheme.typography.bodySmall)
+                    item { ProfileSectionHeader("Nastavení") }
+                    item {
+                        ProfileNavGroup {
+                            ProfileNavRow(
+                                icon = Icons.Default.CloudDownload,
+                                title = "Správce offline dat",
+                                subtitle = "Správa a stažení offline dat",
+                                onClick = { navController.navigate(OfflineManagerRoute) }
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                            ProfileNavRow(
+                                icon = Icons.Default.Update,
+                                title = "Aktualizátor",
+                                subtitle = "Aktualizuj si aplikaci",
+                                onClick = { navController.navigate(UpdaterRoute) }
+                            )
                         }
                     }
-                }
 
-                item(span = { GridItemSpan(1) }) {
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate(UpdaterRoute) }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("Aktualizátor", style = MaterialTheme.typography.titleMedium)
-                            Text("Aktualizuj si aplikaci, ať ti nic neunikne!", style = MaterialTheme.typography.bodySmall)
+                    item { ProfileSectionHeader("Informace") }
+                    item {
+                        ProfileNavGroup {
+                            ProfileNavRow(
+                                icon = Icons.Default.RateReview,
+                                title = "Zpětná vazba",
+                                subtitle = "Napište nám, co byste chtěli změnit",
+                                onClick = { navController.navigate(FeedbackRoute) }
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                            ProfileNavRow(
+                                icon = Icons.Default.Info,
+                                title = "O aplikaci",
+                                subtitle = "Vše o aplikaci Tobiso",
+                                onClick = { navController.navigate(AboutRoute) }
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                            ProfileNavRow(
+                                icon = Icons.Default.History,
+                                title = "Deník změn",
+                                subtitle = "Novinky a opravy",
+                                onClick = { navController.navigate(ChangelogRoute) }
+                            )
                         }
                     }
-                }
-                    item(span = { GridItemSpan(1) }) {
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate(FeedbackRoute) }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text("Zpětná vazba", style = MaterialTheme.typography.titleMedium)
-                                Text("Napište nám, co byste chtěli změnit nebo vylepšit.", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
-                    item(span = { GridItemSpan(1) }) {
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate(AboutRoute) }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text("O aplikaci", style = MaterialTheme.typography.titleMedium)
-                                Text("Všechno o aplikaci", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
-                    item(span = { GridItemSpan(1) }) {
-                        Card(
-                            modifier = cardModifier,
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = cardShape,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            onClick = { navController.navigate(ChangelogRoute) }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text("Deník změn", style = MaterialTheme.typography.titleMedium)
-                                Text("Všechno důležité, co bylo změněno", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
-                items(filteredPosts) { post ->
-                    Card(
-                        modifier = cardModifier,
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        shape = cardShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { navController.navigate(PostDetailRoute(postId = post.id)) }
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(text = post.title, style = MaterialTheme.typography.titleMedium)
-                            val locale = java.util.Locale.forLanguageTag("cs-CZ")
-                            val inputFormatter = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply {
-                                timeZone = TimeZone.getTimeZone("UTC")
-                            }
-                            val outputFormatter = java.text.SimpleDateFormat("dd. MM. yyyy 'v' HH:mm", locale).apply {
-                                timeZone = TimeZone.getDefault()
-                            }
 
-                            val candidates = listOfNotNull(post.lastEdit, post.lastFix, post.createdAt)
-                            val latestDate = candidates.mapNotNull { ds ->
-                                try {
-                                    inputFormatter.parse(ds)
-                                } catch (_: Exception) {
-                                    null
+                    if (filteredPosts.isNotEmpty()) {
+                        item { ProfileSectionHeader("Ostatní") }
+                        item {
+                            ProfileNavGroup {
+                                filteredPosts.forEachIndexed { index, post ->
+                                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                                    ProfileNavRow(
+                                        icon = Icons.Default.Description,
+                                        title = post.title,
+                                        subtitle = when (post.title) {
+                                            "O mně" -> "Něco drobného o autoru aplikace"
+                                            "Zásady ochrany osobních údajů" -> "Jak nakládáme s tvými daty a soukromím?"
+                                            "Podmínky použití" -> "Pravidla a podmínky pro používání aplikace"
+                                            else -> "Proč tento projekt vlastně existuje?"
+                                        },
+                                        onClick = { navController.navigate(PostDetailRoute(postId = post.id)) }
+                                    )
                                 }
-                            }.maxOrNull()
-
-                            val formatted = latestDate?.let { outputFormatter.format(it) } ?: candidates.firstOrNull() ?: ""
-                            if (formatted.isNotBlank()) {
-                                Text(text = if (post.title == "O mně") 
-                                {"Něco drobného o autoru aplikace"} 
-                                else if (post.title == "Zásady ochrany osobních údajů") 
-                                {"Jak nakládáme s tvými daty a soukromím?"} 
-                                else if (post.title == "Podmínky použití") 
-                                {"Pravidla a podmínky pro používání aplikace"} 
-                                else {"Proč tento projekt vlastně existuje?"}
-                                , style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
                 }
             }
         }
-    }
 
         // Overlay na nejvyšší úrovni
         if (showTotalOverlay) {
@@ -612,16 +525,31 @@ fun ProfileSection(navController: NavController) {
         }
     }
     
+    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsState()
+    val themeGradient = equippedTheme?.let { ProfileThemeData.getThemeGradient(it.id) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
     ) {
+        if (themeGradient != null) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        brush = themeGradient,
+                        shape = RoundedCornerShape(20.dp)
+                    )
+            )
+        }
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(0.dp),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            colors = CardDefaults.cardColors(
+                containerColor = if (themeGradient != null) Color.Transparent else MaterialTheme.colorScheme.surface
+            )
         ) {
         Row(
             modifier = Modifier
@@ -960,7 +888,7 @@ fun EquippedQuoteSection(navController: NavController) {
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
             ),
             shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(4.dp),
+            elevation = CardDefaults.cardElevation(0.dp),
 
         ) {
             Column(
@@ -1130,7 +1058,7 @@ fun AchievementsSection() {
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         ),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -1402,5 +1330,74 @@ fun GradeSelectorSection(grades: List<com.tobiso.tobisoappnative.model.Grade>) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProfileSectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 6.dp)
+    )
+}
+
+@Composable
+private fun ProfileNavGroup(content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column { content() }
+    }
+}
+
+@Composable
+private fun ProfileNavRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+            modifier = Modifier.size(20.dp)
+        )
     }
 }

@@ -505,6 +505,64 @@ object ShopData {
                 type = ShopItemType.AI_CREDIT,
                 creditCount = 10,
                 powerUpIcon = "🤖"
+            ),
+
+            // Tajemná krabice (Mystery Box)
+            ShopItem(
+                id = 90,
+                name = "Tajemná krabice",
+                description = "Otevři a získej překvapení! Můžeš dostat body, zmražení řady nebo vzácný předmět.",
+                price = 50,
+                category = ShopCategory.POWER_UPS,
+                type = ShopItemType.MYSTERY_BOX,
+                powerUpIcon = "🎁"
+            ),
+
+            // Profilové motivy
+            ShopItem(
+                id = 100,
+                name = "Noční obloha",
+                description = "Tmavě modrý gradient pro tvůj profil",
+                price = 40,
+                category = ShopCategory.PROFILE,
+                type = ShopItemType.PROFILE_THEME,
+                powerUpIcon = "🌙"
+            ),
+            ShopItem(
+                id = 101,
+                name = "Lesní klid",
+                description = "Zelený gradient inspirující přírodou",
+                price = 40,
+                category = ShopCategory.PROFILE,
+                type = ShopItemType.PROFILE_THEME,
+                powerUpIcon = "🌲"
+            ),
+            ShopItem(
+                id = 102,
+                name = "Západ slunce",
+                description = "Teplé oranžovo-růžové barvy pro tvůj profil",
+                price = 50,
+                category = ShopCategory.PROFILE,
+                type = ShopItemType.PROFILE_THEME,
+                powerUpIcon = "🌅"
+            ),
+            ShopItem(
+                id = 103,
+                name = "Oceán",
+                description = "Modrý gradient jako mořská hladina",
+                price = 50,
+                category = ShopCategory.PROFILE,
+                type = ShopItemType.PROFILE_THEME,
+                powerUpIcon = "🌊"
+            ),
+            ShopItem(
+                id = 104,
+                name = "Duha",
+                description = "Barevný gradient pro radost",
+                price = 75,
+                category = ShopCategory.PROFILE,
+                type = ShopItemType.PROFILE_THEME,
+                powerUpIcon = "🌈"
             )
         )
     }

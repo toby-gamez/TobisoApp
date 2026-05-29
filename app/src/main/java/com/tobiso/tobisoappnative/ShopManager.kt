@@ -7,6 +7,7 @@ import com.tobiso.tobisoappnative.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlin.random.Random
 
 class ShopManager private constructor(context: Context) : IShopManager {
 
@@ -15,6 +16,9 @@ class ShopManager private constructor(context: Context) : IShopManager {
 
     private val _purchasedItems = MutableStateFlow<Set<Int>>(emptySet())
     override val purchasedItems: StateFlow<Set<Int>> = _purchasedItems
+
+    private val _lastMysteryBoxReward = MutableStateFlow<String?>(null)
+    val lastMysteryBoxReward: StateFlow<String?> = _lastMysteryBoxReward
 
     init {
         loadPurchasedItems()
@@ -75,6 +79,10 @@ class ShopManager private constructor(context: Context) : IShopManager {
                 }
                 true
             }
+            ShopItemType.MYSTERY_BOX -> {
+                rollMysteryBoxReward()
+                true
+            }
             else -> {
                 if (isItemPurchased(item.id)) {
                     PointsManager.instance.addPoints(item.price)
@@ -127,6 +135,72 @@ class ShopManager private constructor(context: Context) : IShopManager {
         val cooldownEnd = prefs.getLong("${KEY_COOLDOWN_PREFIX}$itemId", 0)
         val currentTime = System.currentTimeMillis()
         return if (cooldownEnd > currentTime) (cooldownEnd - currentTime) / (60 * 1000) else 0
+    }
+
+    fun clearMysteryBoxReward() {
+        _lastMysteryBoxReward.value = null
+    }
+
+    private fun rollMysteryBoxReward() {
+        val roll = Random.nextInt(100)
+        val rewardText: String = when {
+            roll < 30 -> {
+                PointsManager.instance.addPoints(30)
+                "Získal/a jsi 30 bodů! 🌟"
+            }
+            roll < 50 -> {
+                PointsManager.instance.addPoints(50)
+                "Získal/a jsi 50 bodů! ⭐"
+            }
+            roll < 65 -> {
+                val added = StreakFreezeManager.instance.addStreakFreeze()
+                if (added) "Získal/a jsi Zmražení řady! 🛡️"
+                else {
+                    PointsManager.instance.addPoints(30)
+                    "Získal/a jsi 30 bodů! 🌟"
+                }
+            }
+            roll < 75 -> {
+                PointsManager.instance.addPoints(75)
+                "Získal/a jsi 75 bodů! 💫"
+            }
+            roll < 83 -> {
+                PointsManager.instance.addPoints(100)
+                "Získal/a jsi 100 bodů! 🎉"
+            }
+            roll < 93 -> {
+                val added = StreakFreezeManager.instance.addStreakFreeze()
+                if (added) "Získal/a jsi Zmražení řady! 🛡️"
+                else {
+                    PointsManager.instance.addPoints(50)
+                    "Získal/a jsi 50 bodů! ⭐"
+                }
+            }
+            roll < 98 -> {
+                PointsManager.instance.addPoints(150)
+                "Získal/a jsi 150 bodů! 🎊"
+            }
+            else -> {
+                val ownedPets = _purchasedItems.value.let { ids ->
+                    ShopData.getShopItems().filter { it.type == ShopItemType.PET && ids.contains(it.id) }
+                }
+                val availablePets = ShopData.getShopItems()
+                    .filter { it.type == ShopItemType.PET && !ownedPets.any { p -> p.id == it.id } }
+                if (availablePets.isNotEmpty()) {
+                    val randomPet = availablePets.random()
+                    val currentItems = _purchasedItems.value.toMutableSet()
+                    currentItems.add(randomPet.id)
+                    _purchasedItems.update { currentItems }
+                    savePurchasedItem(randomPet.id)
+                    BackpackManager.instance.refreshItems()
+                    "Získal/a jsi vzácný mazlíček ${randomPet.name}! 🎁"
+                } else {
+                    PointsManager.instance.addPoints(100)
+                    "Získal/a jsi 100 bodů! 🎉"
+                }
+            }
+        }
+        _lastMysteryBoxReward.value = rewardText
     }
 
     companion object {

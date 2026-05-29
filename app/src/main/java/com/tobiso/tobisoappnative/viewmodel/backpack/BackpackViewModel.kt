@@ -48,6 +48,10 @@ class BackpackViewModel @Inject constructor() : ViewModel() {
                 BackpackManager.instance.equipIconPack(item.shopItem)
                 "Balíček ikon byl aktivován!"
             }
+            ShopItemType.PROFILE_THEME -> {
+                BackpackManager.instance.equipTheme(item.shopItem)
+                "Motiv byl nasazen!"
+            }
             else -> "Item byl použit!"
         }
         _successMessage.value = message
@@ -68,6 +72,10 @@ class BackpackViewModel @Inject constructor() : ViewModel() {
             ShopItemType.ICON_PACK -> {
                 BackpackManager.instance.equipIconPack(null)
                 "Balíček ikon byl deaktivován"
+            }
+            ShopItemType.PROFILE_THEME -> {
+                BackpackManager.instance.equipTheme(null)
+                "Motiv byl odebrán"
             }
             else -> "Item byl odstraněn"
         }
