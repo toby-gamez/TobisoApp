@@ -25,24 +25,40 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.navigation.NavController
+import com.tobiso.tobisoappnative.components.ContentRenderer
+import com.tobiso.tobisoappnative.components.ExerciseLoadingContent
+import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.viewmodel.circuit.CircuitComponent
+import com.tobiso.tobisoappnative.viewmodel.circuit.CircuitExerciseEffect
 import com.tobiso.tobisoappnative.viewmodel.circuit.CircuitExerciseIntent
 import com.tobiso.tobisoappnative.viewmodel.circuit.CircuitExerciseState
 import com.tobiso.tobisoappnative.viewmodel.circuit.CircuitExerciseViewModel
+import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
 import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CircuitExerciseScreen(
     exerciseId: Int,
-    navController: NavController
+    navController: NavController,
+    ttsViewModel: TtsViewModel
 ) {
     val vm: CircuitExerciseViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
 
     LaunchedEffect(exerciseId) {
         vm.onIntent(CircuitExerciseIntent.Load(exerciseId))
+    }
+
+    LaunchedEffect(Unit) {
+        vm.effect.collectLatest { effect ->
+            when (effect) {
+                CircuitExerciseEffect.NavigateBack -> navController.popBackStack()
+            }
+        }
     }
 
     fun brightnessColor(comp: CircuitComponent): Color {
@@ -70,6 +86,13 @@ fun CircuitExerciseScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
                     }
+                },
+                actions = {
+                    if (!state.instructionsMarkdown.isNullOrEmpty()) {
+                        IconButton(onClick = { ttsViewModel.speak(state.instructionsMarkdown ?: "") }) {
+                            Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Číst nahlas")
+                        }
+                    }
                 }
             )
         }
@@ -81,26 +104,25 @@ fun CircuitExerciseScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            if (state.isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            if (state.isOffline) {
-                Text(
-                    text = "Offline režim: kontrola vyžaduje internet.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
+            ExerciseLoadingContent(
+                isLoading = state.isLoading,
+                isOffline = state.isOffline,
+                offlineText = "Offline režim: cvičení je plně funkční i offline.",
+                error = state.error
+            )
 
             // Instructions
             state.instructionsMarkdown?.let { instructions ->
                 Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        androidx.compose.material3.Text(text = instructions)
+                        ContentRenderer(
+                            contentElements = parseContentToElements(instructions, isOffline = state.isOffline, posts = emptyList()),
+                            isOffline = state.isOffline,
+                            posts = emptyList(),
+                            addendums = emptyList(),
+                            navController = navController,
+                            onAddendumSelected = {}
+                        )
                     }
                 }
             }

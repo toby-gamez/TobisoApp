@@ -39,6 +39,7 @@ import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseMatchingRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
 import com.tobiso.tobisoappnative.navigation.MixedQuizRoute
+import com.tobiso.tobisoappnative.navigation.ShopRoute
 import com.tobiso.tobisoappnative.navigation.StreakRoute
 import com.tobiso.tobisoappnative.utils.StreakUtils
 import com.tobiso.tobisoappnative.viewmodel.allquestions.AllQuestionsViewModel
@@ -61,7 +62,6 @@ fun AllQuestionsScreen(navController: NavController) {
     val questionsPosts by vm.questionsPosts.collectAsState()
 
     var isRefreshing by remember { mutableStateOf(false) }
-    var showTotalOverlay by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -105,7 +105,7 @@ fun AllQuestionsScreen(navController: NavController) {
                                     color = MaterialTheme.colorScheme.primaryContainer,
                                     shape = RoundedCornerShape(20.dp)
                                 )
-                                .clickable { showTotalOverlay = true }
+                                .clickable { navController.navigate(ShopRoute) }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Icon(
@@ -169,14 +169,6 @@ fun AllQuestionsScreen(navController: NavController) {
                     scrollBehavior = scrollBehavior
                 )
 
-                if (showTotalOverlay) {
-                    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
-                    FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-                    LaunchedEffect(showTotalOverlay) {
-                        kotlinx.coroutines.delay(2200)
-                        showTotalOverlay = false
-                    }
-                }
             }
 
             PullToRefreshBox(

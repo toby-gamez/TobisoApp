@@ -332,18 +332,14 @@ fun BackpackItemCard(
         ) {
             // Pro motivy profilu zobrazíme emoji na gradientu
             if (backpackItem.shopItem.type == ShopItemType.PROFILE_THEME && backpackItem.shopItem.powerUpIcon != null) {
-                val themeColors = ProfileThemeData.getThemeColors(backpackItem.shopItem.id)
+                val gradColors = ProfileThemeData.getGradientColors(backpackItem.shopItem.id)
+                    ?: listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
                         .background(
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    themeColors?.primary ?: MaterialTheme.colorScheme.primary,
-                                    themeColors?.secondary ?: MaterialTheme.colorScheme.tertiary
-                                )
-                            ),
+                            brush = Brush.horizontalGradient(gradColors),
                             RoundedCornerShape(8.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -567,18 +563,14 @@ fun BackpackItemDialog(
             Column {
                 // Pro motivy profilu zobrazíme emoji na gradientu
                 if (backpackItem.shopItem.type == ShopItemType.PROFILE_THEME && backpackItem.shopItem.powerUpIcon != null) {
-                    val themeColors = ProfileThemeData.getThemeColors(backpackItem.shopItem.id)
+                    val gradColors = ProfileThemeData.getGradientColors(backpackItem.shopItem.id)
+                        ?: listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(100.dp)
                             .background(
-                                brush = Brush.horizontalGradient(
-                                    listOf(
-                                        themeColors?.primary ?: MaterialTheme.colorScheme.primary,
-                                        themeColors?.secondary ?: MaterialTheme.colorScheme.tertiary
-                                    )
-                                ),
+                                brush = Brush.horizontalGradient(gradColors),
                                 RoundedCornerShape(8.dp)
                             ),
                         contentAlignment = Alignment.Center

@@ -336,7 +336,8 @@ fun TobisoApp(navigateTo: String? = null) {
                                 val route: ExerciseTimelineRoute = backStackEntry.toRoute()
                                 com.tobiso.tobisoappnative.screens.TimelineExerciseScreen(
                                     exerciseId = route.exerciseId,
-                                    navController = navController
+                                    navController = navController,
+                                    ttsViewModel = ttsViewModel
                                 )
                             }
                             composable<ExerciseDragDropRoute>(
@@ -348,7 +349,8 @@ fun TobisoApp(navigateTo: String? = null) {
                                 val route: ExerciseDragDropRoute = backStackEntry.toRoute()
                                 com.tobiso.tobisoappnative.screens.DragDropExerciseScreen(
                                     exerciseId = route.exerciseId,
-                                    navController = navController
+                                    navController = navController,
+                                    ttsViewModel = ttsViewModel
                                 )
                             }
                             composable<ExerciseMatchingRoute>(
@@ -360,7 +362,8 @@ fun TobisoApp(navigateTo: String? = null) {
                                 val route: ExerciseMatchingRoute = backStackEntry.toRoute()
                                 com.tobiso.tobisoappnative.screens.MatchingExerciseScreen(
                                     exerciseId = route.exerciseId,
-                                    navController = navController
+                                    navController = navController,
+                                    ttsViewModel = ttsViewModel
                                 )
                             }
                             composable<ExerciseCircuitRoute>(
@@ -372,7 +375,8 @@ fun TobisoApp(navigateTo: String? = null) {
                                 val route: ExerciseCircuitRoute = backStackEntry.toRoute()
                                 com.tobiso.tobisoappnative.screens.CircuitExerciseScreen(
                                     exerciseId = route.exerciseId,
-                                    navController = navController
+                                    navController = navController,
+                                    ttsViewModel = ttsViewModel
                                 )
                             }
                             composable<VideoPlayerRoute>(

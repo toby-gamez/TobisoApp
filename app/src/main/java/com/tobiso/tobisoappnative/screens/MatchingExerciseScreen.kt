@@ -17,20 +17,23 @@ import com.tobiso.tobisoappnative.viewmodel.matching.MatchingExerciseIntent
 import com.tobiso.tobisoappnative.viewmodel.matching.MatchingExerciseEffect
 import com.tobiso.tobisoappnative.viewmodel.matching.MatchingExerciseViewModel
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.tobiso.tobisoappnative.model.*
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.components.ContentRenderer
+import com.tobiso.tobisoappnative.components.ExerciseLoadingContent
 import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
 import com.tobiso.tobisoappnative.components.parseContentToElements
+import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchingExerciseScreen(
     exerciseId: Int,
-    navController: NavController
+    navController: NavController,
+    ttsViewModel: TtsViewModel
 ) {
     val vm: MatchingExerciseViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
@@ -89,6 +92,13 @@ fun MatchingExerciseScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
                     }
+                },
+                actions = {
+                    if (!state.instructionsMarkdown.isNullOrEmpty()) {
+                        IconButton(onClick = { ttsViewModel.speak(state.instructionsMarkdown ?: "") }) {
+                            Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Číst nahlas")
+                        }
+                    }
                 }
             )
         }
@@ -99,50 +109,11 @@ fun MatchingExerciseScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            if (state.isOffline) {
-                Text(
-                    text = "Offline režim: cvičení lze vyplnit, ale kontrola vyžaduje internet.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
-
-            if (!state.error.isNullOrBlank()) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Nelze načíst konfiguraci cvičení",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = state.error ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-            }
+            ExerciseLoadingContent(
+                isLoading = state.isLoading,
+                isOffline = state.isOffline,
+                error = state.error
+            )
 
             // Instrukce
             state.instructionsMarkdown?.let { instructions ->
@@ -185,8 +156,8 @@ fun MatchingExerciseScreen(
                         val pairResult = if (state.showResult)
                             state.validationResult?.detailedResults?.get(pair.leftId) else null
                         val pairColor = when (pairResult) {
-                            true -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                            false -> Color(0xFFFF5722).copy(alpha = 0.1f)
+                            true -> MaterialTheme.colorScheme.tertiaryContainer
+                            false -> MaterialTheme.colorScheme.errorContainer
                             null -> MaterialTheme.colorScheme.surface
                         }
 
@@ -294,7 +265,7 @@ fun MatchingExerciseScreen(
                                         },
                                     colors = CardDefaults.outlinedCardColors(
                                         containerColor = if (state.selectedRight == item.id)
-                                            MaterialTheme.colorScheme.secondaryContainer
+                                            MaterialTheme.colorScheme.primaryContainer
                                         else
                                             MaterialTheme.colorScheme.surface
                                     )
@@ -312,6 +283,13 @@ fun MatchingExerciseScreen(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = { vm.onIntent(MatchingExerciseIntent.Reset) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Resetovat")
+            }
 
             // Tlačítko kontroly
             Button(
@@ -341,15 +319,15 @@ fun MatchingExerciseScreen(
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isCorrect) Color(0xFF4CAF50).copy(alpha = 0.1f)
-                        else Color(0xFFFF5722).copy(alpha = 0.1f)
+                        containerColor = if (isCorrect) MaterialTheme.colorScheme.tertiaryContainer
+                        else MaterialTheme.colorScheme.errorContainer
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = if (isCorrect) "Správně!" else "Nesprávně",
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
+                            color = if (isCorrect) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(

@@ -2,6 +2,7 @@ package com.tobiso.tobisoappnative.screens
 import timber.log.Timber
 
 import com.tobiso.tobisoappnative.navigation.EventDetailRoute
+import com.tobiso.tobisoappnative.navigation.ShopRoute
 import com.tobiso.tobisoappnative.navigation.StreakRoute
 
 import androidx.compose.foundation.background
@@ -83,7 +84,6 @@ fun CalendarScreen(
     
     // States pro TopAppBar
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    var showTotalOverlay by remember { mutableStateOf(false) }
     val totalPoints by PointsManager.instance.totalPoints.collectAsState()
     val context = LocalContext.current
 
@@ -243,7 +243,7 @@ fun CalendarScreen(
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 shape = RoundedCornerShape(20.dp)
                             )
-                            .clickable { showTotalOverlay = true }
+                            .clickable { navController?.navigate(ShopRoute) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(
@@ -444,15 +444,6 @@ fun CalendarScreen(
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 }
-            }
-        }
-        
-        // Overlay pro celkové body
-        if (showTotalOverlay) {
-            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-            LaunchedEffect(showTotalOverlay) {
-                delay(2200)
-                showTotalOverlay = false
             }
         }
         

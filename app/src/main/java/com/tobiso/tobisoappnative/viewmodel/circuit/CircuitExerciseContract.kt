@@ -58,7 +58,8 @@ data class CircuitExerciseState(
     val compCounter: Int = 0,
     val eval: CircuitEvaluation = CircuitEvaluation(),
     val isLoading: Boolean = false,
-    val isOffline: Boolean = false
+    val isOffline: Boolean = false,
+    val error: String? = null
 ) : UiState
 
 sealed interface CircuitExerciseIntent : UiIntent {

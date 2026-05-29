@@ -14,27 +14,33 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.components.ContentRenderer
+import com.tobiso.tobisoappnative.components.ExerciseLoadingContent
 import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
 import com.tobiso.tobisoappnative.components.parseContentToElements
+import com.tobiso.tobisoappnative.viewmodel.timeline.TimelineExerciseEffect
 import com.tobiso.tobisoappnative.viewmodel.timeline.TimelineExerciseIntent
 import com.tobiso.tobisoappnative.viewmodel.timeline.TimelineExerciseViewModel
+import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineExerciseScreen(
     exerciseId: Int,
-    navController: NavController
+    navController: NavController,
+    ttsViewModel: TtsViewModel
 ) {
     val vm: TimelineExerciseViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val context = LocalContext.current
     val totalPoints by PointsManager.instance.totalPoints.collectAsState()
@@ -66,14 +72,31 @@ fun TimelineExerciseScreen(
         vm.onIntent(TimelineExerciseIntent.Load(exerciseId))
     }
 
+    LaunchedEffect(Unit) {
+        vm.effect.collectLatest { effect ->
+            when (effect) {
+                is TimelineExerciseEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                TimelineExerciseEffect.NavigateBack -> navController.popBackStack()
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(state.exerciseTitle.ifEmpty { "Timeline cvičení" }, style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    }
+                },
+                actions = {
+                    if (!state.instructionsMarkdown.isNullOrEmpty()) {
+                        IconButton(onClick = { ttsViewModel.speak(state.instructionsMarkdown ?: "") }) {
+                            Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Číst nahlas")
+                        }
                     }
                 }
             )
@@ -85,50 +108,11 @@ fun TimelineExerciseScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            if (state.isOffline) {
-                Text(
-                    text = "Offline režim: cvičení lze vyplnit, ale kontrola vyžaduje internet.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
-
-            if (!state.error.isNullOrBlank()) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Nelze načíst konfiguraci cvičení",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = state.error ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-            }
+            ExerciseLoadingContent(
+                isLoading = state.isLoading,
+                isOffline = state.isOffline,
+                error = state.error
+            )
 
             // Instrukce
             state.instructionsMarkdown?.let { instructions ->
@@ -336,6 +320,13 @@ fun TimelineExerciseScreen(
                 }
             }
 
+            OutlinedButton(
+                onClick = { vm.onIntent(TimelineExerciseIntent.Reset) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Resetovat")
+            }
+
             // Tlačítko kontroly
             Button(
                 onClick = { vm.onIntent(TimelineExerciseIntent.Validate(exerciseId)) },
@@ -357,21 +348,19 @@ fun TimelineExerciseScreen(
             // Výsledek validace
             if (state.showResult && state.validationResult != null) {
                 val isCorrect = state.validationResult?.isCorrect == true
-                val successContainer = Color(0xFFE8F5E9)
-                val onSuccessContainer = Color(0xFF1B5E20)
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isCorrect) successContainer else MaterialTheme.colorScheme.errorContainer
+                        containerColor = if (isCorrect) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = if (isCorrect) "Správně!" else "Nesprávně",
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (isCorrect) onSuccessContainer else MaterialTheme.colorScheme.onErrorContainer
+                            color = if (isCorrect) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(

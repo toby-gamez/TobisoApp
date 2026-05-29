@@ -106,11 +106,13 @@ data class MatchingItem(
 // Matching User Solution
 @Serializable
 data class MatchingSolution(
-    @SerialName("pairs") val pairs: List<MatchingPair>
+    @SerialName("pairs") val pairs: List<MatchingPair>,
+    @SerialName("explanation") val explanation: String? = null
 )
 
 @Serializable
 data class MatchingPair(
+    @SerialName("id") val id: String = "",
     @SerialName("leftId") val leftId: String,
     @SerialName("rightId") val rightId: String
 )

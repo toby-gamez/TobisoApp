@@ -1,6 +1,8 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -22,7 +24,9 @@ fun ExerciseButtonsRow(
 ) {
     if (hasExercises || exercisesLoading || exercises.isNotEmpty() || hasQuestions) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (hasExercises || exercisesLoading || exercises.isNotEmpty()) {

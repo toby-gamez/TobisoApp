@@ -12,6 +12,7 @@ import com.tobiso.tobisoappnative.navigation.AboutRoute
 import com.tobiso.tobisoappnative.navigation.ChangelogRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -89,8 +90,6 @@ fun ProfileScreen(navController: NavController) {
     val postsState = vm.posts.collectAsState()
     val posts: List<Post> = postsState.value
     val postLoading by vm.postLoading.collectAsState()
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
-    var showTotalOverlay by remember { mutableStateOf(false) }
     val otherCategoryId = 42
     val filteredPosts = posts.filter { it.categoryId == otherCategoryId }
 
@@ -109,30 +108,6 @@ fun ProfileScreen(navController: NavController) {
             LargeTopAppBar(
                 title = { Text("Profil", style = MaterialTheme.typography.titleLarge) },
                 actions = {
-                    // Ikona aktovky
-                    IconButton(
-                        onClick = { navController.navigate(BackpackRoute) }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Backpack,
-                            contentDescription = "Aktovka",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    
-                    // Ikona obchodu
-                    IconButton(
-                        onClick = { navController.navigate(ShopRoute) }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ShoppingBag,
-                            contentDescription = "Obchod",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    
                     // Zobrazení aktivního multiplikátoru
                     MultiplierIndicator()
                     
@@ -146,7 +121,7 @@ fun ProfileScreen(navController: NavController) {
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 shape = RoundedCornerShape(20.dp)
                             )
-                            .clickable { showTotalOverlay = true }
+                            .clickable { navController.navigate(ShopRoute) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(
@@ -227,9 +202,8 @@ fun ProfileScreen(navController: NavController) {
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    item { ProfileSection(navController = navController) }
+                    item { ProfileSection(navController = navController, grades = grades) }
                     item { EquippedQuoteSection(navController = navController) }
-                    item { GradeSelectorSection(grades = grades) }
                     item { AchievementsSection() }
 
                     item { ProfileSectionHeader("Aktivita") }
@@ -333,14 +307,6 @@ fun ProfileScreen(navController: NavController) {
             }
         }
 
-        // Overlay na nejvyšší úrovni
-        if (showTotalOverlay) {
-            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-            LaunchedEffect(showTotalOverlay) {
-                delay(2200)
-                showTotalOverlay = false
-            }
-        }
     }
 }
 
@@ -478,7 +444,7 @@ fun getRandomBubbleForPet(petIcon: String?): String {
 }
 
 @Composable
-fun ProfileSection(navController: NavController) {
+fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoappnative.model.Grade> = emptyList()) {
     val context = LocalContext.current
     var profileName by remember { mutableStateOf("") }
     var isEditingName by remember { mutableStateOf(false) }
@@ -492,8 +458,8 @@ fun ProfileSection(navController: NavController) {
     var tempImageForCropping by remember { mutableStateOf<String?>(null) }
     val vm: ProfileViewModel = hiltViewModel()
     val copiedImagePath by vm.copiedImagePath.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
 
-    // When ViewModel finishes copying the picked image, open cropper on UI thread
     LaunchedEffect(copiedImagePath) {
         copiedImagePath?.let { path ->
             tempImageForCropping = path
@@ -501,208 +467,399 @@ fun ProfileSection(navController: NavController) {
             vm.clearCopiedImagePath()
         }
     }
-    // Načtení dat při startu
+
     LaunchedEffect(Unit) {
         profileName = getProfileName(context)
         tempName = profileName
         profileImageUri = getProfileImageUri(context)
-        
-        // Zkontroluj, jestli má zobrazit bublinu - pouze pokud má vybavené zvířátko
         val equippedPet = BackpackManager.instance.equippedPet.value
         if (equippedPet != null && shouldShowBubble(context)) {
             currentBubbleText = getRandomBubbleForPet(equippedPet.petIcon)
             showPetBubble = true
         }
     }
-    
-    // Launcher pro výběr obrázku z galerie
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { originalUri ->
-            // Delegate actual copy to ViewModel (runs on IO dispatcher)
-            vm.copyImageToInternalStorage(originalUri)
-        }
+        uri?.let { vm.copyImageToInternalStorage(it) }
     }
-    
+
     val equippedTheme by BackpackManager.instance.equippedTheme.collectAsState()
-    val themeGradient = equippedTheme?.let { ProfileThemeData.getThemeGradient(it.id) }
+    val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val heroGradientColors = equippedTheme?.let { ProfileThemeData.getGradientColors(it.id) }
+        ?: listOf(primaryColor, primaryContainerColor)
+    val heroBrush = Brush.horizontalGradient(heroGradientColors)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        if (themeGradient != null) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        brush = themeGradient,
-                        shape = RoundedCornerShape(20.dp)
-                    )
-            )
-        }
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(0.dp),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (themeGradient != null) Color.Transparent else MaterialTheme.colorScheme.surface
-            )
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Profilový obrázek
-            Box(
-                modifier = Modifier.size(64.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // Kruh s obrázkem nebo ikonou
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Gradient hero header (top 110 dp)
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                        .clickable {
-                            showFullscreenImage = true
-                        },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .height(110.dp)
+                        .background(heroBrush)
                 ) {
-                    if (profileImageUri != null) {
-                        AsyncImage(
-                        model = File(profileImageUri!!),
-                        contentDescription = "Profilový obrázek",
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                            contentDescription = "Profilový obrázek",
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    // Theme badge – top right
+                    equippedTheme?.let { theme ->
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(10.dp)
+                                .background(Color.White.copy(alpha = 0.22f), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(theme.powerUpIcon ?: "🎨", fontSize = 12.sp)
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = theme.name,
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Pet emoji – bottom left, tap to show speech bubble
+                    equippedPet?.petIcon?.let { petIcon ->
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 16.dp, bottom = 10.dp)
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.25f))
+                                .clickable {
+                                    currentBubbleText = getRandomBubbleForPet(petIcon)
+                                    showPetBubble = true
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(petIcon, fontSize = 20.sp)
+                        }
                     }
                 }
-                
-                // Ikona kamery pro editaci
-                Box(
+
+                // Content column – avatar straddles the gradient / surface boundary
+                Column(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .clickable {
-                            imagePickerLauncher.launch("image/*")
-                        },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.PhotoCamera,
-                        contentDescription = "Změnit obrázek",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-                
-                // Vybavené zvířátko vlevo dolů
-                val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
-                equippedPet?.petIcon?.let { petIcon ->
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .size(30.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f))
-                            .clickable { 
-                                // Kliknutí zobrazí bublinu pouze pokud je zvířátko vybavené
-                                currentBubbleText = getRandomBubbleForPet(petIcon)
-                                showPetBubble = true
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = petIcon,
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSecondary
+                    // Spacer: 110 dp gradient − 40 dp (half of 80 dp avatar) = 70 dp
+                    Spacer(Modifier.height(70.dp))
+
+                    // Avatar
+                    Box(modifier = Modifier.size(80.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .border(3.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                .padding(3.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .clickable { showFullscreenImage = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (profileImageUri != null) {
+                                AsyncImage(
+                                    model = File(profileImageUri!!),
+                                    contentDescription = "Profilový obrázek",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Profilový obrázek",
+                                    modifier = Modifier.size(36.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        // Camera button
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .clickable { imagePickerLauncher.launch("image/*") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhotoCamera,
+                                contentDescription = "Změnit obrázek",
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Name / inline edit
+                    if (isEditingName) {
+                        OutlinedTextField(
+                            value = tempName,
+                            onValueChange = { tempName = it },
+                            label = { Text("Jméno") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp),
+                            trailingIcon = {
+                                Row {
+                                    IconButton(onClick = {
+                                        profileName = tempName
+                                        saveProfileName(context, tempName)
+                                        isEditingName = false
+                                    }) {
+                                        Icon(Icons.Default.Check, contentDescription = "Uložit")
+                                    }
+                                    IconButton(onClick = {
+                                        tempName = profileName
+                                        isEditingName = false
+                                    }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Zrušit")
+                                    }
+                                }
+                            }
                         )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable {
+                                isEditingName = true
+                                tempName = profileName
+                            }
+                        ) {
+                            Text(
+                                text = profileName.ifEmpty { "Nastav jméno" },
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (profileName.isEmpty())
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Upravit jméno",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // Points pill + backpack button
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable { navController.navigate(ShopRoute) }
+                                .padding(horizontal = 18.dp, vertical = 8.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Stars,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = "$totalPoints bodů",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.width(12.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable { navController.navigate(BackpackRoute) }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Backpack,
+                                contentDescription = "Aktovka",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        if (grades.isNotEmpty()) {
+                            var selectedGradeId by remember { mutableStateOf(loadGradeId(context)) }
+                            LaunchedEffect(grades) {
+                                if (selectedGradeId == null && grades.isNotEmpty()) {
+                                    val default = grades.find { it.level == 9 } ?: grades.last()
+                                    selectedGradeId = default.id
+                                    saveGradeId(context, default.id)
+                                }
+                            }
+                            val selectedGrade = grades.find { it.id == selectedGradeId }
+                            var expanded by remember { mutableStateOf(false) }
+
+                            Spacer(Modifier.width(12.dp))
+
+                            Box {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .background(
+                                            MaterialTheme.colorScheme.primaryContainer,
+                                            RoundedCornerShape(14.dp)
+                                        )
+                                        .clickable { expanded = true }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = selectedGrade?.name ?: grades.firstOrNull()?.name ?: "",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "Vybrat ročník",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    grades.forEach { grade ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = grade.name,
+                                                    fontWeight = if (selectedGradeId == grade.id) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                            },
+                                            onClick = {
+                                                selectedGradeId = grade.id
+                                                saveGradeId(context, grade.id)
+                                                expanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            // Jméno profilu
-            if (isEditingName) {
-                OutlinedTextField(
-                    value = tempName,
-                    onValueChange = { tempName = it },
-                    label = { Text("Jméno") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    trailingIcon = {
-                        Row {
-                            IconButton(
-                                onClick = {
-                                    profileName = tempName
-                                    saveProfileName(context, tempName)
-                                    isEditingName = false
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = "Uložit"
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    tempName = profileName
-                                    isEditingName = false
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Zrušit"
-                                )
-                            }
-                        }
-                    }
+        }
+
+        // Pet speech bubble (overlaid above the card, aligned top-start)
+        AnimatedVisibility(
+            visible = showPetBubble,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 8.dp, top = 4.dp),
+            enter = slideInVertically(
+                initialOffsetY = { -it },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
                 )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { 
-                            isEditingName = true
-                            tempName = profileName
-                        }
-                ) {
-                    Text(
-                        text = profileName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Upravit jméno",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+            ) + fadeIn(animationSpec = tween(300)) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            ),
+            exit = slideOutVertically(
+                targetOffsetY = { -it },
+                animationSpec = tween(300)
+            ) + fadeOut(animationSpec = tween(300)) + scaleOut(
+                targetScale = 0.6f,
+                animationSpec = tween(300)
+            )
+        ) {
+            val scale by animateFloatAsState(
+                targetValue = if (isAnimatingOut) 0.9f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "bubble_scale"
+            )
+            Card(
+                modifier = Modifier
+                    .widthIn(max = 240.dp)
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .clickable { isAnimatingOut = true },
+                shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+                Text(
+                    text = currentBubbleText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(14.dp)
+                )
             }
         }
     }
-    
-    // Fullscreen dialog pro zobrazení profilového obrázku
+
+    // Auto-dismiss bubble after 7 s
+    LaunchedEffect(showPetBubble) {
+        if (showPetBubble) {
+            delay(7000)
+            isAnimatingOut = true
+        }
+    }
+
+    LaunchedEffect(isAnimatingOut) {
+        if (isAnimatingOut) {
+            delay(300)
+            dismissBubbleForHour(context)
+            showPetBubble = false
+            isAnimatingOut = false
+        }
+    }
+
+    // Fullscreen image dialog
     if (showFullscreenImage) {
         Dialog(
             onDismissRequest = { showFullscreenImage = false },
@@ -736,130 +893,26 @@ fun ProfileSection(navController: NavController) {
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
-                
-                // Tlačítko pro zavření
+
                 IconButton(
                     onClick = { showFullscreenImage = false },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(16.dp)
-                        .background(
-                            Color.Black.copy(alpha = 0.5f),
-                            CircleShape
-                        )
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
                 ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "Zavřít",
-                        tint = Color.White
-                    )
+                    Icon(Icons.Default.Close, contentDescription = "Zavřít", tint = Color.White)
                 }
             }
         }
     }
-    
-    // Bublina nad profilem s animacemi
-    AnimatedVisibility(
-        visible = showPetBubble,
-        enter = slideInVertically(
-            initialOffsetY = { -it },
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        ) + fadeIn(
-            animationSpec = tween(300)
-        ) + scaleIn(
-            initialScale = 0.8f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
-            )
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { -it },
-            animationSpec = tween(300)
-        ) + fadeOut(
-            animationSpec = tween(300)
-        ) + scaleOut(
-            targetScale = 0.6f,
-            animationSpec = tween(300)
-        )
-    ) {
-        // Animovaný scale efekt při kliknutí
-        val scale by animateFloatAsState(
-            targetValue = if (isAnimatingOut) 0.9f else 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
-            ),
-            label = "bubble_click_scale"
-        )
-        // Hlavní bublina
-        Card(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 60.dp, top = 20.dp, end = 20.dp)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .clickable { 
-                    isAnimatingOut = true
-                },
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            ),
-            elevation = CardDefaults.cardElevation(8.dp)
-        ) {
-            Text(
-                text = currentBubbleText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(16.dp),
-                textAlign = TextAlign.Start
-            )
-        }
-        
-        // Špička bubliny (trojúhelník) směřující k zvířátku
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = 40.dp, y = (-30).dp)
-                .size(16.dp)
-                .background(
-                    MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(bottomStart = 16.dp)
-                )
-        )
-    }
-    
-    // Automatické zavření po 7 sekundách
-    LaunchedEffect(showPetBubble) {
-        if (showPetBubble) {
-            delay(7000)
-            isAnimatingOut = true
-        }
-    }
-    
-    // Animace při kliknutí na bublinu
-    LaunchedEffect(isAnimatingOut) {
-        if (isAnimatingOut) {
-            delay(300) // Čeká na dokončení animace
-            dismissBubbleForHour(context)
-            showPetBubble = false
-            isAnimatingOut = false
-        }
-    }
-    
-    // Image Cropper Dialog
+
+    // Image cropper
     if (showImageCropper) {
         tempImageForCropping?.let { imageToProcess ->
             ImageCropperDialog(
                 imageUri = imageToProcess,
                 onCropComplete = { croppedImagePath ->
-                    // Uložit oříznutý obrázek
                     profileImageUri = croppedImagePath
                     saveProfileImageUri(context, croppedImagePath)
                     showImageCropper = false
@@ -873,45 +926,76 @@ fun ProfileSection(navController: NavController) {
         }
     }
 }
-}
 
 @Composable
 fun EquippedQuoteSection(navController: NavController) {
     val equippedQuote by BackpackManager.instance.equippedQuote.collectAsState()
-    
-    equippedQuote?.quote?.let { quote ->
+    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsState()
+
+    equippedQuote?.quote?.let { fullQuote ->
+        val parts = fullQuote.split(" - ")
+        val quoteText = if (parts.size > 1) parts.dropLast(1).joinToString(" - ") else fullQuote
+        val author = if (parts.size > 1) parts.last() else null
+
+        val accentColor = equippedTheme?.let { ProfileThemeData.getThemeColors(it.id)?.primary }
+            ?: MaterialTheme.colorScheme.tertiary
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
             shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(0.dp),
-
+            elevation = CardDefaults.cardElevation(0.dp)
         ) {
-            Column(
+            Row(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .fillMaxWidth()
+                    .height(androidx.compose.foundation.layout.IntrinsicSize.Min)
             ) {
-                Icon(
-                    imageVector = Icons.Default.FormatQuote,
-                    contentDescription = "Citát",
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(20.dp)
+                // Themed left accent bar
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(
+                            accentColor,
+                            RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+                        )
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "\"$quote\"",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                ) {
+                    Text(
+                        text = "“",
+                        fontSize = 36.sp,
+                        color = accentColor,
+                        lineHeight = 24.sp,
+                        modifier = Modifier.offset(y = (-4).dp)
+                    )
+                    Text(
+                        text = quoteText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (author != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "— $author",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = accentColor,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End
+                        )
+                    }
+                }
             }
         }
     }

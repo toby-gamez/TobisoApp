@@ -69,7 +69,7 @@ class CircuitExerciseViewModel @Inject constructor(
                     reEvaluate()
                 }
                 .onFailure { e ->
-                    setState { copy(isLoading = false, isOffline = isOffline) }
+                    setState { copy(isLoading = false, isOffline = isOffline, error = e.message) }
                 }
         }
     }

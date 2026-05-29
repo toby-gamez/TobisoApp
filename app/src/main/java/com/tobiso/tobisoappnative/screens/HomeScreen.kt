@@ -2,6 +2,7 @@ package com.tobiso.tobisoappnative.screens
 
 import com.tobiso.tobisoappnative.navigation.CategoryListRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
+import com.tobiso.tobisoappnative.navigation.ShopRoute
 import com.tobiso.tobisoappnative.navigation.StreakRoute
 
 import com.tobiso.tobisoappnative.R
@@ -190,7 +191,6 @@ fun HomeScreen(navController: NavHostController) {
     }
     
     val totalPoints by PointsManager.instance.totalPoints.collectAsState()
-    var showTotalOverlay by remember { mutableStateOf(false) }
     val offlineDownloading = state.offlineDownloading
     val offlineProgress = state.offlineDownloadProgress
     val snackbarHostState = remember { SnackbarHostState() }
@@ -256,7 +256,7 @@ fun HomeScreen(navController: NavHostController) {
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 shape = RoundedCornerShape(20.dp)
                             )
-                            .clickable { showTotalOverlay = true }
+                            .clickable { navController.navigate(ShopRoute) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(
@@ -419,15 +419,6 @@ fun HomeScreen(navController: NavHostController) {
         }
         }
         
-        // Overlay pro celkové body
-        if (showTotalOverlay) {
-            FullScreenTotalPointsOverlay(totalPoints = totalPoints)
-            LaunchedEffect(showTotalOverlay) {
-                delay(2200)
-                showTotalOverlay = false
-            }
-        }
-
         // Snackbar host (moved higher)
         Box(
             modifier = Modifier

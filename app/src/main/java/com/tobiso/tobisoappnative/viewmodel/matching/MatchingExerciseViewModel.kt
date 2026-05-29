@@ -99,7 +99,7 @@ class MatchingExerciseViewModel @Inject constructor(
         val right = currentState.selectedRight ?: return
         setState {
             copy(
-                pairs = pairs + MatchingPair(left, right),
+                pairs = pairs + MatchingPair(leftId = left, rightId = right),
                 selectedLeft = null,
                 selectedRight = null,
                 showResult = false
@@ -118,7 +118,10 @@ class MatchingExerciseViewModel @Inject constructor(
         if (currentState.pairs.isEmpty()) return
         viewModelScope.launch(Dispatchers.IO) {
             setState { copy(isValidating = true) }
-            val solutionJson = json.encodeToString(MatchingSolution(currentState.pairs))
+            val numberedPairs = currentState.pairs.mapIndexed { index, pair ->
+                pair.copy(id = "pair-${index + 1}")
+            }
+            val solutionJson = json.encodeToString(MatchingSolution(numberedPairs))
             validateExercise(exerciseId, solutionJson)
                 .onSuccess { result ->
                     setState {
