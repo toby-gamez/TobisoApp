@@ -2,13 +2,17 @@ package com.tobiso.tobisoappnative.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.viewmodel.offlinemanager.OfflineManagerViewModel
@@ -55,7 +59,7 @@ fun OfflineManagerScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Správce offline dat", style = MaterialTheme.typography.headlineMedium) },
+            title = { Text("Správce offline dat", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -82,155 +86,150 @@ fun OfflineManagerScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (isOfflineMode) {
-                // When offline: show detailed cached info but do NOT show action buttons
-                Column(modifier = Modifier
+            Column(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)) {
-                    Text(text = "Jste v offline režimu.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Nemáte připojení k internetu — nemážete spravovat data.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Kategorie")
-                        Text(text = categoriesCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Články")
-                        Text(text = postsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Otázky")
-                        Text(text = questionsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Vysvětlení otázek")
-                        Text(text = questionsPostsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Související články")
-                        Text(text = relatedPostsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Dodatky")
-                        Text(text = addendumsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Cvičení")
-                        Text(text = exercisesCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Události")
-                        Text(text = eventsCount?.toString() ?: "—")
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Column {
-                        Text(text = "Poslední aktualizace:")
-                        Text(text = lastUpdateFormatted ?: "—")
-                        val relative = lastUpdateTimestamp?.let { formatRelativeTime(it) }
-                        if (relative != null) {
-                            Text(text = "($relative)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Jsou data aktuální? (<=15 min): ${cacheFresh15?.let { if (it) "ANO" else "NE" } ?: "—"}")
-                }
-            } else {
-                Column(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)) {
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Kategorie")
-                        Text(text = categoriesCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Články")
-                        Text(text = postsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Otázky")
-                        Text(text = questionsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Vysvětlení otázek")
-                        Text(text = questionsPostsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Související články")
-                        Text(text = relatedPostsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Dodatky")
-                        Text(text = addendumsCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Cvičení")
-                        Text(text = exercisesCount?.toString() ?: "—")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Události")
-                        Text(text = eventsCount?.toString() ?: "—")
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text(text = "Poslední aktualizace:")
-                            Text(text = lastUpdateFormatted ?: "—")
-                            val relative = lastUpdateTimestamp?.let { formatRelativeTime(it) }
-                            if (relative != null) {
-                                Text(text = "($relative)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Offline banner
+                if (isOfflineMode) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(0.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.WifiOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "Offline režim",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    "Bez připojení nelze spravovat data.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                )
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Jsou data aktuální? (<=15 min): ${cacheFresh15?.let { if (it) "ANO" else "NE" } ?: "—"}")
+                }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // relative time shown below (see top-level helper)
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Button(onClick = {
-                            vm.loadCacheInfo()
-                        }) {
-                            Text("Obnovit")
-                        }
-
-                        Button(onClick = {
-                            downloadEverStarted = true
-                            toastShownDuringDownload = false
-                            vm.downloadAllOfflineData()
-                        }) {
-                            Text("Stáhnout offline data")
+                // Cache stats card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(0.dp)
+                ) {
+                    Column {
+                        val stats = listOf(
+                            "Kategorie" to (categoriesCount?.toString() ?: "—"),
+                            "Články" to (postsCount?.toString() ?: "—"),
+                            "Otázky" to (questionsCount?.toString() ?: "—"),
+                            "Vysvětlení otázek" to (questionsPostsCount?.toString() ?: "—"),
+                            "Související články" to (relatedPostsCount?.toString() ?: "—"),
+                            "Dodatky" to (addendumsCount?.toString() ?: "—"),
+                            "Cvičení" to (exercisesCount?.toString() ?: "—"),
+                            "Události" to (eventsCount?.toString() ?: "—")
+                        )
+                        stats.forEachIndexed { index, (label, value) ->
+                            if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = label, style = MaterialTheme.typography.bodyMedium)
+                                Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // Last update + freshness
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = if (cacheFresh15 == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Poslední aktualizace: ${lastUpdateFormatted ?: "—"}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            val relative = lastUpdateTimestamp?.let { formatRelativeTime(it) }
+                            if (relative != null) {
+                                Text(text = relative, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                            }
+                        }
+                    }
+                }
+
+                // Action buttons (online only)
+                if (!isOfflineMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { vm.loadCacheInfo() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Obnovit")
+                        }
+                        Button(
+                            onClick = {
+                                downloadEverStarted = true
+                                toastShownDuringDownload = false
+                                vm.downloadAllOfflineData()
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Stáhnout data")
+                        }
+                    }
                     if (lastError != null) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(text = "Chyba stahování:", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                        Text(text = lastError ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = CardDefaults.cardElevation(0.dp)
+                        ) {
+                            Text(
+                                text = lastError ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
                     }
                 }
             }

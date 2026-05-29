@@ -85,7 +85,7 @@ fun EventDetailScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         TopAppBar(
-            title = { Text("Detail události", style = MaterialTheme.typography.headlineLarge) },
+            title = { Text("Detail události", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { 
                     // Jednoduchá navigace zpět na předchozí obrazovku
@@ -211,6 +211,18 @@ fun EventDetailScreen(
     }
 }
 
+private fun Event.isEffectivelyAllDay(): Boolean {
+    if (isAllDaySafe()) return true
+    val cal = Calendar.getInstance()
+    cal.time = getStartDateSafe()
+    val startHour = cal.get(Calendar.HOUR_OF_DAY)
+    val startMin = cal.get(Calendar.MINUTE)
+    cal.time = getEndDateSafe()
+    val endHour = cal.get(Calendar.HOUR_OF_DAY)
+    val endMin = cal.get(Calendar.MINUTE)
+    return startHour == 0 && startMin == 0 && endHour == 23 && endMin == 59
+}
+
 @Composable
 fun EventDetailContent(event: Event) {
     val scrollState = rememberScrollState()
@@ -228,8 +240,9 @@ fun EventDetailContent(event: Event) {
         // Hlavní karta s názvem a časem
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -264,7 +277,7 @@ fun EventDetailContent(event: Event) {
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         // Datum a čas
-                        if (event.isAllDaySafe()) {
+                        if (event.isEffectivelyAllDay()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.CalendarToday,
@@ -442,24 +455,6 @@ fun EventDetailContent(event: Event) {
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "ID události:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "#${event.id}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(
@@ -472,7 +467,7 @@ fun EventDetailContent(event: Event) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = if (event.isAllDaySafe()) "Celodenní" else "Časově vymezená",
+                        text = if (event.isEffectivelyAllDay()) "Celodenní" else "Časově vymezená",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )

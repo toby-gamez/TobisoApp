@@ -70,7 +70,7 @@ fun TimelineExerciseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.exerciseTitle.ifEmpty { "Timeline cvičení" }) },
+                title = { Text(state.exerciseTitle.ifEmpty { "Timeline cvičení" }, style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

@@ -388,10 +388,10 @@ fun TobisoApp(navigateTo: String? = null) {
                                 )
                             }
                             composable<StreakRoute>(
-                                enterTransition = { slideInVertically(initialOffsetY = { -it }, animationSpec = tween(400)) },
-                                exitTransition = { slideOutVertically(targetOffsetY = { -it }, animationSpec = tween(400)) },
-                                popEnterTransition = { slideInVertically(initialOffsetY = { -it }, animationSpec = tween(400)) },
-                                popExitTransition = { slideOutVertically(targetOffsetY = { -it }, animationSpec = tween(400)) }
+                                enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
+                                exitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) },
+                                popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
+                                popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
                             ) {
                                 StreakScreen(navController = navController)
                             }

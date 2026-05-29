@@ -33,8 +33,9 @@ data class VersionInfo(
 fun VersionSection(versionInfo: VersionInfo) {
     Text(
         text = "Verze ${versionInfo.version}",
-        style = typography.headlineSmall,
-        modifier = Modifier.padding(bottom = 8.dp, top = 16.dp)
+        style = typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(bottom = 8.dp, top = 20.dp)
     )
     
     versionInfo.changes.forEach { item ->
@@ -74,8 +75,10 @@ fun ChangelogScreen(navController: NavController) {
             "rozsáhlé opravy kalendáře a událostí",
             "významné zrychlení a opravy logiky aplikace",
             "různé opravy a vylepšení",
-            "přidána podpora pro dokupování AI kteditů",
-            "přčidávání ukládání AI chatů a zobrazení historie",
+            "přidána podpora pro dokupování AI kreditů",
+            "přidávání ukládání AI chatů a zobrazení historie",
+            "UI vylepšení a opravy",
+            "přidány další věci od obchodu",
         )),
         VersionInfo("3.0.2", listOf(
             "oprava načítání všech dat"
@@ -254,7 +257,7 @@ fun ChangelogScreen(navController: NavController) {
         modifier = Modifier.fillMaxSize()
     ) {
         TopAppBar(
-            title = { Text("Deník změn", style = MaterialTheme.typography.headlineLarge) },
+            title = { Text("Deník změn", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

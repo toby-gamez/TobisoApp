@@ -98,7 +98,7 @@ fun ShopScreen(
     ) {
         // Top App Bar
         TopAppBar(
-            title = { Text("Obchod", style = MaterialTheme.typography.headlineLarge) },
+            title = { Text("Obchod", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

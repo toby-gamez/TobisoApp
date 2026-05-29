@@ -71,7 +71,7 @@ fun MixedQuizScreen(
                             text = if (state.showResults) "Výsledky procvičování"
                             else if (state.quizStarted) "Procvičování (${state.currentQuestionIndex + 1}/$totalQuestions)"
                             else "Procvičování",
-                            style = MaterialTheme.typography.headlineLarge,
+                            style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle,
                             maxLines = 1
                         )
                     },

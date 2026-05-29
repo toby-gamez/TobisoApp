@@ -87,7 +87,7 @@ fun BackpackScreen(
     ) {
         // Top App Bar
         TopAppBar(
-            title = { Text("Aktovka", style = MaterialTheme.typography.headlineLarge) },
+            title = { Text("Aktovka", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

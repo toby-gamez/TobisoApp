@@ -345,13 +345,27 @@ fun CalendarScreen(
                 } else if (error != null) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text(
-                            text = error ?: "Neznámá chyba",
+                        Row(
                             modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = error ?: "Neznámá chyba",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 } else {
                     // Kalendářní mřížka
@@ -410,16 +424,25 @@ fun CalendarScreen(
                         }
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
                 if (isOfflineMode) {
-                    // Pokud jsme offline, zkontrolujeme, zda máme i dříve stažené (cache) API události
                     val hasCachedApiEvents = events.any { !it.isLocalSafe() }
-                    if (hasCachedApiEvents) {
-                        Text("Jsi v offline režimu — zobrazují se místní události a uložené události.")
-                    } else {
-                        Text("Jsi v offline režimu — zobrazují se pouze místní události.")
-                    }
+                    Text(
+                        text = if (hasCachedApiEvents)
+                            "Offline — místní a uložené události"
+                        else
+                            "Offline — pouze místní události",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
                 } else {
-                    Text("Kalendář dnů, kdy je ve škole volno.")
+                    Text(
+                        text = "Školní prázdniny a svátky",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
                 }
             }
         }
@@ -762,8 +785,9 @@ fun DateDetailCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -838,7 +862,8 @@ fun EventItem(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
             modifier = Modifier.padding(12.dp)

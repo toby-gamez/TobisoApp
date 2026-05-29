@@ -32,7 +32,7 @@ fun FeedbackScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         TopAppBar(
-            title = { Text("Zpětná vazba", style = MaterialTheme.typography.headlineLarge) },
+            title = { Text("Zpětná vazba", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

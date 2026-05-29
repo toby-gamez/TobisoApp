@@ -68,7 +68,7 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Přehrávač videa") },
+                    title = { Text("Přehrávač videa", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -88,7 +88,7 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Přehrávač videa") },
+                    title = { Text("Přehrávač videa", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -247,7 +247,7 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Přehrávač videa", style = MaterialTheme.typography.headlineLarge) },
+                    title = { Text("Přehrávač videa", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

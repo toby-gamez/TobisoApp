@@ -102,6 +102,7 @@ import com.tobiso.tobisoappnative.components.PostActionsRow
 import com.tobiso.tobisoappnative.components.ExerciseButtonsRow
 import com.tobiso.tobisoappnative.components.RelatedPostsList
 import kotlinx.serialization.json.JsonNull.content
+import androidx.compose.foundation.text.selection.SelectionContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -291,10 +292,30 @@ fun PostDetailScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = androidx.compose.ui.Alignment.Center
                         ) {
-                            Text(
-                                "Chyba při načítání článku: ${postDetailError}",
-                                color = MaterialTheme.colorScheme.error
-                            )
+                            Column(
+                                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "Chyba při načítání článku",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    postDetailError ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
                         }
                     }
 
@@ -315,17 +336,28 @@ fun PostDetailScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = androidx.compose.ui.Alignment.Center
                             ) {
-                                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                Column(
+                                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                    modifier = Modifier.padding(32.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        "Chyba při zobrazení článku:",
+                                        "Chyba při zobrazení článku",
                                         color = MaterialTheme.colorScheme.error,
                                         style = MaterialTheme.typography.titleMedium
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         renderError ?: "",
-                                        color = MaterialTheme.colorScheme.error,
-                                        style = MaterialTheme.typography.bodySmall
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Button(onClick = { navController.popBackStack() }) {
@@ -340,6 +372,7 @@ fun PostDetailScreen(
                             val updatedFormatted by vm.updatedFormatted.collectAsState()
 
                             // Nový custom markdown renderer
+                            SelectionContainer {
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -446,6 +479,7 @@ fun PostDetailScreen(
                                     Spacer(modifier = Modifier.height(80.dp))
                                 }
                             }
+                            } // SelectionContainer
                     }
                 }
             }

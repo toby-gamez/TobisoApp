@@ -75,10 +75,10 @@ fun StreakScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         TopAppBar(
-            title = { Text("Řada", style = MaterialTheme.typography.headlineLarge) },
+            title = { Text("Řada", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowUpward, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )

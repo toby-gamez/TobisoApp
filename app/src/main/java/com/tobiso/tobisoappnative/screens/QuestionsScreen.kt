@@ -158,7 +158,7 @@ fun QuestionsScreen(
                             text = if (showResults) "Vaše výsledky"
                             else if (quizStarted) "Prověrka (${currentQuestionIndex + 1}/$totalQuestions)"
                             else "Prověrka",
-                            style = MaterialTheme.typography.headlineLarge,
+                            style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle,
                             maxLines = 1
                         )
                     },
@@ -231,10 +231,20 @@ fun QuestionsScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.QuestionMark,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     "Pro tento článek nejsou k dispozici žádné otázky.",
-                                    style = MaterialTheme.typography.headlineSmall,
+                                    style = MaterialTheme.typography.titleMedium,
                                     textAlign = TextAlign.Center
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))

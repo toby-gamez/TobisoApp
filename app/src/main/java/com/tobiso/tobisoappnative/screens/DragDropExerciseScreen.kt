@@ -72,7 +72,7 @@ fun DragDropExerciseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.exerciseTitle.ifEmpty { "Drag & Drop cvičení" }) },
+                title = { Text(state.exerciseTitle.ifEmpty { "Drag & Drop cvičení" }, style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

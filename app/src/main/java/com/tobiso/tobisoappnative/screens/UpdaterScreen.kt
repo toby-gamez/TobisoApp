@@ -59,7 +59,7 @@ fun UpdaterScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         TopAppBar(
-            title = { Text("Aktualizátor", style = MaterialTheme.typography.headlineLarge) },
+            title = { Text("Aktualizátor", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -73,11 +73,11 @@ fun UpdaterScreen(
         ) {
             if (isOfflineMode) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Vaše verze: $currentVersion", style = MaterialTheme.typography.titleLarge)
+                    Text(text = "Vaše verze: $currentVersion", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Jste v offline režimu.",
-                        color = MaterialTheme.colorScheme.error,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -93,7 +93,7 @@ fun UpdaterScreen(
                 CircularProgressIndicator()
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Vaše verze: $currentVersion", style = MaterialTheme.typography.titleLarge)
+                    Text(text = "Vaše verze: $currentVersion", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     if (isUpToDateVal == true) {
                         Icon(Icons.Default.CheckCircle, contentDescription = "Aktuální", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(64.dp))

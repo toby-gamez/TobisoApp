@@ -57,7 +57,7 @@ import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.draw.shadow
+
 import androidx.compose.ui.zIndex
 import com.tobiso.tobisoappnative.utils.StreakUtils
 import com.tobiso.tobisoappnative.utils.parseDateToMillis
@@ -85,7 +85,7 @@ fun PostListItem(
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -144,9 +144,7 @@ data class SubjectConfig(
 )
 
 val subjectConfigMap = mapOf(
-    "Český jazyk" to SubjectConfig(Color(0xFF2196F3), "Gramatika a pravopis českého jazyka"),
-    "Literatura" to SubjectConfig(Color(0xFF8B4513), "Česká a světová literatura"),
-    "Sloh" to SubjectConfig(Color(0xFFFF9800), "Tvorba textů a slohové útvary"),
+    "Český jazyk" to SubjectConfig(Color(0xFFFF9800), "Gramatika, literatura a sloh"),
     "Hudební výchova" to SubjectConfig(Color(0xFF9C27B0), "Hudební teorie, autoři, žánry, písně, díla a dějiny"),
     "Matematika" to SubjectConfig(Color(0xFF1976D2), "Algebra a geometrie"),
     "Chemie" to SubjectConfig(Color(0xFFF44336), "Tělesa, látky, zákony, prvky, sloučeniny a názvosloví"),
@@ -179,7 +177,7 @@ fun HomeScreen(navController: NavHostController) {
     val posts = state.posts
     val categories = state.categories
     val subjects = remember(categories) {
-        val rootCategories = categories.filter { it.parentId == null }
+        val rootCategories = categories.filter { it.parentId == null && it.name != "More" }
         rootCategories.mapIndexed { index, cat ->
             val config = subjectConfigMap[cat.name]
             Subject(cat.name, cat.description ?: config?.description ?: "", config?.color ?: subjectColorsFallback[index % subjectColorsFallback.size], config?.description ?: "")
@@ -333,18 +331,19 @@ fun HomeScreen(navController: NavHostController) {
                     SortMode.SUBJECTS -> {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(columns),
-                        state = gridState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(8.dp)
-                    ) {
-                        items(subjects) { subject ->
-                            SubjectCard(
-                                subject = subject,
-                                onClick = { navController.navigate(CategoryListRoute(categoryName = subject.name)) },
-                                modifier = Modifier.padding(8.dp)
-                            )
+                            state = gridState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(subjects) { subject ->
+                                SubjectCard(
+                                    subject = subject,
+                                    onClick = { navController.navigate(CategoryListRoute(categoryName = subject.name)) }
+                                )
+                            }
                         }
-                    }
                 }
                 SortMode.NEWEST -> {
                     // Tlačítka pro výběr předmětu (root kategorie se skutečnými potomky)
@@ -355,6 +354,7 @@ fun HomeScreen(navController: NavHostController) {
                     val coroutineScope = rememberCoroutineScope()
                     var pendingScrollToTop by remember { mutableStateOf(false) }
 
+                    Column(modifier = Modifier.fillMaxSize()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -413,6 +413,7 @@ fun HomeScreen(navController: NavHostController) {
                             Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
+                    }
                 }
             }
         }
@@ -446,15 +447,17 @@ fun SubjectCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    ElevatedCard(
+    Card(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 100.dp),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .heightIn(min = 100.dp)
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -493,7 +496,8 @@ fun SubjectCard(
             Spacer(modifier = Modifier.width(12.dp))
             
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = subject.name,

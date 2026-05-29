@@ -84,7 +84,7 @@ fun MatchingExerciseScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(state.exerciseTitle.ifBlank { "Matching cvičení" }) },
+                title = { Text(state.exerciseTitle.ifBlank { "Matching cvičení" }, style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")

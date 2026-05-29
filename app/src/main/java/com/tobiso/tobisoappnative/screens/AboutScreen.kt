@@ -13,7 +13,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -85,7 +84,7 @@ fun AboutScreen(navController: NavController) {
         modifier = Modifier.fillMaxSize()
     ) {
         TopAppBar(
-            title = { Text("O aplikaci", style = MaterialTheme.typography.headlineLarge) },
+            title = { Text("O aplikaci", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -108,38 +107,29 @@ fun AboutScreen(navController: NavController) {
             Text("Autor: Taneq (Tobias)", style = MaterialTheme.typography.bodyMedium)
             Text("v$currentVersion", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(24.dp))
-            Divider(
-                color = Color.Gray,
-                thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             Text(
                 text = "Popis aplikace",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
             Text("Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 9. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků, offline režim, bodový systém pro otázky, řada otevření aplikace a s tím odměny, profil, obchod a aktovka, procvičování a kalendář událostí, kdy není škola + vaše události. Další budou pokračovat!", style = MaterialTheme.typography.bodyMedium)
-            Divider(
-                color = Color.Gray,
-                thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             Text(
                 text = "Licence",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
             Text("All rights reserved", style = MaterialTheme.typography.bodyMedium)
             Text("Tento software nesmí být kopírován, upravován ani distribuován bez výslovného svolení autora. Kontribuce přes platformu Github jsou vítány.", style = MaterialTheme.typography.bodyMedium)
-            Divider(
-                color = Color.Gray,
-                thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             Text(
                 text = "Použité knihovny",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
             Spacer(Modifier.height(8.dp))
             Column {
