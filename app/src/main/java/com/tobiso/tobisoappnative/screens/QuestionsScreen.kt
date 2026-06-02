@@ -63,6 +63,8 @@ fun QuestionsScreen(
     var showPointsOverlay by rememberSaveable { mutableStateOf(false) }
     var awardedPoints by rememberSaveable { mutableStateOf(0) }
     var shuffledQuestions by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
+    // shuffledAnswerIndices[displayQuestionIdx] = list of original answer indices in shuffled display order
+    var shuffledAnswerIndices by rememberSaveable { mutableStateOf<Map<Int, List<Int>>>(emptyMap()) }
     
     val context = LocalContext.current
     val totalPoints by PointsManager.instance.totalPoints.collectAsState()
@@ -182,10 +184,14 @@ fun QuestionsScreen(
                             textAnswers = emptyMap()
                             showResults = false
                             quizStarted = false
-                            pointsAwarded = false // Reset pro další pokus
+                            pointsAwarded = false
                             showPointsOverlay = false
                             awardedPoints = 0
-                            shuffledQuestions = questions.indices.shuffled() // Znovu zamíchat otázky
+                            val newShuffledQ = questions.indices.shuffled()
+                            shuffledQuestions = newShuffledQ
+                            shuffledAnswerIndices = newShuffledQ.indices.associateWith { displayIdx ->
+                                questions[newShuffledQ[displayIdx]].options.indices.shuffled()
+                            }
                             }) {
                                 Icon(
                                     imageVector = Icons.Filled.Refresh,
@@ -609,9 +615,13 @@ fun QuestionsScreen(
                             Spacer(modifier = Modifier.height(32.dp))
                             
                             Button(
-                                onClick = { 
+                                onClick = {
                                     quizStarted = true
-                                    shuffledQuestions = questions.indices.shuffled() // Zamíchat otázky při startu
+                                    val newShuffledQ = questions.indices.shuffled()
+                                    shuffledQuestions = newShuffledQ
+                                    shuffledAnswerIndices = newShuffledQ.indices.associateWith { displayIdx ->
+                                        questions[newShuffledQ[displayIdx]].options.indices.shuffled()
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -706,6 +716,8 @@ fun QuestionsScreen(
                                     }
                                 } else if (question.isMultiSelectQuestion) {
                                     // Multi-select checkboxes
+                                    val answerOrder = shuffledAnswerIndices[currentQuestionIndex]
+                                        ?: question.options.indices.toList()
                                     Column {
                                         Text(
                                             "Vyberte všechny správné odpovědi",
@@ -713,15 +725,16 @@ fun QuestionsScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(bottom = 8.dp)
                                         )
-                                        question.options.forEachIndexed { index, option ->
-                                            val isChecked = multiSelectedAnswers[currentQuestionIndex]?.contains(index) == true
+                                        answerOrder.forEach { origIdx ->
+                                            val option = question.options[origIdx]
+                                            val isChecked = multiSelectedAnswers[currentQuestionIndex]?.contains(origIdx) == true
                                             Card(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(vertical = 4.dp)
                                                     .clickable {
                                                         val current = multiSelectedAnswers[currentQuestionIndex]?.toMutableSet() ?: mutableSetOf()
-                                                        if (isChecked) current.remove(index) else current.add(index)
+                                                        if (isChecked) current.remove(origIdx) else current.add(origIdx)
                                                         multiSelectedAnswers = multiSelectedAnswers.toMutableMap().apply {
                                                             put(currentQuestionIndex, current)
                                                         }
@@ -753,11 +766,14 @@ fun QuestionsScreen(
                                     }
                                 } else {
                                     // Výběr z možností pro běžné otázky
+                                    val answerOrder = shuffledAnswerIndices[currentQuestionIndex]
+                                        ?: question.options.indices.toList()
                                     Column(
                                         modifier = Modifier.selectableGroup()
                                     ) {
-                                        question.options.forEachIndexed { index, option ->
-                                            val isSelected = selectedAnswers[currentQuestionIndex] == index
+                                        answerOrder.forEach { origIdx ->
+                                            val option = question.options[origIdx]
+                                            val isSelected = selectedAnswers[currentQuestionIndex] == origIdx
 
                                             Card(
                                                 modifier = Modifier
@@ -767,7 +783,7 @@ fun QuestionsScreen(
                                                         selected = isSelected,
                                                         onClick = {
                                                             selectedAnswers = selectedAnswers.toMutableMap().apply {
-                                                                put(currentQuestionIndex, index)
+                                                                put(currentQuestionIndex, origIdx)
                                                             }
                                                         },
                                                         role = Role.RadioButton
