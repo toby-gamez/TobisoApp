@@ -69,7 +69,8 @@ fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
         VersionInfo("3.5.1", listOf(
             "opraveny certifikáty",
-            "přidána podpora pro multi výběr v utázkách"
+            "přidána podpora pro multi výběr v otázkách",
+            "lepší pořadí v otázkách",
         )),
         VersionInfo("3.5", listOf(
             "přidána podpora pro zlomky",
