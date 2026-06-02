@@ -20,7 +20,13 @@ data class Question(
     
     // Helper property pro rozpoznání textových otázek
     val isTextQuestion: Boolean get() = answers.size == 1 && answers.first().correct == 1
-    
+
+    // Helper property pro rozpoznání otázek s více správnými odpověďmi
+    val isMultiSelectQuestion: Boolean get() = !isTextQuestion && answers.count { it.correct == 1 } > 1
+
+    // Indices of all correct answers (for multi-select)
+    val correctAnswers: List<Int> get() = answers.indices.filter { answers[it].correct == 1 }
+
     // Helper property pro získání správné textové odpovědi
     val correctTextAnswer: String? get() = if (isTextQuestion) answers.first().answerText else null
 }

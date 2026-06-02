@@ -1,6 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -54,6 +55,7 @@ fun QuestionsScreen(
     // Kvíz stav - using rememberSaveable to survive configuration changes
     var currentQuestionIndex by rememberSaveable { mutableStateOf(0) }
     var selectedAnswers by rememberSaveable { mutableStateOf<Map<Int, Int>>(emptyMap()) }
+    var multiSelectedAnswers by rememberSaveable { mutableStateOf<Map<Int, Set<Int>>>(emptyMap()) }
     var textAnswers by rememberSaveable { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var showResults by rememberSaveable { mutableStateOf(false) }
     var quizStarted by rememberSaveable { mutableStateOf(false) }
@@ -89,14 +91,17 @@ fun QuestionsScreen(
         if (index < shuffledQuestions.size && index >= 0 && shuffledQuestions[index] < questions.size) {
             val originalQuestionIndex = shuffledQuestions[index]
             val question = questions[originalQuestionIndex]
-            if (question.isTextQuestion) {
-                // Pro textové otázky porovnáváme text case-insensitive
-                val userText = textAnswers[index]?.trim() ?: ""
-                val correctText = question.correctTextAnswer?.trim() ?: ""
-                normalizeText(userText) == normalizeText(correctText)
-            } else {
-                // Pro výběrové otázky porovnáváme index
-                selectedAnswers[index] == question.correctAnswer
+            when {
+                question.isTextQuestion -> {
+                    val userText = textAnswers[index]?.trim() ?: ""
+                    val correctText = question.correctTextAnswer?.trim() ?: ""
+                    normalizeText(userText) == normalizeText(correctText)
+                }
+                question.isMultiSelectQuestion -> {
+                    val userSelected = multiSelectedAnswers[index] ?: emptySet()
+                    userSelected == question.correctAnswers.toSet()
+                }
+                else -> selectedAnswers[index] == question.correctAnswer
             }
         } else false
     }
@@ -116,11 +121,11 @@ fun QuestionsScreen(
             showPointsOverlay = true
             val results = shuffledQuestions.mapIndexed { displayIndex, origIndex ->
                 val q = questions[origIndex]
-                val isCorrect = if (q.isTextQuestion) {
-                    normalizeText(textAnswers[displayIndex]?.trim() ?: "") ==
+                val isCorrect = when {
+                    q.isTextQuestion -> normalizeText(textAnswers[displayIndex]?.trim() ?: "") ==
                             normalizeText(q.correctTextAnswer?.trim() ?: "")
-                } else {
-                    selectedAnswers[displayIndex] == q.correctAnswer
+                    q.isMultiSelectQuestion -> (multiSelectedAnswers[displayIndex] ?: emptySet()) == q.correctAnswers.toSet()
+                    else -> selectedAnswers[displayIndex] == q.correctAnswer
                 }
                 q.id to isCorrect
             }.toMap()
@@ -173,6 +178,7 @@ fun QuestionsScreen(
                             // Restartovat kvíz
                             currentQuestionIndex = 0
                             selectedAnswers = emptyMap()
+                            multiSelectedAnswers = emptyMap()
                             textAnswers = emptyMap()
                             showResults = false
                             quizStarted = false
@@ -307,16 +313,23 @@ fun QuestionsScreen(
                             // Detailní výsledky pro každou otázku
                             shuffledQuestions.forEachIndexed { displayIndex, originalQuestionIndex ->
                                 val question = questions[originalQuestionIndex]
-                                val isCorrect = if (question.isTextQuestion) {
-                                    val userText = textAnswers[displayIndex]?.trim() ?: ""
-                                    val correctText = question.correctTextAnswer?.trim() ?: ""
-                                    normalizeText(userText) == normalizeText(correctText)
-                                } else {
-                                    val selectedAnswer = selectedAnswers[displayIndex]
-                                    selectedAnswer != null && 
-                                        selectedAnswer >= 0 && 
-                                        selectedAnswer < question.options.size &&
-                                        selectedAnswer == question.correctAnswer
+                                val isCorrect = when {
+                                    question.isTextQuestion -> {
+                                        val userText = textAnswers[displayIndex]?.trim() ?: ""
+                                        val correctText = question.correctTextAnswer?.trim() ?: ""
+                                        normalizeText(userText) == normalizeText(correctText)
+                                    }
+                                    question.isMultiSelectQuestion -> {
+                                        val userSelected = multiSelectedAnswers[displayIndex] ?: emptySet()
+                                        userSelected == question.correctAnswers.toSet()
+                                    }
+                                    else -> {
+                                        val selectedAnswer = selectedAnswers[displayIndex]
+                                        selectedAnswer != null &&
+                                            selectedAnswer >= 0 &&
+                                            selectedAnswer < question.options.size &&
+                                            selectedAnswer == question.correctAnswer
+                                    }
                                 }
                                 
                                 Card(
@@ -356,41 +369,60 @@ fun QuestionsScreen(
                                         
                                         Spacer(modifier = Modifier.height(8.dp))
                                         
-                                        if (question.isTextQuestion) {
-                                            // Zobrazení textových odpovědí
-                                            val userText = textAnswers[displayIndex] ?: ""
-                                            val correctText = question.correctTextAnswer ?: ""
-                                            
-                                            Text(
-                                                "Vaše odpověď: $userText",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
-                                            )
-                                            
-                                            if (!isCorrect) {
+                                        when {
+                                            question.isTextQuestion -> {
+                                                val userText = textAnswers[displayIndex] ?: ""
+                                                val correctText = question.correctTextAnswer ?: ""
                                                 Text(
-                                                    "Správná odpověď: $correctText",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = Color(0xFF4CAF50)
-                                                )
-                                            }
-                                        } else {
-                                            // Zobrazení výběrových odpovědí
-                                            val selectedAnswer = selectedAnswers[displayIndex]
-                                            if (selectedAnswer != null && selectedAnswer >= 0 && selectedAnswer < question.options.size) {
-                                                Text(
-                                                    "Vaše odpověď: ${question.options[selectedAnswer]}",
+                                                    "Vaše odpověď: $userText",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
                                                 )
+                                                if (!isCorrect) {
+                                                    Text(
+                                                        "Správná odpověď: $correctText",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color(0xFF4CAF50)
+                                                    )
+                                                }
                                             }
-                                            
-                                            if (!isCorrect && question.correctAnswer >= 0 && question.correctAnswer < question.options.size) {
+                                            question.isMultiSelectQuestion -> {
+                                                val userSelected = multiSelectedAnswers[displayIndex] ?: emptySet()
+                                                val selectedLabels = userSelected.sorted()
+                                                    .filter { it < question.options.size }
+                                                    .joinToString(", ") { question.options[it] }
                                                 Text(
-                                                    "Správná odpověď: ${question.options[question.correctAnswer]}",
+                                                    "Vaše odpovědi: ${selectedLabels.ifEmpty { "—" }}",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = Color(0xFF4CAF50)
+                                                    color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
                                                 )
+                                                if (!isCorrect) {
+                                                    val correctLabels = question.correctAnswers
+                                                        .filter { it < question.options.size }
+                                                        .joinToString(", ") { question.options[it] }
+                                                    Text(
+                                                        "Správné odpovědi: $correctLabels",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color(0xFF4CAF50)
+                                                    )
+                                                }
+                                            }
+                                            else -> {
+                                                val selectedAnswer = selectedAnswers[displayIndex]
+                                                if (selectedAnswer != null && selectedAnswer >= 0 && selectedAnswer < question.options.size) {
+                                                    Text(
+                                                        "Vaše odpověď: ${question.options[selectedAnswer]}",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
+                                                    )
+                                                }
+                                                if (!isCorrect && question.correctAnswer >= 0 && question.correctAnswer < question.options.size) {
+                                                    Text(
+                                                        "Správná odpověď: ${question.options[question.correctAnswer]}",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color(0xFF4CAF50)
+                                                    )
+                                                }
                                             }
                                         }
                                         
@@ -672,6 +704,53 @@ fun QuestionsScreen(
                                             }
                                         )
                                     }
+                                } else if (question.isMultiSelectQuestion) {
+                                    // Multi-select checkboxes
+                                    Column {
+                                        Text(
+                                            "Vyberte všechny správné odpovědi",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        )
+                                        question.options.forEachIndexed { index, option ->
+                                            val isChecked = multiSelectedAnswers[currentQuestionIndex]?.contains(index) == true
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp)
+                                                    .clickable {
+                                                        val current = multiSelectedAnswers[currentQuestionIndex]?.toMutableSet() ?: mutableSetOf()
+                                                        if (isChecked) current.remove(index) else current.add(index)
+                                                        multiSelectedAnswers = multiSelectedAnswers.toMutableMap().apply {
+                                                            put(currentQuestionIndex, current)
+                                                        }
+                                                    },
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = if (isChecked) {
+                                                        MaterialTheme.colorScheme.primaryContainer
+                                                    } else {
+                                                        MaterialTheme.colorScheme.surface
+                                                    }
+                                                )
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(16.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Checkbox(
+                                                        checked = isChecked,
+                                                        onCheckedChange = null
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Text(
+                                                        option,
+                                                        style = MaterialTheme.typography.bodyLarge
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 } else {
                                     // Výběr z možností pro běžné otázky
                                     Column(
@@ -679,7 +758,7 @@ fun QuestionsScreen(
                                     ) {
                                         question.options.forEachIndexed { index, option ->
                                             val isSelected = selectedAnswers[currentQuestionIndex] == index
-                                            
+
                                             Card(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -737,10 +816,10 @@ fun QuestionsScreen(
                                         Spacer(modifier = Modifier.width(1.dp))
                                     }
                                     
-                                    val hasAnswered = if (currentQuestion.isTextQuestion) {
-                                        textAnswers[currentQuestionIndex]?.isNotBlank() == true
-                                    } else {
-                                        selectedAnswers.containsKey(currentQuestionIndex)
+                                    val hasAnswered = when {
+                                        currentQuestion.isTextQuestion -> textAnswers[currentQuestionIndex]?.isNotBlank() == true
+                                        currentQuestion.isMultiSelectQuestion -> multiSelectedAnswers[currentQuestionIndex]?.isNotEmpty() == true
+                                        else -> selectedAnswers.containsKey(currentQuestionIndex)
                                     }
                                     
                                     if (currentQuestionIndex < totalQuestions - 1) {
@@ -754,10 +833,10 @@ fun QuestionsScreen(
                                         val allAnswered = shuffledQuestions.indices.all { index ->
                                             val originalQuestionIndex = shuffledQuestions[index]
                                             val question = questions[originalQuestionIndex]
-                                            if (question.isTextQuestion) {
-                                                textAnswers[index]?.isNotBlank() == true
-                                            } else {
-                                                selectedAnswers.containsKey(index)
+                                            when {
+                                                question.isTextQuestion -> textAnswers[index]?.isNotBlank() == true
+                                                question.isMultiSelectQuestion -> multiSelectedAnswers[index]?.isNotEmpty() == true
+                                                else -> selectedAnswers.containsKey(index)
                                             }
                                         }
                                         Button(
