@@ -21,23 +21,6 @@ object ApiClient {
         val credentials = SecurityConfig.getApiCredentials()
         val builder = OkHttpClient.Builder()
         
-        // Certificate pinning using BuildConfig fields
-        val pins = BuildConfig.CERT_PINS.takeIf { it.isNotBlank() }
-        val backupPins = BuildConfig.CERT_PINS_BACKUP.takeIf { it.isNotBlank() }
-        if (pins != null) {
-            val pinner = okhttp3.CertificatePinner.Builder()
-            pins.split(",").filter { it.isNotBlank() }.forEach { pin ->
-                pinner.add("www.tobiso.com", pin.trim())
-            }
-            backupPins?.split(",")?.filter { it.isNotBlank() }?.forEach { pin ->
-                pinner.add("www.tobiso.com", pin.trim())
-            }
-            builder.certificatePinner(pinner.build())
-            Timber.i("Certificate pinning enabled")
-        } else {
-            Timber.w("Certificate pinning disabled; using system trust anchors")
-        }
-        
         // Konfigurace timeouts pro produkci
         builder.connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
         builder.readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)

@@ -109,6 +109,7 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
                 BackpackCategory.POWER_UPS -> backpackItem.shopItem.type == ShopItemType.POINTS_MULTIPLIER
                 BackpackCategory.STREAK_ITEMS -> backpackItem.shopItem.type == ShopItemType.STREAK_FREEZE
                 BackpackCategory.PROFILE_THEMES -> backpackItem.shopItem.type == ShopItemType.PROFILE_THEME
+                BackpackCategory.TROPHIES -> backpackItem.shopItem.type == ShopItemType.TROPHY
             }
         }
     }

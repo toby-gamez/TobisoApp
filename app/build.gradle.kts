@@ -70,10 +70,8 @@ android {
             buildConfigField("String", "CERT_FINGERPRINT", "\"${localProperties["CERT_FINGERPRINT"] ?: ""}\"")
             // SECURITY_TOKEN_SECRET is sensitive; keep empty in BuildConfig for release builds.
             buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"\"")
-            // Comma-separated certificate pins (sha256/...). Update leaf pin after each cert rotation.
-            buildConfigField("String", "CERT_PINS", "\"sha256/PgNsMYxLiKfk4SpZC8FIFqTEjZSne2D0mj4Ezhrl2jQ=\"")
-            // Backup pins: Let's Encrypt R13 intermediate + ISRG Root X1 — survive leaf rotations.
-            buildConfigField("String", "CERT_PINS_BACKUP", "\"sha256/AlSQhgtJirc8ahLyekmtX+Iw+v46yPYRLJt9Cq1GIB0=,sha256/C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejnA0wHFr8M=\"")
+            buildConfigField("String", "CERT_PINS", "\"\"")
+            buildConfigField("String", "CERT_PINS_BACKUP", "\"\"")
         }
         debug {
             isDebuggable = true

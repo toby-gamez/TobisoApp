@@ -153,7 +153,7 @@ fun ShopScreen(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(ShopCategory.values().toList()) { category ->
+            items(ShopCategory.values().filter { it != ShopCategory.EXCLUSIVE }) { category ->
                 CategoryNavigationChip(
                     category = category,
                     isActive = category == activeCategory,
@@ -177,7 +177,7 @@ fun ShopScreen(
                             } else {
                                 Timber.d("No saved position, calculating...")
                                 // Dynamic calculation fallback
-                                val categories = ShopCategory.values()
+                                val categories = ShopCategory.values().filter { it != ShopCategory.EXCLUSIVE }.toTypedArray()
                                 var calculatedIndex = 0
                                 for (cat in categories) {
                                     if (cat == category) break
@@ -205,7 +205,7 @@ fun ShopScreen(
             var currentIndex = 0
             
             // Všechny kategorie pod sebou
-            ShopCategory.values().forEachIndexed { categoryIndex, category ->
+            ShopCategory.values().filter { it != ShopCategory.EXCLUSIVE }.forEachIndexed { categoryIndex, category ->
                     // Uloží pozici headeru pro navigaci
                     headerPositions[category] = currentIndex
                     Timber.d("Saved header position for $category at index: $currentIndex")

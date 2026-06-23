@@ -330,6 +330,31 @@ fun BackpackItemCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+            // Pro trofeje zobrazíme metalický gradient
+            if (backpackItem.shopItem.type == ShopItemType.TROPHY && backpackItem.shopItem.powerUpIcon != null) {
+                val trophyGradient = when (backpackItem.shopItem.id) {
+                    com.tobiso.tobisoappnative.data.ShopData.GOLD_TROPHY_ID ->
+                        listOf(Color(0xFFFFD700), Color(0xFFFF8C00), Color(0xFFFFD700))
+                    com.tobiso.tobisoappnative.data.ShopData.SILVER_TROPHY_ID ->
+                        listOf(Color(0xFFE0E0E0), Color(0xFF9E9E9E), Color(0xFFE0E0E0))
+                    else ->
+                        listOf(Color(0xFFCD7F32), Color(0xFF8B4513), Color(0xFFCD7F32))
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(trophyGradient),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = backpackItem.shopItem.powerUpIcon, fontSize = 64.sp)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             // Pro motivy profilu zobrazíme emoji na gradientu
             if (backpackItem.shopItem.type == ShopItemType.PROFILE_THEME && backpackItem.shopItem.powerUpIcon != null) {
                 val gradColors = ProfileThemeData.getGradientColors(backpackItem.shopItem.id)
@@ -561,6 +586,31 @@ fun BackpackItemDialog(
         },
         text = {
             Column {
+                // Pro trofeje zobrazíme metalický gradient
+                if (backpackItem.shopItem.type == ShopItemType.TROPHY && backpackItem.shopItem.powerUpIcon != null) {
+                    val trophyGradient = when (backpackItem.shopItem.id) {
+                        com.tobiso.tobisoappnative.data.ShopData.GOLD_TROPHY_ID ->
+                            listOf(Color(0xFFFFD700), Color(0xFFFF8C00), Color(0xFFFFD700))
+                        com.tobiso.tobisoappnative.data.ShopData.SILVER_TROPHY_ID ->
+                            listOf(Color(0xFFE0E0E0), Color(0xFF9E9E9E), Color(0xFFE0E0E0))
+                        else ->
+                            listOf(Color(0xFFCD7F32), Color(0xFF8B4513), Color(0xFFCD7F32))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(trophyGradient),
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = backpackItem.shopItem.powerUpIcon, fontSize = 64.sp)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 // Pro motivy profilu zobrazíme emoji na gradientu
                 if (backpackItem.shopItem.type == ShopItemType.PROFILE_THEME && backpackItem.shopItem.powerUpIcon != null) {
                     val gradColors = ProfileThemeData.getGradientColors(backpackItem.shopItem.id)

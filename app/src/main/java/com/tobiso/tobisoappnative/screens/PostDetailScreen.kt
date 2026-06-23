@@ -92,6 +92,8 @@ import com.tobiso.tobisoappnative.components.InlineFraction
 // removed all halilibo.richtext imports
 import com.tobiso.tobisoappnative.components.AddendumDialog
 import com.tobiso.tobisoappnative.components.AiInputBar
+import com.tobiso.tobisoappnative.components.SentenceSelectPanel
+import com.tobiso.tobisoappnative.viewmodel.ai.AiToolsViewModel
 import kotlin.math.max
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
@@ -203,9 +205,12 @@ fun PostDetailScreen(
     }
 
     
+    val aiToolsVm: AiToolsViewModel = hiltViewModel()
     var aiInputText by remember { mutableStateOf("") }
     var aiInputExpanded by remember { mutableStateOf(false) }
     var showAiConsentDialog by remember { mutableStateOf(false) }
+    var showAiToolsSheet by remember { mutableStateOf(false) }
+    var showSentenceSelectPanel by remember { mutableStateOf(false) }
     
     // Scroll behavior pro nested scrolling
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -252,7 +257,7 @@ fun PostDetailScreen(
                             isOffline = isOffline,
                             ttsManager = ttsManager,
                             onTts = {
-                                val plainText = TextUtils.extractPlainTextForTts(postDetail?.content ?: "")
+                                val plainText = TextUtils.extractPlainTextForTts(postDetail?.activeContent ?: "")
                                 if (plainText.isNotEmpty()) {
                                     ttsViewModel.speak(plainText)
                                 }
@@ -278,6 +283,7 @@ fun PostDetailScreen(
                                     context.startActivity(shareIntent)
                                 }
                             },
+                            onAiToolsClick = { showAiToolsSheet = true },
                             onBack = { navController.popBackStack() }
                         )
                     }
@@ -557,6 +563,34 @@ fun PostDetailScreen(
                         Text("Zrušit")
                     }
                 }
+            )
+        }
+
+        // AI nástroje – bottom sheet
+        if (showAiToolsSheet) {
+            com.tobiso.tobisoappnative.components.AiToolsBottomSheet(
+                postId = postId,
+                onDismiss = { showAiToolsSheet = false },
+                onEnterSentenceSelectMode = {
+                    showAiToolsSheet = false
+                    aiToolsVm.clearExplain()
+                    showSentenceSelectPanel = true
+                },
+                vm = aiToolsVm
+            )
+        }
+
+        // Sentence select panel – non-modal, anchored at bottom
+        if (showSentenceSelectPanel) {
+            SentenceSelectPanel(
+                postContent = postDetail?.activeContent,
+                vm = aiToolsVm,
+                postId = postId,
+                onDismiss = {
+                    showSentenceSelectPanel = false
+                    aiToolsVm.clearExplain()
+                },
+                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
             )
         }
 

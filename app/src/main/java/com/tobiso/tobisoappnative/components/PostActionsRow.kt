@@ -1,6 +1,7 @@
 package com.tobiso.tobisoappnative.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,9 +24,20 @@ fun PostActionsRow(
     onToggleFavorite: () -> Unit,
     onDownloadClick: () -> Unit,
     onShareClick: () -> Unit,
+    onAiToolsClick: () -> Unit,
     onBack: () -> Unit
 ) {
     MultiplierIndicator()
+
+    if (!isOffline) {
+        IconButton(onClick = onAiToolsClick) {
+            Icon(
+                imageVector = Icons.Filled.AutoAwesome,
+                contentDescription = "AI nástroje",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
 
     if (postDetail?.content != null) {
         IconButton(onClick = onTts) {

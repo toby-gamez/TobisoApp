@@ -110,4 +110,47 @@ interface ApiService {
         @retrofit2.http.Header("X-Device-Id") deviceId: String,
         @Body request: AddAiCreditsRequest
     ): AddAiCreditsResponse
+
+    // AI tools endpoints
+    @POST("ai/flashcards")
+    suspend fun generateFlashcards(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: FlashcardRequest
+    ): FlashcardResponse
+
+    @GET("ai/real-world/{postId}")
+    suspend fun getRealWorldApplications(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): RealWorldResponse
+
+    @POST("ai/what-if")
+    suspend fun getWhatIfScenario(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: WhatIfRequest
+    ): WhatIfResponse
+
+    @POST("ai/evaluate-comprehension")
+    suspend fun evaluateComprehension(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: EvaluateComprehensionRequest
+    ): EvaluateComprehensionResponse
+
+    @POST("ai/explain-sentence")
+    suspend fun explainSentence(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: ExplainSentenceRequest
+    ): ExplainSentenceResponse
+
+    @POST("ai/practice-problems")
+    suspend fun generatePracticeProblems(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: PracticeProblemRequest
+    ): PracticeProblemResponse
 }

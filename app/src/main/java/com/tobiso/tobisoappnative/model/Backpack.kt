@@ -15,5 +15,6 @@ enum class BackpackCategory(val displayName: String) {
     PETS("Zvířátka"),
     POWER_UPS("Power-upy"),
     STREAK_ITEMS("Řada"),
-    PROFILE_THEMES("Motivy")
+    PROFILE_THEMES("Motivy"),
+    TROPHIES("Trofeje")
 }

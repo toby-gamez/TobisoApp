@@ -8,7 +8,8 @@ enum class ShopCategory(val displayName: String) {
     SUBJECTS("Balíčky ikon"),
     POWER_UPS("Power-upy"),
     PETS("Zvířátka"),
-    PROFILE("Profil")
+    PROFILE("Profil"),
+    EXCLUSIVE("Exkluzivní") // only from mystery box, hidden in shop
 }
 
 // Typ itemu v obchodě
@@ -21,7 +22,8 @@ enum class ShopItemType {
     PET,
     AI_CREDIT,
     MYSTERY_BOX,
-    PROFILE_THEME
+    PROFILE_THEME,
+    TROPHY
 }
 
 // Typ balíčku ikon

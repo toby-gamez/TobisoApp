@@ -7,6 +7,11 @@ object ShopData {
     /** ID itemu "Klasické ikony" – výchozí ikony, které jsou vždy dostupné zdarma. */
     const val CLASSIC_ICON_PACK_ID = 23
 
+    // Trophy IDs – only obtainable from the mystery box, never purchasable
+    const val BRONZE_TROPHY_ID = 200
+    const val SILVER_TROPHY_ID = 201
+    const val GOLD_TROPHY_ID = 202
+
     fun getShopItems(): List<ShopItem> {
         return listOf(
             // Streak kategorie
@@ -511,11 +516,40 @@ object ShopData {
             ShopItem(
                 id = 90,
                 name = "Tajemná krabice",
-                description = "Otevři a získej překvapení! Můžeš dostat body, zmražení řady nebo vzácný předmět.",
+                description = "Otevři a získej překvapení! Skryté šance na exkluzivní trofeje nebo legendární Zlatý den!",
                 price = 50,
                 category = ShopCategory.POWER_UPS,
                 type = ShopItemType.MYSTERY_BOX,
                 powerUpIcon = "🎁"
+            ),
+
+            // Exkluzivní trofeje – pouze z Tajemné krabice
+            ShopItem(
+                id = BRONZE_TROPHY_ID,
+                name = "Bronzová trofej",
+                description = "Exkluzivní předmět z Tajemné krabice. Nelze koupit – jen najít!",
+                price = 0,
+                category = ShopCategory.EXCLUSIVE,
+                type = ShopItemType.TROPHY,
+                powerUpIcon = "🥉"
+            ),
+            ShopItem(
+                id = SILVER_TROPHY_ID,
+                name = "Stříbrná trofej",
+                description = "Vzácný exkluzivní předmět z Tajemné krabice. Jen málokdo ji vlastní!",
+                price = 0,
+                category = ShopCategory.EXCLUSIVE,
+                type = ShopItemType.TROPHY,
+                powerUpIcon = "🥈"
+            ),
+            ShopItem(
+                id = GOLD_TROPHY_ID,
+                name = "Zlatá trofej",
+                description = "Legendární exkluzivní předmět z Tajemné krabice. Extrémně vzácná – máš neuvěřitelné štěstí!",
+                price = 0,
+                category = ShopCategory.EXCLUSIVE,
+                type = ShopItemType.TROPHY,
+                powerUpIcon = "🏆"
             ),
 
             // Profilové motivy

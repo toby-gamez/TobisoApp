@@ -141,18 +141,28 @@ class ShopManager private constructor(context: Context) : IShopManager {
         _lastMysteryBoxReward.value = null
     }
 
+    private fun awardTrophy(trophyId: Int): Boolean {
+        if (isItemPurchased(trophyId)) return false
+        val currentItems = _purchasedItems.value.toMutableSet()
+        currentItems.add(trophyId)
+        _purchasedItems.update { currentItems }
+        savePurchasedItem(trophyId)
+        BackpackManager.instance.refreshItems()
+        return true
+    }
+
     private fun rollMysteryBoxReward() {
         val roll = Random.nextInt(100)
         val rewardText: String = when {
-            roll < 30 -> {
+            roll < 29 -> {
                 PointsManager.instance.addPoints(30)
                 "Získal/a jsi 30 bodů! 🌟"
             }
-            roll < 50 -> {
+            roll < 47 -> {
                 PointsManager.instance.addPoints(50)
                 "Získal/a jsi 50 bodů! ⭐"
             }
-            roll < 65 -> {
+            roll < 61 -> {
                 val added = StreakFreezeManager.instance.addStreakFreeze()
                 if (added) "Získal/a jsi Zmražení řady! 🛡️"
                 else {
@@ -160,15 +170,15 @@ class ShopManager private constructor(context: Context) : IShopManager {
                     "Získal/a jsi 30 bodů! 🌟"
                 }
             }
-            roll < 75 -> {
+            roll < 71 -> {
                 PointsManager.instance.addPoints(75)
                 "Získal/a jsi 75 bodů! 💫"
             }
-            roll < 83 -> {
+            roll < 79 -> {
                 PointsManager.instance.addPoints(100)
                 "Získal/a jsi 100 bodů! 🎉"
             }
-            roll < 93 -> {
+            roll < 88 -> {
                 val added = StreakFreezeManager.instance.addStreakFreeze()
                 if (added) "Získal/a jsi Zmražení řady! 🛡️"
                 else {
@@ -176,27 +186,48 @@ class ShopManager private constructor(context: Context) : IShopManager {
                     "Získal/a jsi 50 bodů! ⭐"
                 }
             }
-            roll < 98 -> {
+            roll < 92 -> {
                 PointsManager.instance.addPoints(150)
                 "Získal/a jsi 150 bodů! 🎊"
             }
-            else -> {
-                val ownedPets = _purchasedItems.value.let { ids ->
-                    ShopData.getShopItems().filter { it.type == ShopItemType.PET && ids.contains(it.id) }
+            roll < 95 -> {
+                // Bronze trophy (3%) – fallback to points if already owned
+                if (awardTrophy(ShopData.BRONZE_TROPHY_ID))
+                    "Bronzová trofej! 🥉 Exkluzivní předmět z Tajemné krabice!"
+                else {
+                    PointsManager.instance.addPoints(50)
+                    "Získal/a jsi 50 bodů! ⭐"
                 }
-                val availablePets = ShopData.getShopItems()
-                    .filter { it.type == ShopItemType.PET && !ownedPets.any { p -> p.id == it.id } }
-                if (availablePets.isNotEmpty()) {
-                    val randomPet = availablePets.random()
-                    val currentItems = _purchasedItems.value.toMutableSet()
-                    currentItems.add(randomPet.id)
-                    _purchasedItems.update { currentItems }
-                    savePurchasedItem(randomPet.id)
-                    BackpackManager.instance.refreshItems()
-                    "Získal/a jsi vzácný mazlíček ${randomPet.name}! 🎁"
+            }
+            roll < 97 -> {
+                // Silver trophy (2%) – fallback to points if already owned
+                if (awardTrophy(ShopData.SILVER_TROPHY_ID))
+                    "Stříbrná trofej! 🥈 Vzácný exkluzivní předmět z Tajemné krabice!"
+                else {
+                    PointsManager.instance.addPoints(75)
+                    "Získal/a jsi 75 bodů! 💫"
+                }
+            }
+            roll < 98 -> {
+                // Golden Day (1%)
+                PointsManager.instance.activateMultiplier(2.0f, 24 * 60)
+                "Zlatý den! Získáváš 2x body po celých 24 hodin! ✨"
+            }
+            else -> {
+                // Gold trophy (1%) – fallback to random pet, then points
+                if (awardTrophy(ShopData.GOLD_TROPHY_ID)) {
+                    "ZLATÁ TROFEJ! 🏆 Legendární exkluzivní předmět z Tajemné krabice!"
                 } else {
-                    PointsManager.instance.addPoints(100)
-                    "Získal/a jsi 100 bodů! 🎉"
+                    val availablePets = ShopData.getShopItems()
+                        .filter { it.type == ShopItemType.PET && !isItemPurchased(it.id) }
+                    if (availablePets.isNotEmpty()) {
+                        val randomPet = availablePets.random()
+                        awardTrophy(randomPet.id)
+                        "Získal/a jsi vzácný mazlíček ${randomPet.name}! 🎁"
+                    } else {
+                        PointsManager.instance.addPoints(100)
+                        "Získal/a jsi 100 bodů! 🎉"
+                    }
                 }
             }
         }
