@@ -12,7 +12,6 @@ import com.tobiso.tobisoappnative.navigation.AboutRoute
 import com.tobiso.tobisoappnative.navigation.ChangelogRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -64,6 +63,10 @@ import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.BackpackManager
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
+import com.tobiso.tobisoappnative.components.PrestigeAvatarBorder
+import com.tobiso.tobisoappnative.components.PrestigeHeroOverlay
+import com.tobiso.tobisoappnative.components.getPrestigeTier
+import com.tobiso.tobisoappnative.components.formatPointsBalance
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import com.tobiso.tobisoappnative.components.ImageCropperDialog
@@ -78,6 +81,9 @@ import com.tobiso.tobisoappnative.utils.loadGradeId
 import com.tobiso.tobisoappnative.utils.saveGradeId
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import com.tobiso.tobisoappnative.BuildConfig
 
 // Image copying moved to ProfileViewModel to avoid IO on UI thread.
 
@@ -112,7 +118,7 @@ fun ProfileScreen(navController: NavController) {
                     MultiplierIndicator()
                     
                     // Zobrazení bodů s novým designem
-                    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
+                    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -132,7 +138,7 @@ fun ProfileScreen(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = totalPoints.toString(),
+                            text = formatPointsBalance(totalPointsFloat),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
@@ -280,6 +286,10 @@ fun ProfileScreen(navController: NavController) {
                                 onClick = { navController.navigate(ChangelogRoute) }
                             )
                         }
+                    }
+
+                    if (BuildConfig.DEBUG) {
+                        item { DebugAddPointsSection() }
                     }
 
                     if (filteredPosts.isNotEmpty()) {
@@ -458,7 +468,7 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
     var tempImageForCropping by remember { mutableStateOf<String?>(null) }
     val vm: ProfileViewModel = hiltViewModel()
     val copiedImagePath by vm.copiedImagePath.collectAsState()
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
 
     LaunchedEffect(copiedImagePath) {
         copiedImagePath?.let { path ->
@@ -484,6 +494,9 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
     ) { uri: Uri? ->
         uri?.let { vm.copyImageToInternalStorage(it) }
     }
+
+    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsState()
+    val prestigeTier = remember(totalEarnedPoints) { getPrestigeTier(totalEarnedPoints) }
 
     val equippedTheme by BackpackManager.instance.equippedTheme.collectAsState()
     val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
@@ -513,6 +526,9 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                         .height(110.dp)
                         .background(heroBrush)
                 ) {
+                    // Prestige shimmer + particles overlay
+                    PrestigeHeroOverlay(tier = prestigeTier)
+
                     // Theme badge – top right
                     equippedTheme?.let { theme ->
                         Row(
@@ -564,13 +580,12 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                     // Spacer: 110 dp gradient − 40 dp (half of 80 dp avatar) = 70 dp
                     Spacer(Modifier.height(70.dp))
 
-                    // Avatar
-                    Box(modifier = Modifier.size(80.dp)) {
+                    // Avatar with prestige border
+                    val surfaceColor = MaterialTheme.colorScheme.surface
+                    PrestigeAvatarBorder(tier = prestigeTier, surfaceColor = surfaceColor) {
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
-                                .border(3.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                                .padding(3.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primaryContainer)
                                 .clickable { showFullscreenImage = true },
@@ -696,7 +711,7 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                                 )
                                 Spacer(Modifier.width(6.dp))
                                 Text(
-                                    text = "$totalPoints bodů",
+                                    text = "${formatPointsBalance(totalPointsFloat)} bodů",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -1439,6 +1454,50 @@ private fun ProfileNavGroup(content: @Composable () -> Unit) {
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column { content() }
+    }
+}
+
+@Composable
+private fun DebugAddPointsSection() {
+    var input by remember { mutableStateOf("") }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "DEBUG",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it.filter { c -> c.isDigit() } },
+                    label = { Text("Body") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f)
+                )
+                Button(onClick = {
+                    val n = input.toIntOrNull() ?: return@Button
+                    PointsManager.instance.addPoints(n)
+                    input = ""
+                }) {
+                    Text("Přidat")
+                }
+            }
+        }
     }
 }
 

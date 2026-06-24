@@ -22,11 +22,20 @@ class PointsManager private constructor(context: Context) : IPointsManager {
     private val _totalPoints = MutableStateFlow(0)
     override val totalPoints: StateFlow<Int> = _totalPoints
 
+    private val _totalPointsFloat = MutableStateFlow(0f)
+    override val totalPointsFloat: StateFlow<Float> = _totalPointsFloat
+
     private val _lastMilestone = MutableStateFlow<Int?>(null)
     override val lastMilestone: StateFlow<Int?> = _lastMilestone
 
     private val _lastAchievement = MutableStateFlow<Int?>(null)
     override val lastAchievement: StateFlow<Int?> = _lastAchievement
+
+    private val _lastPrestigeTierPoints = MutableStateFlow<Int?>(null)
+    override val lastPrestigeTierPoints: StateFlow<Int?> = _lastPrestigeTierPoints
+
+    private val _lastPointsReset = MutableStateFlow<Int?>(null)
+    override val lastPointsReset: StateFlow<Int?> = _lastPointsReset
 
     private val _activeMultiplier = MutableStateFlow(1.0f)
     override val activeMultiplier: StateFlow<Float> = _activeMultiplier
@@ -52,6 +61,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
             prefs.edit().putInt(KEY_TOTAL_EARNED_POINTS, totalEarnedPointsValue).apply()
         }
         _totalPoints.update { pointsFloat.toInt() }
+        _totalPointsFloat.update { pointsFloat }
         _totalEarnedPoints.update { totalEarnedPointsValue }
         checkActiveMultiplier()
     }
@@ -61,39 +71,64 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         val deflated = applyDeflation(amount) * _activeMultiplier.value
         pointsFloat += deflated
         totalEarnedPointsValue += deflated.toInt()
-        _lastAddedPoints.update { deflated.toInt() }
+        // Emit raw amount so the overlay always fires and shows the actual question reward
+        _lastAddedPoints.update { amount }
         _totalEarnedPoints.update { totalEarnedPointsValue }
         saveTotalEarnedPoints()
         checkAndResetIfOverLimit()
         checkPointsAchievements(appContext)
+        checkPrestigeTierCrossing()
     }
 
     override fun addPointsForMilestone(amount: Int, milestoneDay: Int) {
         val deflated = applyDeflation(amount)
         pointsFloat += deflated
         totalEarnedPointsValue += deflated.toInt()
-        _lastAddedPoints.update { deflated.toInt() }
+        _lastAddedPoints.update { amount }
         _lastMilestone.update { milestoneDay }
         _totalEarnedPoints.update { totalEarnedPointsValue }
         saveTotalEarnedPoints()
         checkAndResetIfOverLimit()
+        checkPrestigeTierCrossing()
     }
 
     override fun addPointsForAchievement(amount: Int, achievementPoints: Int) {
         val deflated = applyDeflation(amount)
         pointsFloat += deflated
         totalEarnedPointsValue += deflated.toInt()
-        _lastAddedPoints.update { deflated.toInt() }
+        _lastAddedPoints.update { amount }
         _lastAchievement.update { achievementPoints }
         _totalEarnedPoints.update { totalEarnedPointsValue }
         saveTotalEarnedPoints()
         checkAndResetIfOverLimit()
+        checkPrestigeTierCrossing()
     }
 
     override fun resetLastAddedPoints() {
         _lastAddedPoints.update { 0 }
         _lastMilestone.update { null }
         _lastAchievement.update { null }
+    }
+
+    override fun resetLastPrestigeTier() {
+        _lastPrestigeTierPoints.update { null }
+    }
+
+    override fun resetLastPointsReset() {
+        _lastPointsReset.update { null }
+    }
+
+    private fun checkPrestigeTierCrossing() {
+        val highestShown = prefs.getInt(KEY_HIGHEST_PRESTIGE_SHOWN, 0)
+        val newThreshold = PRESTIGE_THRESHOLDS.lastOrNull { totalEarnedPointsValue >= it } ?: return
+        if (newThreshold > highestShown) {
+            prefs.edit().putInt(KEY_HIGHEST_PRESTIGE_SHOWN, newThreshold).apply()
+            _lastPrestigeTierPoints.update { newThreshold }
+            pointsFloat /= 10f
+            _totalPoints.update { pointsFloat.toInt() }
+            _totalPointsFloat.update { pointsFloat }
+            savePoints()
+        }
     }
 
     override fun getPoints(): Int = pointsFloat.toInt()
@@ -104,6 +139,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         if (pointsFloat < amount) return false
         pointsFloat -= amount
         _totalPoints.update { pointsFloat.toInt() }
+        _totalPointsFloat.update { pointsFloat }
         savePoints()
         return true
     }
@@ -142,8 +178,10 @@ class PointsManager private constructor(context: Context) : IPointsManager {
             deflationDivisor *= 10
             savePoints()
             saveDeflationDivisor()
+            _lastPointsReset.update { deflationDivisor }
         }
         _totalPoints.update { pointsFloat.toInt() }
+        _totalPointsFloat.update { pointsFloat }
         savePoints()
     }
 
@@ -178,6 +216,9 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         private const val KEY_MULTIPLIER = "active_multiplier"
         private const val KEY_MULTIPLIER_END = "multiplier_end_time"
         private const val KEY_DEFLATION_DIVISOR = "deflation_divisor"
+        private const val KEY_HIGHEST_PRESTIGE_SHOWN = "highest_prestige_shown"
+
+        private val PRESTIGE_THRESHOLDS = listOf(1_000, 5_000, 10_000, 25_000, 50_000, 100_000)
 
         lateinit var instance: PointsManager
             private set

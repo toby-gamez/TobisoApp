@@ -42,6 +42,7 @@ import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.tobiso.tobisoappnative.components.AddEditEventDialog
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
+import com.tobiso.tobisoappnative.components.formatPointsBalance
 import kotlinx.coroutines.delay
 import android.content.Context
 import android.os.Build
@@ -84,7 +85,7 @@ fun CalendarScreen(
     
     // States pro TopAppBar
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
     val context = LocalContext.current
 
     // Stavy pro dialog přidání/úpravy eventu
@@ -254,7 +255,7 @@ fun CalendarScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = totalPoints.toString(),
+                            text = formatPointsBalance(totalPointsFloat),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp

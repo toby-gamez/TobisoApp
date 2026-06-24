@@ -1,6 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
+import com.tobiso.tobisoappnative.components.formatPointsBalance
 import timber.log.Timber
 
 import androidx.compose.foundation.background
@@ -38,6 +39,7 @@ import com.tobiso.tobisoappnative.StreakFreezeManager
 import com.tobiso.tobisoappnative.data.ShopData
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.components.MysteryBoxOpeningOverlay
+import com.tobiso.tobisoappnative.components.formatPointsBalance
 import com.tobiso.tobisoappnative.model.*
 import com.tobiso.tobisoappnative.IconPackManager
 import com.tobiso.tobisoappnative.viewmodel.shop.ShopViewModel
@@ -52,6 +54,7 @@ fun ShopScreen(
     vm: ShopViewModel = hiltViewModel()
 ) {
     val totalPoints by PointsManager.instance.totalPoints.collectAsState()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
     val purchasedItemIds by ShopManager.instance.purchasedItems.collectAsState()
     val activeMultiplier by PointsManager.instance.activeMultiplier.collectAsState()
     val availableFreezes by StreakFreezeManager.instance.availableFreezes.collectAsState()
@@ -139,7 +142,7 @@ fun ShopScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = totalPoints.toString(),
+                        text = formatPointsBalance(totalPointsFloat),
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp

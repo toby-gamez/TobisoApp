@@ -33,7 +33,6 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.QuestionProgressManager
-import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
 import com.tobiso.tobisoappnative.components.CustomNumericKeyboard
 import com.tobiso.tobisoappnative.utils.normalizeText
 
@@ -60,16 +59,11 @@ fun QuestionsScreen(
     var showResults by rememberSaveable { mutableStateOf(false) }
     var quizStarted by rememberSaveable { mutableStateOf(false) }
     var pointsAwarded by rememberSaveable { mutableStateOf(false) }
-    var showPointsOverlay by rememberSaveable { mutableStateOf(false) }
-    var awardedPoints by rememberSaveable { mutableStateOf(0) }
     var shuffledQuestions by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
     // shuffledAnswerIndices[displayQuestionIdx] = list of original answer indices in shuffled display order
     var shuffledAnswerIndices by rememberSaveable { mutableStateOf<Map<Int, List<Int>>>(emptyMap()) }
     
     val context = LocalContext.current
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
-
-    
     
     // Načtení dat při startu (nyní funguje v online i offline režimu)
     val isOffline by vm.isOffline.collectAsState()
@@ -118,9 +112,7 @@ fun QuestionsScreen(
         if (showResults && !pointsAwarded && scorePercentage > 0) {
             val points = scorePercentage / 10
             PointsManager.instance.addPoints(points)
-            awardedPoints = points
             pointsAwarded = true
-            showPointsOverlay = true
             val results = shuffledQuestions.mapIndexed { displayIndex, origIndex ->
                 val q = questions[origIndex]
                 val isCorrect = when {
@@ -132,14 +124,6 @@ fun QuestionsScreen(
                 q.id to isCorrect
             }.toMap()
             QuestionProgressManager.instance.recordResults(results)
-        }
-    }
-    
-    // Skrytí overlay po čase
-    LaunchedEffect(showPointsOverlay) {
-        if (showPointsOverlay) {
-            kotlinx.coroutines.delay(2500) // Stejná doba jako v overlay komponentě
-            showPointsOverlay = false
         }
     }
     
@@ -185,8 +169,6 @@ fun QuestionsScreen(
                             showResults = false
                             quizStarted = false
                             pointsAwarded = false
-                            showPointsOverlay = false
-                            awardedPoints = 0
                             val newShuffledQ = questions.indices.shuffled()
                             shuffledQuestions = newShuffledQ
                             shuffledAnswerIndices = newShuffledQ.indices.associateWith { displayIdx ->
@@ -869,12 +851,5 @@ fun QuestionsScreen(
                 }
             }
         
-        // Zobrazení points overlay
-        if (showPointsOverlay && awardedPoints > 0) {
-            FullScreenPointsOverlay(
-                points = awardedPoints,
-                totalPoints = totalPoints
-            )
-        }
     }
 }

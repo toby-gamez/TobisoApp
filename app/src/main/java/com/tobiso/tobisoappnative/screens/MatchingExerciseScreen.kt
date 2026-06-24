@@ -23,7 +23,6 @@ import com.tobiso.tobisoappnative.model.*
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.components.ContentRenderer
 import com.tobiso.tobisoappnative.components.ExerciseLoadingContent
-import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -40,10 +39,7 @@ fun MatchingExerciseScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val context = LocalContext.current
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
     var pointsAwarded by rememberSaveable { mutableStateOf(false) }
-    var showPointsOverlay by rememberSaveable { mutableStateOf(false) }
-    var awardedPoints by rememberSaveable { mutableStateOf(0) }
 
     LaunchedEffect(state.showResult) {
         if (state.showResult && !pointsAwarded) {
@@ -51,17 +47,8 @@ fun MatchingExerciseScreen(
             if (score > 0) {
                 val points = score / 10
                 PointsManager.instance.addPoints(points)
-                awardedPoints = points
                 pointsAwarded = true
-                showPointsOverlay = true
             }
-        }
-    }
-
-    LaunchedEffect(showPointsOverlay) {
-        if (showPointsOverlay) {
-            kotlinx.coroutines.delay(2500)
-            showPointsOverlay = false
         }
     }
 
@@ -354,11 +341,5 @@ fun MatchingExerciseScreen(
         }
     }
 
-    if (showPointsOverlay && awardedPoints > 0) {
-        FullScreenPointsOverlay(
-            points = awardedPoints,
-            totalPoints = totalPoints
-        )
-    }
     } // Box
 }

@@ -55,6 +55,7 @@ import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.IconPackManager
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
+import com.tobiso.tobisoappnative.components.formatPointsBalance
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -190,7 +191,7 @@ fun HomeScreen(navController: NavHostController) {
         vm.onIntent(HomeIntent.Load)
     }
     
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
     val offlineDownloading = state.offlineDownloading
     val offlineProgress = state.offlineDownloadProgress
     val snackbarHostState = remember { SnackbarHostState() }
@@ -267,7 +268,7 @@ fun HomeScreen(navController: NavHostController) {
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = totalPoints.toString(),
+                            text = formatPointsBalance(totalPointsFloat),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp

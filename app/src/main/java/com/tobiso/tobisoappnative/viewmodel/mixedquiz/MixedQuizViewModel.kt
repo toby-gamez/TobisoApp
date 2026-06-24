@@ -32,7 +32,6 @@ class MixedQuizViewModel @Inject constructor(
         MixedQuizIntent.PreviousQuestion -> previousQuestion()
         MixedQuizIntent.FinishQuiz -> finishQuiz()
         MixedQuizIntent.RestartQuiz -> restartQuiz()
-        MixedQuizIntent.DismissPointsOverlay -> setState { copy(showPointsOverlay = false) }
     }
 
     private fun load(questionIdsCsv: String) {
@@ -89,9 +88,7 @@ class MixedQuizViewModel @Inject constructor(
                 selectedAnswers = emptyMap(),
                 textAnswers = emptyMap(),
                 showResults = false,
-                pointsAwarded = false,
-                showPointsOverlay = false,
-                awardedPoints = 0
+                pointsAwarded = false
             )
         }
     }
@@ -152,7 +149,7 @@ class MixedQuizViewModel @Inject constructor(
         }.filterNotNull().toMap()
         QuestionProgressManager.instance.recordResults(progressResults)
 
-        setState { copy(showResults = true, pointsAwarded = true, awardedPoints = points, showPointsOverlay = points > 0) }
+        setState { copy(showResults = true, pointsAwarded = true) }
     }
 
     private fun restartQuiz() {
@@ -164,9 +161,7 @@ class MixedQuizViewModel @Inject constructor(
                 selectedAnswers = emptyMap(),
                 textAnswers = emptyMap(),
                 showResults = false,
-                pointsAwarded = false,
-                showPointsOverlay = false,
-                awardedPoints = 0
+                pointsAwarded = false
             )
         }
     }

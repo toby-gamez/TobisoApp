@@ -21,9 +21,7 @@ data class MixedQuizState(
     val selectedAnswers: Map<Int, Int> = emptyMap(),
     val textAnswers: Map<Int, String> = emptyMap(),
     val showResults: Boolean = false,
-    val pointsAwarded: Boolean = false,
-    val showPointsOverlay: Boolean = false,
-    val awardedPoints: Int = 0
+    val pointsAwarded: Boolean = false
 ) : UiState
 
 sealed interface MixedQuizIntent : UiIntent {
@@ -36,7 +34,6 @@ sealed interface MixedQuizIntent : UiIntent {
     object PreviousQuestion : MixedQuizIntent
     object FinishQuiz : MixedQuizIntent
     object RestartQuiz : MixedQuizIntent
-    object DismissPointsOverlay : MixedQuizIntent
 }
 
 sealed interface MixedQuizEffect : UiEffect {

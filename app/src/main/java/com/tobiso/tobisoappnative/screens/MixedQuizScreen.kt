@@ -24,8 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.tobiso.tobisoappnative.PointsManager
-import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
 import com.tobiso.tobisoappnative.components.CustomNumericKeyboard
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.utils.normalizeText
@@ -41,7 +39,6 @@ fun MixedQuizScreen(
 ) {
     val vm: MixedQuizViewModel = hiltViewModel()
     val state by vm.uiState.collectAsState()
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
 
     LaunchedEffect(questionIds) {
         vm.onIntent(MixedQuizIntent.Load(questionIds))
@@ -557,15 +554,5 @@ fun MixedQuizScreen(
                 }
             }
 
-        if (state.showPointsOverlay) {
-            FullScreenPointsOverlay(
-                points = state.awardedPoints,
-                totalPoints = totalPoints
-            )
-            LaunchedEffect(state.showPointsOverlay) {
-                kotlinx.coroutines.delay(2500)
-                vm.onIntent(MixedQuizIntent.DismissPointsOverlay)
-            }
-        }
     }
 }

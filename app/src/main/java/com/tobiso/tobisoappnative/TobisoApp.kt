@@ -81,6 +81,10 @@ import com.tobiso.tobisoappnative.components.FullScreenPointsOverlay
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.tobiso.tobisoappnative.components.FullScreenMilestoneOverlay
 import com.tobiso.tobisoappnative.components.FullScreenAchievementOverlay
+import com.tobiso.tobisoappnative.components.FullScreenPrestigeTierOverlay
+import com.tobiso.tobisoappnative.components.FullScreenPointsResetOverlay
+import com.tobiso.tobisoappnative.components.PrestigeTier
+import com.tobiso.tobisoappnative.components.getPrestigeTier
 import androidx.compose.runtime.rememberCoroutineScope
 import com.tobiso.tobisoappnative.components.TtsPlayer
 import com.tobiso.tobisoappnative.screens.StreakScreen
@@ -105,13 +109,19 @@ fun TobisoApp(navigateTo: String? = null) {
     val lastAddedPoints by PointsManager.instance.lastAddedPoints.collectAsState()
     val lastMilestone by PointsManager.instance.lastMilestone.collectAsState()
     val lastAchievement by PointsManager.instance.lastAchievement.collectAsState()
+    val lastPrestigeTierPoints by PointsManager.instance.lastPrestigeTierPoints.collectAsState()
+    val lastPointsReset by PointsManager.instance.lastPointsReset.collectAsState()
     var showOverlay by remember { mutableStateOf(false) }
     var overlayPoints by remember { mutableStateOf(0) }
     var showTotalOverlay by remember { mutableStateOf(false) }
     var showMilestoneOverlay by remember { mutableStateOf(false) }
     var showAchievementOverlay by remember { mutableStateOf(false) }
+    var showPrestigeOverlay by remember { mutableStateOf(false) }
+    var showResetOverlay by remember { mutableStateOf(false) }
+    var resetDeflationDivisor by remember { mutableStateOf(10) }
     var milestoneDay by remember { mutableStateOf(0) }
     var achievementPoints by remember { mutableStateOf(0) }
+    var prestigeTierForOverlay by remember { mutableStateOf(PrestigeTier.NONE) }
     val coroutineScope = rememberCoroutineScope()
 
     // callback pro ruční obnovu
@@ -142,7 +152,8 @@ fun TobisoApp(navigateTo: String? = null) {
         StreakMilestoneManager.checkStreakMilestones(context)
         checkPointsAchievements(context)
     }
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
+    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsState()
 
     // Funkce pro zobrazení pouze celkového počtu bodů
     fun showTotalPointsOverlay() {
@@ -173,6 +184,28 @@ fun TobisoApp(navigateTo: String? = null) {
         delay(3000)
         showAchievementOverlay = false
         PointsManager.instance.resetLastAddedPoints()
+    }
+
+    // LaunchedEffect pro reset bodů (absolutní nejvyšší priorita)
+    LaunchedEffect(lastPointsReset) {
+        val divisor = lastPointsReset ?: return@LaunchedEffect
+        resetDeflationDivisor = divisor
+        showResetOverlay = true
+        delay(5200)
+        showResetOverlay = false
+        PointsManager.instance.resetLastPointsReset()
+    }
+
+    // LaunchedEffect pro prestige tier overlay (nejvyšší priorita)
+    LaunchedEffect(lastPrestigeTierPoints) {
+        val threshold = lastPrestigeTierPoints ?: return@LaunchedEffect
+        val tier = getPrestigeTier(threshold)
+        if (tier == PrestigeTier.NONE) return@LaunchedEffect
+        prestigeTierForOverlay = tier
+        showPrestigeOverlay = true
+        delay(5000)
+        showPrestigeOverlay = false
+        PointsManager.instance.resetLastPrestigeTier()
     }
 
     // LaunchedEffect pro běžný overlay (body s přičítáním)
@@ -539,26 +572,33 @@ fun TobisoApp(navigateTo: String? = null) {
                     }
                 }
 
-                // Overlays pro body, milníky a achievementy
-                if (showMilestoneOverlay) {
+                // Overlays pro body, milníky, achievementy, prestiž a reset
+                if (showResetOverlay) {
+                    FullScreenPointsResetOverlay(newDeflationDivisor = resetDeflationDivisor)
+                } else if (showPrestigeOverlay) {
+                    FullScreenPrestigeTierOverlay(
+                        tier = prestigeTierForOverlay,
+                        totalEarnedPoints = totalEarnedPoints
+                    )
+                } else if (showMilestoneOverlay) {
                     FullScreenMilestoneOverlay(
                         points = overlayPoints,
-                        totalPoints = totalPoints,
+                        totalPointsFloat = totalPointsFloat,
                         milestoneDay = milestoneDay
                     )
                 } else if (showAchievementOverlay) {
                     FullScreenAchievementOverlay(
                         points = overlayPoints,
-                        totalPoints = totalPoints,
+                        totalPointsFloat = totalPointsFloat,
                         achievementPoints = achievementPoints
                     )
                 } else if (showOverlay) {
                     FullScreenPointsOverlay(
                         points = overlayPoints,
-                        totalPoints = totalPoints
+                        totalPointsFloat = totalPointsFloat
                     )
                 } else if (showTotalOverlay) {
-                    FullScreenTotalPointsOverlay(totalPoints = totalPoints)
+                    FullScreenTotalPointsOverlay(totalPointsFloat = totalPointsFloat)
                 }
             }
         }

@@ -33,6 +33,7 @@ import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.QuestionProgressManager
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
+import com.tobiso.tobisoappnative.components.formatPointsBalance
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
@@ -96,7 +97,7 @@ fun AllQuestionsScreen(navController: NavController) {
                     actions = {
                         MultiplierIndicator()
 
-                        val totalPoints by PointsManager.instance.totalPoints.collectAsState()
+                        val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -116,7 +117,7 @@ fun AllQuestionsScreen(navController: NavController) {
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = totalPoints.toString(),
+                                text = formatPointsBalance(totalPointsFloat),
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
