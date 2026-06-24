@@ -438,6 +438,15 @@ val defaultPetBubbles = listOf(
     "Pokračuj, jdeš skvěle! �"
 )
 
+fun formatCooldown(remainingMs: Long): String {
+    val totalMin = remainingMs / 60_000
+    return when {
+        totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
+        totalMin >= 60 -> "${totalMin / 60} h"
+        else -> "$totalMin min"
+    }
+}
+
 // Helper funkce pro správu bubliny
 fun shouldShowBubble(context: android.content.Context): Boolean {
     val prefs = context.getSharedPreferences("PetBubblePrefs", android.content.Context.MODE_PRIVATE)
@@ -960,6 +969,11 @@ fun PetCareSection() {
     var petHealth by remember { mutableStateOf(PetHealth.ALIVE) }
     var stage by remember { mutableStateOf(GrowthStage.BABY) }
     var growthLevel by remember { mutableStateOf(0f) }
+    var tick by remember { mutableLongStateOf(0L) }
+
+    LaunchedEffect(Unit) {
+        while (true) { kotlinx.coroutines.delay(60_000); tick++ }
+    }
 
     LaunchedEffect(petId, refreshTrigger) {
         PetManager.checkPetStatus(petId)
@@ -969,6 +983,9 @@ fun PetCareSection() {
             growthLevel = PetManager.getGrowthLevel(petId)
         }
     }
+
+    val canFeed = remember(tick, refreshTrigger) { PetManager.canFeedPet(petId) }
+    val canWater = remember(tick, refreshTrigger) { PetManager.canWaterPet(petId) }
 
     Card(
         modifier = Modifier
@@ -1084,10 +1101,6 @@ fun PetCareSection() {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Feed/Water buttons with cooldown check
-                val canFeed = PetManager.canFeedPet(petId)
-                val canWater = PetManager.canWaterPet(petId)
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1098,20 +1111,14 @@ fun PetCareSection() {
                             if (PetManager.feedPet(petId)) {
                                 refreshTrigger++
                             } else if (!canFeed) {
-                                val remaining = PetManager.getTimeUntilNextFeed(petId)
-                                val totalMin = remaining / 60_000
-                                val timeText = when {
-                                    totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
-                                    totalMin >= 60 -> "${totalMin / 60} h"
-                                    else -> "${totalMin} min"
-                                }
+                                val timeText = formatCooldown(PetManager.getTimeUntilNextFeed(petId))
                                 android.widget.Toast.makeText(
                                     context, "Zvířátko má plné bříško, počkej $timeText",
                                     android.widget.Toast.LENGTH_SHORT
                                 ).show()
                             }
                         },
-                        enabled = foodCount > 0,
+                        enabled = foodCount > 0 && canFeed,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFFF9800),
@@ -1130,20 +1137,14 @@ fun PetCareSection() {
                             if (PetManager.waterPet(petId)) {
                                 refreshTrigger++
                             } else if (!canWater) {
-                                val remaining = PetManager.getTimeUntilNextWater(petId)
-                                val totalMin = remaining / 60_000
-                                val timeText = when {
-                                    totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
-                                    totalMin >= 60 -> "${totalMin / 60} h"
-                                    else -> "${totalMin} min"
-                                }
+                                val timeText = formatCooldown(PetManager.getTimeUntilNextWater(petId))
                                 android.widget.Toast.makeText(
                                     context, "Zvířátko není žíznivé, počkej $timeText",
                                     android.widget.Toast.LENGTH_SHORT
                                 ).show()
                             }
                         },
-                        enabled = waterCount > 0,
+                        enabled = waterCount > 0 && canWater,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF2196F3),
@@ -1165,29 +1166,15 @@ fun PetCareSection() {
                         horizontalArrangement = Arrangement.Center
                     ) {
                         if (!canFeed) {
-                            val remaining = PetManager.getTimeUntilNextFeed(petId)
-                            val totalMin = remaining / 60_000
-                            val timeText = when {
-                                totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
-                                totalMin >= 60 -> "${totalMin / 60} h"
-                                else -> "${totalMin} min"
-                            }
                             Text(
-                                text = "🍖 za $timeText • ",
+                                text = "🍖 za ${formatCooldown(PetManager.getTimeUntilNextFeed(petId))} • ",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         if (!canWater) {
-                            val remaining = PetManager.getTimeUntilNextWater(petId)
-                            val totalMin = remaining / 60_000
-                            val timeText = when {
-                                totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
-                                totalMin >= 60 -> "${totalMin / 60} h"
-                                else -> "${totalMin} min"
-                            }
                             Text(
-                                text = "💧 za $timeText",
+                                text = "💧 za ${formatCooldown(PetManager.getTimeUntilNextWater(petId))}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

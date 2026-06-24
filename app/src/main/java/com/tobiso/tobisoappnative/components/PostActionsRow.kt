@@ -39,7 +39,7 @@ fun PostActionsRow(
         }
     }
 
-    if (postDetail?.content != null) {
+    if (postDetail?.activeContent != null) {
         IconButton(onClick = onTts) {
             Icon(
                 imageVector = Icons.Filled.VolumeUp,

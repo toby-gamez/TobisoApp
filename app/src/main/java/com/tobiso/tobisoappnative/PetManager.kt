@@ -141,7 +141,7 @@ object PetManager : IPetManager {
     }
 
     override fun feedPet(petId: Int): Boolean {
-        if (isPetDead(petId)) return false
+        if (checkPetStatus(petId) != PetHealth.ALIVE) return false
         if (!canFeedPet(petId)) return false
         if (!useFood()) return false
         prefs.edit().putLong("${KEY_LAST_FED}$petId", System.currentTimeMillis()).apply()
@@ -149,7 +149,7 @@ object PetManager : IPetManager {
     }
 
     override fun waterPet(petId: Int): Boolean {
-        if (isPetDead(petId)) return false
+        if (checkPetStatus(petId) != PetHealth.ALIVE) return false
         if (!canWaterPet(petId)) return false
         if (!useWater()) return false
         prefs.edit().putLong("${KEY_LAST_WATERED}$petId", System.currentTimeMillis()).apply()

@@ -17,6 +17,8 @@ import com.tobiso.tobisoappnative.repository.FavoritesRepositoryImpl
 import com.tobiso.tobisoappnative.repository.PostsRepository
 import com.tobiso.tobisoappnative.tts.TtsManager
 import com.tobiso.tobisoappnative.components.ContentElement
+import com.tobiso.tobisoappnative.components.TocEntry
+import com.tobiso.tobisoappnative.components.extractToc
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.injectPersonMentionsIntoElements
 import com.tobiso.tobisoappnative.model.ApiClient
@@ -61,6 +63,9 @@ class PostDetailViewModel @Inject constructor(
     // Parsed content and derived UI strings (moved heavy work to ViewModel)
     private val _parsedContent = MutableStateFlow<List<ContentElement>>(emptyList())
     val parsedContent: StateFlow<List<ContentElement>> = _parsedContent
+
+    private val _tableOfContents = MutableStateFlow<List<TocEntry>>(emptyList())
+    val tableOfContents: StateFlow<List<TocEntry>> = _tableOfContents
 
     private val _wordCountText = MutableStateFlow<String?>(null)
     val wordCountText: StateFlow<String?> = _wordCountText
@@ -159,6 +164,7 @@ class PostDetailViewModel @Inject constructor(
                 emptyList()
             }
             _parsedContent.value = parsed
+            _tableOfContents.value = extractToc(parsed)
 
             _wordCountText.value = if (content.isBlank()) null else try {
                 val trimmed = content.trim()

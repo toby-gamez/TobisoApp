@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.remember
@@ -103,6 +104,7 @@ import com.tobiso.tobisoappnative.components.ElementRenderer
 import com.tobiso.tobisoappnative.components.PostActionsRow
 import com.tobiso.tobisoappnative.components.ExerciseButtonsRow
 import com.tobiso.tobisoappnative.components.RelatedPostsList
+import com.tobiso.tobisoappnative.components.TableOfContents
 import kotlinx.serialization.json.JsonNull.content
 import androidx.compose.foundation.text.selection.SelectionContainer
 
@@ -384,12 +386,16 @@ fun PostDetailScreen(
                             }
                         } else {
                             val contentElements by vm.parsedContent.collectAsState()
+                            val tableOfContents by vm.tableOfContents.collectAsState()
                             val wordCountText by vm.wordCountText.collectAsState()
                             val createdFormatted by vm.createdFormatted.collectAsState()
                             val updatedFormatted by vm.updatedFormatted.collectAsState()
 
+                            val lazyListState = remember { LazyListState() }
+
                             // Nový custom markdown renderer
                             LazyColumn(
+                                state = lazyListState,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(start = 16.dp, end = 16.dp)
@@ -413,6 +419,17 @@ fun PostDetailScreen(
                                             textAlign = TextAlign.End
                                         )
                                     }
+                                }
+                                item {
+                                    // item0=gradeBadge, item1=wordCount, item2=TOC → content starts at index 3
+                                    TableOfContents(
+                                        entries = tableOfContents,
+                                        onEntryClick = { entry ->
+                                            coroutineScope.launch {
+                                                lazyListState.animateScrollToItem(entry.elementIndex + 3)
+                                            }
+                                        }
+                                    )
                                 }
                                 // Render each content element as its own lazy item (virtualized)
                                 itemsIndexed(contentElements, key = { index, _ -> index }) { _, element ->

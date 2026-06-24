@@ -42,6 +42,30 @@ sealed class InlinePart {
     data class PersonMention(val name: String, val canonicalName: String = name) : InlinePart()
 }
 
+data class TocEntry(val text: String, val level: Int, val elementIndex: Int)
+
+fun inlinePartsToText(parts: List<InlinePart>): String =
+    parts.joinToString("") { part ->
+        when (part) {
+            is InlinePart.Text -> part.text
+            is InlinePart.Bold -> part.text
+            is InlinePart.Italic -> part.text
+            is InlinePart.BoldItalic -> part.text
+            is InlinePart.Link -> part.text
+            is InlinePart.PersonMention -> part.name
+            is InlinePart.Strikethrough -> inlinePartsToText(part.parts)
+            is InlinePart.Fraction -> inlinePartsToText(part.numerator) + "/" + inlinePartsToText(part.denominator)
+            is InlinePart.Addendum -> ""
+        }
+    }
+
+fun extractToc(elements: List<ContentElement>): List<TocEntry> =
+    elements.mapIndexedNotNull { index, el ->
+        if (el is ContentElement.Heading)
+            TocEntry(inlinePartsToText(el.parts), el.level, index)
+        else null
+    }
+
 
 
 

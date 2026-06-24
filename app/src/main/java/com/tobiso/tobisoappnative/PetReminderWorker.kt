@@ -28,6 +28,8 @@ class PetReminderWorker(
 
         if (equippedPetId == -1) return Result.success()
 
+        PetManager.initialize(context)
+
         if (!PetManager.isPetInitialized(equippedPetId) || PetManager.isPetDead(equippedPetId)) return Result.success()
 
         val now = System.currentTimeMillis()

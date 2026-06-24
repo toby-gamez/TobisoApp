@@ -16,12 +16,12 @@ val localProperties = Properties().apply {
 
 android {
     namespace = "com.tobiso.tobisoappnative"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.tobiso.tobisoapp"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "3.5.1"
 

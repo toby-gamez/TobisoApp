@@ -524,10 +524,8 @@ fun TobisoApp(navigateTo: String? = null) {
                         val adjustedBottom = bottomPadding + raiseBy
                         TtsPlayer(
                             ttsManager = ttsManagerInstance,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomCenter)
-                                .padding(start = 8.dp, end = 8.dp, bottom = adjustedBottom)
+                            modifier = Modifier.fillMaxSize(),
+                            bottomPadding = adjustedBottom
                         )
                     }
 
