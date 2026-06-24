@@ -6,6 +6,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
 import android.net.NetworkCapabilities
+import com.tobiso.tobisoappnative.utils.NetworkUtils
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.model.Addendum
@@ -372,13 +373,14 @@ class PostDetailViewModel @Inject constructor(
     }
 
     init {
+        _isConnected.value = NetworkUtils.isOnline(getApplication())
         try {
             val request = NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build()
             connectivityManager.registerNetworkCallback(request, networkCallback)
         } catch (e: Exception) {
-            // ignore: if registration fails, keep default true
+            // ignore
         }
     }
 

@@ -70,7 +70,6 @@ import com.tobiso.tobisoappnative.screens.FeedbackScreen
 import com.tobiso.tobisoappnative.screens.AboutScreen
 import com.tobiso.tobisoappnative.screens.ChangelogScreen
 import com.tobiso.tobisoappnative.screens.FavoritesScreen
-import com.tobiso.tobisoappnative.screens.NoInternetScreen
 import com.tobiso.tobisoappnative.screens.UpdaterScreen
 import com.tobiso.tobisoappnative.viewmodel.MainViewModel
 import com.tobiso.tobisoappnative.viewmodel.MainIntent
@@ -90,7 +89,6 @@ import com.tobiso.tobisoappnative.components.TtsPlayer
 import com.tobiso.tobisoappnative.screens.StreakScreen
 import com.tobiso.tobisoappnative.screens.ShopScreen
 import com.tobiso.tobisoappnative.utils.checkPointsAchievements
-import com.tobiso.tobisoappnative.utils.NetworkUtils
 import com.tobiso.tobisoappnative.components.FloatingSearchBar
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -102,10 +100,6 @@ fun TobisoApp(navigateTo: String? = null) {
     val isConnected by mainViewModel.connectivityFlow.collectAsState(initial = false)
     val ttsViewModel: TtsViewModel = hiltViewModel()
     val mainState by mainViewModel.uiState.collectAsState()
-    val categories = mainState.categories
-    val categoryError = mainState.categoryError
-    val isOffline = mainState.isOffline
-    val hasUserDismissedNoInternet = mainState.hasUserDismissedNoInternet
     val lastAddedPoints by PointsManager.instance.lastAddedPoints.collectAsState()
     val lastMilestone by PointsManager.instance.lastMilestone.collectAsState()
     val lastAchievement by PointsManager.instance.lastAchievement.collectAsState()
@@ -123,13 +117,6 @@ fun TobisoApp(navigateTo: String? = null) {
     var achievementPoints by remember { mutableStateOf(0) }
     var prestigeTierForOverlay by remember { mutableStateOf(PrestigeTier.NONE) }
     val coroutineScope = rememberCoroutineScope()
-
-    // callback pro ruční obnovu
-    val onRetry = {
-        if (NetworkUtils.isOnline(context)) {
-            mainViewModel.onIntent(MainIntent.ResetNoInternetDismiss)
-        }
-    }
 
     // načtení kategorií při startu
     LaunchedEffect(Unit) {
@@ -232,16 +219,7 @@ fun TobisoApp(navigateTo: String? = null) {
         Surface(color = MaterialTheme.colorScheme.surface) {
             Box(modifier = Modifier.fillMaxSize()) {
                 val searchRequestFocus = remember { mutableStateOf(false) }
-                if (!isConnected && !hasUserDismissedNoInternet) {
-                    NoInternetScreen(
-                        onRetry = onRetry,
-                        onOfflineMode = {
-                            mainViewModel.onIntent(MainIntent.EnableOfflineMode)
-                            mainViewModel.onIntent(MainIntent.ConfirmOfflineModeTransition)
-                        }
-                    )
-                } else {
-                    val navController = rememberNavController()
+                val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val destination = navBackStackEntry?.destination
                     val showBottomBar = destination == null ||
@@ -570,7 +548,6 @@ fun TobisoApp(navigateTo: String? = null) {
                             }
                         )
                     }
-                }
 
                 // Overlays pro body, milníky, achievementy, prestiž a reset
                 if (showResetOverlay) {

@@ -269,7 +269,7 @@ fun PostDetailScreen(
                         PostActionsRow(
                             postDetail = postDetail,
                             favoritePosts = favoritePosts,
-                            isOffline = isOffline,
+                            isOffline = !isConnected,
                             ttsManager = ttsManager,
                             onTts = {
                                 val plainText = TextUtils.extractPlainTextForTts(postDetail?.activeContent ?: "")

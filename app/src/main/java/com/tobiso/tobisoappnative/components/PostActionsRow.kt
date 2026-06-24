@@ -1,5 +1,10 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.FormatListBulleted
@@ -20,6 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.tts.TtsManager
 
@@ -52,12 +61,25 @@ fun PostActionsRow(
         }
     }
 
-    if (!isOffline) {
-        IconButton(onClick = onAiToolsClick) {
+    Box {
+        IconButton(onClick = { if (!isOffline) onAiToolsClick() }) {
             Icon(
                 imageVector = Icons.Filled.AutoAwesome,
-                contentDescription = "AI nástroje",
-                tint = MaterialTheme.colorScheme.primary
+                contentDescription = if (isOffline) "AI nedostupné (offline)" else "AI nástroje",
+                tint = if (isOffline)
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                else
+                    MaterialTheme.colorScheme.primary
+            )
+        }
+        if (isOffline) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 2.dp, y = 2.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.error)
             )
         }
     }

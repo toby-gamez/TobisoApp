@@ -69,8 +69,6 @@ fun CategoryListScreen(
         categories.filter { it.parentId == parent.id }
     } ?: emptyList()
 
-    val showConnectionError = parentCategoryName == "Mluvnice" && (parentCategory == null || filteredCategories.isEmpty())
-
     // Načtení postů při změně parentCategory
     LaunchedEffect(parentCategory?.id) {
         parentCategory?.id?.let { vm.loadPosts(it) }
@@ -83,6 +81,14 @@ fun CategoryListScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
 
+            val filteredPosts = parentCategory?.let { parent ->
+                posts.filter { it.categoryId == parent.id }
+            } ?: emptyList()
+            val filteredSummaries = parentCategory?.let { parent ->
+                summaries.filter { it.categoryId == parent.id }
+            } ?: emptyList()
+            val hasNoData = filteredCategories.isEmpty() && filteredPosts.isEmpty() && filteredSummaries.isEmpty()
+
             when {
                 categoryLoading || postLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -93,28 +99,7 @@ fun CategoryListScreen(
                         }
                     }
                 }
-                showConnectionError -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Description,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                "Chyba připojení nebo žádné podkategorie dostupné.",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-                }
-                postError != null -> {
+                postError != null && hasNoData -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -136,12 +121,6 @@ fun CategoryListScreen(
                     }
                 }
                 else -> {
-                    val filteredPosts = parentCategory?.let { parent ->
-                        posts.filter { it.categoryId == parent.id }
-                    } ?: emptyList()
-                    val filteredSummaries = parentCategory?.let { parent ->
-                        summaries.filter { it.categoryId == parent.id }
-                    } ?: emptyList()
                     val displayItems: List<Any> = if (filteredSummaries.isNotEmpty()) filteredSummaries else filteredPosts
                     val hasBoth = filteredCategories.isNotEmpty() && displayItems.isNotEmpty()
 
