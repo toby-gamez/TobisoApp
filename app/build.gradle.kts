@@ -22,8 +22,8 @@ android {
         applicationId = "com.tobiso.tobisoapp"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "3.5.1"
+        versionCode = 36
+        versionName = "3.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
