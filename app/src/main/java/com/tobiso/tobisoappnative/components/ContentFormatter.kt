@@ -38,6 +38,8 @@ sealed class InlinePart {
     data class Addendum(val addendumId: Int) : InlinePart()
     data class Strikethrough(val parts: List<InlinePart>) : InlinePart()
     data class Fraction(val numerator: List<InlinePart>, val denominator: List<InlinePart>) : InlinePart()
+    // name = text as it appears in content (may be inflected); canonicalName = lookup key for API
+    data class PersonMention(val name: String, val canonicalName: String = name) : InlinePart()
 }
 
 
@@ -533,6 +535,72 @@ fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> 
         }
     }
     return result
+}
+
+// Builds a regex matching all inflected Czech forms of a canonical person name.
+// Each word is matched as a prefix followed by optional ASCII suffix letters (covers all Czech cases).
+private fun buildPersonPattern(canonicalName: String): Regex? {
+    val words = canonicalName.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+    if (words.isEmpty()) return null
+    val pattern = words.joinToString("\\s+") { word ->
+        Regex.escape(word.trimEnd('.', ',', ';')) + "\\w*\\.?"
+    }
+    return Regex(pattern, RegexOption.IGNORE_CASE)
+}
+
+fun injectPersonMentions(parts: List<InlinePart>, personNames: List<String>): List<InlinePart> {
+    if (personNames.isEmpty()) return parts
+    // Longer names first to prefer more specific matches
+    val namePatterns = personNames
+        .sortedByDescending { it.length }
+        .mapNotNull { name -> buildPersonPattern(name)?.let { name to it } }
+    if (namePatterns.isEmpty()) return parts
+
+    fun injectIntoText(text: String): List<InlinePart> {
+        if (text.isEmpty()) return emptyList()
+        var bestMatch: MatchResult? = null
+        var bestCanonical = ""
+        for ((canonical, regex) in namePatterns) {
+            val m = regex.find(text) ?: continue
+            if (bestMatch == null || m.range.first < bestMatch!!.range.first) {
+                bestMatch = m
+                bestCanonical = canonical
+            }
+        }
+        if (bestMatch == null) return listOf(InlinePart.Text(text))
+        val result = mutableListOf<InlinePart>()
+        if (bestMatch.range.first > 0) result.add(InlinePart.Text(text.substring(0, bestMatch.range.first)))
+        result.add(InlinePart.PersonMention(
+            name = bestMatch.value,         // inflected form as displayed in content
+            canonicalName = bestCanonical   // canonical name passed to API on tap
+        ))
+        result.addAll(injectIntoText(text.substring(bestMatch.range.last + 1)))
+        return result
+    }
+
+    return parts.flatMap { part ->
+        when (part) {
+            is InlinePart.Text -> injectIntoText(part.text)
+            else -> listOf(part)
+        }
+    }
+}
+
+fun injectPersonMentionsIntoElements(
+    elements: List<ContentElement>,
+    personNames: List<String>
+): List<ContentElement> {
+    if (personNames.isEmpty()) return elements
+    fun inject(parts: List<InlinePart>) = injectPersonMentions(parts, personNames)
+    return elements.map { element ->
+        when (element) {
+            is ContentElement.Paragraph -> element.copy(parts = inject(element.parts))
+            is ContentElement.Heading -> element.copy(parts = inject(element.parts))
+            is ContentElement.BulletList -> element.copy(items = element.items.map { inject(it) })
+            is ContentElement.InlineText -> element.copy(parts = inject(element.parts))
+            else -> element
+        }
+    }
 }
 
 // Přidání nové InlinePart pro odkazy

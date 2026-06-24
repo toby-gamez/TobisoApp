@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -40,7 +41,8 @@ fun ContentRenderer(
     addendums: List<Addendum>,
     navController: NavController,
     onAddendumSelected: (Addendum) -> Unit,
-    showImagePaths: Boolean = false
+    showImagePaths: Boolean = false,
+    onPersonSelected: (String) -> Unit = {}
 ) {
     // Backwards-compatible single-entry API: render as column of elements
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -52,7 +54,8 @@ fun ContentRenderer(
                 addendums = addendums,
                 navController = navController,
                 onAddendumSelected = onAddendumSelected,
-                showImagePaths = showImagePaths
+                showImagePaths = showImagePaths,
+                onPersonSelected = onPersonSelected
             )
         }
     }
@@ -66,7 +69,8 @@ fun ElementRenderer(
     addendums: List<Addendum>,
     navController: NavController,
     onAddendumSelected: (Addendum) -> Unit,
-    showImagePaths: Boolean = false
+    showImagePaths: Boolean = false,
+    onPersonSelected: (String) -> Unit = {}
 ) {
     when (element) {
         is ContentElement.Intra -> {
@@ -90,9 +94,9 @@ fun ElementRenderer(
             }
             Text(text = annotated, style = style.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
         }
-        is ContentElement.Paragraph -> RenderParagraph(element, isOffline, posts, addendums, navController, onAddendumSelected)
-        is ContentElement.InlineText -> RenderInlineText(element, isOffline, posts, addendums, navController, onAddendumSelected)
-        is ContentElement.BulletList -> RenderBulletList(element, isOffline, posts, addendums, navController, onAddendumSelected)
+        is ContentElement.Paragraph -> RenderParagraph(element, isOffline, posts, addendums, navController, onAddendumSelected, onPersonSelected)
+        is ContentElement.InlineText -> RenderInlineText(element, isOffline, posts, addendums, navController, onAddendumSelected, onPersonSelected)
+        is ContentElement.BulletList -> RenderBulletList(element, isOffline, posts, addendums, navController, onAddendumSelected, onPersonSelected)
         is ContentElement.NumberedList -> {
             Column(modifier = Modifier.padding(bottom = 8.dp)) {
                 element.items.forEachIndexed { idx, item ->
@@ -207,10 +211,11 @@ private fun RenderParagraph(
     posts: List<Post>,
     addendums: List<Addendum>,
     navController: NavController,
-    onAddendumSelected: (Addendum) -> Unit
+    onAddendumSelected: (Addendum) -> Unit,
+    onPersonSelected: (String) -> Unit = {}
 ) {
     val linkColor = MaterialTheme.colorScheme.primary
-    if (hasFraction(element.parts)) {
+    if (hasFraction(element.parts) || hasPersonMention(element.parts)) {
         RenderInlinePartsRow(
             parts = element.parts,
             style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground),
@@ -218,18 +223,20 @@ private fun RenderParagraph(
             modifier = Modifier.padding(bottom = 8.dp),
             isOffline = isOffline,
             posts = posts,
-            navController = navController
+            navController = navController,
+            onPersonSelected = onPersonSelected
         )
         return
     }
     val annotated = remember(element.parts, linkColor) { buildAnnotatedStringFromParts(element.parts, linkColor) }
     val text = annotated.text
     val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
+    val hasClickable = addendumRanges.isNotEmpty() ||
+        annotated.getStringAnnotations("URL", 0, text.length).isNotEmpty()
         if (addendumRanges.isEmpty()) {
-            val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
-            if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(bottom = 8.dp))
+            if (!hasClickable) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(bottom = 8.dp))
             else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(bottom = 8.dp), onClick = { offset ->
-                handleAnnotatedClick(annotated, offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected)
+                handleAnnotatedClick(annotated, offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected)
             })
     } else {
         Row(modifier = Modifier.padding(bottom = 8.dp)) {
@@ -239,9 +246,10 @@ private fun RenderParagraph(
                 val end = range.end
                 if (lastIndex < start) {
                     val subAnnotated = annotated.subSequence(lastIndex, start)
-                    val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
-                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                    val subHasClickable = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length).isNotEmpty() ||
+                        subAnnotated.getStringAnnotations("PERSON", 0, subAnnotated.length).isNotEmpty()
+                    if (!subHasClickable) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
+                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected) })
                 }
                 val addendumId = range.item.toIntOrNull()
                 val addendum = addendums.find { it.id == addendumId }
@@ -250,9 +258,10 @@ private fun RenderParagraph(
             }
                 if (lastIndex < text.length) {
                     val subAnnotated = annotated.subSequence(lastIndex, text.length)
-                    val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
-                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                    val subHasClickable = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length).isNotEmpty() ||
+                        subAnnotated.getStringAnnotations("PERSON", 0, subAnnotated.length).isNotEmpty()
+                    if (!subHasClickable) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected) })
                 }
         }
     }
@@ -265,27 +274,30 @@ private fun RenderInlineText(
     posts: List<Post>,
     addendums: List<Addendum>,
     navController: NavController,
-    onAddendumSelected: (Addendum) -> Unit
+    onAddendumSelected: (Addendum) -> Unit,
+    onPersonSelected: (String) -> Unit = {}
 ) {
     val linkColor = MaterialTheme.colorScheme.primary
-    if (hasFraction(element.parts)) {
+    if (hasFraction(element.parts) || hasPersonMention(element.parts)) {
         RenderInlinePartsRow(
             parts = element.parts,
             style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground),
             linkColor = linkColor,
             isOffline = isOffline,
             posts = posts,
-            navController = navController
+            navController = navController,
+            onPersonSelected = onPersonSelected
         )
         return
     }
     val annotated = remember(element.parts, linkColor) { buildAnnotatedStringFromParts(element.parts, linkColor) }
     val text = annotated.text
     val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
+    val hasClickable = addendumRanges.isNotEmpty() ||
+        annotated.getStringAnnotations("URL", 0, text.length).isNotEmpty()
     if (addendumRanges.isEmpty()) {
-           val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
-        if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
-        else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+        if (!hasClickable) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+        else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected) })
     } else {
         Row {
             var lastIndex = 0
@@ -294,9 +306,10 @@ private fun RenderInlineText(
                 val end = range.end
                 if (lastIndex < start) {
                     val subAnnotated = annotated.subSequence(lastIndex, start)
-                    val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
-                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                    val subHasClickable = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length).isNotEmpty() ||
+                        subAnnotated.getStringAnnotations("PERSON", 0, subAnnotated.length).isNotEmpty()
+                    if (!subHasClickable) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected) })
                 }
                 val addendumId = range.item.toIntOrNull()
                 val addendum = addendums.find { it.id == addendumId }
@@ -305,7 +318,7 @@ private fun RenderInlineText(
             }
             if (lastIndex < text.length) {
                 val subAnnotated = annotated.subSequence(lastIndex, text.length)
-                ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, element.parts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected) })
             }
         }
     }
@@ -318,7 +331,8 @@ private fun RenderBulletList(
     posts: List<Post>,
     addendums: List<Addendum>,
     navController: NavController,
-    onAddendumSelected: (Addendum) -> Unit
+    onAddendumSelected: (Addendum) -> Unit,
+    onPersonSelected: (String) -> Unit = {}
 ) {
     val indent = when (element.level) { 1 -> 16.dp; 2 -> 32.dp; 3 -> 48.dp; 4 -> 64.dp; else -> 16.dp }
     Column(modifier = Modifier) {
@@ -326,7 +340,7 @@ private fun RenderBulletList(
             Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = indent)) {
                 Text("•", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp, top = 2.dp))
                 val linkColor = MaterialTheme.colorScheme.primary
-                if (hasFraction(itemParts)) {
+                if (hasFraction(itemParts) || hasPersonMention(itemParts)) {
                     RenderInlinePartsRow(
                         parts = itemParts,
                         style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground),
@@ -334,16 +348,18 @@ private fun RenderBulletList(
                         modifier = Modifier.weight(1f),
                         isOffline = isOffline,
                         posts = posts,
-                        navController = navController
+                        navController = navController,
+                        onPersonSelected = onPersonSelected
                     )
                 } else {
                     val annotated = remember(itemParts, linkColor) { buildAnnotatedStringFromParts(itemParts, linkColor) }
                     val text = annotated.text
                     val addendumRanges = annotated.getStringAnnotations("ADDENDUM", 0, text.length)
+                    val hasClickable = addendumRanges.isNotEmpty() ||
+                        annotated.getStringAnnotations("URL", 0, text.length).isNotEmpty()
                     if (addendumRanges.isEmpty()) {
-                        val urlAnnotations = annotated.getStringAnnotations("URL", 0, text.length)
-                        if (urlAnnotations.isEmpty()) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
-                        else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f), onClick = { offset -> handleAnnotatedClick(annotated, offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                        if (!hasClickable) Text(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
+                        else ClickableText(text = annotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f), onClick = { offset -> handleAnnotatedClick(annotated, offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected) })
                     } else {
                         Row(modifier = Modifier.weight(1f)) {
                             var lastIndex = 0
@@ -351,9 +367,9 @@ private fun RenderBulletList(
                                 val start = range.start; val end = range.end
                                 if (lastIndex < start) {
                                     val subAnnotated = annotated.subSequence(lastIndex, start)
-                                    val subUrlAnnotations = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length)
-                                    if (subUrlAnnotations.isEmpty()) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
-                                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                                    val subHasClickable = subAnnotated.getStringAnnotations("URL", 0, subAnnotated.length).isNotEmpty()
+                                    if (!subHasClickable) Text(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground))
+                                    else ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected) })
                                 }
                                 val addendumId = range.item.toIntOrNull()
                                 val addendum = addendums.find { it.id == addendumId }
@@ -362,7 +378,7 @@ private fun RenderBulletList(
                             }
                             if (lastIndex < text.length) {
                                 val subAnnotated = annotated.subSequence(lastIndex, text.length)
-                                ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected) })
+                                ClickableText(text = subAnnotated, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), onClick = { offset -> handleAnnotatedClick(annotated, lastIndex + offset, itemParts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected) })
                             }
                         }
                     }
@@ -474,7 +490,8 @@ private fun handleAnnotatedClick(
     isOffline: Boolean,
     navController: NavController,
     addendums: List<Addendum>,
-    onAddendumSelected: (Addendum) -> Unit
+    onAddendumSelected: (Addendum) -> Unit,
+    onPersonSelected: (String) -> Unit = {}
 ) {
     annotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { ann ->
         val url = ann.item
@@ -495,22 +512,31 @@ private fun handleAnnotatedClick(
             if (addendum != null) onAddendumSelected(addendum)
         }
     }
+    annotated.getStringAnnotations("PERSON", offset, offset).firstOrNull()?.let { ann ->
+        onPersonSelected(ann.item)
+    }
 }
 
 private sealed class InlineSegment {
     data class TextGroup(val parts: List<InlinePart>) : InlineSegment()
     data class FractionItem(val fraction: InlinePart.Fraction) : InlineSegment()
+    data class PersonItem(val canonicalName: String, val displayText: String) : InlineSegment()
 }
 
 private fun segmentParts(parts: List<InlinePart>): List<InlineSegment> {
     val result = mutableListOf<InlineSegment>()
     var buffer = mutableListOf<InlinePart>()
     for (part in parts) {
-        if (part is InlinePart.Fraction) {
-            if (buffer.isNotEmpty()) { result.add(InlineSegment.TextGroup(buffer.toList())); buffer = mutableListOf() }
-            result.add(InlineSegment.FractionItem(part))
-        } else {
-            buffer.add(part)
+        when (part) {
+            is InlinePart.Fraction -> {
+                if (buffer.isNotEmpty()) { result.add(InlineSegment.TextGroup(buffer.toList())); buffer = mutableListOf() }
+                result.add(InlineSegment.FractionItem(part))
+            }
+            is InlinePart.PersonMention -> {
+                if (buffer.isNotEmpty()) { result.add(InlineSegment.TextGroup(buffer.toList())); buffer = mutableListOf() }
+                result.add(InlineSegment.PersonItem(part.canonicalName, part.name))
+            }
+            else -> buffer.add(part)
         }
     }
     if (buffer.isNotEmpty()) result.add(InlineSegment.TextGroup(buffer.toList()))
@@ -518,6 +544,7 @@ private fun segmentParts(parts: List<InlinePart>): List<InlineSegment> {
 }
 
 private fun hasFraction(parts: List<InlinePart>) = parts.any { it is InlinePart.Fraction }
+private fun hasPersonMention(parts: List<InlinePart>) = parts.any { it is InlinePart.PersonMention }
 
 @Composable
 private fun RenderInlinePartsRow(
@@ -527,7 +554,8 @@ private fun RenderInlinePartsRow(
     modifier: Modifier = Modifier,
     isOffline: Boolean = false,
     posts: List<Post> = emptyList(),
-    navController: NavController? = null
+    navController: NavController? = null,
+    onPersonSelected: (String) -> Unit = {}
 ) {
     val segments = remember(parts) { segmentParts(parts) }
     FlowRow(itemVerticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = modifier) {
@@ -535,8 +563,8 @@ private fun RenderInlinePartsRow(
             when (segment) {
                 is InlineSegment.TextGroup -> {
                     val annotated = remember(segment.parts, linkColor) { buildAnnotatedStringFromParts(segment.parts, linkColor) }
-                    val urlAnnotations = annotated.getStringAnnotations("URL", 0, annotated.length)
-                    if (urlAnnotations.isEmpty() || navController == null) {
+                    val hasClickable = annotated.getStringAnnotations("URL", 0, annotated.length).isNotEmpty()
+                    if (!hasClickable || navController == null) {
                         Text(text = annotated, style = style)
                     } else {
                         ClickableText(text = annotated, style = style, onClick = { offset ->
@@ -557,6 +585,28 @@ private fun RenderInlinePartsRow(
                     val numAnnotated = remember(segment.fraction.numerator, linkColor) { buildAnnotatedStringFromParts(segment.fraction.numerator, linkColor) }
                     val denAnnotated = remember(segment.fraction.denominator, linkColor) { buildAnnotatedStringFromParts(segment.fraction.denominator, linkColor) }
                     InlineFraction(numerator = numAnnotated, denominator = denAnnotated)
+                }
+                is InlineSegment.PersonItem -> {
+                    Row(
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onPersonSelected(segment.canonicalName) }
+                    ) {
+                        Text(
+                            text = segment.displayText,
+                            style = style.copy(
+                                color = linkColor,
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.None,
+                                fontStyle = FontStyle.Normal
+                            )
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = linkColor,
+                            modifier = Modifier.size(14.dp).padding(start = 2.dp)
+                        )
+                    }
                 }
             }
         }
@@ -595,6 +645,11 @@ fun buildAnnotatedStringFromParts(parts: List<InlinePart>, linkColor: Color = Co
                     append(buildAnnotatedStringFromParts(part.numerator, linkColor))
                     append("/")
                     append(buildAnnotatedStringFromParts(part.denominator, linkColor))
+                }
+                is InlinePart.PersonMention -> {
+                    val start = length
+                    withStyle(SpanStyle(color = linkColor, fontWeight = FontWeight.Bold)) { append(part.name) }
+                    addStringAnnotation("PERSON", part.canonicalName, start, start + part.name.length)
                 }
             }
         }

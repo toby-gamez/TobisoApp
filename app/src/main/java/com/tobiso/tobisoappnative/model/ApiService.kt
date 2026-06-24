@@ -153,4 +153,18 @@ interface ApiService {
         @retrofit2.http.Header("X-Device-Id") deviceId: String,
         @Body request: PracticeProblemRequest
     ): PracticeProblemResponse
+
+    @GET("ai/detect-persons/{postId}")
+    suspend fun detectPersons(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): List<String>
+
+    @GET("ai/person")
+    suspend fun getPerson(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Query("name") name: String
+    ): PersonResponse
 }

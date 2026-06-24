@@ -18,6 +18,8 @@ import com.tobiso.tobisoappnative.repository.PostsRepository
 import com.tobiso.tobisoappnative.tts.TtsManager
 import com.tobiso.tobisoappnative.components.ContentElement
 import com.tobiso.tobisoappnative.components.parseContentToElements
+import com.tobiso.tobisoappnative.components.injectPersonMentionsIntoElements
+import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.utils.loadGradeId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -117,6 +119,9 @@ class PostDetailViewModel @Inject constructor(
     private val _isConnected = MutableStateFlow(true)
     val isConnected: StateFlow<Boolean> = _isConnected
 
+    private val _personNames = MutableStateFlow<List<String>>(emptyList())
+    val personNames: StateFlow<List<String>> = _personNames
+
     fun getTtsManager(): TtsManager = ttsManager
 
     fun loadPostDetail(postId: Int) {
@@ -144,11 +149,12 @@ class PostDetailViewModel @Inject constructor(
         }
     }
 
-    private fun computeDerivedForPost(post: Post?) {
+    private fun computeDerivedForPost(post: Post?, personNames: List<String> = _personNames.value) {
         viewModelScope.launch(Dispatchers.Default) {
             val content = post?.activeContent ?: ""
             val parsed = try {
-                parseContentToElements(content, _isOffline.value, _posts.value)
+                val elements = parseContentToElements(content, _isOffline.value, _posts.value)
+                injectPersonMentionsIntoElements(elements, personNames)
             } catch (e: Exception) {
                 emptyList()
             }
@@ -191,6 +197,20 @@ class PostDetailViewModel @Inject constructor(
                 onFailure = { e -> _relatedPostsError.value = e.message }
             )
             _relatedPostsLoading.value = false
+        }
+    }
+
+    fun detectPersonsForPost(postId: Int, clientId: String, deviceId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val names = ApiClient.apiService.detectPersons(clientId, deviceId, postId)
+                _personNames.value = names
+                if (names.isNotEmpty()) {
+                    computeDerivedForPost(_postDetail.value, names)
+                }
+            } catch (e: Exception) {
+                timber.log.Timber.w(e, "Person detection failed for post $postId")
+            }
         }
     }
 

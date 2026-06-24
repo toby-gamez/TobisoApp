@@ -211,6 +211,17 @@ fun PostDetailScreen(
     var showAiConsentDialog by remember { mutableStateOf(false) }
     var showAiToolsSheet by remember { mutableStateOf(false) }
     var showSentenceSelectPanel by remember { mutableStateOf(false) }
+
+    // Person card
+    var personNameForSheet by remember { mutableStateOf<String?>(null) }
+    val isConnectedForPerson by vm.isConnected.collectAsState()
+    LaunchedEffect(postId, isConnectedForPerson) {
+        if (isConnectedForPerson) {
+            val clientId = "tobiso-android"
+            val deviceId = com.tobiso.tobisoappnative.AiCreditManager.instance.deviceId
+            vm.detectPersonsForPost(postId, clientId, deviceId)
+        }
+    }
     
     // Scroll behavior pro nested scrolling
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -378,7 +389,6 @@ fun PostDetailScreen(
                             val updatedFormatted by vm.updatedFormatted.collectAsState()
 
                             // Nový custom markdown renderer
-                            SelectionContainer {
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -414,7 +424,8 @@ fun PostDetailScreen(
                                             addendums = addendums,
                                             navController = navController,
                                             onAddendumSelected = { add -> selectedAddendum = add; showAddendumDialog = true },
-                                            showImagePaths = false
+                                            showImagePaths = false,
+                                            onPersonSelected = { name -> personNameForSheet = name }
                                         )
                                     }
                                 }
@@ -485,7 +496,6 @@ fun PostDetailScreen(
                                     Spacer(modifier = Modifier.height(80.dp))
                                 }
                             }
-                            } // SelectionContainer
                     }
                 }
             }
@@ -563,6 +573,16 @@ fun PostDetailScreen(
                         Text("Zrušit")
                     }
                 }
+            )
+        }
+
+        // Person info bottom sheet
+        personNameForSheet?.let { name ->
+            com.tobiso.tobisoappnative.components.PersonBottomSheet(
+                personName = name,
+                clientId = "tobiso-android",
+                deviceId = com.tobiso.tobisoappnative.AiCreditManager.instance.deviceId,
+                onDismiss = { personNameForSheet = null }
             )
         }
 
