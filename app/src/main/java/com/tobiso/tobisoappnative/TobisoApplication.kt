@@ -26,6 +26,7 @@ class TobisoApplication : Application() {
             BackpackManager.initialize(this)
             AiCreditManager.initialize(this)
             QuestionProgressManager.initialize(this)
+            PetManager.initialize(this)
         } catch (e: Exception) {
             Timber.e(e, "Critical initialization error – app may not function correctly")
         }

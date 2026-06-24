@@ -40,7 +40,7 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
 
         purchasedItemIds.forEach { itemId ->
             val shopItem = ShopData.getItemById(itemId)
-            if (shopItem != null && shopItem.type != ShopItemType.POINTS_MULTIPLIER && shopItem.type != ShopItemType.MYSTERY_BOX) {
+            if (shopItem != null && shopItem.type != ShopItemType.POINTS_MULTIPLIER && shopItem.type != ShopItemType.MYSTERY_BOX && shopItem.type != ShopItemType.PET_FOOD && shopItem.type != ShopItemType.PET_WATER) {
                 val purchaseDate = ShopManager.instance.getPurchaseDate(itemId)
                     .takeIf { it > 0L } ?: System.currentTimeMillis()
                 backpackItemsList.add(BackpackItem(shopItem = shopItem, purchaseDate = purchaseDate))
@@ -87,6 +87,9 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
     override fun equipPet(pet: ShopItem?) {
         prefs.edit().putInt(KEY_EQUIPPED_PET, pet?.id ?: -1).apply()
         _equippedPet.value = pet
+        if (pet != null && !PetManager.isPetInitialized(pet.id)) {
+            PetManager.initializePet(pet.id)
+        }
     }
 
     override fun equipIconPack(iconPack: ShopItem?) {

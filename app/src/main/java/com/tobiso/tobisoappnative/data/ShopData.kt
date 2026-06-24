@@ -490,6 +490,26 @@ object ShopData {
                 petIcon = "🐭"
             ),
 
+            // Potraviny a voda pro zvířátka
+            ShopItem(
+                id = 70,
+                name = "Krmivo (5 porcí)",
+                description = "Nakrm své zvířátko. Bez jídla více než 72 hodin zemře!",
+                price = 10,
+                category = ShopCategory.PETS,
+                type = ShopItemType.PET_FOOD,
+                petIcon = "🍖"
+            ),
+            ShopItem(
+                id = 71,
+                name = "Voda (5 porcí)",
+                description = "Napoj své zvířátko. Bez vody více než 24 hodin zemře!",
+                price = 5,
+                category = ShopCategory.PETS,
+                type = ShopItemType.PET_WATER,
+                petIcon = "💧"
+            ),
+
             // AI otázky kategorie
             ShopItem(
                 id = 80,

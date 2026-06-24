@@ -61,6 +61,9 @@ import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.delay
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.BackpackManager
+import com.tobiso.tobisoappnative.PetManager
+import com.tobiso.tobisoappnative.manager.PetHealth
+import com.tobiso.tobisoappnative.manager.GrowthStage
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.components.FullScreenTotalPointsOverlay
 import com.tobiso.tobisoappnative.components.PrestigeAvatarBorder
@@ -209,6 +212,7 @@ fun ProfileScreen(navController: NavController) {
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     item { ProfileSection(navController = navController, grades = grades) }
+                    item { PetCareSection() }
                     item { EquippedQuoteSection(navController = navController) }
                     item { AchievementsSection() }
 
@@ -938,6 +942,322 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                     tempImageForCropping = null
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun PetCareSection() {
+    val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
+    val context = LocalContext.current
+    val foodCount by PetManager.foodCount.collectAsState()
+    val waterCount by PetManager.waterCount.collectAsState()
+
+    if (equippedPet == null) return
+
+    val petId = equippedPet!!.id
+    var refreshTrigger by remember { mutableStateOf(0) }
+    var petHealth by remember { mutableStateOf(PetHealth.ALIVE) }
+    var stage by remember { mutableStateOf(GrowthStage.BABY) }
+    var growthLevel by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(petId, refreshTrigger) {
+        PetManager.checkPetStatus(petId)
+        if (PetManager.isPetInitialized(petId)) {
+            petHealth = PetManager.getPetHealth(petId)
+            stage = PetManager.getGrowthStage(petId)
+            growthLevel = PetManager.getGrowthLevel(petId)
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            if (petHealth == PetHealth.ALIVE) {
+                // Growth stage + progress bar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "${equippedPet!!.petIcon ?: "🐾"} ",
+                        fontSize = 24.sp
+                    )
+                    Text(
+                        text = stage.emoji,
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stage.displayName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "${(growthLevel * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Progress bar
+                LinearProgressIndicator(
+                    progress = { growthLevel },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = when (stage) {
+                        GrowthStage.BABY -> Color(0xFFFF9800)
+                        GrowthStage.ADOLESCENT -> Color(0xFF4CAF50)
+                        GrowthStage.ADULT -> Color(0xFF2196F3)
+                        GrowthStage.FULLY_GROWN -> Color(0xFF9C27B0)
+                    },
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+
+                // Hunger/thirst warning reminder
+                val now = System.currentTimeMillis()
+                val hourMs = 60 * 60 * 1000L
+                val lastFed = PetManager.getLastFedTime(petId)
+                val lastWatered = PetManager.getLastWateredTime(petId)
+                val hoursSinceFed = if (lastFed > 0) (now - lastFed) / hourMs else 0L
+                val hoursSinceWatered = if (lastWatered > 0) (now - lastWatered) / hourMs else 0L
+
+                val isHungry = hoursSinceFed >= PetManager.HUNGER_WARNING_HOURS
+                val isThirsty = hoursSinceWatered >= PetManager.THIRST_WARNING_HOURS
+
+                if (isThirsty || isHungry) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = Color(0xFFFFF3E0).copy(alpha = 0.7f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFE65100),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (isThirsty && isHungry) {
+                            Text(
+                                text = "Zvířátko má hlad a žízeň!",
+                                color = Color(0xFFE65100),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else if (isThirsty) {
+                            Text(
+                                text = "Zvířátko má žízeň! Napoj ho.",
+                                color = Color(0xFFE65100),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else {
+                            Text(
+                                text = "Zvířátko má hlad! Nakrm ho.",
+                                color = Color(0xFFE65100),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Feed/Water buttons with cooldown check
+                val canFeed = PetManager.canFeedPet(petId)
+                val canWater = PetManager.canWaterPet(petId)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Feed button
+                    Button(
+                        onClick = {
+                            if (PetManager.feedPet(petId)) {
+                                refreshTrigger++
+                            } else if (!canFeed) {
+                                val remaining = PetManager.getTimeUntilNextFeed(petId)
+                                val totalMin = remaining / 60_000
+                                val timeText = when {
+                                    totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
+                                    totalMin >= 60 -> "${totalMin / 60} h"
+                                    else -> "${totalMin} min"
+                                }
+                                android.widget.Toast.makeText(
+                                    context, "Zvířátko má plné bříško, počkej $timeText",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        enabled = foodCount > 0,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF9800),
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Text(
+                            if (canFeed) "🍖 Nakrmit" else "🍖 Plné bříško",
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    // Water button
+                    Button(
+                        onClick = {
+                            if (PetManager.waterPet(petId)) {
+                                refreshTrigger++
+                            } else if (!canWater) {
+                                val remaining = PetManager.getTimeUntilNextWater(petId)
+                                val totalMin = remaining / 60_000
+                                val timeText = when {
+                                    totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
+                                    totalMin >= 60 -> "${totalMin / 60} h"
+                                    else -> "${totalMin} min"
+                                }
+                                android.widget.Toast.makeText(
+                                    context, "Zvířátko není žíznivé, počkej $timeText",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        enabled = waterCount > 0,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2196F3),
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Text(
+                            if (canWater) "💧 Napít" else "💧 Není žíznivé",
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                // Cooldown remaining text
+                if (!canFeed || !canWater) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        if (!canFeed) {
+                            val remaining = PetManager.getTimeUntilNextFeed(petId)
+                            val totalMin = remaining / 60_000
+                            val timeText = when {
+                                totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
+                                totalMin >= 60 -> "${totalMin / 60} h"
+                                else -> "${totalMin} min"
+                            }
+                            Text(
+                                text = "🍖 za $timeText • ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (!canWater) {
+                            val remaining = PetManager.getTimeUntilNextWater(petId)
+                            val totalMin = remaining / 60_000
+                            val timeText = when {
+                                totalMin >= 24 * 60 -> "${totalMin / (24 * 60)} d"
+                                totalMin >= 60 -> "${totalMin / 60} h"
+                                else -> "${totalMin} min"
+                            }
+                            Text(
+                                text = "💧 za $timeText",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Count info
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "🍖 ${foodCount}x    💧 ${waterCount}x",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+            } else {
+                // Pet is dead
+                val causeText = if (petHealth == PetHealth.DEAD_THIRST) "žízní" else "hlady"
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "💀",
+                        fontSize = 28.sp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Tvé zvířátko zemřelo $causeText",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Oživ ho a bude tě znovu potřebovat!",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Revive button
+                Button(
+                    onClick = {
+                        if (PetManager.revivePet(petId)) {
+                            refreshTrigger++
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Oživit (${PetManager.REVIVE_COST} bodů)")
+                }
+            }
         }
     }
 }

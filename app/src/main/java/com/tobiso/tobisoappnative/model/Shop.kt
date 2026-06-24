@@ -20,6 +20,8 @@ enum class ShopItemType {
     ICON_PACK,
     POINTS_MULTIPLIER,
     PET,
+    PET_FOOD,
+    PET_WATER,
     AI_CREDIT,
     MYSTERY_BOX,
     PROFILE_THEME,

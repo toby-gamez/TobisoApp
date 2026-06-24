@@ -14,7 +14,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
 
     private var pointsFloat: Float = 0f
     private var totalEarnedPointsValue: Int = 0
-    private var deflationDivisor: Int = 1
+    private var inflationDivisor: Int = 1
 
     private val _lastAddedPoints = MutableStateFlow(0)
     override val lastAddedPoints: StateFlow<Int> = _lastAddedPoints
@@ -44,7 +44,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
     override val totalEarnedPoints: StateFlow<Int> = _totalEarnedPoints
 
     init {
-        deflationDivisor = prefs.getInt(KEY_DEFLATION_DIVISOR, 1)
+        inflationDivisor = prefs.getInt(KEY_INFLATION_DIVISOR, 1)
 
         val storedFloat = prefs.getFloat(KEY_POINTS_FLOAT, -1f)
         if (storedFloat >= 0f) {
@@ -68,7 +68,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
 
     override fun addPoints(amount: Int) {
         checkActiveMultiplier()
-        val deflated = applyDeflation(amount) * _activeMultiplier.value
+        val deflated = applyInflation(amount) * _activeMultiplier.value
         pointsFloat += deflated
         totalEarnedPointsValue += deflated.toInt()
         // Emit raw amount so the overlay always fires and shows the actual question reward
@@ -81,7 +81,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
     }
 
     override fun addPointsForMilestone(amount: Int, milestoneDay: Int) {
-        val deflated = applyDeflation(amount)
+        val deflated = applyInflation(amount)
         pointsFloat += deflated
         totalEarnedPointsValue += deflated.toInt()
         _lastAddedPoints.update { amount }
@@ -93,7 +93,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
     }
 
     override fun addPointsForAchievement(amount: Int, achievementPoints: Int) {
-        val deflated = applyDeflation(amount)
+        val deflated = applyInflation(amount)
         pointsFloat += deflated
         totalEarnedPointsValue += deflated.toInt()
         _lastAddedPoints.update { amount }
@@ -170,15 +170,15 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         return _activeMultiplier.value > 1.0f
     }
 
-    private fun applyDeflation(amount: Int): Float = amount.toFloat() / deflationDivisor
+    private fun applyInflation(amount: Int): Float = amount.toFloat() / inflationDivisor
 
     private fun checkAndResetIfOverLimit() {
         if (pointsFloat > 100_000f) {
             pointsFloat = 0f
-            deflationDivisor *= 10
+            inflationDivisor *= 10
             savePoints()
-            saveDeflationDivisor()
-            _lastPointsReset.update { deflationDivisor }
+            saveInflationDivisor()
+            _lastPointsReset.update { inflationDivisor }
         }
         _totalPoints.update { pointsFloat.toInt() }
         _totalPointsFloat.update { pointsFloat }
@@ -193,8 +193,8 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         prefs.edit().putInt(KEY_TOTAL_EARNED_POINTS, totalEarnedPointsValue).apply()
     }
 
-    private fun saveDeflationDivisor() {
-        prefs.edit().putInt(KEY_DEFLATION_DIVISOR, deflationDivisor).apply()
+    private fun saveInflationDivisor() {
+        prefs.edit().putInt(KEY_INFLATION_DIVISOR, inflationDivisor).apply()
     }
 
     private fun checkActiveMultiplier() {
@@ -215,7 +215,7 @@ class PointsManager private constructor(context: Context) : IPointsManager {
         private const val KEY_TOTAL_EARNED_POINTS = "total_earned_points"
         private const val KEY_MULTIPLIER = "active_multiplier"
         private const val KEY_MULTIPLIER_END = "multiplier_end_time"
-        private const val KEY_DEFLATION_DIVISOR = "deflation_divisor"
+        private const val KEY_INFLATION_DIVISOR = "inflation_divisor"
         private const val KEY_HIGHEST_PRESTIGE_SHOWN = "highest_prestige_shown"
 
         private val PRESTIGE_THRESHOLDS = listOf(1_000, 5_000, 10_000, 25_000, 50_000, 100_000)

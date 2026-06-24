@@ -15,6 +15,15 @@ object NotificationScheduler {
         schedulePeriodicNotification(context, 20, 0, isCritical = true, "notification_20")
         schedulePeriodicEventNotification(context, 18, 0, "tomorrow_events", "events_tomorrow")
         schedulePeriodicEventNotification(context, 6, 30, "today_events", "events_today")
+        schedulePetReminder(context)
+    }
+
+    private fun schedulePetReminder(context: Context) {
+        val request = PeriodicWorkRequestBuilder<PetReminderWorker>(4, TimeUnit.HOURS)
+            .build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "pet_reminder", ExistingPeriodicWorkPolicy.KEEP, request
+        )
     }
 
     private fun schedulePeriodicNotification(

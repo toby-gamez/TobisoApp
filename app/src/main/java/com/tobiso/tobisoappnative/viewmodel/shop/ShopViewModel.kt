@@ -62,7 +62,7 @@ class ShopViewModel @Inject constructor() : ViewModel() {
                     _showPurchaseDialog.value = true
                 }
             }
-            ShopItemType.STREAK_FREEZE -> {
+            ShopItemType.STREAK_FREEZE, ShopItemType.PET_FOOD, ShopItemType.PET_WATER -> {
                 _showPurchaseDialog.value = true
             }
             else -> {

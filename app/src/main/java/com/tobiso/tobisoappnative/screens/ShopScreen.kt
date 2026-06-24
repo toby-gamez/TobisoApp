@@ -433,6 +433,30 @@ fun ShopItemCard(
                 
                 Spacer(modifier = Modifier.height(12.dp))
             }
+
+            // Pro krmivo a vodu zobrazíme emoji ikonu
+            if ((item.type == ShopItemType.PET_FOOD || item.type == ShopItemType.PET_WATER) && item.petIcon != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .background(
+                            if (item.type == ShopItemType.PET_FOOD)
+                                Color(0xFFFFF3E0).copy(alpha = 0.6f)
+                            else
+                                Color(0xFFE3F2FD).copy(alpha = 0.6f),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = item.petIcon,
+                        fontSize = 64.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             
             // Pro power-upy zobrazíme barevný text multiplikátoru
             if (item.type == ShopItemType.POINTS_MULTIPLIER && item.powerUpIcon != null) {
@@ -807,6 +831,53 @@ fun ShopItemCard(
                                     )
                                 }
                             }
+                        } else if (item.type == ShopItemType.PET_FOOD || item.type == ShopItemType.PET_WATER) {
+                            val count = if (item.type == ShopItemType.PET_FOOD)
+                                com.tobiso.tobisoappnative.PetManager.foodCount.collectAsState().value
+                            else
+                                com.tobiso.tobisoappnative.PetManager.waterCount.collectAsState().value
+                            Column(
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                if (count > 0) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "${item.petIcon ?: ""} ${count}x",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Stars,
+                                        contentDescription = "Body",
+                                        tint = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = item.price.toString(),
+                                        color = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                if (!canAfford) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Nedostatek bodů",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         } else if (item.type == ShopItemType.POINTS_MULTIPLIER && isOnCooldown) {
                             // Pro power-upy na cooldownu (i když nejsou vlastněné)
                             Column(
@@ -910,6 +981,30 @@ fun PurchaseDialog(
                         )
                     }
                     
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                // Pro krmivo a vodu zobrazíme emoji ikonu
+                if ((item.type == ShopItemType.PET_FOOD || item.type == ShopItemType.PET_WATER) && item.petIcon != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .background(
+                                if (item.type == ShopItemType.PET_FOOD)
+                                    Color(0xFFFFF3E0).copy(alpha = 0.6f)
+                                else
+                                    Color(0xFFE3F2FD).copy(alpha = 0.6f),
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = item.petIcon,
+                            fontSize = 48.sp
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
                 }
                 
@@ -1130,6 +1225,24 @@ fun PurchaseDialog(
                         fontWeight = FontWeight.Medium
                     )
                 }
+
+                if (item.type == ShopItemType.PET_FOOD) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "V zásobě: ${com.tobiso.tobisoappnative.PetManager.foodCount.value}x krmiva",
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                if (item.type == ShopItemType.PET_WATER) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "V zásobě: ${com.tobiso.tobisoappnative.PetManager.waterCount.value}x vody",
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
                 
                 if (item.quote != null) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -1219,6 +1332,10 @@ fun PurchaseDialog(
                     Text(
                         if (item.type == ShopItemType.STREAK_FREEZE && !ShopManager.instance.canPurchaseStreakFreeze()) {
                             "Maximum dosaženo"
+                        } else if (item.type == ShopItemType.PET_FOOD) {
+                            "Koupit (5 porcí)"
+                        } else if (item.type == ShopItemType.PET_WATER) {
+                            "Koupit (5 porcí)"
                         } else {
                             "Koupit"
                         }

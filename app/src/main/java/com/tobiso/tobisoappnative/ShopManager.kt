@@ -83,6 +83,14 @@ class ShopManager private constructor(context: Context) : IShopManager {
                 rollMysteryBoxReward()
                 true
             }
+            ShopItemType.PET_FOOD -> {
+                PetManager.addFood(PetManager.FOOD_QUANTITY)
+                true
+            }
+            ShopItemType.PET_WATER -> {
+                PetManager.addWater(PetManager.WATER_QUANTITY)
+                true
+            }
             else -> {
                 if (isItemPurchased(item.id)) {
                     PointsManager.instance.addPoints(item.price)

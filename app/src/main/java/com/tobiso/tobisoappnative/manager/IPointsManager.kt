@@ -10,7 +10,7 @@ interface IPointsManager {
     val lastMilestone: StateFlow<Int?>
     val lastAchievement: StateFlow<Int?>
     val lastPrestigeTierPoints: StateFlow<Int?>
-    /** Emits the new deflationDivisor when a 100k reset occurs; null otherwise. */
+    /** Emits the new inflationDivisor when a 100k reset occurs; null otherwise. */
     val lastPointsReset: StateFlow<Int?>
     val activeMultiplier: StateFlow<Float>
     val totalEarnedPoints: StateFlow<Int>

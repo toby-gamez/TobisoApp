@@ -14,7 +14,7 @@ class FakePointsManager : IPointsManager {
     private var earnedPoints = 0
     private var multiplier = 1.0f
     private var multiplierEndMs = 0L
-    private var deflationDivisor = 1
+    private var inflationDivisor = 1
 
     override val totalPoints = MutableStateFlow(0)
     override val lastAddedPoints = MutableStateFlow(0)
@@ -24,7 +24,7 @@ class FakePointsManager : IPointsManager {
     override val totalEarnedPoints = MutableStateFlow(0)
 
     override fun addPoints(amount: Int) {
-        val deflated = amount.toFloat() / deflationDivisor * multiplier
+        val deflated = amount.toFloat() / inflationDivisor * multiplier
         currentPointsFloat += deflated
         earnedPoints += deflated.toInt()
         lastAddedPoints.value = deflated.toInt()
@@ -33,7 +33,7 @@ class FakePointsManager : IPointsManager {
     }
 
     override fun addPointsForMilestone(amount: Int, milestoneDay: Int) {
-        val deflated = amount.toFloat() / deflationDivisor
+        val deflated = amount.toFloat() / inflationDivisor
         currentPointsFloat += deflated
         earnedPoints += deflated.toInt()
         lastAddedPoints.value = deflated.toInt()
@@ -43,7 +43,7 @@ class FakePointsManager : IPointsManager {
     }
 
     override fun addPointsForAchievement(amount: Int, achievementPoints: Int) {
-        val deflated = amount.toFloat() / deflationDivisor
+        val deflated = amount.toFloat() / inflationDivisor
         currentPointsFloat += deflated
         earnedPoints += deflated.toInt()
         lastAddedPoints.value = deflated.toInt()
@@ -87,12 +87,12 @@ class FakePointsManager : IPointsManager {
 
     override fun isMultiplierActive(): Boolean = multiplierEndMs > System.currentTimeMillis()
 
-    fun getDeflationDivisor(): Int = deflationDivisor
+    fun getInflationDivisor(): Int = inflationDivisor
 
     private fun checkAndResetIfOverLimit() {
         if (currentPointsFloat > 100_000f) {
             currentPointsFloat = 0f
-            deflationDivisor *= 10
+            inflationDivisor *= 10
         }
         totalPoints.value = currentPointsFloat.toInt()
     }

@@ -121,9 +121,9 @@ class PointsManagerTest {
     }
 
     @Test
-    fun `deflation divisor increases by 10x after first reset`() {
+    fun `inflation divisor increases by 10x after first reset`() {
         manager.addPoints(100_001)
-        assertEquals(10, manager.getDeflationDivisor())
+        assertEquals(10, manager.getInflationDivisor())
     }
 
     @Test
@@ -138,7 +138,7 @@ class PointsManagerTest {
     fun `after second reset divisor is 100`() {
         manager.addPoints(100_001)   // first reset: divisor → 10, balance = 0
         manager.addPoints(1_000_001) // 1_000_001 / 10 = 100_000.1 → second reset: divisor → 100
-        assertEquals(100, manager.getDeflationDivisor())
+        assertEquals(100, manager.getInflationDivisor())
     }
 
     @Test
