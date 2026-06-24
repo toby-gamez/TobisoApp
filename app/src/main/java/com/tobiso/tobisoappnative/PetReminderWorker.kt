@@ -28,12 +28,12 @@ class PetReminderWorker(
 
         if (equippedPetId == -1) return Result.success()
 
+        if (!PetManager.isPetInitialized(equippedPetId) || PetManager.isPetDead(equippedPetId)) return Result.success()
+
         val now = System.currentTimeMillis()
         val hourMs = 60 * 60 * 1000L
         val lastFed = PetManager.getLastFedTime(equippedPetId)
         val lastWatered = PetManager.getLastWateredTime(equippedPetId)
-
-        if (lastFed == 0L || lastWatered == 0L) return Result.success()
 
         val hoursSinceFed = (now - lastFed) / hourMs
         val hoursSinceWatered = (now - lastWatered) / hourMs

@@ -53,6 +53,11 @@ object PetManager : IPetManager {
         appContext = context.applicationContext
         _foodCount.value = prefs.getInt(KEY_FOOD, 0)
         _waterCount.value = prefs.getInt(KEY_WATER, 0)
+        val equippedPetId = appContext.getSharedPreferences("backpack_prefs", Context.MODE_PRIVATE)
+            .getInt("equipped_pet", -1)
+        if (equippedPetId != -1) {
+            initializePet(equippedPetId)
+        }
     }
 
     override fun addFood(amount: Int) {

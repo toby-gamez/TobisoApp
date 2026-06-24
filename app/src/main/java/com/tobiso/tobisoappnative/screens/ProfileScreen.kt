@@ -1242,6 +1242,11 @@ fun PetCareSection() {
                     onClick = {
                         if (PetManager.revivePet(petId)) {
                             refreshTrigger++
+                        } else {
+                            android.widget.Toast.makeText(
+                                context, "Nedostatek bodů! Potřebuješ ${PetManager.REVIVE_COST} bodů.",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
