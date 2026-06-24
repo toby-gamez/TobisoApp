@@ -18,9 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tobiso.tobisoappnative.tts.TtsManager
 import com.tobiso.tobisoappnative.tts.TtsState
@@ -36,34 +35,15 @@ import androidx.compose.animation.core.animateFloatAsState
 @Composable
 fun TtsPlayer(
     ttsManager: TtsManager,
-    modifier: Modifier = Modifier,
-    bottomPadding: Dp = 0.dp
+    modifier: Modifier = Modifier
 ) {
     val ttsStatus by ttsManager.status.collectAsState()
-    val isVisible = ttsStatus.state != TtsState.IDLE && ttsStatus.currentText.isNotEmpty()
-
-    Box(modifier = modifier) {
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f))
-            )
-        }
-
+    
     AnimatedVisibility(
-        visible = isVisible,
+        visible = ttsStatus.state != TtsState.IDLE && ttsStatus.currentText.isNotEmpty(),
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-        modifier = Modifier
-            .fillMaxWidth()
-            .align(Alignment.BottomCenter)
-            .padding(start = 8.dp, end = 8.dp, bottom = bottomPadding)
+        modifier = modifier
     ) {
             val cardShape = RoundedCornerShape(12.dp)
             Card(
@@ -71,6 +51,7 @@ fun TtsPlayer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
+                    .shadow(elevation = 8.dp, shape = cardShape)
                     .animateContentSize(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 colors = CardDefaults.cardColors(
@@ -317,7 +298,6 @@ fun TtsPlayer(
             }
         }
     }
-    } // outer Box
 
 @Composable
 fun TtsSpeedControl(
