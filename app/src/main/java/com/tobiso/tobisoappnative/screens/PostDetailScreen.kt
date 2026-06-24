@@ -104,7 +104,7 @@ import com.tobiso.tobisoappnative.components.ElementRenderer
 import com.tobiso.tobisoappnative.components.PostActionsRow
 import com.tobiso.tobisoappnative.components.ExerciseButtonsRow
 import com.tobiso.tobisoappnative.components.RelatedPostsList
-import com.tobiso.tobisoappnative.components.TableOfContents
+import com.tobiso.tobisoappnative.components.TableOfContentsDialog
 import kotlinx.serialization.json.JsonNull.content
 import androidx.compose.foundation.text.selection.SelectionContainer
 
@@ -128,6 +128,7 @@ fun PostDetailScreen(
     val relatedPosts by vm.relatedPosts.collectAsState()
     val relatedPostsError by vm.relatedPostsError.collectAsState()
     val relatedPostsLoading by vm.relatedPostsLoading.collectAsState()
+    val tableOfContents by vm.tableOfContents.collectAsState()
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(false) }
@@ -213,6 +214,7 @@ fun PostDetailScreen(
     var showAiConsentDialog by remember { mutableStateOf(false) }
     var showAiToolsSheet by remember { mutableStateOf(false) }
     var showSentenceSelectPanel by remember { mutableStateOf(false) }
+    var showTocDialog by remember { mutableStateOf(false) }
 
     // Person card
     var personNameForSheet by remember { mutableStateOf<String?>(null) }
@@ -297,6 +299,8 @@ fun PostDetailScreen(
                                 }
                             },
                             onAiToolsClick = { showAiToolsSheet = true },
+                            onTocClick = { showTocDialog = true },
+                            hasToc = tableOfContents.isNotEmpty(),
                             onBack = { navController.popBackStack() }
                         )
                     }
@@ -386,12 +390,21 @@ fun PostDetailScreen(
                             }
                         } else {
                             val contentElements by vm.parsedContent.collectAsState()
-                            val tableOfContents by vm.tableOfContents.collectAsState()
                             val wordCountText by vm.wordCountText.collectAsState()
                             val createdFormatted by vm.createdFormatted.collectAsState()
                             val updatedFormatted by vm.updatedFormatted.collectAsState()
 
                             val lazyListState = remember { LazyListState() }
+
+                            // item0=gradeBadge, item1=wordCount → content starts at index 2
+                            val contentItemOffset = 2
+                            val activeHeadingIdx by remember {
+                                derivedStateOf {
+                                    val contentIdx = lazyListState.firstVisibleItemIndex - contentItemOffset
+                                    if (contentIdx < 0) return@derivedStateOf -1
+                                    tableOfContents.indexOfLast { it.elementIndex <= contentIdx }
+                                }
+                            }
 
                             // Nový custom markdown renderer
                             LazyColumn(
@@ -419,17 +432,6 @@ fun PostDetailScreen(
                                             textAlign = TextAlign.End
                                         )
                                     }
-                                }
-                                item {
-                                    // item0=gradeBadge, item1=wordCount, item2=TOC → content starts at index 3
-                                    TableOfContents(
-                                        entries = tableOfContents,
-                                        onEntryClick = { entry ->
-                                            coroutineScope.launch {
-                                                lazyListState.animateScrollToItem(entry.elementIndex + 3)
-                                            }
-                                        }
-                                    )
                                 }
                                 // Render each content element as its own lazy item (virtualized)
                                 itemsIndexed(contentElements, key = { index, _ -> index }) { _, element ->
@@ -512,6 +514,19 @@ fun PostDetailScreen(
                                 item {
                                     Spacer(modifier = Modifier.height(80.dp))
                                 }
+                            }
+
+                            if (showTocDialog) {
+                                TableOfContentsDialog(
+                                    entries = tableOfContents,
+                                    activeEntryIndex = activeHeadingIdx,
+                                    onEntryClick = { entry ->
+                                        coroutineScope.launch {
+                                            lazyListState.animateScrollToItem(entry.elementIndex + contentItemOffset)
+                                        }
+                                    },
+                                    onDismiss = { showTocDialog = false }
+                                )
                             }
                     }
                 }

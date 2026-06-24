@@ -1,75 +1,81 @@
 package com.tobiso.tobisoappnative.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 
 @Composable
-fun TableOfContents(entries: List<TocEntry>, onEntryClick: (TocEntry) -> Unit) {
-    if (entries.isEmpty()) return
+fun TableOfContentsDialog(
+    entries: List<TocEntry>,
+    activeEntryIndex: Int,
+    onEntryClick: (TocEntry) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val listState = rememberLazyListState()
 
-    var expanded by remember { mutableStateOf(true) }
+    LaunchedEffect(activeEntryIndex) {
+        if (activeEntryIndex >= 0) {
+            listState.animateScrollToItem(activeEntryIndex.coerceAtMost(entries.lastIndex.coerceAtLeast(0)))
+        }
+    }
 
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        tonalElevation = 1.dp
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+        ) {
+            Column(modifier = Modifier.padding(vertical = 16.dp)) {
                 Text(
                     text = "Obsah",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                 )
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "Sbalit" else "Rozbalit",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            AnimatedVisibility(visible = expanded) {
-                Column(modifier = Modifier.padding(start = 8.dp, end = 16.dp, bottom = 12.dp)) {
-                    entries.forEach { entry ->
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                        .padding(top = 4.dp, bottom = 4.dp)
+                ) {
+                    itemsIndexed(entries) { idx, entry ->
+                        val isActive = idx == activeEntryIndex
                         val indent = (entry.level - 1) * 16
-                        val textStyle = when (entry.level) {
-                            1 -> MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        val baseStyle = when (entry.level) {
+                            1 -> MaterialTheme.typography.bodyLarge
                             2 -> MaterialTheme.typography.bodyMedium
                             else -> MaterialTheme.typography.bodySmall
                         }
-                        val color = if (entry.level >= 3)
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        else
-                            MaterialTheme.colorScheme.onSurface
-
+                        val fontWeight = when {
+                            isActive -> FontWeight.Bold
+                            entry.level == 1 -> FontWeight.SemiBold
+                            else -> FontWeight.Normal
+                        }
+                        val color = when {
+                            isActive -> MaterialTheme.colorScheme.primary
+                            entry.level >= 3 -> MaterialTheme.colorScheme.onSurfaceVariant
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
                         Text(
                             text = entry.text,
-                            style = textStyle,
+                            style = baseStyle.copy(fontWeight = fontWeight),
                             color = color,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onEntryClick(entry) }
-                                .padding(start = indent.dp, top = 4.dp, bottom = 4.dp, end = 8.dp)
+                                .clickable { onEntryClick(entry); onDismiss() }
+                                .padding(start = (20 + indent).dp, end = 20.dp, top = 6.dp, bottom = 6.dp)
                         )
                     }
                 }
