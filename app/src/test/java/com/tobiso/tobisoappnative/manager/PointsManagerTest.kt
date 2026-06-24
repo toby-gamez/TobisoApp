@@ -113,4 +113,39 @@ class PointsManagerTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `balance resets to 0 when points exceed 100000`() {
+        manager.addPoints(100_001)
+        assertEquals(0, manager.getPoints())
+    }
+
+    @Test
+    fun `deflation divisor increases by 10x after first reset`() {
+        manager.addPoints(100_001)
+        assertEquals(10, manager.getDeflationDivisor())
+    }
+
+    @Test
+    fun `after first reset adding 7 points adds 0 to balance`() {
+        manager.addPoints(100_001)
+        val before = manager.getPoints()
+        manager.addPoints(7)
+        assertEquals(before, manager.getPoints()) // 0.7 floors to 0
+    }
+
+    @Test
+    fun `after second reset divisor is 100`() {
+        manager.addPoints(100_001)   // first reset: divisor → 10, balance = 0
+        manager.addPoints(1_000_001) // 1_000_001 / 10 = 100_000.1 → second reset: divisor → 100
+        assertEquals(100, manager.getDeflationDivisor())
+    }
+
+    @Test
+    fun `totalEarnedPoints is not reset when balance resets`() {
+        manager.addPoints(50_000)
+        val earnedBefore = manager.getTotalEarnedPoints()
+        manager.addPoints(100_001)
+        assertTrue(manager.getTotalEarnedPoints() >= earnedBefore)
+    }
 }

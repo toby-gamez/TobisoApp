@@ -10,10 +10,11 @@ import kotlinx.coroutines.flow.StateFlow
  */
 class FakePointsManager : IPointsManager {
 
-    private var currentPoints = 0
+    private var currentPointsFloat = 0f
     private var earnedPoints = 0
     private var multiplier = 1.0f
     private var multiplierEndMs = 0L
+    private var deflationDivisor = 1
 
     override val totalPoints = MutableStateFlow(0)
     override val lastAddedPoints = MutableStateFlow(0)
@@ -23,30 +24,32 @@ class FakePointsManager : IPointsManager {
     override val totalEarnedPoints = MutableStateFlow(0)
 
     override fun addPoints(amount: Int) {
-        val added = (amount * multiplier).toInt()
-        currentPoints += added
-        earnedPoints += added
-        lastAddedPoints.value = added
-        totalPoints.value = currentPoints
+        val deflated = amount.toFloat() / deflationDivisor * multiplier
+        currentPointsFloat += deflated
+        earnedPoints += deflated.toInt()
+        lastAddedPoints.value = deflated.toInt()
         totalEarnedPoints.value = earnedPoints
+        checkAndResetIfOverLimit()
     }
 
     override fun addPointsForMilestone(amount: Int, milestoneDay: Int) {
-        currentPoints += amount
-        earnedPoints += amount
-        lastAddedPoints.value = amount
+        val deflated = amount.toFloat() / deflationDivisor
+        currentPointsFloat += deflated
+        earnedPoints += deflated.toInt()
+        lastAddedPoints.value = deflated.toInt()
         lastMilestone.value = milestoneDay
-        totalPoints.value = currentPoints
         totalEarnedPoints.value = earnedPoints
+        checkAndResetIfOverLimit()
     }
 
     override fun addPointsForAchievement(amount: Int, achievementPoints: Int) {
-        currentPoints += amount
-        earnedPoints += amount
-        lastAddedPoints.value = amount
+        val deflated = amount.toFloat() / deflationDivisor
+        currentPointsFloat += deflated
+        earnedPoints += deflated.toInt()
+        lastAddedPoints.value = deflated.toInt()
         lastAchievement.value = achievementPoints
-        totalPoints.value = currentPoints
         totalEarnedPoints.value = earnedPoints
+        checkAndResetIfOverLimit()
     }
 
     override fun resetLastAddedPoints() {
@@ -55,14 +58,14 @@ class FakePointsManager : IPointsManager {
         lastAchievement.value = null
     }
 
-    override fun getPoints(): Int = currentPoints
+    override fun getPoints(): Int = currentPointsFloat.toInt()
 
     override fun getTotalEarnedPoints(): Int = earnedPoints
 
     override fun subtractPoints(amount: Int): Boolean {
-        if (currentPoints < amount) return false
-        currentPoints -= amount
-        totalPoints.value = currentPoints
+        if (currentPointsFloat < amount) return false
+        currentPointsFloat -= amount
+        totalPoints.value = currentPointsFloat.toInt()
         return true
     }
 
@@ -83,4 +86,14 @@ class FakePointsManager : IPointsManager {
     }
 
     override fun isMultiplierActive(): Boolean = multiplierEndMs > System.currentTimeMillis()
+
+    fun getDeflationDivisor(): Int = deflationDivisor
+
+    private fun checkAndResetIfOverLimit() {
+        if (currentPointsFloat > 100_000f) {
+            currentPointsFloat = 0f
+            deflationDivisor *= 10
+        }
+        totalPoints.value = currentPointsFloat.toInt()
+    }
 }
