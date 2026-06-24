@@ -25,8 +25,18 @@ fun generatePointsAchievements(): Map<Int, Int> {
         2000 to 100,
         3000 to 150,
         4000 to 200,
-        5000 to 250
-        // můžeme přidat další podle potřeby
+        5000 to 250,
+        7500 to 300,
+        10000 to 500,
+        15000 to 400,
+        20000 to 600,
+        25000 to 500,
+        30000 to 700,
+        40000 to 800,
+        50000 to 1000,
+        60000 to 900,
+        75000 to 1200,
+        100000 to 2000
     )
 }
 

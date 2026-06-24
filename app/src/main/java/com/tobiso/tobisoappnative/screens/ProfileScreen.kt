@@ -1103,6 +1103,17 @@ fun getAchievementBadge(points: Int): AchievementBadge {
         3000 -> AchievementBadge("🌌", "Galaktický", "Mezi hvězdami", Color(0xFF3F51B5))
         4000 -> AchievementBadge("🎆", "Kosmický", "Za hranicí", Color(0xFF9C27B0))
         5000 -> AchievementBadge("♾️", "Nekonečný", "Bez hranic", Color(0xFFFF5722))
+        7500 -> AchievementBadge("🌠", "Meteorický", "Letí vesmírem", Color(0xFF607D8B))
+        10000 -> AchievementBadge("🎇", "Deset tisíc", "Magická hranice", Color(0xFFE91E63))
+        15000 -> AchievementBadge("🏛️", "Architekt", "Stavitel znalostí", Color(0xFF795548))
+        20000 -> AchievementBadge("🧬", "Vědec", "Hloubka výzkumu", Color(0xFF00BCD4))
+        25000 -> AchievementBadge("🔑", "Klíčník", "Otevírá tajemství", Color(0xFFFFEB3B))
+        30000 -> AchievementBadge("⚜️", "Šlechtic", "Vznešený duch", Color(0xFF9C27B0))
+        40000 -> AchievementBadge("🌋", "Vulkán", "Výbuchová energie", Color(0xFFFF5722))
+        50000 -> AchievementBadge("🦁", "Lev", "Půl sta tisíc", Color(0xFFFF9800))
+        60000 -> AchievementBadge("🌊", "Oceán", "Hlubiny poznání", Color(0xFF2196F3))
+        75000 -> AchievementBadge("🦋", "Metamorfóza", "Úplná proměna", Color(0xFF4CAF50))
+        100000 -> AchievementBadge("👑", "Vševědoucí", "100 000 bodů!", Color(0xFFFFD700))
         else -> AchievementBadge("🏅", "Medaile", "Úspěch", Color(0xFF4CAF50))
     }
 }
@@ -1149,6 +1160,8 @@ fun AchievementsSection() {
     // Najdi nejbližší nedosažený achievement bodů
     val nextAchievement = achievements.entries.firstOrNull { it.key > totalEarnedPoints }
     
+    var expanded by remember { mutableStateOf(false) }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1164,10 +1177,11 @@ fun AchievementsSection() {
                 .padding(16.dp)
                 .fillMaxWidth()
         ) {
-            // Hlavička s ikonou a názvem
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
             ) {
                 Icon(
                     imageVector = Icons.Default.Stars,
@@ -1188,134 +1202,145 @@ fun AchievementsSection() {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Sbalit" else "Rozbalit",
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.size(24.dp)
+                )
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            AnimatedVisibility(visible = expanded) {
+                Column {
+                    Spacer(modifier = Modifier.height(16.dp))
             
-            // Galerie dosažených odznaků
-            if (allCompletedBadges.isNotEmpty()) {
-                Text(
-                    text = "Získané odznaky:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Grid odznaků (3 v řádku) - seřazené podle typu a hodnoty
-                val sortedBadges = allCompletedBadges.sortedWith(
-                    compareBy<BadgeData> { if (it.type == "streak") 0 else 1 }
-                        .thenBy { it.id.toIntOrNull() ?: 0 }
-                )
-                val chunkedBadges = sortedBadges.chunked(3)
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    chunkedBadges.forEach { rowBadges ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            rowBadges.forEach { badgeData ->
-                                BadgeCard(
-                                    badge = badgeData.badge,
-                                    value = badgeData.id.toIntOrNull() ?: 0,
-                                    type = badgeData.type,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            // Vyplnění zbývajících míst v řádku
-                            repeat(3 - rowBadges.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            
-            // Progress k nejbližšímu achievementu
-            if (nextAchievement != null) {
-                val previousAchievement = achievements.entries.lastOrNull { it.key <= totalEarnedPoints }
-                val startValue = previousAchievement?.key ?: 0
-                val targetValue = nextAchievement.key
-                val currentProgress = (totalEarnedPoints - startValue).coerceAtLeast(0)
-                val maxProgress = targetValue - startValue
-                val progress = if (maxProgress > 0) currentProgress.toFloat() / maxProgress.toFloat() else 0f
-                
-                val nextBadge = getAchievementBadge(nextAchievement.key)
-                
-                // Náhled dalšího odznaku
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = nextBadge.emoji,
-                        fontSize = 20.sp,
-                        modifier = Modifier
-                            .background(
-                                nextBadge.color.copy(alpha = 0.2f),
-                                CircleShape
-                            )
-                            .padding(8.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(12.dp))
-                    
-                    Column(modifier = Modifier.weight(1f)) {
+                    // Galerie dosažených odznaků
+                    if (allCompletedBadges.isNotEmpty()) {
                         Text(
-                            text = "Další: ${nextBadge.title}",
+                            text = "Získané odznaky:",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
-                        Text(
-                            text = "${nextAchievement.key} bodů (+${nextAchievement.value} odměna)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Grid odznaků (3 v řádku) - seřazené podle typu a hodnoty
+                        val sortedBadges = allCompletedBadges.sortedWith(
+                            compareBy<BadgeData> { if (it.type == "streak") 0 else 1 }
+                                .thenBy { it.id.toIntOrNull() ?: 0 }
                         )
+                        val chunkedBadges = sortedBadges.chunked(3)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            chunkedBadges.forEach { rowBadges ->
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    rowBadges.forEach { badgeData ->
+                                        BadgeCard(
+                                            badge = badgeData.badge,
+                                            value = badgeData.id.toIntOrNull() ?: 0,
+                                            type = badgeData.type,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    // Vyplnění zbývajících míst v řádku
+                                    repeat(3 - rowBadges.size) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = nextBadge.color,
-                    trackColor = nextBadge.color.copy(alpha = 0.3f)
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = "$totalEarnedPoints / ${nextAchievement.key}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
-                )
-            } else {
-                // Všechny achievementy dokončeny
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "🎉",
-                        fontSize = 24.sp
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Všechny odznaky získány!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontWeight = FontWeight.Medium
-                    )
+                    
+                    // Progress k nejbližšímu achievementu
+                    if (nextAchievement != null) {
+                        val previousAchievement = achievements.entries.lastOrNull { it.key <= totalEarnedPoints }
+                        val startValue = previousAchievement?.key ?: 0
+                        val targetValue = nextAchievement.key
+                        val currentProgress = (totalEarnedPoints - startValue).coerceAtLeast(0)
+                        val maxProgress = targetValue - startValue
+                        val progress = if (maxProgress > 0) currentProgress.toFloat() / maxProgress.toFloat() else 0f
+                        
+                        val nextBadge = getAchievementBadge(nextAchievement.key)
+                        
+                        // Náhled dalšího odznaku
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = nextBadge.emoji,
+                                fontSize = 20.sp,
+                                modifier = Modifier
+                                    .background(
+                                        nextBadge.color.copy(alpha = 0.2f),
+                                        CircleShape
+                                    )
+                                    .padding(8.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Další: ${nextBadge.title}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = "${nextAchievement.key} bodů (+${nextAchievement.value} odměna)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = nextBadge.color,
+                            trackColor = nextBadge.color.copy(alpha = 0.3f)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = "$totalEarnedPoints / ${nextAchievement.key}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                        )
+                    } else {
+                        // Všechny achievementy dokončeny
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "🎉",
+                                fontSize = 24.sp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Všechny odznaky získány!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
