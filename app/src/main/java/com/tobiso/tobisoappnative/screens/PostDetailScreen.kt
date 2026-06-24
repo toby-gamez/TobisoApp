@@ -287,8 +287,9 @@ fun PostDetailScreen(
                                 postDetail?.id?.let { id -> downloadPdf(id) }
                             },
                             onShareClick = {
-                                postDetail?.id?.let { id ->
-                                    val url = "https://www.tobiso.com/post/$id"
+                                postDetail?.let { post ->
+                                    val slug = post.filePath.removeSuffix(".md").removeSuffix(".html")
+                                    val url = "https://www.tobiso.com/post$slug"
                                     val sendIntent = android.content.Intent().apply {
                                         action = android.content.Intent.ACTION_SEND
                                         putExtra(android.content.Intent.EXTRA_TEXT, url)
