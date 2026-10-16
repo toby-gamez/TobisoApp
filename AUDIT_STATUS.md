@@ -48,7 +48,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 
 | Web capability | Web endpoints / pages | App today |
 |---|---|---|
-| User accounts (email, Google, student login) | `api/auth/*` | ❌ (seam exists, no UI) |
+| User accounts (email, Google) — **user accounts only; the app has no admin login or admin features** | `api/auth/*` | ❌ (seam exists, no UI) |
 | Server-side progress, bookmarks, export | `api/user/*` | ❌ local `FavoritesScreen` only |
 | Grade-versioned posts | `postversions`, `ai/rewrite-grade` | ⚠️ `gradeId` + `activeVersion`; no picker / reviewed badge |
 | ~30 AI tools | `api/ai/*` | ⚠️ 8 wired |
@@ -121,7 +121,7 @@ Open:
 7. Callouts + math in the parser.
 8. Decide on shared rendering (pre-rendered HTML/AST from the API).
 
-**Decided:** accounts are **optional** (anonymous stays usable). **Open:** is gamification server-authoritative or local?
+**Decided:** accounts are **optional** (anonymous stays usable) and **user-only** — no admin login, no admin-only endpoints (`grammar-check`, `PUT posts/{id}/video`, `admin/*`) in the app. **Open:** is gamification server-authoritative or local?
 
 ---
 
@@ -177,7 +177,7 @@ The web has **two** distinct things under this name. Mirror both.
 - `GET pages/article-of-day`, `GET pages/random` → a `Post`. Home screen: "Článek dne" card (sage-tinted) and a "Náhodný článek" action. Cache article-of-day per calendar day for offline.
 
 ### 8.6 Accounts, bookmarks, read progress (optional sign-in)
-- Login: `POST auth/login` → JWT. Store in `EncryptedSharedPreferences`, set `AuthSession.token` at app start; on 401 clear it and fall back to anonymous.
+- Login (regular user accounts only, never admin): `POST auth/login` → JWT. Store in `EncryptedSharedPreferences`, set `AuthSession.token` at app start; on 401 clear it and fall back to anonymous.
 - `GET user/bookmarks` (ids), `POST/DELETE user/bookmarks/{postId}` — reconcile with local `FavoritesRepositoryImpl` (union on first login, then server-authoritative).
 - `POST user/read-progress {postId, scrollPercent}` — send throttled from the lazy-list scroll position; drives "Pokračovat ve čtení" on Home. Post screen already has a table-of-contents index; reading percent can derive from `firstVisibleItemIndex / itemCount`.
 
