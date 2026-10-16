@@ -222,10 +222,8 @@ class MixedQuizViewModelTest {
 
         viewModel.onIntent(MixedQuizIntent.FinishQuiz)
 
-        assertEquals(2, viewModel.uiState.value.awardedPoints)
         assertEquals(2, pointsManager.getPoints())
         assertTrue(viewModel.uiState.value.showResults)
-        assertTrue(viewModel.uiState.value.showPointsOverlay)
         assertTrue(viewModel.uiState.value.pointsAwarded)
     }
 
@@ -240,9 +238,7 @@ class MixedQuizViewModelTest {
 
         viewModel.onIntent(MixedQuizIntent.FinishQuiz)
 
-        assertEquals(0, viewModel.uiState.value.awardedPoints)
         assertEquals(0, pointsManager.getPoints())
-        assertFalse(viewModel.uiState.value.showPointsOverlay)
         assertTrue(viewModel.uiState.value.showResults)
     }
 
@@ -280,24 +276,5 @@ class MixedQuizViewModelTest {
         assertFalse(state.showResults)
         assertFalse(state.pointsAwarded)
         assertTrue(state.selectedAnswers.isEmpty())
-        assertEquals(0, state.awardedPoints)
-    }
-
-    // ── DismissPointsOverlay ──────────────────────────────────────────────────
-
-    @Test
-    fun `dismissPointsOverlay hides points overlay`() = runBlocking {
-        val q1 = makeQuestion(1, correctIdx = 0)
-        coEvery { getAllQuestions() } returns Result.success(listOf(q1) to emptyList())
-        viewModel.onIntent(MixedQuizIntent.Load("1"))
-        delay(100)
-        viewModel.onIntent(MixedQuizIntent.StartQuiz)
-        viewModel.onIntent(MixedQuizIntent.SelectAnswer(0, 0))
-        viewModel.onIntent(MixedQuizIntent.FinishQuiz)
-        assertTrue(viewModel.uiState.value.showPointsOverlay)
-
-        viewModel.onIntent(MixedQuizIntent.DismissPointsOverlay)
-
-        assertFalse(viewModel.uiState.value.showPointsOverlay)
     }
 }

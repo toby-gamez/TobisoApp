@@ -17,9 +17,12 @@ class FakePointsManager : IPointsManager {
     private var inflationDivisor = 1
 
     override val totalPoints = MutableStateFlow(0)
+    override val totalPointsFloat = MutableStateFlow(0f)
     override val lastAddedPoints = MutableStateFlow(0)
     override val lastMilestone = MutableStateFlow<Int?>(null)
     override val lastAchievement = MutableStateFlow<Int?>(null)
+    override val lastPrestigeTierPoints = MutableStateFlow<Int?>(null)
+    override val lastPointsReset = MutableStateFlow<Int?>(null)
     override val activeMultiplier = MutableStateFlow(1.0f)
     override val totalEarnedPoints = MutableStateFlow(0)
 
@@ -58,6 +61,14 @@ class FakePointsManager : IPointsManager {
         lastAchievement.value = null
     }
 
+    override fun resetLastPrestigeTier() {
+        lastPrestigeTierPoints.value = null
+    }
+
+    override fun resetLastPointsReset() {
+        lastPointsReset.value = null
+    }
+
     override fun getPoints(): Int = currentPointsFloat.toInt()
 
     override fun getTotalEarnedPoints(): Int = earnedPoints
@@ -66,6 +77,7 @@ class FakePointsManager : IPointsManager {
         if (currentPointsFloat < amount) return false
         currentPointsFloat -= amount
         totalPoints.value = currentPointsFloat.toInt()
+        totalPointsFloat.value = currentPointsFloat
         return true
     }
 
@@ -93,7 +105,9 @@ class FakePointsManager : IPointsManager {
         if (currentPointsFloat > 100_000f) {
             currentPointsFloat = 0f
             inflationDivisor *= 10
+            lastPointsReset.value = inflationDivisor
         }
         totalPoints.value = currentPointsFloat.toInt()
+        totalPointsFloat.value = currentPointsFloat
     }
 }

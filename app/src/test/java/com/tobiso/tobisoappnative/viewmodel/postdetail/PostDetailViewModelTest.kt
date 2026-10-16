@@ -1,12 +1,15 @@
 package com.tobiso.tobisoappnative.viewmodel.postdetail
 
 import android.app.Application
+import android.content.Context
+import android.net.ConnectivityManager
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.RelatedPost
 import com.tobiso.tobisoappnative.repository.FavoritesRepositoryImpl
 import com.tobiso.tobisoappnative.repository.PostsRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -38,6 +41,7 @@ class PostDetailViewModelTest {
     fun setUp() {
         Dispatchers.setMain(Dispatchers.Unconfined)
         app = mockk(relaxed = true)
+        every { app.getSystemService(Context.CONNECTIVITY_SERVICE) } returns mockk<ConnectivityManager>(relaxed = true)
         repo = mockk()
         favoritesRepo = mockk(relaxed = true)
         coEvery { favoritesRepo.favoritePosts } returns flowOf(emptyList())
