@@ -17,7 +17,10 @@ class QuestionsRepositoryImpl(
         return if (isOnline) {
             try {
                 val questions = ApiClient.apiService.getAllQuestions().toList()
-                val posts = ApiClient.apiService.getPosts().toList()
+                // Only id/title/categoryId are needed here, so skip the full post bodies.
+                val posts = ApiClient.apiService.getPostSummaries().map {
+                    Post(id = it.id, title = it.title, filePath = it.filePath, lastEdit = it.lastEdit, lastFix = it.lastFix, categoryId = it.categoryId)
+                }
                 Result.success(Pair(questions, posts))
             } catch (e: Exception) {
                 // Fallback to cache on network error
