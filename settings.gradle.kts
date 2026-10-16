@@ -26,3 +26,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "TobisoAppNative"
 include(":app")
+include(":baselineprofile")

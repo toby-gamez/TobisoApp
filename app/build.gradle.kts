@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 val localProperties = Properties().apply {
@@ -172,7 +173,22 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
 
+    // Baseline profile
+    implementation(libs.androidx.profileinstaller)
+    "baselineProfile"(project(":baselineprofile"))
+
     // Logging
     implementation(libs.timber)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+}
+
+// Baseline-profile variants (nonMinifiedRelease / benchmarkRelease) are only ever installed locally
+// by the profile generator, so sign them with the debug key instead of the release keystore.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        val name = variant.buildType.orEmpty()
+        if (name.startsWith("nonMinified") || name.startsWith("benchmark")) {
+            variant.signingConfig.setConfig(android.signingConfigs.getByName("debug"))
+        }
+    }
 }

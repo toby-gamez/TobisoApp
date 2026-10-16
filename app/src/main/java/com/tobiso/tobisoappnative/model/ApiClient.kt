@@ -11,6 +11,21 @@ import okhttp3.Request
 import retrofit2.Retrofit
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 
+/**
+ * Optional user session. When a JWT is set, requests carry `Authorization: Bearer <jwt>`
+ * instead of the app's Basic credentials (the server picks its auth scheme from that prefix,
+ * see Tobiso.Web `SmartAuth`). With no token the app stays anonymous.
+ */
+object AuthSession {
+    @Volatile
+    var token: String? = null
+}
+
+private fun okhttp3.Request.Builder.applyAuth(basic: String): okhttp3.Request.Builder {
+    val jwt = AuthSession.token
+    return header("Authorization", if (jwt.isNullOrBlank()) basic else "Bearer $jwt")
+}
+
 object ApiClient {
     private val BASE_URL: String by lazy { BuildConfig.API_BASE_URL }
 
@@ -33,7 +48,7 @@ object ApiClient {
         builder.addInterceptor { chain ->
             val originalRequest = chain.request()
             val requestBuilder = originalRequest.newBuilder()
-                .addHeader("Authorization", credentials)
+                .applyAuth(credentials)
                 .addHeader("User-Agent", "TobisoApp-Android/${BuildConfig.VERSION_NAME}")
                 .addHeader("X-App-Version", BuildConfig.VERSION_NAME)
                 .addHeader("X-Security-Token", SecurityConfig.getSecurityToken())
@@ -66,7 +81,7 @@ object ApiClient {
             .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val request: Request = chain.request().newBuilder()
-                    .addHeader("Authorization", credential)
+                    .applyAuth(credential)
                     .addHeader("User-Agent", "TobisoApp-Android/${BuildConfig.VERSION_NAME}")
                     .build()
                 val response = chain.proceed(request)
