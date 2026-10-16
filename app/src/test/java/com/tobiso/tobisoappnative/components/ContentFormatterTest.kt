@@ -135,14 +135,15 @@ class ContentFormatterTest {
         assertEquals(null, el.postId)
     }
 
-    // ── Known quirk: pinned so a parser rewrite makes a conscious choice ─────
+    @Test
+    fun `numbered lines are grouped into one numbered list`() {
+        val el = parse("1. prvni\n2. druha\n10. desata").single() as ContentElement.NumberedList
+        assertEquals(listOf("prvni", "druha", "desata"), el.items)
+    }
 
     @Test
-    fun `numbered list syntax is currently rendered as a paragraph`() {
-        // The regex in parseContentToElements is over-escaped ("\\\\d"), so NumberedList is never produced.
-        val els = parse("1. prvni\n2. druha")
-        assertTrue(els.none { it is ContentElement.NumberedList })
-        assertEquals(2, els.filterIsInstance<ContentElement.Paragraph>().size)
+    fun `number without dot-space is still a paragraph`() {
+        assertTrue(parse("2024 byl rok").single() is ContentElement.Paragraph)
     }
 
     // ── Inline parsing ────────────────────────────────────────────────────

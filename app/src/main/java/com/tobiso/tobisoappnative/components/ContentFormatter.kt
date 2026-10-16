@@ -214,11 +214,12 @@ fun parseContentToElements(
             }
         }
         // Číslované odrážky
-            if (line.matches("^\\\\d+\\. ".toRegex())) {
-                val items = mutableListOf(line.replace("^\\\\d+\\. ".toRegex(), ""))
+        val numberedRegex = Regex("^\\d+\\. ")
+        if (numberedRegex.containsMatchIn(line)) {
+            val items = mutableListOf(line.replaceFirst(numberedRegex, ""))
             i++
-                while (i < lines.size && lines[i].matches("^\\\\d+\\. ".toRegex())) {
-                items.add(lines[i].replace("^\\d+\\. ".toRegex(), ""))
+            while (i < lines.size && numberedRegex.containsMatchIn(lines[i].trimEnd())) {
+                items.add(lines[i].trimEnd().replaceFirst(numberedRegex, ""))
                 i++
             }
             elements.add(ContentElement.NumberedList(items))
