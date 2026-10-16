@@ -55,7 +55,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | Article of the day / random | `pages/article-of-day`, `pages/random` | ❌ |
 | Post difficulty rating | `posts/{id}/difficulty`, `rate-difficulty` | ❌ |
 | Reading progress ("continue reading") | `user/read-progress` | ❌ |
-| "Ověř si porozumění" as a first-class per-article feature | `Quiz.razor`, `PostDetail.razor` | ⚠️ exists as "Prověrka" — see §8.1 |
+| "Ověř si porozumění" as a first-class per-article feature | `Quiz.razor`, `PostDetail.razor` | ⚠️ exists as "Prověrka" — planned in the design phase, see §8.1 |
 | Legal / cookie consent flow | `Legal` | ❌ (verify Play-store needs when accounts land) |
 | ~~Chronicle / timeline~~ | `api/chronicle/*` | ⛔ out of scope |
 
@@ -110,13 +110,13 @@ Open:
 **Phase 0 — done.** **Phase 1 — done except baseline profile generation** (needs the phone attached).
 
 **Phase 2 — Parity**
-1. **"Ověř si porozumění"** (§8.1) — rename, article CTA card, runner polish. Smallest, highest-visibility, no backend work.
-2. Difficulty rating (§8.4), article of the day / random (§8.5) — anonymous endpoints, no login needed.
-3. Grade-version picker + reviewed badge (§8.2).
-4. Optional accounts (email + Google), `AuthSession` persistence, bookmark/read-progress sync (§8.6).
-5. AI: `ask-stream`, then the remaining tools via a data-driven registry in `AiToolsBottomSheet`.
+1. Difficulty rating (§8.4), article of the day / random (§8.5) — anonymous endpoints, no login needed.
+2. Grade-version picker + reviewed badge (§8.2).
+3. Optional user accounts (email + Google), `AuthSession` persistence, bookmark/read-progress sync (§8.6).
+4. AI: `ask-stream`, then the remaining tools via a data-driven registry in `AiToolsBottomSheet`.
 
 **Phase 3 — Redesign**
+5. **"Ověř si porozumění"** (§8.1) — rename, article CTA card, quiz runner polish; built together with the re-skin using the §8.3 component mapping.
 6. Re-skin legacy screens on tokens; split mega-screens; Lucide icon set.
 7. Callouts + math in the parser.
 8. Decide on shared rendering (pre-rendered HTML/AST from the API).
@@ -182,7 +182,7 @@ The web has **two** distinct things under this name. Mirror both.
 - `POST user/read-progress {postId, scrollPercent}` — send throttled from the lazy-list scroll position; drives "Pokračovat ve čtení" on Home. Post screen already has a table-of-contents index; reading percent can derive from `firstVisibleItemIndex / itemCount`.
 
 ### Suggested order of the next commits
-1. §8.1 A + B small fixes ("Ověř si porozumění" rename, CTA card, always-show explanation, "Otázka i ze n" + progress bar, Hotovo/Začít znovu).
-2. §8.4 difficulty + §8.5 article of the day.
-3. §8.2 grade picker.
-4. Generate baseline profile when the device is attached.
+1. §8.4 difficulty + §8.5 article of the day.
+2. §8.2 grade picker.
+3. Generate baseline profile when the device is attached.
+4. Design phase: §8.1 "Ověř si porozumění" together with the screen re-skin.
