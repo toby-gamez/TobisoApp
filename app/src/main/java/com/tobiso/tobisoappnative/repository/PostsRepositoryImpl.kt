@@ -2,7 +2,7 @@ package com.tobiso.tobisoappnative.repository
 
 import android.content.Context
 import com.tobiso.tobisoappnative.model.Addendum
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.Category
 import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
@@ -17,7 +17,8 @@ import okhttp3.ResponseBody
 
 class PostsRepositoryImpl(
     private val context: Context,
-    private val offlineDataManager: OfflineDataManager
+    private val offlineDataManager: OfflineDataManager,
+    private val api: ApiService
 ) : PostsRepository {
 
     override suspend fun getCategories(): Result<List<Category>> {
@@ -27,7 +28,7 @@ class PostsRepositoryImpl(
                 if (cached != null) return Result.success(cached)
             }
             if (NetworkUtils.isOnline(context)) {
-                Result.success(ApiClient.apiService.getCategories().toList())
+                Result.success(api.getCategories().toList())
             } else {
                 val cached = offlineDataManager.getCachedCategories()
                 if (cached != null) Result.success(cached)
@@ -50,7 +51,7 @@ class PostsRepositoryImpl(
                 if (cached != null) return Result.success(cached)
             }
             if (NetworkUtils.isOnline(context)) {
-                Result.success(ApiClient.apiService.getPosts(categoryId, gradeId).toList())
+                Result.success(api.getPosts(categoryId, gradeId).toList())
             } else {
                 val cached = if (categoryId != null)
                     offlineDataManager.getCachedPostsByCategory(categoryId)
@@ -82,7 +83,7 @@ class PostsRepositoryImpl(
     override suspend fun getPost(postId: Int, gradeId: Int?): Result<Post> {
         return try {
             if (NetworkUtils.isOnline(context)) {
-                Result.success(ApiClient.apiService.getPost(postId, gradeId))
+                Result.success(api.getPost(postId, gradeId))
             } else {
                 val cached = offlineDataManager.getCachedPost(postId)
                 if (cached != null) {
@@ -105,7 +106,7 @@ class PostsRepositoryImpl(
 
     override suspend fun getPostSummaries(): Result<List<PostSummaryResponse>> {
         return try {
-            Result.success(ApiClient.apiService.getPostSummaries().toList())
+            Result.success(api.getPostSummaries().toList())
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -113,7 +114,7 @@ class PostsRepositoryImpl(
 
     override suspend fun getGrades(): Result<List<Grade>> {
         return try {
-            Result.success(ApiClient.apiService.getGrades().toList())
+            Result.success(api.getGrades().toList())
         } catch (e: Exception) {
             val cached = offlineDataManager.getCachedGrades()
             if (cached.isNotEmpty()) Result.success(cached)
@@ -131,7 +132,7 @@ class PostsRepositoryImpl(
         return try {
             val list = mutableListOf<RelatedPost>()
             if (NetworkUtils.isOnline(context)) {
-                list.addAll(ApiClient.apiService.getRelatedPostsByPostId(postId).toList())
+                list.addAll(api.getRelatedPostsByPostId(postId).toList())
             } else {
                 val cached = offlineDataManager.getCachedRelatedPostsByPostId(postId)
                 if (cached != null) list.addAll(cached)
@@ -165,7 +166,7 @@ class PostsRepositoryImpl(
     override suspend fun getAddendums(): Result<List<Addendum>> {
         return try {
             if (NetworkUtils.isOnline(context)) {
-                val list = ApiClient.apiService.getAddendums().toList()
+                val list = api.getAddendums().toList()
                 offlineDataManager.saveAddendums(list)
                 Result.success(list)
             } else {
@@ -181,7 +182,7 @@ class PostsRepositoryImpl(
     override suspend fun getQuestionsForPost(postId: Int): Result<List<Question>> {
         return try {
             if (NetworkUtils.isOnline(context)) {
-                Result.success(ApiClient.apiService.getQuestionsByPostId(postId).toList())
+                Result.success(api.getQuestionsByPostId(postId).toList())
             } else {
                 val cached = offlineDataManager.getCachedQuestionsByPostId(postId) ?: emptyList()
                 Result.success(cached)
@@ -198,7 +199,7 @@ class PostsRepositoryImpl(
     ): Result<List<InteractiveExerciseResponse>> {
         return try {
             if (NetworkUtils.isOnline(context)) {
-                Result.success(ApiClient.apiService.getExercisesByPostId(postId).toList())
+                Result.success(api.getExercisesByPostId(postId).toList())
             } else {
                 val cached = getCachedExercisesForPost(postId, postCategoryId)
                 Result.success(cached)
@@ -210,7 +211,7 @@ class PostsRepositoryImpl(
     }
 
     override suspend fun downloadPdf(postId: Int): ResponseBody {
-        return ApiClient.apiService.generatePostPdf(postId)
+        return api.generatePostPdf(postId)
     }
 
     private suspend fun getCachedExercisesForPost(

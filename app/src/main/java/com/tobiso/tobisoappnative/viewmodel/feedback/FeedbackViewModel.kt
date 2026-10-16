@@ -10,7 +10,7 @@ import androidx.work.WorkManager
 import com.tobiso.tobisoappnative.FeedbackSyncWorker
 import com.tobiso.tobisoappnative.db.AppDatabase
 import com.tobiso.tobisoappnative.db.entity.FeedbackEntity
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.FeedbackDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +20,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class FeedbackViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
+class FeedbackViewModel @Inject constructor(
+    application: Application,
+    private val api: ApiService
+) : AndroidViewModel(application) {
 
     private val _name = MutableStateFlow("")
     val name: StateFlow<String> = _name
@@ -71,7 +74,7 @@ class FeedbackViewModel @Inject constructor(application: Application) : AndroidV
                     message = _message.value,
                     platform = "Aplikace"
                 )
-                ApiClient.apiService.sendFeedback(dto)
+                api.sendFeedback(dto)
                 _isSuccess.value = true
             } catch (e: Exception) {
                 Timber.e(e, "Error sending feedback, queueing for later")

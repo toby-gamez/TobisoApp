@@ -8,7 +8,7 @@ import com.tobiso.tobisoappnative.db.entity.AiChatMessageEntity
 import com.tobiso.tobisoappnative.db.entity.AiChatSessionEntity
 import com.tobiso.tobisoappnative.model.AiChatMessageDto
 import com.tobiso.tobisoappnative.model.AiChatRequest
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -25,7 +25,8 @@ class AiChatViewModel @AssistedInject constructor(
     @Assisted("postTitle") val postTitle: String,
     @Assisted("firstUserMessage") val firstUserMessage: String,
     @Assisted val sessionId: Long,
-    private val aiChatDao: AiChatDao
+    private val aiChatDao: AiChatDao,
+    private val api: ApiService
 ) : BaseViewModel<AiChatState, AiChatIntent, AiChatEffect>(AiChatState()) {
 
     @AssistedFactory
@@ -99,7 +100,7 @@ class AiChatViewModel @AssistedInject constructor(
                     conversationHistory = history
                 )
                 val deviceId = AiCreditManager.instance.deviceId
-                val response = ApiClient.apiService.askAi("tobiso-android", deviceId, request)
+                val response = api.askAi("tobiso-android", deviceId, request)
                 AiCreditManager.instance.updateBonusRemaining(response.remainingQuestions)
                 setState {
                     copy(

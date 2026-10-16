@@ -45,7 +45,7 @@ class PostDetailViewModelTest {
         repo = mockk()
         favoritesRepo = mockk(relaxed = true)
         coEvery { favoritesRepo.favoritePosts } returns flowOf(emptyList())
-        viewModel = PostDetailViewModel(app, repo, repo, favoritesRepo)
+        viewModel = PostDetailViewModel(app, repo, repo, favoritesRepo, mockk(relaxed = true))
     }
 
     @After

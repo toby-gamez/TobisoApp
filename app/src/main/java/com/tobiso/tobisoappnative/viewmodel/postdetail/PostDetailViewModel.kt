@@ -22,7 +22,7 @@ import com.tobiso.tobisoappnative.components.TocEntry
 import com.tobiso.tobisoappnative.components.extractToc
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.injectPersonMentionsIntoElements
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.utils.loadGradeId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +50,8 @@ class PostDetailViewModel @Inject constructor(
     application: Application,
     private val detailRepo: PostsRepository,
     private val postsRepo: PostsRepository,
-    private val favoritesRepo: FavoritesRepositoryImpl
+    private val favoritesRepo: FavoritesRepositoryImpl,
+    private val api: ApiService
 ) : AndroidViewModel(application) {
 
     private val ttsManager = TtsManager(application)
@@ -210,7 +211,7 @@ class PostDetailViewModel @Inject constructor(
     fun detectPersonsForPost(postId: Int, clientId: String, deviceId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val names = ApiClient.apiService.detectPersons(clientId, deviceId, postId)
+                val names = api.detectPersons(clientId, deviceId, postId)
                 _personNames.value = names
                 if (names.isNotEmpty()) {
                     computeDerivedForPost(_postDetail.value, names)

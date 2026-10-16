@@ -1,7 +1,7 @@
 package com.tobiso.tobisoappnative.repository
 
 import android.content.Context
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.Question
@@ -9,16 +9,17 @@ import com.tobiso.tobisoappnative.utils.NetworkUtils
 
 class QuestionsRepositoryImpl(
     private val context: Context,
-    private val offlineDataManager: OfflineDataManager
+    private val offlineDataManager: OfflineDataManager,
+    private val api: ApiService
 ) : QuestionsRepository {
 
     override suspend fun getAllQuestions(): Result<Pair<List<Question>, List<Post>>> {
         val isOnline = NetworkUtils.isOnline(context)
         return if (isOnline) {
             try {
-                val questions = ApiClient.apiService.getAllQuestions().toList()
+                val questions = api.getAllQuestions().toList()
                 // Only id/title/categoryId are needed here, so skip the full post bodies.
-                val posts = ApiClient.apiService.getPostSummaries().map {
+                val posts = api.getPostSummaries().map {
                     Post(id = it.id, title = it.title, filePath = it.filePath, lastEdit = it.lastEdit, lastFix = it.lastFix, categoryId = it.categoryId)
                 }
                 Result.success(Pair(questions, posts))
@@ -41,7 +42,7 @@ class QuestionsRepositoryImpl(
         val isOnline = NetworkUtils.isOnline(context)
         return if (isOnline) {
             try {
-                Result.success(ApiClient.apiService.getQuestionsByPostId(postId).toList())
+                Result.success(api.getQuestionsByPostId(postId).toList())
             } catch (e: Exception) {
                 val cached = offlineDataManager.getCachedQuestionsByPostId(postId) ?: emptyList()
                 Result.success(cached)

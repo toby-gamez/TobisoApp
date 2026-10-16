@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.viewmodel.ai
 
+import com.tobiso.tobisoappnative.model.ApiService
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.AiCreditManager
@@ -46,7 +47,7 @@ data class AiToolsState(
 )
 
 @HiltViewModel
-class AiToolsViewModel @Inject constructor() : ViewModel() {
+class AiToolsViewModel @Inject constructor(private val api: ApiService) : ViewModel() {
 
     private val _state = MutableStateFlow(AiToolsState())
     val state: StateFlow<AiToolsState> = _state
@@ -68,7 +69,7 @@ class AiToolsViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, error = null, flashcards = emptyList(), flashcardIndex = 0) }
             try {
-                val response = ApiClient.apiService.generateFlashcards(
+                val response = api.generateFlashcards(
                     clientId, deviceId, FlashcardRequest(postId)
                 )
                 _state.update { it.copy(isLoading = false, flashcards = response.cards) }
@@ -95,7 +96,7 @@ class AiToolsViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, error = null, realWorldApps = emptyList()) }
             try {
-                val response = ApiClient.apiService.getRealWorldApplications(clientId, deviceId, postId)
+                val response = api.getRealWorldApplications(clientId, deviceId, postId)
                 _state.update { it.copy(isLoading = false, realWorldApps = response.applications) }
             } catch (e: Exception) {
                 Timber.e(e, "loadRealWorld")
@@ -114,7 +115,7 @@ class AiToolsViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, error = null, whatIfScenario = "", whatIfExplanation = "") }
             try {
-                val response = ApiClient.apiService.getWhatIfScenario(clientId, deviceId, WhatIfRequest(postId, q))
+                val response = api.getWhatIfScenario(clientId, deviceId, WhatIfRequest(postId, q))
                 _state.update { it.copy(isLoading = false, whatIfScenario = response.scenario, whatIfExplanation = response.explanation) }
             } catch (e: Exception) {
                 Timber.e(e, "submitWhatIf")
@@ -133,7 +134,7 @@ class AiToolsViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, error = null, feynmanScore = -1, feynmanFeedback = "") }
             try {
-                val response = ApiClient.apiService.evaluateComprehension(
+                val response = api.evaluateComprehension(
                     clientId, deviceId, EvaluateComprehensionRequest(postId, text)
                 )
                 _state.update {
@@ -164,7 +165,7 @@ class AiToolsViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, error = null, explainResult = "") }
             try {
-                val response = ApiClient.apiService.explainSentence(
+                val response = api.explainSentence(
                     clientId, deviceId, ExplainSentenceRequest(postId, sentence)
                 )
                 _state.update { it.copy(isLoading = false, explainResult = response.explanation) }
@@ -181,7 +182,7 @@ class AiToolsViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true, error = null, practiceProblems = emptyList()) }
             try {
-                val response = ApiClient.apiService.generatePracticeProblems(
+                val response = api.generatePracticeProblems(
                     clientId, deviceId, PracticeProblemRequest(postId)
                 )
                 _state.update { it.copy(isLoading = false, practiceProblems = response.problems) }

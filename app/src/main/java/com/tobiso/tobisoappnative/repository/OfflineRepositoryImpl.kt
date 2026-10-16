@@ -2,7 +2,7 @@ package com.tobiso.tobisoappnative.repository
 import timber.log.Timber
 
 import android.content.Context
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.Category
 import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
@@ -16,7 +16,8 @@ import kotlinx.coroutines.launch
 
 class OfflineRepositoryImpl(
     private val context: Context,
-    private val offlineDataManager: OfflineDataManager
+    private val offlineDataManager: OfflineDataManager,
+    private val api: ApiService
 ) {
     companion object {
         private const val MAX_CONCURRENT_EXERCISE_DOWNLOADS = 10
@@ -113,7 +114,7 @@ class OfflineRepositoryImpl(
 
     private suspend fun fetchCategories(): List<Category> {
         return try {
-            val result = retryWithBackoff { ApiClient.apiService.getCategories().toList() }
+            val result = retryWithBackoff { api.getCategories().toList() }
             Timber.d("fetchCategories OK: ${result.size}")
             result
         } catch (e: Exception) {
@@ -124,7 +125,7 @@ class OfflineRepositoryImpl(
 
     private suspend fun fetchPosts(): List<Post> {
         return try {
-            val result = retryWithBackoff { ApiClient.apiService.getPosts().toList() }
+            val result = retryWithBackoff { api.getPosts().toList() }
             Timber.d("fetchPosts OK: ${result.size}")
             result
         } catch (e: Exception) {
@@ -145,7 +146,7 @@ class OfflineRepositoryImpl(
 
     private suspend fun fetchQuestions(): List<com.tobiso.tobisoappnative.model.Question> {
         return try {
-            retryWithBackoff { ApiClient.apiService.getAllQuestions().toList() }
+            retryWithBackoff { api.getAllQuestions().toList() }
         } catch (e: Exception) {
             Timber.w(e, "fetchQuestions failed: ${e.message}")
             emptyList()
@@ -154,7 +155,7 @@ class OfflineRepositoryImpl(
 
     private suspend fun fetchQuestionsPosts(): List<Post> {
         return try {
-            retryWithBackoff { ApiClient.apiService.getPostsForQuestions().toList() }
+            retryWithBackoff { api.getPostsForQuestions().toList() }
         } catch (e: Exception) {
             Timber.w(e, "fetchQuestionsPosts failed: ${e.message}")
             emptyList()
@@ -163,7 +164,7 @@ class OfflineRepositoryImpl(
 
     private suspend fun fetchRelatedPosts(): List<com.tobiso.tobisoappnative.model.RelatedPost> {
         return try {
-            retryWithBackoff { ApiClient.apiService.getAllRelatedPosts().toList() }
+            retryWithBackoff { api.getAllRelatedPosts().toList() }
         } catch (e: Exception) {
             Timber.w(e, "fetchRelatedPosts failed: ${e.message}")
             emptyList()
@@ -172,7 +173,7 @@ class OfflineRepositoryImpl(
 
     private suspend fun fetchAddendums(): List<com.tobiso.tobisoappnative.model.Addendum> {
         return try {
-            retryWithBackoff { ApiClient.apiService.getAddendums().toList() }
+            retryWithBackoff { api.getAddendums().toList() }
         } catch (e: Exception) {
             Timber.w(e, "fetchAddendums failed: ${e.message}")
             emptyList()
@@ -181,7 +182,7 @@ class OfflineRepositoryImpl(
 
     private suspend fun fetchGrades(): List<Grade> {
         return try {
-            retryWithBackoff { ApiClient.apiService.getGrades().toList() }
+            retryWithBackoff { api.getGrades().toList() }
         } catch (e: Exception) {
             Timber.w(e, "fetchGrades failed: ${e.message}")
             emptyList()
@@ -202,7 +203,7 @@ class OfflineRepositoryImpl(
                         if (idx >= posts.size) break
                         val post = posts[idx]
                         val list = try {
-                            retryWithBackoff { ApiClient.apiService.getExercisesByPostId(post.id) }
+                            retryWithBackoff { api.getExercisesByPostId(post.id) }
                         } catch (e: Exception) {
                             Timber.w(e, "fetchExercisesByPostId failed for ${post.id}: ${e.message}")
                             emptyList()
@@ -225,7 +226,7 @@ class OfflineRepositoryImpl(
 
     private suspend fun fetchEvents(): List<com.tobiso.tobisoappnative.model.Event> {
         return try {
-            retryWithBackoff { ApiClient.apiService.getEvents().toList() }
+            retryWithBackoff { api.getEvents().toList() }
         } catch (e: Exception) {
             Timber.w(e, "fetchEvents failed: ${e.message}")
             emptyList()

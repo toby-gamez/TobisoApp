@@ -15,6 +15,8 @@ import com.tobiso.tobisoappnative.db.dao.RelatedPostDao
 import com.tobiso.tobisoappnative.domain.usecase.GetAllQuestionsUseCase
 import com.tobiso.tobisoappnative.domain.usecase.GetExerciseUseCase
 import com.tobiso.tobisoappnative.domain.usecase.ValidateExerciseUseCase
+import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.repository.ExerciseRepository
 import com.tobiso.tobisoappnative.repository.ExerciseRepositoryImpl
@@ -34,6 +36,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideApiService(): ApiService = ApiClient.apiService
 
     @Provides
     @Singleton
@@ -60,34 +66,38 @@ object AppModule {
     @Singleton
     fun providePostsRepository(
         @ApplicationContext context: Context,
-        offlineDataManager: OfflineDataManager
-    ): PostsRepository = PostsRepositoryImpl(context, offlineDataManager)
+        offlineDataManager: OfflineDataManager,
+        api: ApiService
+    ): PostsRepository = PostsRepositoryImpl(context, offlineDataManager, api)
 
     @Provides
     @Singleton
     fun provideExerciseRepository(
         @ApplicationContext context: Context,
-        offlineDataManager: OfflineDataManager
-    ): ExerciseRepository = ExerciseRepositoryImpl(context, offlineDataManager)
+        offlineDataManager: OfflineDataManager,
+        api: ApiService
+    ): ExerciseRepository = ExerciseRepositoryImpl(context, offlineDataManager, api)
 
     @Provides
     @Singleton
     fun provideQuestionsRepository(
         @ApplicationContext context: Context,
-        offlineDataManager: OfflineDataManager
-    ): QuestionsRepository = QuestionsRepositoryImpl(context, offlineDataManager)
+        offlineDataManager: OfflineDataManager,
+        api: ApiService
+    ): QuestionsRepository = QuestionsRepositoryImpl(context, offlineDataManager, api)
 
     @Provides
     @Singleton
     fun provideOfflineRepository(
         @ApplicationContext context: Context,
-        offlineDataManager: OfflineDataManager
-    ): OfflineRepositoryImpl = OfflineRepositoryImpl(context, offlineDataManager)
+        offlineDataManager: OfflineDataManager,
+        api: ApiService
+    ): OfflineRepositoryImpl = OfflineRepositoryImpl(context, offlineDataManager, api)
 
     @Provides
     @Singleton
-    fun provideFavoritesRepository(application: Application): FavoritesRepositoryImpl =
-        FavoritesRepositoryImpl(application)
+    fun provideFavoritesRepository(application: Application, api: ApiService): FavoritesRepositoryImpl =
+        FavoritesRepositoryImpl(application, api)
 
     @Provides
     @Singleton

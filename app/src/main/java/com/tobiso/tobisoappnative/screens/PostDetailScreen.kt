@@ -50,7 +50,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.text.AnnotatedString
-import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.Addendum
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay

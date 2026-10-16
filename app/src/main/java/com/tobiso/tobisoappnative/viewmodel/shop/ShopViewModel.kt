@@ -6,7 +6,7 @@ import com.tobiso.tobisoappnative.AiCreditManager
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.ShopManager
 import com.tobiso.tobisoappnative.model.AddAiCreditsRequest
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.ShopItem
 import com.tobiso.tobisoappnative.model.ShopItemType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +18,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
-class ShopViewModel @Inject constructor() : ViewModel() {
+class ShopViewModel @Inject constructor(private val api: ApiService) : ViewModel() {
 
     private val _selectedItem = MutableStateFlow<ShopItem?>(null)
     val selectedItem: StateFlow<ShopItem?> = _selectedItem
@@ -131,7 +131,7 @@ class ShopViewModel @Inject constructor() : ViewModel() {
                 validUntilUtc = validUntilUtc,
                 signature = signature
             )
-            val response = ApiClient.apiService.addAiCredits(deviceId, request)
+            val response = api.addAiCredits(deviceId, request)
             if (response.success) {
                 manager.updateBonusRemaining(response.totalRemainingToday)
                 _showSuccessMessage.value = true

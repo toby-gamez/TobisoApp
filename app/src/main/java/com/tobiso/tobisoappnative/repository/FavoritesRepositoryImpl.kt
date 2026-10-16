@@ -5,7 +5,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.tobiso.tobisoappnative.data.savedPostsDataStore
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.Snippet
 import com.tobiso.tobisoappnative.utils.NetworkUtils
@@ -19,7 +19,10 @@ import java.io.File
 private const val SNIPPETS_FILE_NAME = "snippets.json"
 private val FAVORITE_POSTS_KEY = stringSetPreferencesKey("favorite_posts_json")
 
-class FavoritesRepositoryImpl(private val application: Application) {
+class FavoritesRepositoryImpl(
+    private val application: Application,
+    private val api: ApiService
+) {
 
     private val json = Json { ignoreUnknownKeys = true }
     private val dataStore = application.savedPostsDataStore
@@ -88,7 +91,7 @@ class FavoritesRepositoryImpl(private val application: Application) {
 
     suspend fun fetchPost(postId: Int): Post? = withContext(Dispatchers.IO) {
         try {
-            if (NetworkUtils.isOnline(application)) ApiClient.apiService.getPost(postId)
+            if (NetworkUtils.isOnline(application)) api.getPost(postId)
             else null
         } catch (e: Exception) { null }
     }

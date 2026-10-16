@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.tobiso.tobisoappnative.model.ApiClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

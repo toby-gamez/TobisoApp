@@ -5,7 +5,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.Event
 import com.tobiso.tobisoappnative.model.LocalEventManager
 import com.tobiso.tobisoappnative.model.OfflineDataManager
@@ -25,6 +25,7 @@ class CalendarViewModel @Inject constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
     private val offlineDataManager: OfflineDataManager,
+    private val api: ApiService,
 ) : BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(
     application, CalendarState(), savedStateHandle
 ) {
@@ -124,7 +125,7 @@ class CalendarViewModel @Inject constructor(
                 }
 
                 val apiEvents = try {
-                    ApiClient.apiService.getEventsInRange(startDate, endDate).toList()
+                    api.getEventsInRange(startDate, endDate).toList()
                 } catch (e: Exception) {
                     Timber.e(e, "Error loading API events")
                     emptyList()
@@ -170,7 +171,7 @@ class CalendarViewModel @Inject constructor(
                 LocalEventManager.getLocalEvent(getApplication(), eventId)
             } else {
                 val apiEvent = try {
-                    ApiClient.apiService.getEvent(eventId)
+                    api.getEvent(eventId)
                 } catch (e: Exception) {
                     Timber.w(e, "API fetch failed for event $eventId, trying cache")
                     null

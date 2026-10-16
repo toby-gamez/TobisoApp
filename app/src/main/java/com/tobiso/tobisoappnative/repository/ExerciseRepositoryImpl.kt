@@ -1,7 +1,7 @@
 package com.tobiso.tobisoappnative.repository
 
 import android.content.Context
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.ExerciseValidationResult
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import com.tobiso.tobisoappnative.model.OfflineDataManager
@@ -13,7 +13,8 @@ import kotlinx.coroutines.coroutineScope
 
 class ExerciseRepositoryImpl(
     private val context: Context,
-    private val offlineDataManager: OfflineDataManager
+    private val offlineDataManager: OfflineDataManager,
+    private val api: ApiService
 ) : ExerciseRepository {
 
     override suspend fun getExercise(exerciseId: Int): Result<InteractiveExerciseResponse> {
@@ -22,7 +23,7 @@ class ExerciseRepositoryImpl(
 
         return if (NetworkUtils.isOnline(context)) {
             try {
-                val fetched = ApiClient.apiService.getExercise(exerciseId)
+                val fetched = api.getExercise(exerciseId)
                 offlineDataManager.upsertExercises(listOf(fetched))
                 Result.success(fetched)
             } catch (e: Exception) {
@@ -39,7 +40,7 @@ class ExerciseRepositoryImpl(
 
         if (NetworkUtils.isOnline(context)) {
             return try {
-                val fetched = ApiClient.apiService.getAllExercises()
+                val fetched = api.getAllExercises()
                 if (fetched.isNotEmpty()) offlineDataManager.upsertExercises(fetched)
                 fetched
             } catch (_: Exception) {
@@ -49,7 +50,7 @@ class ExerciseRepositoryImpl(
                         val fetched = coroutineScope {
                             postIds.map { postId ->
                                 async {
-                                    runCatching { ApiClient.apiService.getExercisesByPostId(postId) }
+                                    runCatching { api.getExercisesByPostId(postId) }
                                         .getOrElse { emptyList() }
                                 }
                             }.awaitAll()
@@ -76,7 +77,7 @@ class ExerciseRepositoryImpl(
             return Result.failure(IllegalStateException("Validace vyžaduje internetové připojení"))
         }
         return try {
-            val result = ApiClient.apiService.validateExercise(
+            val result = api.validateExercise(
                 exerciseId,
                 ValidateSolutionRequest(userSolutionJson)
             )
