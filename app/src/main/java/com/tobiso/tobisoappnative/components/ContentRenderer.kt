@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -335,7 +337,7 @@ private fun RenderBulletList(
     onPersonSelected: (String) -> Unit = {}
 ) {
     val indent = when (element.level) { 1 -> 16.dp; 2 -> 32.dp; 3 -> 48.dp; 4 -> 64.dp; else -> 16.dp }
-    Column(modifier = Modifier) {
+    Column(modifier = Modifier.padding(bottom = 8.dp)) {
         element.items.forEach { itemParts ->
             Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = indent)) {
                 Text("•", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp, top = 2.dp))
@@ -639,6 +641,8 @@ fun buildAnnotatedStringFromParts(parts: List<InlinePart>, linkColor: Color = Co
                     append(inner)
                     addStyle(SpanStyle(textDecoration = TextDecoration.LineThrough), start, start + inner.length)
                 }
+                is InlinePart.Subscript -> withStyle(SpanStyle(baselineShift = BaselineShift.Subscript, fontSize = 0.75f.em)) { append(part.text) }
+                is InlinePart.Superscript -> withStyle(SpanStyle(baselineShift = BaselineShift.Superscript, fontSize = 0.75f.em)) { append(part.text) }
                 is InlinePart.Fraction -> {
                     // Fallback for contexts that can't render composables (e.g. table cells).
                     // Proper visual rendering happens via RenderInlinePartsRow.

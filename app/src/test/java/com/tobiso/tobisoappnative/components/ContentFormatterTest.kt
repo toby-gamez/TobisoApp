@@ -208,4 +208,17 @@ class ContentFormatterTest {
         val parts = injectPersonMentions(listOf(InlinePart.Text("Karel IV. vladl")), listOf("Karel IV."))
         assertTrue(parts.any { it is InlinePart.PersonMention && it.name == "Karel IV." })
     }
+
+    @Test
+    fun `sub and sup tags become styled parts`() {
+        val parts = parseInlineParts("A'<sub>R</sub> a x<sup>2</sup>")
+        assertTrue(parts.contains(InlinePart.Subscript("R")))
+        assertTrue(parts.contains(InlinePart.Superscript("2")))
+        assertEquals("A'R a x2", inlinePartsToText(parts))
+    }
+
+    @Test
+    fun `unclosed sub tag stays literal`() {
+        assertEquals("<sub>x", inlinePartsToText(parseInlineParts("<sub>x")))
+    }
 }

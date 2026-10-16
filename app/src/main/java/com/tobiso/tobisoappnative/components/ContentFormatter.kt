@@ -37,6 +37,8 @@ sealed class InlinePart {
     data class Link(val text: String, val url: String, val postId: Int?) : InlinePart()
     data class Addendum(val addendumId: Int) : InlinePart()
     data class Strikethrough(val parts: List<InlinePart>) : InlinePart()
+    data class Subscript(val text: String) : InlinePart()
+    data class Superscript(val text: String) : InlinePart()
     data class Fraction(val numerator: List<InlinePart>, val denominator: List<InlinePart>) : InlinePart()
     // name = text as it appears in content (may be inflected); canonicalName = lookup key for API
     data class PersonMention(val name: String, val canonicalName: String = name) : InlinePart()
@@ -54,6 +56,8 @@ fun inlinePartsToText(parts: List<InlinePart>): String =
             is InlinePart.Link -> part.text
             is InlinePart.PersonMention -> part.name
             is InlinePart.Strikethrough -> inlinePartsToText(part.parts)
+            is InlinePart.Subscript -> part.text
+            is InlinePart.Superscript -> part.text
             is InlinePart.Fraction -> inlinePartsToText(part.numerator) + "/" + inlinePartsToText(part.denominator)
             is InlinePart.Addendum -> ""
         }
@@ -440,6 +444,20 @@ fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> 
                     i += 1
                 }
             }
+            // <sub>...</sub> / <sup>...</sup>
+            text.startsWith("<sub>", i) || text.startsWith("<sup>", i) -> {
+                val isSub = text.startsWith("<sub>", i)
+                val closeTag = if (isSub) "</sub>" else "</sup>"
+                val end = text.indexOf(closeTag, i + 5)
+                if (end != -1) {
+                    val inner = text.substring(i + 5, end)
+                    result.add(if (isSub) InlinePart.Subscript(inner) else InlinePart.Superscript(inner))
+                    i = end + closeTag.length
+                } else {
+                    result.add(InlinePart.Text("<"))
+                    i += 1
+                }
+            }
             // Strikethrough #s#...#s#
             text.startsWith("#s#", i) -> {
                 val end = text.indexOf("#s#", i + 3)
@@ -526,6 +544,8 @@ fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> 
                     text.indexOf("[", i),
                     text.indexOf("(--DOD-", i),
                     text.indexOf("#s#", i),
+                    text.indexOf("<sub>", i),
+                    text.indexOf("<sup>", i),
                     text.indexOf("{", i)
                 ).filter { it >= 0 }.minOrNull() ?: n
                 val chunk = text.substring(i, next)
