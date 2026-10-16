@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,7 +48,7 @@ fun CircuitExerciseScreen(
     ttsViewModel: TtsViewModel
 ) {
     val vm: CircuitExerciseViewModel = hiltViewModel()
-    val state by vm.uiState.collectAsState()
+    val state by vm.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(exerciseId) {
         vm.onIntent(CircuitExerciseIntent.Load(exerciseId))

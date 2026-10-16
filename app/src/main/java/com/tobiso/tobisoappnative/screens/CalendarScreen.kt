@@ -18,7 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,12 +67,12 @@ fun CalendarScreen(
     initialMonth: Int? = null
 ) {
     val homeVm: HomeViewModel = hiltViewModel()
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val events = state.events
     val selectedDate = state.selectedDate
     val isLoading = state.isLoading
     val error = state.error
-    val homeState by homeVm.uiState.collectAsState()
+    val homeState by homeVm.uiState.collectAsStateWithLifecycle()
     val isOfflineMode = homeState.isOffline
 
     var currentMonth by remember { 
@@ -85,7 +85,7 @@ fun CalendarScreen(
     
     // States pro TopAppBar
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // Stavy pro dialog přidání/úpravy eventu
@@ -116,8 +116,8 @@ fun CalendarScreen(
     }
 
     // Streak state (lives at top-level to survive TopAppBar recompositions)
-    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsState()
-    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsState()
+    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
+    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
     val currentStreak = remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -578,7 +578,7 @@ fun CalendarGrid(
     onDateClick: (Date) -> Unit,
     onDateLongClick: (Date) -> Unit = {}
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedDate = state.selectedDate
     val dayNames = arrayOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
     

@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.*
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -37,7 +38,7 @@ fun TtsPlayer(
     ttsManager: TtsManager,
     modifier: Modifier = Modifier
 ) {
-    val ttsStatus by ttsManager.status.collectAsState()
+    val ttsStatus by ttsManager.status.collectAsStateWithLifecycle()
     
     AnimatedVisibility(
         visible = ttsStatus.state != TtsState.IDLE && ttsStatus.currentText.isNotEmpty(),

@@ -16,7 +16,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -96,13 +96,13 @@ import com.tobiso.tobisoappnative.BuildConfig
 fun ProfileScreen(navController: NavController) {
     val vm: ProfileViewModel = hiltViewModel()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val postsState = vm.posts.collectAsState()
+    val postsState = vm.posts.collectAsStateWithLifecycle()
     val posts: List<Post> = postsState.value
-    val postLoading by vm.postLoading.collectAsState()
+    val postLoading by vm.postLoading.collectAsStateWithLifecycle()
     val otherCategoryId = 42
     val filteredPosts = posts.filter { it.categoryId == otherCategoryId }
 
-    val grades by vm.grades.collectAsState()
+    val grades by vm.grades.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {
         vm.loadPosts(otherCategoryId)
         vm.loadGrades()
@@ -121,7 +121,7 @@ fun ProfileScreen(navController: NavController) {
                     MultiplierIndicator()
                     
                     // Zobrazení bodů s novým designem
-                    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
+                    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -153,8 +153,8 @@ fun ProfileScreen(navController: NavController) {
                     val currentStreak = remember { mutableStateOf(0) }
                     
                     // Sledování změn v freeze
-                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsState()
-                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsState()
+                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
+                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -183,8 +183,8 @@ fun ProfileScreen(navController: NavController) {
                         )
                     }
                     // Offline download progress indicator (small circle)
-                    val offlineDownloading by vm.offlineDownloading.collectAsState()
-                    val offlineProgress by vm.offlineDownloadProgress.collectAsState()
+                    val offlineDownloading by vm.offlineDownloading.collectAsStateWithLifecycle()
+                    val offlineProgress by vm.offlineDownloadProgress.collectAsStateWithLifecycle()
                     if (offlineDownloading) {
                         Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
@@ -480,8 +480,8 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
     var showImageCropper by remember { mutableStateOf(false) }
     var tempImageForCropping by remember { mutableStateOf<String?>(null) }
     val vm: ProfileViewModel = hiltViewModel()
-    val copiedImagePath by vm.copiedImagePath.collectAsState()
-    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
+    val copiedImagePath by vm.copiedImagePath.collectAsStateWithLifecycle()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
 
     LaunchedEffect(copiedImagePath) {
         copiedImagePath?.let { path ->
@@ -508,11 +508,11 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
         uri?.let { vm.copyImageToInternalStorage(it) }
     }
 
-    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsState()
+    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsStateWithLifecycle()
     val prestigeTier = remember(totalEarnedPoints) { getPrestigeTier(totalEarnedPoints) }
 
-    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsState()
-    val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
+    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsStateWithLifecycle()
+    val equippedPet by BackpackManager.instance.equippedPet.collectAsStateWithLifecycle()
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
@@ -957,10 +957,10 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
 
 @Composable
 fun PetCareSection() {
-    val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
+    val equippedPet by BackpackManager.instance.equippedPet.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val foodCount by PetManager.foodCount.collectAsState()
-    val waterCount by PetManager.waterCount.collectAsState()
+    val foodCount by PetManager.foodCount.collectAsStateWithLifecycle()
+    val waterCount by PetManager.waterCount.collectAsStateWithLifecycle()
 
     if (equippedPet == null) return
 
@@ -1256,8 +1256,8 @@ fun PetCareSection() {
 
 @Composable
 fun EquippedQuoteSection(navController: NavController) {
-    val equippedQuote by BackpackManager.instance.equippedQuote.collectAsState()
-    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsState()
+    val equippedQuote by BackpackManager.instance.equippedQuote.collectAsStateWithLifecycle()
+    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsStateWithLifecycle()
 
     equippedQuote?.quote?.let { fullQuote ->
         val parts = fullQuote.split(" - ")
@@ -1450,7 +1450,7 @@ data class BadgeData(
 @Composable
 fun AchievementsSection() {
     val context = LocalContext.current
-    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsState()
+    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsStateWithLifecycle()
     val achievements = remember { generatePointsAchievements().toSortedMap() }
     
     // Získání dosažených achievementů bodů

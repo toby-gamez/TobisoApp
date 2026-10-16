@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,7 +39,7 @@ fun MixedQuizScreen(
     navController: NavController
 ) {
     val vm: MixedQuizViewModel = hiltViewModel()
-    val state by vm.uiState.collectAsState()
+    val state by vm.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(questionIds) {
         vm.onIntent(MixedQuizIntent.Load(questionIds))

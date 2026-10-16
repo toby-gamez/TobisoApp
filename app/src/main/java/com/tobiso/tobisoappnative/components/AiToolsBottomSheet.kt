@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -61,7 +62,7 @@ fun AiToolsBottomSheet(
     onEnterSentenceSelectMode: () -> Unit,
     vm: AiToolsViewModel = hiltViewModel()
 ) {
-    val state by vm.state.collectAsState()
+    val state by vm.state.collectAsStateWithLifecycle()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -226,7 +227,7 @@ private fun ErrorBox(msg: String, onRetry: () -> Unit) {
 
 @Composable
 private fun FlashcardsContent(vm: AiToolsViewModel, postId: Int) {
-    val state by vm.state.collectAsState()
+    val state by vm.state.collectAsStateWithLifecycle()
     Column(
         Modifier
             .fillMaxWidth()
@@ -316,7 +317,7 @@ private fun FlashcardsContent(vm: AiToolsViewModel, postId: Int) {
 
 @Composable
 private fun RealWorldContent(vm: AiToolsViewModel, postId: Int) {
-    val state by vm.state.collectAsState()
+    val state by vm.state.collectAsStateWithLifecycle()
     Column(
         Modifier
             .fillMaxWidth()
@@ -363,7 +364,7 @@ private fun RealWorldContent(vm: AiToolsViewModel, postId: Int) {
 
 @Composable
 private fun WhatIfContent(vm: AiToolsViewModel, postId: Int) {
-    val state by vm.state.collectAsState()
+    val state by vm.state.collectAsStateWithLifecycle()
     Column(
         Modifier
             .fillMaxWidth()
@@ -429,7 +430,7 @@ private fun WhatIfContent(vm: AiToolsViewModel, postId: Int) {
 
 @Composable
 private fun FeynmanContent(vm: AiToolsViewModel, postId: Int) {
-    val state by vm.state.collectAsState()
+    val state by vm.state.collectAsStateWithLifecycle()
     Column(
         Modifier
             .fillMaxWidth()
@@ -525,7 +526,7 @@ private fun FeynmanResult(score: Int, feedback: String, strong: List<String>, mi
 
 @Composable
 private fun PracticeContent(vm: AiToolsViewModel, postId: Int) {
-    val state by vm.state.collectAsState()
+    val state by vm.state.collectAsStateWithLifecycle()
     Column(
         Modifier
             .fillMaxWidth()

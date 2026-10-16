@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,7 +39,7 @@ fun TimelineExerciseScreen(
     ttsViewModel: TtsViewModel
 ) {
     val vm: TimelineExerciseViewModel = hiltViewModel()
-    val state by vm.uiState.collectAsState()
+    val state by vm.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val context = LocalContext.current

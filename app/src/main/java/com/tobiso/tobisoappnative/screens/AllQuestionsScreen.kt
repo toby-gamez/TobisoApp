@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,16 +52,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun AllQuestionsScreen(navController: NavController) {
     val vm: AllQuestionsViewModel = hiltViewModel()
-    val allQuestions by vm.allQuestions.collectAsState()
-    val allQuestionsError by vm.allQuestionsError.collectAsState()
-    val allQuestionsLoading by vm.allQuestionsLoading.collectAsState()
-    val isOffline by vm.isOffline.collectAsState()
-    val categories by vm.categories.collectAsState()
-    val weakCategories by vm.weakCategories.collectAsState()
-    val categoryQuestionIdsMap by vm.categoryQuestionIdsMap.collectAsState()
-    val categoryExercisesMap by vm.categoryExercisesMap.collectAsState()
-    val allExercises by vm.allExercises.collectAsState()
-    val questionsPosts by vm.questionsPosts.collectAsState()
+    val allQuestions by vm.allQuestions.collectAsStateWithLifecycle()
+    val allQuestionsError by vm.allQuestionsError.collectAsStateWithLifecycle()
+    val allQuestionsLoading by vm.allQuestionsLoading.collectAsStateWithLifecycle()
+    val isOffline by vm.isOffline.collectAsStateWithLifecycle()
+    val categories by vm.categories.collectAsStateWithLifecycle()
+    val weakCategories by vm.weakCategories.collectAsStateWithLifecycle()
+    val categoryQuestionIdsMap by vm.categoryQuestionIdsMap.collectAsStateWithLifecycle()
+    val categoryExercisesMap by vm.categoryExercisesMap.collectAsStateWithLifecycle()
+    val allExercises by vm.allExercises.collectAsStateWithLifecycle()
+    val questionsPosts by vm.questionsPosts.collectAsStateWithLifecycle()
 
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -97,7 +98,7 @@ fun AllQuestionsScreen(navController: NavController) {
                     actions = {
                         MultiplierIndicator()
 
-                        val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
+                        val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -125,8 +126,8 @@ fun AllQuestionsScreen(navController: NavController) {
                         }
 
                         val currentStreak = remember { mutableStateOf(0) }
-                        val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsState()
-                        val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsState()
+                        val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
+                        val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
                         LaunchedEffect(availableFreezes, usedFreezes) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 currentStreak.value = StreakUtils.getCurrentStreak(context)
@@ -155,8 +156,8 @@ fun AllQuestionsScreen(navController: NavController) {
                             )
                         }
 
-                        val offlineDownloading by vm.offlineDownloading.collectAsState()
-                        val offlineProgress by vm.offlineDownloadProgress.collectAsState()
+                        val offlineDownloading by vm.offlineDownloading.collectAsStateWithLifecycle()
+                        val offlineProgress by vm.offlineDownloadProgress.collectAsStateWithLifecycle()
                         if (offlineDownloading) {
                             Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator(

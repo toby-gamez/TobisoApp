@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -43,10 +44,10 @@ fun QuestionsScreen(
     navController: NavController
 ) {
     val vm: QuestionsViewModel = hiltViewModel()
-    val questions by vm.questions.collectAsState()
-    val questionsError by vm.questionsError.collectAsState()
-    val questionsLoading by vm.questionsLoading.collectAsState()
-    val postDetail by vm.postDetail.collectAsState()
+    val questions by vm.questions.collectAsStateWithLifecycle()
+    val questionsError by vm.questionsError.collectAsStateWithLifecycle()
+    val questionsLoading by vm.questionsLoading.collectAsStateWithLifecycle()
+    val postDetail by vm.postDetail.collectAsStateWithLifecycle()
     
     var isRefreshing by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -66,7 +67,7 @@ fun QuestionsScreen(
     val context = LocalContext.current
     
     // Načtení dat při startu (nyní funguje v online i offline režimu)
-    val isOffline by vm.isOffline.collectAsState()
+    val isOffline by vm.isOffline.collectAsStateWithLifecycle()
     LaunchedEffect(postId, isOffline) {
         vm.loadPostDetail(postId)
         vm.loadQuestions(postId)

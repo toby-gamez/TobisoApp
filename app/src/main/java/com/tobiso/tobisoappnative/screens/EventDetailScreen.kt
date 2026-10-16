@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import timber.log.Timber
 
 import androidx.compose.foundation.background
@@ -36,7 +37,7 @@ fun EventDetailScreen(
     navController: NavHostController,
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val event = state.detailEvent
     val isLoading = state.detailEventLoading
     var error by remember { mutableStateOf<String?>(null) }

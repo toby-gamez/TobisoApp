@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,14 +97,14 @@ import com.tobiso.tobisoappnative.components.FloatingSearchBar
 fun TobisoApp(navigateTo: String? = null) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val mainViewModel: MainViewModel = hiltViewModel()
-    val isConnected by mainViewModel.connectivityFlow.collectAsState(initial = false)
+    val isConnected by mainViewModel.connectivityFlow.collectAsStateWithLifecycle(initialValue = false)
     val ttsViewModel: TtsViewModel = hiltViewModel()
-    val mainState by mainViewModel.uiState.collectAsState()
-    val lastAddedPoints by PointsManager.instance.lastAddedPoints.collectAsState()
-    val lastMilestone by PointsManager.instance.lastMilestone.collectAsState()
-    val lastAchievement by PointsManager.instance.lastAchievement.collectAsState()
-    val lastPrestigeTierPoints by PointsManager.instance.lastPrestigeTierPoints.collectAsState()
-    val lastPointsReset by PointsManager.instance.lastPointsReset.collectAsState()
+    val mainState by mainViewModel.uiState.collectAsStateWithLifecycle()
+    val lastAddedPoints by PointsManager.instance.lastAddedPoints.collectAsStateWithLifecycle()
+    val lastMilestone by PointsManager.instance.lastMilestone.collectAsStateWithLifecycle()
+    val lastAchievement by PointsManager.instance.lastAchievement.collectAsStateWithLifecycle()
+    val lastPrestigeTierPoints by PointsManager.instance.lastPrestigeTierPoints.collectAsStateWithLifecycle()
+    val lastPointsReset by PointsManager.instance.lastPointsReset.collectAsStateWithLifecycle()
     var showOverlay by remember { mutableStateOf(false) }
     var overlayPoints by remember { mutableStateOf(0) }
     var showTotalOverlay by remember { mutableStateOf(false) }
@@ -139,8 +139,8 @@ fun TobisoApp(navigateTo: String? = null) {
         StreakMilestoneManager.checkStreakMilestones(context)
         checkPointsAchievements(context)
     }
-    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
-    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsState()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsStateWithLifecycle()
 
     // Funkce pro zobrazení pouze celkového počtu bodů
     fun showTotalPointsOverlay() {

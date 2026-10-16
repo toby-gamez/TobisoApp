@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tobiso.tobisoappnative.navigation.CategoryListRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 
@@ -94,7 +95,7 @@ fun FloatingSearchBar(
     var aiMode by remember { mutableStateOf(false) }
     var attachedPost by remember { mutableStateOf<Post?>(null) }
     val focusRequester = remember { FocusRequester() }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val expanded = state.searchBarExpanded
     val posts = state.posts
     val categories = state.categories

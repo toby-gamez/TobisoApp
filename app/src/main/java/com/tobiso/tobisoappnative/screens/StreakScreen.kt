@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import timber.log.Timber
 
 import android.content.Context
@@ -48,19 +49,19 @@ fun StreakScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    val calendarMonth by vm.calendarMonth.collectAsState()
-    val calendarYear by vm.calendarYear.collectAsState()
-    val streakDays by vm.streakDays.collectAsState()
-    val currentStreak by vm.currentStreak.collectAsState()
-    val maxStreak by vm.maxStreak.collectAsState()
+    val calendarMonth by vm.calendarMonth.collectAsStateWithLifecycle()
+    val calendarYear by vm.calendarYear.collectAsStateWithLifecycle()
+    val streakDays by vm.streakDays.collectAsStateWithLifecycle()
+    val currentStreak by vm.currentStreak.collectAsStateWithLifecycle()
+    val maxStreak by vm.maxStreak.collectAsStateWithLifecycle()
 
     // Sledování změn v Streak Freeze pro přepočítání
-    val usedFreezes by StreakFreezeManager.instance.usedFreezes.collectAsState()
+    val usedFreezes by StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
     val today = remember { Calendar.getInstance() }
     val currentDateString = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(today.time) }
 
     // Inicializace a sledování Streak Freezes
-    val availableFreezes by StreakFreezeManager.instance.availableFreezes.collectAsState()
+    val availableFreezes by StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         vm.init()

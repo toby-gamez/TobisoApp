@@ -40,7 +40,7 @@ import com.tobiso.tobisoappnative.viewmodel.home.HomeViewModel
 import com.tobiso.tobisoappnative.viewmodel.home.HomeIntent
 import com.tobiso.tobisoappnative.viewmodel.home.HomeEffect
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
@@ -175,7 +175,7 @@ fun HomeScreen(navController: NavHostController) {
     val vm: HomeViewModel = hiltViewModel()
     var sortMode by remember { mutableStateOf(loadSortMode(context)) }
     var dropdownExpanded by remember { mutableStateOf(false) }
-    val state by vm.uiState.collectAsState()
+    val state by vm.uiState.collectAsStateWithLifecycle()
     val posts = state.posts
     val categories = state.categories
     val subjects = remember(categories) {
@@ -191,7 +191,7 @@ fun HomeScreen(navController: NavHostController) {
         vm.onIntent(HomeIntent.Load)
     }
     
-    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
     val offlineDownloading = state.offlineDownloading
     val offlineProgress = state.offlineDownloadProgress
     val snackbarHostState = remember { SnackbarHostState() }
@@ -290,8 +290,8 @@ fun HomeScreen(navController: NavHostController) {
                     val currentStreak = remember { mutableStateOf(0) }
                     
                     // Sledování změn v freeze
-                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsState()
-                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsState()
+                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
+                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
                     
                     LaunchedEffect(availableFreezes, usedFreezes) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -391,7 +391,7 @@ fun HomeScreen(navController: NavHostController) {
                     }
 
                     val categoryMap = remember(categories) { categories.associateBy { it.id } }
-                    val newestPosts by vm.newestPosts.collectAsState()
+                    val newestPosts by vm.newestPosts.collectAsStateWithLifecycle()
 
                     LaunchedEffect(state.posts, state.categories, selectedSubjectId) {
                         vm.computeNewest(selectedSubjectId)

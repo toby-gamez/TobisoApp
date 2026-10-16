@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 
 import androidx.compose.foundation.background
@@ -38,9 +39,9 @@ fun FavoritesScreen(
     navController: NavController
 ) {
     val vm: FavoritesViewModel = hiltViewModel()
-    val posts by vm.fetchedPosts.collectAsState()
-    val favoritePosts by vm.favoritePosts.collectAsState()
-    val snippets by vm.snippets.collectAsState()
+    val posts by vm.fetchedPosts.collectAsStateWithLifecycle()
+    val favoritePosts by vm.favoritePosts.collectAsStateWithLifecycle()
+    val snippets by vm.snippets.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(0) }
 
     LaunchedEffect(selectedTab) {

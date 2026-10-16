@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
 import com.tobiso.tobisoappnative.components.formatPointsBalance
 import timber.log.Timber
@@ -53,21 +54,21 @@ fun ShopScreen(
     navController: NavController,
     vm: ShopViewModel = hiltViewModel()
 ) {
-    val totalPoints by PointsManager.instance.totalPoints.collectAsState()
-    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsState()
-    val purchasedItemIds by ShopManager.instance.purchasedItems.collectAsState()
-    val activeMultiplier by PointsManager.instance.activeMultiplier.collectAsState()
-    val availableFreezes by StreakFreezeManager.instance.availableFreezes.collectAsState()
+    val totalPoints by PointsManager.instance.totalPoints.collectAsStateWithLifecycle()
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+    val purchasedItemIds by ShopManager.instance.purchasedItems.collectAsStateWithLifecycle()
+    val activeMultiplier by PointsManager.instance.activeMultiplier.collectAsStateWithLifecycle()
+    val availableFreezes by StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
 
-    val selectedItem by vm.selectedItem.collectAsState()
-    val showPurchaseDialog by vm.showPurchaseDialog.collectAsState()
-    val showUsePowerUpDialog by vm.showUsePowerUpDialog.collectAsState()
-    val showSuccessMessage by vm.showSuccessMessage.collectAsState()
-    val successMessage by vm.successMessage.collectAsState()
-    val showErrorMessage by vm.showErrorMessage.collectAsState()
-    val errorMessage by vm.errorMessage.collectAsState()
-    val showMysteryBoxOverlay by vm.showMysteryBoxOverlay.collectAsState()
-    val mysteryBoxRewardText by vm.mysteryBoxRewardText.collectAsState()
+    val selectedItem by vm.selectedItem.collectAsStateWithLifecycle()
+    val showPurchaseDialog by vm.showPurchaseDialog.collectAsStateWithLifecycle()
+    val showUsePowerUpDialog by vm.showUsePowerUpDialog.collectAsStateWithLifecycle()
+    val showSuccessMessage by vm.showSuccessMessage.collectAsStateWithLifecycle()
+    val successMessage by vm.successMessage.collectAsStateWithLifecycle()
+    val showErrorMessage by vm.showErrorMessage.collectAsStateWithLifecycle()
+    val errorMessage by vm.errorMessage.collectAsStateWithLifecycle()
+    val showMysteryBoxOverlay by vm.showMysteryBoxOverlay.collectAsStateWithLifecycle()
+    val mysteryBoxRewardText by vm.mysteryBoxRewardText.collectAsStateWithLifecycle()
 
     // Pro scroll k sekcím - trackování pozic nadpisů
     val listState = rememberLazyListState()
@@ -833,9 +834,9 @@ fun ShopItemCard(
                             }
                         } else if (item.type == ShopItemType.PET_FOOD || item.type == ShopItemType.PET_WATER) {
                             val count = if (item.type == ShopItemType.PET_FOOD)
-                                com.tobiso.tobisoappnative.PetManager.foodCount.collectAsState().value
+                                com.tobiso.tobisoappnative.PetManager.foodCount.collectAsStateWithLifecycle().value
                             else
-                                com.tobiso.tobisoappnative.PetManager.waterCount.collectAsState().value
+                                com.tobiso.tobisoappnative.PetManager.waterCount.collectAsStateWithLifecycle().value
                             Column(
                                 horizontalAlignment = Alignment.End
                             ) {

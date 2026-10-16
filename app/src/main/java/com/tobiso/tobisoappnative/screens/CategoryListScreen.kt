@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tobiso.tobisoappnative.navigation.CategoryListRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 
@@ -47,8 +48,8 @@ fun CategoryListScreen(
     navController: NavController
 ) {
     val vm: CategoryListViewModel = hiltViewModel()
-    val state by vm.state.collectAsState()
-    val favoritePosts by vm.favoritePosts.collectAsState()
+    val state by vm.state.collectAsStateWithLifecycle()
+    val favoritePosts by vm.favoritePosts.collectAsStateWithLifecycle()
     val categories = state.categories
     val categoryError = state.error
     val categoryLoading = state.isLoading

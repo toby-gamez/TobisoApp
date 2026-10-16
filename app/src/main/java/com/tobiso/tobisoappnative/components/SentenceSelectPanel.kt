@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -40,7 +41,7 @@ fun SentenceSelectPanel(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val state by vm.state.collectAsState()
+    val state by vm.state.collectAsStateWithLifecycle()
     val accentColor = Color(0xFF2196F3)
 
     val paragraphs = remember(postContent) {

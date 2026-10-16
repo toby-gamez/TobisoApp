@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,13 +29,13 @@ fun OfflineManagerScreen(
     navController: NavController
 ) {
     val vm: OfflineManagerViewModel = hiltViewModel()
-    val isOfflineMode by vm.isOffline.collectAsState()
-    val cacheInfo by vm.cacheInfo.collectAsState()
-    val toastMessage by vm.toastMessage.collectAsState()
+    val isOfflineMode by vm.isOffline.collectAsStateWithLifecycle()
+    val cacheInfo by vm.cacheInfo.collectAsStateWithLifecycle()
+    val toastMessage by vm.toastMessage.collectAsStateWithLifecycle()
     val view = LocalView.current
-    val offlineDownloading by vm.offlineDownloading.collectAsState()
-    val offlineProgress by vm.offlineDownloadProgress.collectAsState()
-    val lastError by vm.lastError.collectAsState()
+    val offlineDownloading by vm.offlineDownloading.collectAsStateWithLifecycle()
+    val offlineProgress by vm.offlineDownloadProgress.collectAsStateWithLifecycle()
+    val lastError by vm.lastError.collectAsStateWithLifecycle()
     // Guard to skip the initial composition where offlineDownloading is already false
     var downloadEverStarted by remember { mutableStateOf(false) }
     // Tracks whether a toast was already shown for the current download session

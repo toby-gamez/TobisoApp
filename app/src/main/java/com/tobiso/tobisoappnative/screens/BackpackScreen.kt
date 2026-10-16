@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tobiso.tobisoappnative.navigation.ShopRoute
 
 import androidx.compose.foundation.background
@@ -43,15 +44,15 @@ fun BackpackScreen(
     navController: NavController,
     vm: BackpackViewModel = hiltViewModel()
 ) {
-    val backpackItems by BackpackManager.instance.backpackItems.collectAsState()
-    val equippedQuote by BackpackManager.instance.equippedQuote.collectAsState()
-    val equippedPet by BackpackManager.instance.equippedPet.collectAsState()
-    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsState()
+    val backpackItems by BackpackManager.instance.backpackItems.collectAsStateWithLifecycle()
+    val equippedQuote by BackpackManager.instance.equippedQuote.collectAsStateWithLifecycle()
+    val equippedPet by BackpackManager.instance.equippedPet.collectAsStateWithLifecycle()
+    val equippedTheme by BackpackManager.instance.equippedTheme.collectAsStateWithLifecycle()
 
-    val selectedItem by vm.selectedItem.collectAsState()
-    val showItemDialog by vm.showItemDialog.collectAsState()
-    val showSuccessMessage by vm.showSuccessMessage.collectAsState()
-    val successMessage by vm.successMessage.collectAsState()
+    val selectedItem by vm.selectedItem.collectAsStateWithLifecycle()
+    val showItemDialog by vm.showItemDialog.collectAsStateWithLifecycle()
+    val showSuccessMessage by vm.showSuccessMessage.collectAsStateWithLifecycle()
+    val successMessage by vm.successMessage.collectAsStateWithLifecycle()
 
     // Pro scroll k sekcím
     val listState = rememberLazyListState()
@@ -213,7 +214,7 @@ fun BackpackScreen(
                                 isEquipped = when (backpackItem.shopItem.type) {
                                     ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == backpackItem.shopItem.id
                                     ShopItemType.PET -> equippedPet?.id == backpackItem.shopItem.id
-                                    ShopItemType.ICON_PACK -> BackpackManager.instance.equippedIconPack.collectAsState().value?.id == backpackItem.shopItem.id
+                                    ShopItemType.ICON_PACK -> BackpackManager.instance.equippedIconPack.collectAsStateWithLifecycle().value?.id == backpackItem.shopItem.id
                                     ShopItemType.PROFILE_THEME -> equippedTheme?.id == backpackItem.shopItem.id
                                     else -> false
                                 },
@@ -248,7 +249,7 @@ fun BackpackScreen(
                 isEquipped = when (item.shopItem.type) {
                     ShopItemType.PROFILE_QUOTE -> equippedQuote?.id == item.shopItem.id
                     ShopItemType.PET -> equippedPet?.id == item.shopItem.id
-                    ShopItemType.ICON_PACK -> BackpackManager.instance.equippedIconPack.collectAsState().value?.id == item.shopItem.id
+                    ShopItemType.ICON_PACK -> BackpackManager.instance.equippedIconPack.collectAsStateWithLifecycle().value?.id == item.shopItem.id
                     ShopItemType.PROFILE_THEME -> equippedTheme?.id == item.shopItem.id
                     else -> false
                 },

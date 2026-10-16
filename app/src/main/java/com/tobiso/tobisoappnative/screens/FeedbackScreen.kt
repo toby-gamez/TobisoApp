@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
@@ -20,12 +21,12 @@ fun FeedbackScreen(
     navController: NavController,
     vm: FeedbackViewModel = hiltViewModel()
 ) {
-    val name by vm.name.collectAsState()
-    val email by vm.email.collectAsState()
-    val message by vm.message.collectAsState()
-    val isLoading by vm.isLoading.collectAsState()
-    val isSuccess by vm.isSuccess.collectAsState()
-    val isError by vm.isError.collectAsState()
+    val name by vm.name.collectAsStateWithLifecycle()
+    val email by vm.email.collectAsStateWithLifecycle()
+    val message by vm.message.collectAsStateWithLifecycle()
+    val isLoading by vm.isLoading.collectAsStateWithLifecycle()
+    val isSuccess by vm.isSuccess.collectAsStateWithLifecycle()
+    val isError by vm.isError.collectAsStateWithLifecycle()
 
     // ✅ Odstraněn Scaffold - padding se aplikuje z MainActivity
     Column(

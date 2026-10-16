@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -28,12 +29,12 @@ fun UpdaterScreen(
     val context = LocalContext.current
     val vm: UpdaterViewModel = hiltViewModel()
 
-    val currentVersion by vm.currentVersion.collectAsState()
-    val latestVersion by vm.latestVersion.collectAsState()
-    val releaseInfo by vm.releaseInfo.collectAsState()
-    val isUpToDate by vm.isUpToDate.collectAsState()
-    val error by vm.error.collectAsState()
-    val isOfflineMode by vm.isOfflineMode.collectAsState()
+    val currentVersion by vm.currentVersion.collectAsStateWithLifecycle()
+    val latestVersion by vm.latestVersion.collectAsStateWithLifecycle()
+    val releaseInfo by vm.releaseInfo.collectAsStateWithLifecycle()
+    val isUpToDate by vm.isUpToDate.collectAsStateWithLifecycle()
+    val error by vm.error.collectAsStateWithLifecycle()
+    val isOfflineMode by vm.isOfflineMode.collectAsStateWithLifecycle()
 
     // Create local non-delegated copies so Kotlin can smart-cast nullability
     val currentVersionVal = currentVersion

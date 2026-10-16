@@ -43,7 +43,7 @@ import androidx.compose.runtime.remember
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.text.ClickableText
 // selection removed from this screen — selection moved to PlainTextScreen
 import androidx.compose.material.icons.filled.PlayArrow
@@ -116,37 +116,37 @@ fun PostDetailScreen(
     ttsViewModel: TtsViewModel,
 ) {
     val vm: PostDetailViewModel = hiltViewModel()
-    val postDetail by vm.postDetail.collectAsState()
-    val postDetailError by vm.postDetailError.collectAsState()
-    val favoritePosts by vm.favoritePosts.collectAsState()
-    val posts by vm.posts.collectAsState()
-    val isOffline by vm.isOffline.collectAsState()
-    val exercises by vm.exercises.collectAsState()
-    val exercisesLoading by vm.exercisesLoading.collectAsState()
-    val exercisesError by vm.exercisesError.collectAsState()
-    val questions by vm.questions.collectAsState()
-    val relatedPosts by vm.relatedPosts.collectAsState()
-    val relatedPostsError by vm.relatedPostsError.collectAsState()
-    val relatedPostsLoading by vm.relatedPostsLoading.collectAsState()
-    val tableOfContents by vm.tableOfContents.collectAsState()
+    val postDetail by vm.postDetail.collectAsStateWithLifecycle()
+    val postDetailError by vm.postDetailError.collectAsStateWithLifecycle()
+    val favoritePosts by vm.favoritePosts.collectAsStateWithLifecycle()
+    val posts by vm.posts.collectAsStateWithLifecycle()
+    val isOffline by vm.isOffline.collectAsStateWithLifecycle()
+    val exercises by vm.exercises.collectAsStateWithLifecycle()
+    val exercisesLoading by vm.exercisesLoading.collectAsStateWithLifecycle()
+    val exercisesError by vm.exercisesError.collectAsStateWithLifecycle()
+    val questions by vm.questions.collectAsStateWithLifecycle()
+    val relatedPosts by vm.relatedPosts.collectAsStateWithLifecycle()
+    val relatedPostsError by vm.relatedPostsError.collectAsStateWithLifecycle()
+    val relatedPostsLoading by vm.relatedPostsLoading.collectAsStateWithLifecycle()
+    val tableOfContents by vm.tableOfContents.collectAsStateWithLifecycle()
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(false) }
-    val hasQuestions by vm.hasQuestions.collectAsState()
-    val hasExercises by vm.hasExercises.collectAsState()
+    val hasQuestions by vm.hasQuestions.collectAsStateWithLifecycle()
+    val hasExercises by vm.hasExercises.collectAsStateWithLifecycle()
     val ttsManager = ttsViewModel.ttsManager
-    val addendums by vm.addendums.collectAsState()
+    val addendums by vm.addendums.collectAsStateWithLifecycle()
     var selectedAddendum by remember { mutableStateOf<Addendum?>(null) }
     var showAddendumDialog by remember { mutableStateOf(false) }
     var showPermissionDialog by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val isConnected by vm.isConnected.collectAsState()
+    val isConnected by vm.isConnected.collectAsStateWithLifecycle()
 
     // Download state exposed by ViewModel
-    val downloadProgress by vm.downloadProgress.collectAsState()
-    val downloadUri by vm.downloadUri.collectAsState()
-    val downloadError by vm.downloadError.collectAsState()
+    val downloadProgress by vm.downloadProgress.collectAsStateWithLifecycle()
+    val downloadUri by vm.downloadUri.collectAsStateWithLifecycle()
+    val downloadError by vm.downloadError.collectAsStateWithLifecycle()
 
     val downloadPdf: (Int) -> Unit = { id -> vm.startDownloadAndSavePdf(id) }
 
@@ -218,7 +218,7 @@ fun PostDetailScreen(
 
     // Person card
     var personNameForSheet by remember { mutableStateOf<String?>(null) }
-    val isConnectedForPerson by vm.isConnected.collectAsState()
+    val isConnectedForPerson by vm.isConnected.collectAsStateWithLifecycle()
     LaunchedEffect(postId, isConnectedForPerson) {
         if (isConnectedForPerson) {
             val clientId = "tobiso-android"
@@ -390,10 +390,10 @@ fun PostDetailScreen(
                                 }
                             }
                         } else {
-                            val contentElements by vm.parsedContent.collectAsState()
-                            val wordCountText by vm.wordCountText.collectAsState()
-                            val createdFormatted by vm.createdFormatted.collectAsState()
-                            val updatedFormatted by vm.updatedFormatted.collectAsState()
+                            val contentElements by vm.parsedContent.collectAsStateWithLifecycle()
+                            val wordCountText by vm.wordCountText.collectAsStateWithLifecycle()
+                            val createdFormatted by vm.createdFormatted.collectAsStateWithLifecycle()
+                            val updatedFormatted by vm.updatedFormatted.collectAsStateWithLifecycle()
 
                             val lazyListState = remember { LazyListState() }
 
@@ -683,7 +683,7 @@ fun PostDetailScreen(
 
 @Composable
 private fun DownloadProgressBar(vm: PostDetailViewModel, modifier: Modifier = Modifier) {
-    val downloadProgress by vm.downloadProgress.collectAsState()
+    val downloadProgress by vm.downloadProgress.collectAsStateWithLifecycle()
     if (downloadProgress != null) {
         if (downloadProgress!! >= 0) {
             LinearProgressIndicator(

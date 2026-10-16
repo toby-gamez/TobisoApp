@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,7 +19,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun MultiplierIndicator() {
-    val activeMultiplier by PointsManager.instance.activeMultiplier.collectAsState()
+    val activeMultiplier by PointsManager.instance.activeMultiplier.collectAsStateWithLifecycle()
     var showTimeLeft by remember { mutableStateOf(false) }
     var timeLeftSeconds by remember { mutableStateOf(0L) }
     

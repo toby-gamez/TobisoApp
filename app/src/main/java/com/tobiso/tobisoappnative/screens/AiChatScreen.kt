@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.net.Uri
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -54,7 +55,7 @@ fun AiChatScreen(
             factory.create(postId, postTitle, Uri.decode(firstUserMessage), sessionId)
         }
     )
-    val state by vm.uiState.collectAsState()
+    val state by vm.uiState.collectAsStateWithLifecycle()
     val messages = state.messages
     val isLoading = state.isLoading
     val error = state.error
