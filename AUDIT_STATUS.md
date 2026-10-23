@@ -39,6 +39,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | 12 | "Ověř si porozumění" (§8.1 A + most of B): rename, `QuizCtaCard`, "Otázka i ze n", explanation always shown in results, "Hotovo"/"Začít znovu". **Still open:** web-style instant per-answer feedback (the app reveals results at the end) | 🟡 | see git log |
 | 13 | Accounts v1 (§8.6): `AuthSession` persisted encrypted (Keystore AES-GCM), 401 → clear + "Přihlášení vypršelo" snackbar, `AuthScreen` login/register/check-inbox, Profile "Účet" section (sign out, sign out everywhere), forgot password + legal docs open the web. **Verified:** read endpoints are `[AllowAnonymous]`, so a Bearer token doesn't break them. **Not yet:** Google button (needs `auth/google-token`), bookmark/read-progress sync | ✅ | see git log |
 | 14 | Bookmark sync (union on first login, then server-authoritative, offline outbox) + reading progress ("Pokračovat ve čtení" on Home, local always, `user/read-progress` when signed in). The card now uses `GET user/continue-reading` when signed in (204 = nothing in progress; offline/failed → device-local fallback), so it follows the account. Note: every read-progress report also triggers the web's 20-credit daily read bonus | ✅ | see git log |
+| 15 | Classes foundation: `Event` + Room v8 (type/scope/class/group/creator/themes/customColor, per-account cache via `ownerKey`), class + student-event endpoints in `ApiService`, `ClassesScreen` (picker, pending, approved, group-change request, leave, rejected) reachable from Profile → Účet → Moje třída. **Next:** calendar integration (`events/mine`, filters, student events FAB, theme chips, notification worker) | 🟡 | see git log |
 | – | Fixed stale unit tests | ✅ | `0f706f0` |
 | – | Numbered lists (`1. foo`) were never parsed (over-escaped regex) | ✅ fixed | `16324ca` |
 | – | `<sub>`/`<sup>` rendered as raw text | ✅ fixed + spacing after bullet lists | `bfc5d7b` |
@@ -67,7 +68,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | Web capability | Web endpoints / pages | App today |
 |---|---|---|
 | User accounts (email + verification + reset; Google is web-only for now) — **user accounts only; the app has no admin login or admin features** | `api/auth/student-login`, `register`, `forgot-password`, `reset-password`, `me`, `logout-everywhere` | 🟡 email/password login + register done; Google and sync open |
-| School classes (join, groups, group-change request, leave) | `api/classes`, `classes/mine`, `join`, `mine/groups` | ❌ |
+| School classes (join, groups, group-change request, leave) | `api/classes`, `classes/mine`, `join`, `mine/groups` | ✅ `ClassesScreen` |
 | Class/group/personal calendar events + student-created events (Test/Homework/Other) | `events/mine`, `events/student[/{id}]` | ⚠️ app shows only global events (`Events/range`) and has no type/scope |
 | Event themes (linked posts/categories) | `Event.Themes` | ❌ |
 | Calendar subscription (ICS) | `calendar/{token}.ics` | ❌ not needed in-app (local notifications exist); optional "open feed" link |

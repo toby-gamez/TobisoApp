@@ -34,6 +34,8 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import com.tobiso.tobisoappnative.navigation.BOTTOM_BAR_ROUTES
 import com.tobiso.tobisoappnative.navigation.AiChatHistoryRoute
 import com.tobiso.tobisoappnative.navigation.AuthRoute
+import com.tobiso.tobisoappnative.navigation.ClassesRoute
+import com.tobiso.tobisoappnative.screens.ClassesScreen
 import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.screens.AuthScreen
 import com.tobiso.tobisoappnative.navigation.AiChatRoute
@@ -283,6 +285,14 @@ fun TobisoApp(navigateTo: String? = null) {
                             }
                             composable<ProfileRoute> {
                                 ProfileScreen(navController = navController)
+                            }
+                            composable<ClassesRoute>(
+                                enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
+                                exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
+                                popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
+                                popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
+                            ) {
+                                ClassesScreen(navController = navController)
                             }
                             composable<AuthRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },

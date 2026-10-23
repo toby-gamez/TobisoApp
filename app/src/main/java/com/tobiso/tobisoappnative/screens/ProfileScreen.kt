@@ -2,6 +2,8 @@ package com.tobiso.tobisoappnative.screens
 
 import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.navigation.AuthRoute
+import com.tobiso.tobisoappnative.navigation.ClassesRoute
+import androidx.compose.material.icons.filled.School
 import com.tobiso.tobisoappnative.viewmodel.auth.AccountViewModel
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Devices
@@ -1911,6 +1913,13 @@ private fun AccountSection(navController: NavController) {
                 title = user?.displayName?.ifBlank { null } ?: "Přihlášen",
                 subtitle = user?.email,
                 onClick = {}
+            )
+            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+            ProfileNavRow(
+                icon = Icons.Default.School,
+                title = "Moje třída",
+                subtitle = "Třída, skupiny a společný kalendář",
+                onClick = { navController.navigate(ClassesRoute) }
             )
             HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
             ProfileNavRow(

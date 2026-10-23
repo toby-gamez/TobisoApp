@@ -19,6 +19,9 @@ object ProfileRoute
 object AuthRoute
 
 @Serializable
+object ClassesRoute
+
+@Serializable
 object FeedbackRoute
 
 @Serializable

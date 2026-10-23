@@ -20,6 +20,8 @@ import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.repository.AuthRepository
 import com.tobiso.tobisoappnative.repository.AuthRepositoryImpl
+import com.tobiso.tobisoappnative.repository.ClassesRepository
+import com.tobiso.tobisoappnative.repository.ClassesRepositoryImpl
 import com.tobiso.tobisoappnative.repository.ExerciseRepository
 import com.tobiso.tobisoappnative.repository.ExerciseRepositoryImpl
 import com.tobiso.tobisoappnative.repository.FavoritesRepositoryImpl
@@ -119,4 +121,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAuthRepository(api: ApiService): AuthRepository = AuthRepositoryImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideClassesRepository(api: ApiService): ClassesRepository = ClassesRepositoryImpl(api)
 }
