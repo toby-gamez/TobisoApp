@@ -60,6 +60,8 @@ fun QuestionsScreen(
     var showResults by rememberSaveable { mutableStateOf(false) }
     var quizStarted by rememberSaveable { mutableStateOf(false) }
     var pointsAwarded by rememberSaveable { mutableStateOf(false) }
+    // Display indices of questions the user has checked (answer locked, feedback shown) — like the web quiz
+    var checkedQuestions by rememberSaveable { mutableStateOf<Set<Int>>(emptySet()) }
     var shuffledQuestions by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
     // shuffledAnswerIndices[displayQuestionIdx] = list of original answer indices in shuffled display order
     var shuffledAnswerIndices by rememberSaveable { mutableStateOf<Map<Int, List<Int>>>(emptyMap()) }
@@ -133,6 +135,7 @@ fun QuestionsScreen(
         selectedAnswers = emptyMap()
         multiSelectedAnswers = emptyMap()
         textAnswers = emptyMap()
+        checkedQuestions = emptySet()
         showResults = false
         quizStarted = startImmediately
         pointsAwarded = false
@@ -572,7 +575,7 @@ fun QuestionsScreen(
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
-                                        "Výsledky se zobrazí na konci",
+                                        "Po každé otázce hned uvidíš, zda je správně",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer
                                     )
@@ -661,6 +664,8 @@ fun QuestionsScreen(
                                 
                                 Spacer(modifier = Modifier.height(24.dp))
                                 
+                                val checked = currentQuestionIndex in checkedQuestions
+
                                 // Možnosti odpovědí nebo textové pole
                                 if (question.isTextQuestion) {
                                     // Detekce typu klávesnice na základě správné odpovědi
@@ -681,14 +686,14 @@ fun QuestionsScreen(
                                         label = { Text("Zadejte vaši odpověď...") },
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true,
-                                        readOnly = isNumericAnswer, // Pokud je číselná odpověď, pole bude jen pro čtení
+                                        readOnly = isNumericAnswer || checked, // číselná odpověď se zadává vlastní klávesnicí; po kontrole je odpověď zamčená
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Text
                                         )
                                     )
                                     
                                     // Vlastní číselná klávesnice pro číselné odpovědi
-                                    if (isNumericAnswer) {
+                                    if (isNumericAnswer && !checked) {
                                         Spacer(modifier = Modifier.height(16.dp))
                                         CustomNumericKeyboard(
                                             // If the correct text answer contains a colon (e.g. time like 12:30),
@@ -728,7 +733,7 @@ fun QuestionsScreen(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(vertical = 4.dp)
-                                                    .clickable {
+                                                    .clickable(enabled = !checked) {
                                                         val current = multiSelectedAnswers[currentQuestionIndex]?.toMutableSet() ?: mutableSetOf()
                                                         if (isChecked) current.remove(origIdx) else current.add(origIdx)
                                                         multiSelectedAnswers = multiSelectedAnswers.toMutableMap().apply {
@@ -736,11 +741,11 @@ fun QuestionsScreen(
                                                         }
                                                     },
                                                 colors = CardDefaults.cardColors(
-                                                    containerColor = if (isChecked) {
-                                                        MaterialTheme.colorScheme.primaryContainer
-                                                    } else {
-                                                        MaterialTheme.colorScheme.surface
-                                                    }
+                                                    containerColor = answerContainerColor(
+                                                        checked = checked,
+                                                        isSelected = isChecked,
+                                                        isCorrectOption = origIdx in question.correctAnswers
+                                                    )
                                                 )
                                             ) {
                                                 Row(
@@ -749,7 +754,8 @@ fun QuestionsScreen(
                                                 ) {
                                                     Checkbox(
                                                         checked = isChecked,
-                                                        onCheckedChange = null
+                                                        onCheckedChange = null,
+                                                        enabled = !checked
                                                     )
                                                     Spacer(modifier = Modifier.width(12.dp))
                                                     Text(
@@ -777,19 +783,22 @@ fun QuestionsScreen(
                                                     .padding(vertical = 4.dp)
                                                     .selectable(
                                                         selected = isSelected,
+                                                        enabled = !checked,
                                                         onClick = {
+                                                            // Single choice is checked instantly, as on the web.
                                                             selectedAnswers = selectedAnswers.toMutableMap().apply {
                                                                 put(currentQuestionIndex, origIdx)
                                                             }
+                                                            checkedQuestions = checkedQuestions + currentQuestionIndex
                                                         },
                                                         role = Role.RadioButton
                                                     ),
                                                 colors = CardDefaults.cardColors(
-                                                    containerColor = if (isSelected) {
-                                                        MaterialTheme.colorScheme.primaryContainer
-                                                    } else {
-                                                        MaterialTheme.colorScheme.surface
-                                                    }
+                                                    containerColor = answerContainerColor(
+                                                        checked = checked,
+                                                        isSelected = isSelected,
+                                                        isCorrectOption = origIdx == question.correctAnswer
+                                                    )
                                                 )
                                             ) {
                                                 Row(
@@ -798,7 +807,8 @@ fun QuestionsScreen(
                                                 ) {
                                                     RadioButton(
                                                         selected = isSelected,
-                                                        onClick = null
+                                                        onClick = null,
+                                                        enabled = !checked
                                                     )
                                                     Spacer(modifier = Modifier.width(12.dp))
                                                     Text(
@@ -811,6 +821,37 @@ fun QuestionsScreen(
                                     }
                                 }
                                 
+                                // Text and multi-select answers are checked with a button; single choice is instant.
+                                val answered = when {
+                                    question.isTextQuestion -> textAnswers[currentQuestionIndex]?.isNotBlank() == true
+                                    question.isMultiSelectQuestion -> multiSelectedAnswers[currentQuestionIndex]?.isNotEmpty() == true
+                                    else -> selectedAnswers.containsKey(currentQuestionIndex)
+                                }
+                                if (!checked && (question.isTextQuestion || question.isMultiSelectQuestion)) {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(
+                                        onClick = { checkedQuestions = checkedQuestions + currentQuestionIndex },
+                                        enabled = answered,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) { Text("Zkontrolovat odpověď") }
+                                }
+                                if (checked) {
+                                    val correct = when {
+                                        question.isTextQuestion ->
+                                            normalizeText(textAnswers[currentQuestionIndex]?.trim() ?: "") ==
+                                                normalizeText(question.correctTextAnswer?.trim() ?: "")
+                                        question.isMultiSelectQuestion ->
+                                            (multiSelectedAnswers[currentQuestionIndex] ?: emptySet()) == question.correctAnswers.toSet()
+                                        else -> selectedAnswers[currentQuestionIndex] == question.correctAnswer
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    QuestionFeedback(
+                                        correct = correct,
+                                        correctTextAnswer = if (question.isTextQuestion && !correct) question.correctTextAnswer else null,
+                                        explanation = question.explanation
+                                    )
+                                }
+
                                 Spacer(modifier = Modifier.height(32.dp))
                                 
                                 // Navigační tlačítka
@@ -828,11 +869,8 @@ fun QuestionsScreen(
                                         Spacer(modifier = Modifier.width(1.dp))
                                     }
                                     
-                                    val hasAnswered = when {
-                                        currentQuestion.isTextQuestion -> textAnswers[currentQuestionIndex]?.isNotBlank() == true
-                                        currentQuestion.isMultiSelectQuestion -> multiSelectedAnswers[currentQuestionIndex]?.isNotEmpty() == true
-                                        else -> selectedAnswers.containsKey(currentQuestionIndex)
-                                    }
+                                    // The next step unlocks once this question has been checked.
+                                    val hasAnswered = checked
                                     
                                     if (currentQuestionIndex < totalQuestions - 1) {
                                         Button(
@@ -842,15 +880,7 @@ fun QuestionsScreen(
                                             Text("Další")
                                         }
                                     } else {
-                                        val allAnswered = shuffledQuestions.indices.all { index ->
-                                            val originalQuestionIndex = shuffledQuestions[index]
-                                            val question = questions[originalQuestionIndex]
-                                            when {
-                                                question.isTextQuestion -> textAnswers[index]?.isNotBlank() == true
-                                                question.isMultiSelectQuestion -> multiSelectedAnswers[index]?.isNotEmpty() == true
-                                                else -> selectedAnswers.containsKey(index)
-                                            }
-                                        }
+                                        val allAnswered = shuffledQuestions.indices.all { it in checkedQuestions }
                                         Button(
                                             onClick = { showResults = true },
                                             enabled = hasAnswered && allAnswered
@@ -865,5 +895,49 @@ fun QuestionsScreen(
                 }
             }
         
+    }
+}
+
+/** Container color of an answer row: neutral before checking; sage = correct, terracotta = the user's wrong pick. */
+@Composable
+private fun answerContainerColor(checked: Boolean, isSelected: Boolean, isCorrectOption: Boolean): Color = when {
+    !checked -> if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+    isCorrectOption -> MaterialTheme.colorScheme.secondaryContainer
+    isSelected -> MaterialTheme.colorScheme.errorContainer
+    else -> MaterialTheme.colorScheme.surface
+}
+
+/** Result banner shown right after a question was checked, with the explanation (always, like the web). */
+@Composable
+private fun QuestionFeedback(correct: Boolean, correctTextAnswer: String?, explanation: String?) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (correct) Icons.Filled.CheckCircle else Icons.Filled.Close,
+                contentDescription = null,
+                tint = if (correct) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                if (correct) "Správně!" else "Špatně",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (correct) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+            )
+        }
+        if (!correctTextAnswer.isNullOrBlank()) {
+            Text("Správná odpověď: $correctTextAnswer", style = MaterialTheme.typography.bodyMedium)
+        }
+        if (!explanation.isNullOrBlank()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Filled.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Text(explanation, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+            }
+        }
     }
 }
