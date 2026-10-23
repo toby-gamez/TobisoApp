@@ -215,6 +215,20 @@ interface ApiService {
     @GET("user/continue-reading")
     suspend fun getContinueReading(): retrofit2.Response<ContinueReadingDto>
 
+    /** 200 with the stored state, or 204 (null body) when the user never stored any. */
+    @GET("user/game-state")
+    suspend fun getGameState(): retrofit2.Response<GameStateResponse>
+
+    /** 200 {revision, updatedAt}; 409 {revision, state} when [GameStatePutRequest.baseRevision] is stale. */
+    @retrofit2.http.PUT("user/game-state")
+    suspend fun putGameState(@Body request: GameStatePutRequest): retrofit2.Response<GameStatePutResponse>
+
+    @POST("user/points/claim")
+    suspend fun claimPoints(@Body request: PointsClaimRequest): retrofit2.Response<PointsClaimResponse>
+
+    @GET("posts/{id}/versions")
+    suspend fun getPostVersions(@Path("id") postId: Int): List<PostVersionInfo>
+
     @GET("user/stats")
     suspend fun getUserStats(): UserStats
 

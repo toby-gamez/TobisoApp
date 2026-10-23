@@ -121,6 +121,18 @@ class BackpackManager private constructor(context: Context) : IBackpackManager {
         loadBackpackItems()
     }
 
+    /** Re-reads purchases and equipped items after a game-state sync rewrote the prefs. */
+    fun reloadFromPrefs() {
+        loadBackpackItems()
+        _equippedQuote.value = prefs.getInt(KEY_EQUIPPED_QUOTE, -1).takeIf { it != -1 }?.let { ShopData.getItemById(it) }
+        _equippedPet.value = prefs.getInt(KEY_EQUIPPED_PET, -1).takeIf { it != -1 }?.let { ShopData.getItemById(it) }
+        _equippedTheme.value = prefs.getInt(KEY_EQUIPPED_THEME, -1).takeIf { it != -1 }?.let { ShopData.getItemById(it) }
+        val packId = prefs.getInt(KEY_EQUIPPED_ICON_PACK, -1)
+        val pack = (if (packId != -1) ShopData.getItemById(packId) else null) ?: ShopData.getItemById(ShopData.CLASSIC_ICON_PACK_ID)
+        _equippedIconPack.value = pack
+        IconPackManager.setActiveIconPack(pack)
+    }
+
     companion object {
         private const val PREFS_NAME = "backpack_prefs"
         private const val KEY_EQUIPPED_QUOTE = "equipped_quote"

@@ -9,6 +9,9 @@ import timber.log.Timber
 class TobisoApplication : Application() {
 
     @javax.inject.Inject
+    lateinit var gameSyncManager: com.tobiso.tobisoappnative.gamesync.GameSyncManager
+
+    @javax.inject.Inject
     lateinit var userSyncManager: com.tobiso.tobisoappnative.repository.UserSyncManager
 
     override fun onCreate() {
@@ -32,6 +35,7 @@ class TobisoApplication : Application() {
             QuestionProgressManager.initialize(this)
             PetManager.initialize(this)
             userSyncManager.start()
+            gameSyncManager.start()
         } catch (e: Exception) {
             Timber.e(e, "Critical initialization error – app may not function correctly")
         }

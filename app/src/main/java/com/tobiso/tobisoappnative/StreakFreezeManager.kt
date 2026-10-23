@@ -20,6 +20,10 @@ class StreakFreezeManager private constructor(context: Context) : IStreakFreezeM
     override val usedFreezes: StateFlow<Set<String>> = _usedFreezes
 
     init {
+        reloadFromPrefs()
+    }
+
+    fun reloadFromPrefs() {
         _availableFreezes.update { prefs.getInt(KEY_FREEZE_COUNT, 0) }
         _usedFreezes.update { prefs.getStringSet(KEY_USED_FREEZES, emptySet()) ?: emptySet() }
     }

@@ -1,0 +1,196 @@
+package com.tobiso.tobisoappnative.gamesync
+
+import android.content.Context
+import android.content.SharedPreferences
+import com.tobiso.tobisoappnative.BackpackManager
+import com.tobiso.tobisoappnative.PetManager
+import com.tobiso.tobisoappnative.PointsManager
+import com.tobiso.tobisoappnative.ShopManager
+import com.tobiso.tobisoappnative.StreakFreezeManager
+import com.tobiso.tobisoappnative.model.ApiService
+import com.tobiso.tobisoappnative.model.AuthSession
+import com.tobiso.tobisoappnative.model.GameStatePutRequest
+import com.tobiso.tobisoappnative.model.GameStateResponse
+import com.tobiso.tobisoappnative.model.PointsClaimRequest
+import com.tobiso.tobisoappnative.model.PointsClaimResponse
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import retrofit2.Response
+import timber.log.Timber
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Keeps the gamification prefs (points, shop, backpack, streak, pets, question stats) in sync with
+ * `user/game-state` while a student is signed in. Anonymous users are never touched.
+ *
+ * Any change to the synced prefs marks the device "dirty" and schedules a debounced sync; a sync pulls, merges
+ * ([mergeGameState]), applies the merge locally and pushes it back (retrying on 409).
+ */
+@Singleton
+class GameSyncManager @Inject constructor(
+    @ApplicationContext context: Context,
+    private val api: ApiService
+) {
+    private val appContext = context.applicationContext
+    private val store = GamePrefsStore(context)
+    private val meta: SharedPreferences = context.getSharedPreferences("game_sync_meta", Context.MODE_PRIVATE)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val mutex = Mutex()
+    private val json = Json { ignoreUnknownKeys = true }
+
+    // Values we wrote ourselves. SharedPreferences reports changes asynchronously on the main thread, so a flag
+    // would already be cleared; instead a change event is ignored when the key still holds what we wrote.
+    private val written = java.util.concurrent.ConcurrentHashMap<String, PrefValue>()
+    private var debounce: Job? = null
+    private var started = false
+
+    // SharedPreferences keeps listeners weakly, so hold on to them.
+    private val listeners = SYNCED_PREFS.associateWith { file ->
+        SharedPreferences.OnSharedPreferenceChangeListener { _, k ->
+            if (k == null || !AuthSession.isSignedIn) return@OnSharedPreferenceChangeListener
+            if (written["$file/$k"] == store.valueOf(file, k)) return@OnSharedPreferenceChangeListener
+            meta.edit().putBoolean(dirtyKey(), true).apply()
+            debounce?.cancel()
+            debounce = scope.launch { delay(DEBOUNCE_MS); sync() }
+        }
+    }
+
+    fun start() {
+        if (started) return
+        started = true
+        listeners.forEach { (file, l) -> store.prefs(file).registerOnSharedPreferenceChangeListener(l) }
+        scope.launch {
+            AuthSession.user.map { AuthSession.ownerKey }.distinctUntilChanged().collect { key -> if (key != null) sync() }
+        }
+    }
+
+    private fun key(name: String) = "${AuthSession.ownerKey}.$name"
+    private fun dirtyKey() = key("dirty")
+
+    /** Pull → merge → apply → push. Quietly gives up on network errors; the next change or start retries. */
+    suspend fun sync(): Boolean = mutex.withLock {
+        if (!AuthSession.isSignedIn) return false
+        try {
+            repeat(MAX_ATTEMPTS) {
+                val pulled = pull() ?: return false
+                val serverSnap = pulled.takeIf { it.revision > 0 || it.state.isNotEmpty() }?.state?.let(::parseStateJson)
+                val local = store.read()
+                val merged = mergeGameState(
+                    local, serverSnap,
+                    MergeContext(
+                        firstSync = !meta.contains(key("revision")),
+                        preferLocal = meta.getBoolean(dirtyKey(), false),
+                        basePoints = if (meta.contains(key("points"))) meta.getFloat(key("points"), 0f) else null
+                    )
+                )
+                if (merged != local) apply(merged)
+                if (serverSnap != null && merged == serverSnap) {
+                    remember(pulled.revision, merged)
+                    return true
+                }
+                when (val r = push(pulled.revision, merged)) {
+                    is Push.Ok -> { remember(r.revision, merged); return true }
+                    Push.Conflict -> Unit // pull again and re-merge
+                    Push.Failed -> return false
+                }
+            }
+            false
+        } catch (e: Exception) {
+            Timber.w(e, "Game state sync failed")
+            false
+        }
+    }
+
+    /** Buys AI credits with points on the server (the web owns the price list); returns the new totals. */
+    suspend fun claimAiCredits(itemId: Int): Result<PointsClaimResponse> {
+        // Make sure the server has the points we are about to spend.
+        if (!sync()) return Result.failure(IllegalStateException("Synchronizace se serverem se nezdařila."))
+        return mutex.withLock {
+            try {
+                val response = api.claimPoints(PointsClaimRequest("ai_credits", itemId.toString()))
+                val body = response.body()
+                if (response.isSuccessful && body != null) {
+                    // The server already deducted the points from the stored state; mirror that locally.
+                    written["$POINTS_FILE/$KEY_POINTS"] = PrefValue.F(body.points)
+                    store.prefs(POINTS_FILE).edit().putFloat(KEY_POINTS, body.points).apply()
+                    PointsManager.instance.reloadFromPrefs()
+                    meta.edit().putInt(key("revision"), body.revision).putFloat(key("points"), body.points).apply()
+                    Result.success(body)
+                } else {
+                    Result.failure(ClaimFailure(response.code(), errorMessage(response)))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    class ClaimFailure(val code: Int, message: String?) : Exception(message)
+
+    // ---- internals ----------------------------------------------------------------------------------------
+
+    private sealed interface Push {
+        data class Ok(val revision: Int) : Push
+        object Conflict : Push
+        object Failed : Push
+    }
+
+    /** null = could not reach the server / unexpected status. */
+    private suspend fun pull(): GameStateResponse? {
+        val r = api.getGameState()
+        return when {
+            r.code() == 204 -> GameStateResponse(0, null, JsonObject(emptyMap()))
+            r.isSuccessful -> r.body()
+            else -> { Timber.w("game-state GET -> ${r.code()}"); null }
+        }
+    }
+
+    private suspend fun push(baseRevision: Int, snapshot: PrefsSnapshot): Push {
+        val r = api.putGameState(GameStatePutRequest(baseRevision, snapshot.toStateJson()))
+        return when {
+            r.isSuccessful -> Push.Ok(r.body()?.revision ?: (baseRevision + 1))
+            r.code() == 409 -> Push.Conflict
+            else -> { Timber.w("game-state PUT -> ${r.code()}"); Push.Failed }
+        }
+    }
+
+    private fun apply(merged: PrefsSnapshot) {
+        merged.forEach { (file, values) -> values.forEach { (k, v) -> written["$file/$k"] = v } }
+        store.write(merged)
+        runCatching { PointsManager.instance.reloadFromPrefs() }
+        runCatching { ShopManager.instance.init() }
+        runCatching { BackpackManager.instance.reloadFromPrefs() }
+        runCatching { StreakFreezeManager.instance.reloadFromPrefs() }
+        runCatching { PetManager.initialize(appContext) }
+    }
+
+    private fun remember(revision: Int, snapshot: PrefsSnapshot) {
+        meta.edit()
+            .putInt(key("revision"), revision)
+            .putFloat(key("points"), snapshot.points() ?: 0f)
+            .putBoolean(dirtyKey(), false)
+            .apply()
+    }
+
+    private fun errorMessage(r: Response<*>): String? = runCatching {
+        r.errorBody()?.string()?.let { json.parseToJsonElement(it).jsonObject["message"]?.toString()?.trim('"') }
+    }.getOrNull()
+
+    private companion object {
+        const val DEBOUNCE_MS = 5_000L
+        const val MAX_ATTEMPTS = 3
+    }
+}

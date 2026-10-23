@@ -18,7 +18,11 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
-class ShopViewModel @Inject constructor(private val api: ApiService) : ViewModel() {
+class ShopViewModel @Inject constructor(
+    private val api: ApiService,
+    private val gameSync: com.tobiso.tobisoappnative.gamesync.GameSyncManager,
+    private val auth: com.tobiso.tobisoappnative.repository.AuthRepository
+) : ViewModel() {
 
     private val _selectedItem = MutableStateFlow<ShopItem?>(null)
     val selectedItem: StateFlow<ShopItem?> = _selectedItem
@@ -108,7 +112,32 @@ class ShopViewModel @Inject constructor(private val api: ApiService) : ViewModel
         }
     }
 
+    /** Signed in: the server prices and grants the credits to the account (permanent) and deducts the points. */
+    private suspend fun claimAiCredits(item: ShopItem) {
+        _isPurchasing.value = true
+        gameSync.claimAiCredits(item.id).fold(
+            onSuccess = {
+                _successMessage.value = "Získáno +${it.credits} AI otázek. ✅"
+                _showSuccessMessage.value = true
+                auth.refreshProfile()
+            },
+            onFailure = { e ->
+                _errorMessage.value = when ((e as? com.tobiso.tobisoappnative.gamesync.GameSyncManager.ClaimFailure)?.code) {
+                    409 -> "Nedostatek bodů, nebo se stav hry mezitím změnil. Zkus to znovu."
+                    429 -> "Dnes už jsi za body získal/a maximum AI otázek."
+                    400 -> "Tuto položku nelze zakoupit."
+                    null -> e.message ?: "Nepodařilo se spojit se serverem. Body zůstaly."
+                    else -> "Nákup se nezdařil. Body zůstaly."
+                }
+                _showErrorMessage.value = true
+                Timber.w(e, "AI credit claim failed")
+            }
+        )
+        _isPurchasing.value = false
+    }
+
     private suspend fun purchaseAiCredits(item: ShopItem) {
+        if (com.tobiso.tobisoappnative.model.AuthSession.isSignedIn) return claimAiCredits(item)
         val count = item.creditCount ?: return
         _isPurchasing.value = true
 

@@ -44,6 +44,11 @@ class PointsManager private constructor(context: Context) : IPointsManager {
     override val totalEarnedPoints: StateFlow<Int> = _totalEarnedPoints
 
     init {
+        reloadFromPrefs()
+    }
+
+    /** Re-reads everything from SharedPreferences (also used after a game-state sync rewrote them). */
+    fun reloadFromPrefs() {
         inflationDivisor = prefs.getInt(KEY_INFLATION_DIVISOR, 1)
 
         val storedFloat = prefs.getFloat(KEY_POINTS_FLOAT, -1f)
