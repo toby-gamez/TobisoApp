@@ -74,7 +74,13 @@ fun AuthScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         vm.effect.collect { effect ->
             when (effect) {
-                AuthEffect.SignedIn -> navController.popBackStack()
+                AuthEffect.SignedIn -> {
+                    val name = com.tobiso.tobisoappnative.model.AuthSession.user.value?.let { it.displayName.ifBlank { it.email.orEmpty() } }
+                    android.widget.Toast.makeText(
+                        context, if (name.isNullOrBlank()) "Přihlášeno" else "Přihlášen jako $name", android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    navController.popBackStack()
+                }
             }
         }
     }
@@ -238,7 +244,9 @@ fun AuthScreen(navController: NavController) {
                             when (val r = requestGoogleIdToken(context, BuildConfig.GOOGLE_WEB_CLIENT_ID)) {
                                 is GoogleSignInResult.Token -> vm.onIntent(AuthIntent.GoogleToken(r.idToken))
                                 is GoogleSignInResult.Failed -> vm.onIntent(AuthIntent.GoogleFailed(r.message))
-                                GoogleSignInResult.Cancelled -> Unit
+                                GoogleSignInResult.Cancelled -> vm.onIntent(
+                                    AuthIntent.GoogleFailed("Přihlášení přes Google bylo zrušeno nebo ho Google odmítl. Zkus to znovu.")
+                                )
                             }
                         }
                     },

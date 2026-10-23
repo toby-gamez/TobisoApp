@@ -36,10 +36,13 @@ suspend fun requestGoogleIdToken(activityContext: Context, serverClientId: Strin
             GoogleSignInResult.Failed("Přihlášení přes Google není na tomto zařízení dostupné.")
         }
     } catch (e: GetCredentialCancellationException) {
+        timber.log.Timber.w(e, "Google sign-in cancelled")
         GoogleSignInResult.Cancelled
     } catch (e: NoCredentialException) {
+        timber.log.Timber.w(e, "Google sign-in: no credential")
         GoogleSignInResult.Failed("Na zařízení není žádný účet Google.")
     } catch (e: GetCredentialException) {
+        timber.log.Timber.e(e, "Google sign-in failed")
         GoogleSignInResult.Failed("Přihlášení přes Google se nezdařilo.")
     } catch (e: GoogleIdTokenParsingException) {
         GoogleSignInResult.Failed("Přihlášení přes Google se nezdařilo.")
