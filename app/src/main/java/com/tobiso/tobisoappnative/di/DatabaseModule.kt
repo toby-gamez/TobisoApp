@@ -123,11 +123,22 @@ object DatabaseModule {
         }
     }
 
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            listOf(
+                "type TEXT", "scope TEXT", "classId INTEGER", "className TEXT", "groupId INTEGER",
+                "groupName TEXT", "createdByUserId INTEGER", "createdByName TEXT", "customColor TEXT",
+                "themesJson TEXT", "ownerKey TEXT"
+            ).forEach { database.execSQL("ALTER TABLE events ADD COLUMN $it") }
+            Timber.d("Applying migration 7->8: added class/scope/theme columns to events")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "tobiso_offline.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
 
     @Provides

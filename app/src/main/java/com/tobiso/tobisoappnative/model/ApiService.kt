@@ -214,4 +214,37 @@ interface ApiService {
 
     @POST("user/read-progress")
     suspend fun reportReadProgress(@Body request: ReadProgressRequest): retrofit2.Response<Unit>
+
+    // School classes (students only)
+    @GET("classes")
+    suspend fun getClasses(): List<SchoolClass>
+
+    /** 204 (null body) when the student has no membership. */
+    @GET("classes/mine")
+    suspend fun getMyClass(): retrofit2.Response<MyClass>
+
+    @POST("classes/join")
+    suspend fun joinClass(@Body request: JoinClassRequest): MyClass
+
+    @retrofit2.http.PUT("classes/mine/groups")
+    suspend fun updateMyGroups(@Body request: UpdateMyGroupsRequest): MyClass
+
+    @retrofit2.http.DELETE("classes/mine")
+    suspend fun leaveClass(): retrofit2.Response<Unit>
+
+    // Scoped calendar (students only)
+    @GET("events/mine")
+    suspend fun getMyEvents(
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): List<Event>
+
+    @POST("events/student")
+    suspend fun createStudentEvent(@Body request: StudentEventRequest): Event
+
+    @retrofit2.http.PUT("events/student/{id}")
+    suspend fun updateStudentEvent(@Path("id") id: Int, @Body request: StudentEventRequest): retrofit2.Response<Unit>
+
+    @retrofit2.http.DELETE("events/student/{id}")
+    suspend fun deleteStudentEvent(@Path("id") id: Int): retrofit2.Response<Unit>
 }

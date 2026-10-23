@@ -46,7 +46,7 @@ import com.tobiso.tobisoappnative.db.entity.RelatedPostEntity
         AiChatMessageEntity::class,
         FeedbackEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

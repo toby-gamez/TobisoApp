@@ -17,11 +17,28 @@ data class Event(
     @SerialName("isRecurring") val isRecurring: Boolean? = null,
     @SerialName("recurrencePattern") val recurrencePattern: String? = null,
     @SerialName("recurrenceEndDate") @Serializable(with = DateSerializer::class) val recurrenceEndDate: Date? = null,
-    @SerialName("isLocal") val isLocal: Boolean? = null
+    @SerialName("isLocal") val isLocal: Boolean? = null,
+    // ── Added by the web with school classes / scoped events (all optional → old payloads still parse) ──
+    @Serializable(with = LenientStringSerializer::class) val type: String? = null,
+    @Serializable(with = LenientStringSerializer::class) val scope: String? = null,
+    val classId: Int? = null,
+    val className: String? = null,
+    val groupId: Int? = null,
+    val groupName: String? = null,
+    val createdByUserId: Int? = null,
+    val createdByName: String? = null,
+    /** The admin's own pick; [color] is already the effective color. */
+    val customColor: String? = null,
+    val themes: List<EventTheme> = emptyList()
 ){
     // Pomocné funkce pro bezpečný přístup k datům
     fun getTitleSafe(): String = title ?: "Bez názvu"
-    fun getColorSafe(): String = color ?: "#33d17a"
+    fun getColorSafe(): String = color ?: eventType?.defaultColor ?: "#33d17a"
+
+    val eventType: EventType? get() = EventType.parse(type)
+    val eventScope: EventScope? get() = EventScope.parse(scope)
+    /** True for events a student added (as opposed to admin / local ones). */
+    val isStudentCreated: Boolean get() = createdByUserId != null
     fun getStartDateSafe(): Date = startDate ?: Date()
     fun getEndDateSafe(): Date = endDate ?: getStartDateSafe()  // Pokud je endDate null, použij startDate
     fun isAllDaySafe(): Boolean = isAllDay ?: false

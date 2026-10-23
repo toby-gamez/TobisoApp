@@ -273,9 +273,25 @@ class OfflineDataManager(
             }
         }
 
-    suspend fun getCachedEvents(): List<Event>? = withContext(Dispatchers.IO) {
+    /** Replaces one account's cached class/group/personal events (global ones live in the public cache). */
+    suspend fun saveMyEvents(ownerKey: String, events: List<Event>) = withContext(Dispatchers.IO) {
         try {
-            val entities = eventDao.getAll()
+            db.withTransaction {
+                eventDao.deleteOwnedBy(ownerKey)
+                eventDao.insertAll(
+                    events.filter { it.eventScope != null && it.eventScope != com.tobiso.tobisoappnative.model.EventScope.Global }
+                        .map { it.toEntity(ownerKey) }
+                )
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error saving personal events")
+        }
+    }
+
+    /** Public events, plus [ownerKey]'s own class/group/personal events when given. */
+    suspend fun getCachedEvents(ownerKey: String? = null): List<Event>? = withContext(Dispatchers.IO) {
+        try {
+            val entities = eventDao.getVisibleTo(ownerKey)
             if (entities.isEmpty()) null else entities.map { it.toDomain() }
         } catch (e: Exception) {
             Timber.e(e, "Error loading events")
