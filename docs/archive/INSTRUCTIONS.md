@@ -1,3 +1,5 @@
+> **Archived.** Written before the Organic redesign and the accounts/classes work; kept for history. The current plan is `docs/AUDIT_STATUS.md`; architecture notes live in `CLAUDE.md`.
+
 # TobisoApp Native - Instrukce a dokumentace
 
 ## 📱 Popis aplikace

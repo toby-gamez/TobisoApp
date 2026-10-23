@@ -122,7 +122,7 @@ Open:
 - Gamification singletons (`PointsManager`, `ShopManager`, …) block account sync → need a repository + conflict rules.
 - `TobisoApp.kt` (623 lines) is a god-composable.
 - ~44 `GlobalScope`/`runBlocking`/`SharedPreferences` usages to spot-check.
-- Stale root docs: `AUDIT_UI_UX.md`, `UI_AUDIT_EXERCISE_SCREENS.md`, `INSTRUCTIONS.md` — consolidate.
+- ~~Stale root docs~~ moved to `docs/archive/` (marked archived).
 
 ## 5. Tests
 
