@@ -17,6 +17,9 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +41,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.tobiso.tobisoappnative.model.ClassMembershipStatus
 import com.tobiso.tobisoappnative.model.Event
 import com.tobiso.tobisoappnative.model.EventScope
+import com.tobiso.tobisoappnative.model.EventTheme
+import com.tobiso.tobisoappnative.model.filterThemeOptions
 import com.tobiso.tobisoappnative.model.EventType
 import com.tobiso.tobisoappnative.model.MyClass
 import com.tobiso.tobisoappnative.model.StudentEventRequest
@@ -46,6 +51,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+private const val MAX_THEMES = 5
 private val STUDENT_TYPES = listOf(EventType.Test, EventType.Homework, EventType.Other)
 private val apiFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
 
@@ -65,7 +71,8 @@ fun buildStudentEventRequest(
     end: Date,
     type: EventType,
     scope: EventScope,
-    groupId: Int?
+    groupId: Int?,
+    themes: List<EventTheme> = emptyList()
 ): StudentEventRequest {
     val multiDay = startOfDay(end).after(startOfDay(start))
     return StudentEventRequest(
@@ -75,7 +82,8 @@ fun buildStudentEventRequest(
         endDate = if (multiDay) apiFormat.format(endOfDay(end)) else null,
         type = type.name,
         scope = scope.name,
-        groupId = if (scope == EventScope.Group) groupId else null
+        groupId = if (scope == EventScope.Group) groupId else null,
+        themes = themes
     )
 }
 
@@ -88,9 +96,12 @@ fun StudentEventDialog(
     onDismiss: () -> Unit,
     onSave: (StudentEventRequest) -> Unit,
     initialEvent: Event? = null,
-    initialDate: Date? = null
+    initialDate: Date? = null,
+    themeOptions: List<EventTheme> = emptyList(),
+    onNeedThemeOptions: () -> Unit = {}
 ) {
     if (!isVisible) return
+    androidx.compose.runtime.LaunchedEffect(Unit) { onNeedThemeOptions() }
 
     val inClass = myClass?.membershipStatus == ClassMembershipStatus.Approved
     var title by remember { mutableStateOf(initialEvent?.title ?: "") }
@@ -102,6 +113,8 @@ fun StudentEventDialog(
         mutableStateOf(initialEvent?.eventScope?.takeIf { it != EventScope.Global && (inClass || it == EventScope.Personal) } ?: EventScope.Personal)
     }
     var groupId by remember { mutableStateOf(initialEvent?.groupId ?: myClass?.groups?.firstOrNull()?.id) }
+    var themes by remember { mutableStateOf(initialEvent?.themes.orEmpty()) }
+    var themeQuery by remember { mutableStateOf("") }
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
     val dateFormat = remember { SimpleDateFormat("d.M.yyyy", Locale.getDefault()) }
@@ -165,6 +178,41 @@ fun StudentEventDialog(
                         }
                     }
 
+                    Text("Témata (volitelné)", style = MaterialTheme.typography.labelLarge)
+                    if (themes.isNotEmpty()) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            themes.forEach { t ->
+                                InputChip(
+                                    selected = true,
+                                    onClick = { themes = themes.filter { it.key != t.key } },
+                                    label = { Text(t.name, maxLines = 1) },
+                                    trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Odebrat téma", modifier = Modifier.size(16.dp)) }
+                                )
+                            }
+                        }
+                    }
+                    if (themes.size < MAX_THEMES) {
+                        OutlinedTextField(
+                            value = themeQuery, onValueChange = { themeQuery = it },
+                            label = { Text("Hledat článek nebo kategorii") },
+                            singleLine = true, modifier = Modifier.fillMaxWidth()
+                        )
+                        val matches = remember(themeQuery, themes, themeOptions) {
+                            filterThemeOptions(themeOptions, themeQuery, themes.map { it.key }.toSet(), limit = 6)
+                        }
+                        matches.forEach { m ->
+                            TextButton(
+                                onClick = { themes = themes + m; themeQuery = "" },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    (if (m.postId != null) "Článek: " else "Kategorie: ") + m.name,
+                                    maxLines = 1, modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
                     Text("Datum", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedButton(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f)) {
@@ -182,7 +230,7 @@ fun StudentEventDialog(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Zrušit") }
                     Button(
-                        onClick = { onSave(buildStudentEventRequest(title, description, start, end, type, scope, groupId)) },
+                        onClick = { onSave(buildStudentEventRequest(title, description, start, end, type, scope, groupId, themes)) },
                         enabled = title.isNotBlank() && (scope != EventScope.Group || groupId != null),
                         modifier = Modifier.weight(1f)
                     ) { Text(if (initialEvent != null) "Uložit" else "Přidat") }

@@ -24,6 +24,7 @@ class CalendarViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val calendarRepo: com.tobiso.tobisoappnative.repository.CalendarRepository,
     private val classesRepo: com.tobiso.tobisoappnative.repository.ClassesRepository,
+    private val postsRepo: com.tobiso.tobisoappnative.repository.PostsRepository,
 ) : BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(
     application, CalendarState(), savedStateHandle
 ) {
@@ -52,6 +53,7 @@ class CalendarViewModel @Inject constructor(
             is CalendarIntent.SaveStudentEvent -> saveStudentEvent(intent.request, intent.editId)
             is CalendarIntent.DeleteStudentEvent -> deleteStudentEvent(intent.eventId)
             CalendarIntent.RefreshMyClass -> refreshMyClass()
+            CalendarIntent.LoadThemeOptions -> loadThemeOptions()
         }
     }
 
@@ -243,6 +245,15 @@ class CalendarViewModel @Inject constructor(
                     emitEffect(CalendarEffect.EventDeleted(success = false, eventId = eventId))
                 }
             )
+        }
+    }
+
+    private fun loadThemeOptions() {
+        if (currentState.themeOptions.isNotEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val categories = postsRepo.getCategories().getOrDefault(emptyList())
+            val posts = postsRepo.getPostSummaries().getOrDefault(emptyList())
+            setState { copy(themeOptions = com.tobiso.tobisoappnative.model.buildThemeOptions(categories, posts)) }
         }
     }
 

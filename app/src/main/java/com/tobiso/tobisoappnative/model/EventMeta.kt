@@ -46,7 +46,22 @@ data class EventTheme(
     val categoryId: Int? = null,
     val name: String = "",
     val postFilePath: String? = null
-)
+) {
+    /** Identity of the theme regardless of display name (a post and a category can share an id). */
+    val key: String get() = if (postId != null) "p$postId" else "c$categoryId"
+}
+
+/** Everything a student can pick as an event theme: categories first, then posts, each sorted by name. */
+fun buildThemeOptions(categories: List<Category>, posts: List<PostSummaryResponse>): List<EventTheme> =
+    categories.sortedBy { it.name.lowercase() }.map { EventTheme(categoryId = it.id, name = it.name) } +
+        posts.sortedBy { it.title.lowercase() }.map { EventTheme(postId = it.id, name = it.title, postFilePath = it.filePath) }
+
+/** Case-insensitive match on the name; blank query yields nothing so the list isn't dumped on open. */
+fun filterThemeOptions(options: List<EventTheme>, query: String, exclude: Set<String>, limit: Int = 30): List<EventTheme> {
+    val q = query.trim()
+    if (q.isEmpty()) return emptyList()
+    return options.asSequence().filter { it.key !in exclude && it.name.contains(q, ignoreCase = true) }.take(limit).toList()
+}
 
 /**
  * Reads a JSON string *or* number as a String. The web serializes the enums as strings,

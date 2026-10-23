@@ -16,7 +16,9 @@ data class CalendarState(
     val detailEvent: Event? = null,
     val detailEventLoading: Boolean = false,
     /** The signed-in student's class membership (needed to offer Class/Group scope when adding events). */
-    val myClass: com.tobiso.tobisoappnative.model.MyClass? = null
+    val myClass: com.tobiso.tobisoappnative.model.MyClass? = null,
+    /** Posts and categories a student can attach to an event (loaded when the add/edit dialog first opens). */
+    val themeOptions: List<com.tobiso.tobisoappnative.model.EventTheme> = emptyList()
 ) : UiState
 
 sealed interface CalendarIntent : UiIntent {
@@ -31,6 +33,7 @@ sealed interface CalendarIntent : UiIntent {
     data class SaveStudentEvent(val request: StudentEventRequest, val editId: Int? = null) : CalendarIntent
     data class DeleteStudentEvent(val eventId: Int) : CalendarIntent
     object RefreshMyClass : CalendarIntent
+    object LoadThemeOptions : CalendarIntent
 }
 
 sealed interface CalendarEffect : UiEffect {

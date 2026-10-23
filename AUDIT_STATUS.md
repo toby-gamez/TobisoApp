@@ -46,6 +46,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | 19 | Quiz instant feedback (§8.1 B): single choice locks and is checked on tap, multi-select/text use "Zkontrolovat odpověď"; sage = correct, terracotta = wrong, correct options revealed, explanation always shown; Next unlocks after checking | ✅ | see git log |
 | 20 | `StatusColors` (sage/amber/terracotta) replaces stock Material green/red/yellow on the quiz screens. Rarity/tier colors on Profile/Shop/Backpack are intentional game colors and were left | 🟡 | see git log |
 | 21 | Google sign-in wired to `auth/google-token`: Credential Manager "Pokračovat přes Google" button (hidden unless `GOOGLE_WEB_CLIENT_ID` is set in `local.properties`), terms-consent dialog for new Google accounts, account-id based `AuthSession.ownerKey` (same for email/Google). **To test on device:** set `GOOGLE_WEB_CLIENT_ID`, and register the app package + debug/release SHA-1 as an *Android* OAuth client in the same Google Cloud project | ✅ code, ⏳ needs device + client ID | see git log |
+| 22 | Event themes can now be attached when creating/editing a student event: search field over categories + post summaries (`buildThemeOptions` / `filterThemeOptions`), removable chips, max 5. Sign-in feedback: toast after login, visible message when the Google sheet is dismissed, Credential Manager errors logged | ✅ code, ⏳ not run on device | see git log |
 | – | Fixed stale unit tests | ✅ | `0f706f0` |
 | – | Numbered lists (`1. foo`) were never parsed (over-escaped regex) | ✅ fixed | `16324ca` |
 | – | `<sub>`/`<sup>` rendered as raw text | ✅ fixed + spacing after bullet lists | `bfc5d7b` |
@@ -76,7 +77,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | User accounts (email + verification + reset + Google) — **user accounts only; the app has no admin login or admin features** | `api/auth/student-login`, `register`, `forgot-password`, `reset-password`, `me`, `logout-everywhere` | 🟡 email/password login + register done; Google and sync open |
 | School classes (join, groups, group-change request, leave) | `api/classes`, `classes/mine`, `join`, `mine/groups` | ✅ `ClassesScreen` |
 | Class/group/personal calendar events + student-created events (Test/Homework/Other) | `events/mine`, `events/student[/{id}]` | ✅ (theme picking on create open) |
-| Event themes (linked posts/categories) | `Event.Themes` | 🟡 shown as chips; can't be attached when creating |
+| Event themes (linked posts/categories) | `Event.Themes` | ✅ chips on detail; searchable post/category picker (max 5) in the student event dialog |
 | Calendar subscription (ICS) | `calendar/{token}.ics` | ❌ not needed in-app (local notifications exist); optional "open feed" link |
 | Server-side progress, bookmarks, export | `api/user/*` | ✅ bookmarks + read-progress synced; export/stats not wired |
 | Grade-versioned posts | `postversions`, `ai/rewrite-grade` | ✅ picker + reviewed badge (`ai/rewrite-grade` not wired) |

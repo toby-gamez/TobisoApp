@@ -546,7 +546,9 @@ fun CalendarScreen(
             viewModel.onIntent(CalendarIntent.SaveStudentEvent(request, editingStudentEvent?.id))
         },
         initialEvent = editingStudentEvent,
-        initialDate = selectedDateForNewEvent
+        initialDate = selectedDateForNewEvent,
+        themeOptions = state.themeOptions,
+        onNeedThemeOptions = { viewModel.onIntent(CalendarIntent.LoadThemeOptions) }
     )
 
     // Dialog pro přidání/úpravu eventu
