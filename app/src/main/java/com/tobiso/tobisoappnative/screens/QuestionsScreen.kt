@@ -128,6 +128,21 @@ fun QuestionsScreen(
         }
     }
     
+    fun restartQuiz(startImmediately: Boolean) {
+        currentQuestionIndex = 0
+        selectedAnswers = emptyMap()
+        multiSelectedAnswers = emptyMap()
+        textAnswers = emptyMap()
+        showResults = false
+        quizStarted = startImmediately
+        pointsAwarded = false
+        val newShuffledQ = questions.indices.shuffled()
+        shuffledQuestions = newShuffledQ
+        shuffledAnswerIndices = newShuffledQ.indices.associateWith { displayIdx ->
+            questions[newShuffledQ[displayIdx]].options.indices.shuffled()
+        }
+    }
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = {
@@ -147,9 +162,7 @@ fun QuestionsScreen(
                 TopAppBar(
                     title = { 
                         Text(
-                            text = if (showResults) "Vaše výsledky"
-                            else if (quizStarted) "Prověrka (${currentQuestionIndex + 1}/$totalQuestions)"
-                            else "Prověrka",
+                            text = if (showResults) "Vaše výsledky" else "Ověř si porozumění",
                             style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle,
                             maxLines = 1
                         )
@@ -161,21 +174,7 @@ fun QuestionsScreen(
                     },
                     actions = {
                         if (showResults) {
-                            IconButton(onClick = { 
-                            // Restartovat kvíz
-                            currentQuestionIndex = 0
-                            selectedAnswers = emptyMap()
-                            multiSelectedAnswers = emptyMap()
-                            textAnswers = emptyMap()
-                            showResults = false
-                            quizStarted = false
-                            pointsAwarded = false
-                            val newShuffledQ = questions.indices.shuffled()
-                            shuffledQuestions = newShuffledQ
-                            shuffledAnswerIndices = newShuffledQ.indices.associateWith { displayIdx ->
-                                questions[newShuffledQ[displayIdx]].options.indices.shuffled()
-                            }
-                            }) {
+                            IconButton(onClick = { restartQuiz(startImmediately = false)                             }) {
                                 Icon(
                                     imageVector = Icons.Filled.Refresh,
                                     contentDescription = "Restart kvízu",
@@ -415,8 +414,8 @@ fun QuestionsScreen(
                                             }
                                         }
                                         
-                                        // Zobrazení vysvětlení u špatných odpovědí
-                                        if (!isCorrect && !question.explanation.isNullOrBlank()) {
+                                        // Vysvětlení se zobrazuje vždy (stejně jako na webu)
+                                        if (!question.explanation.isNullOrBlank()) {
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Card(
                                                 modifier = Modifier.fillMaxWidth(),
@@ -442,6 +441,20 @@ fun QuestionsScreen(
                                         }
                                     }
                                 }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { navController.popBackStack() },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Hotovo") }
+                                Button(
+                                    onClick = { restartQuiz(startImmediately = true) },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Začít znovu") }
                             }
                         }
                     }
@@ -608,7 +621,7 @@ fun QuestionsScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Vyzkoušet se")
+                                Text("Spustit kvíz")
                             }
                         }
                     }
@@ -634,7 +647,7 @@ fun QuestionsScreen(
                                 Card {
                                     Column(modifier = Modifier.padding(16.dp)) {
                                         Text(
-                                            "Otázka ${currentQuestionIndex + 1} z $totalQuestions",
+                                            "Otázka ${currentQuestionIndex + 1} ze $totalQuestions",
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -842,7 +855,7 @@ fun QuestionsScreen(
                                             onClick = { showResults = true },
                                             enabled = hasAnswered && allAnswered
                                         ) {
-                                            Text("Ukončit prověrku")
+                                            Text("Dokončit")
                                         }
                                     }
                                 }

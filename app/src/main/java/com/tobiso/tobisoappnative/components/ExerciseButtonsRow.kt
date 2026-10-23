@@ -54,7 +54,7 @@ fun ExerciseButtonsRow(
 
             if (hasQuestions) {
                 Button(onClick = onOpenQuestions, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
-                    Text("Prověrka")
+                    Text("Ověř si porozumění")
                 }
             }
         }

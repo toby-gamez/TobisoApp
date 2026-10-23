@@ -98,6 +98,7 @@ import kotlin.math.max
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
 import com.tobiso.tobisoappnative.components.GradeBadge
+import com.tobiso.tobisoappnative.components.QuizCtaCard
 import com.tobiso.tobisoappnative.components.GradePickerSheet
 import com.tobiso.tobisoappnative.components.ContentRenderer
 import com.tobiso.tobisoappnative.components.ElementRenderer
@@ -509,6 +510,15 @@ fun PostDetailScreen(
                                         onOpenQuestions = { navController.navigate(QuestionsRoute(postId = postId)) }
                                     )
                                 }
+                                if (hasQuestions || questions.isNotEmpty()) {
+                                    item {
+                                        QuizCtaCard(
+                                            questionCount = questions.size,
+                                            onStart = { navController.navigate(QuestionsRoute(postId = postId)) },
+                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        )
+                                    }
+                                }
                                 item {
                                     DifficultyRating(
                                         state = difficulty,
@@ -562,7 +572,7 @@ fun PostDetailScreen(
 
             
 
-        // Sticky bottom action bar — AI + Prověrka + Cvičení
+        // Sticky bottom action bar — AI + Ověř si porozumění + Cvičení
         // Nezobrazujeme bar dokud se nedokončí úvodní načítání (loaded=true) a nemáme internet
         val showActionsBar = loaded && isConnected
         if (showActionsBar) {

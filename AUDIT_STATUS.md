@@ -36,6 +36,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | 9 | `ContentFormatter` tests | ✅ | `55d7bdb` |
 | 10 | Difficulty rating (§8.4) + article of the day / random (§8.5) | ✅ | see git log |
 | 11 | Grade-version picker + "Zkontrolováno" badge (§8.2); choice stored per post, reviewed flag = `PostVersion.isChecked` | ✅ | see git log |
+| 12 | "Ověř si porozumění" (§8.1 A + most of B): rename, `QuizCtaCard`, "Otázka i ze n", explanation always shown in results, "Hotovo"/"Začít znovu". **Still open:** web-style instant per-answer feedback (the app reveals results at the end) | 🟡 | see git log |
 | – | Fixed stale unit tests | ✅ | `0f706f0` |
 | – | Numbered lists (`1. foo`) were never parsed (over-escaped regex) | ✅ fixed | `16324ca` |
 | – | `<sub>`/`<sup>` rendered as raw text | ✅ fixed + spacing after bullet lists | `bfc5d7b` |
@@ -74,7 +75,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | Article of the day / random | `pages/article-of-day`, `pages/random` | ✅ Home `ArticleOfDayCard`, cached per day |
 | Post difficulty rating | `posts/{id}/difficulty`, `rate-difficulty` | ✅ `DifficultyRating` at end of post |
 | Reading progress ("continue reading") | `user/read-progress` | ❌ |
-| "Ověř si porozumění" as a first-class per-article feature | `Quiz.razor`, `PostDetail.razor` | ⚠️ exists as "Prověrka" — planned in the design phase, see §8.1 |
+| "Ověř si porozumění" as a first-class per-article feature | `Quiz.razor`, `PostDetail.razor` | 🟡 renamed + CTA card done; instant per-answer feedback still open (§8.1) |
 | Legal / cookie consent flow | `Legal` | ❌ (verify Play-store needs when accounts land) |
 | ~~Chronicle / timeline~~ | `api/chronicle/*` | ⛔ out of scope |
 
