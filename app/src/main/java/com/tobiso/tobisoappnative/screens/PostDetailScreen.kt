@@ -454,16 +454,31 @@ fun PostDetailScreen(
                                     }
                                 }
                                 item {
-                                    wordCountText?.let { infoText ->
-                                        Text(
-                                            text = infoText,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(bottom = 8.dp),
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            textAlign = TextAlign.End
-                                        )
+                                    val showQuizShortcut = hasQuestions || questions.isNotEmpty()
+                                    if (wordCountText != null || showQuizShortcut) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            if (showQuizShortcut) {
+                                                androidx.compose.material3.AssistChip(
+                                                    onClick = {
+                                                        // grade badge + word count + every content element + spacer + exercise row precede the card
+                                                        coroutineScope.launch { lazyListState.animateScrollToItem(contentItemOffset + contentElements.size + 2) }
+                                                    },
+                                                    label = { Text("Přejít na ověření porozumění") }
+                                                )
+                                            } else Spacer(Modifier.width(1.dp))
+                                            wordCountText?.let { infoText ->
+                                                Text(
+                                                    text = infoText,
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    textAlign = TextAlign.End
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                                 // Render each content element as its own lazy item (virtualized)
