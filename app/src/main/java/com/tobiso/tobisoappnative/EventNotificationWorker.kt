@@ -177,7 +177,14 @@ class EventNotificationWorker(
         try {
             Timber.d("Requesting events range: $startDate - $endDate")
             val allEventsArray = withContext(Dispatchers.IO) {
-                ApiClient.apiService.getEventsInRange(startDate, endDate)
+                val api = ApiClient.apiService
+                // Signed-in students also get reminders for their class / group / personal events.
+                if (com.tobiso.tobisoappnative.model.AuthSession.isSignedIn) {
+                    runCatching { api.getMyEvents(startDate, endDate) }
+                        .getOrElse { api.getEventsInRange(startDate, endDate) }
+                } else {
+                    api.getEventsInRange(startDate, endDate)
+                }
             }
             val allEvents = allEventsArray.toList()
 

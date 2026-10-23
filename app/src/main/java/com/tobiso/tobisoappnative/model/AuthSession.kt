@@ -44,6 +44,12 @@ object AuthSession {
 
     val isSignedIn: Boolean get() = !token.isNullOrBlank()
 
+    /** The account's numeric id, read from the JWT's `sub` claim (the server issues it as the user id). */
+    val userId: Int? get() = token?.let { jwtSubject(it) }?.toIntOrNull()
+
+    /** Stable key for per-account caches (null when anonymous). */
+    val ownerKey: String? get() = _user.value?.let { it.email ?: it.displayName }?.takeIf { isSignedIn }
+
     fun initialize(context: Context) {
         appContext = context.applicationContext
         val enc = EncryptionManager.getInstance()
@@ -92,4 +98,17 @@ object AuthSession {
     fun consumeExpired() {
         _sessionExpired.value = false
     }
+}
+
+/** Reads the `sub` claim of a JWT without verifying it — only used to learn our own user id. */
+@OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+fun jwtSubject(jwt: String): String? = try {
+    val payload = jwt.split('.').getOrNull(1) ?: return null
+    val bytes = kotlin.io.encoding.Base64.UrlSafe
+        .withPadding(kotlin.io.encoding.Base64.PaddingOption.ABSENT_OPTIONAL)
+        .decode(payload)
+    (Json.parseToJsonElement(String(bytes)) as? kotlinx.serialization.json.JsonObject)?.get("sub")
+        ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+} catch (_: Exception) {
+    null
 }

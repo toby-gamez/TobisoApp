@@ -26,6 +26,9 @@ import com.tobiso.tobisoappnative.viewmodel.CalendarViewModel
 import com.tobiso.tobisoappnative.viewmodel.CalendarIntent
 import com.tobiso.tobisoappnative.viewmodel.CalendarEffect
 import com.tobiso.tobisoappnative.components.AddEditEventDialog
+import com.tobiso.tobisoappnative.components.StudentEventDialog
+import com.tobiso.tobisoappnative.navigation.CategoryListRoute
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 import java.text.SimpleDateFormat
 import java.util.*
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
@@ -40,6 +43,9 @@ fun EventDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val event = state.detailEvent
     val isLoading = state.detailEventLoading
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val user by com.tobiso.tobisoappnative.model.AuthSession.user.collectAsStateWithLifecycle()
+    val myUserId = if (user != null) com.tobiso.tobisoappnative.model.AuthSession.userId else null
     var error by remember { mutableStateOf<String?>(null) }
     var hasLoadingStarted by remember { mutableStateOf(false) }
 
@@ -50,6 +56,7 @@ fun EventDetailScreen(
 
     LaunchedEffect(eventId) {
         viewModel.onIntent(CalendarIntent.LoadEventDetail(eventId))
+        viewModel.onIntent(CalendarIntent.RefreshMyClass)
     }
 
     LaunchedEffect(isLoading) {
@@ -73,6 +80,7 @@ fun EventDetailScreen(
                     }
                 }
                 is CalendarEffect.EventAdded -> { /* not triggered from here */ }
+                is CalendarEffect.Message -> android.widget.Toast.makeText(context, effect.text, android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -101,7 +109,7 @@ fun EventDetailScreen(
                 
                 // Tlačítka pro editaci a mazání pouze u místních eventů
                 event?.let { currentEvent ->
-                    if (currentEvent.isLocalSafe()) {
+                    if (currentEvent.isLocalSafe() || (myUserId != null && currentEvent.createdByUserId == myUserId)) {
                         // Tlačítko pro editaci
                         IconButton(
                             onClick = { showEditDialog = true }
@@ -155,7 +163,7 @@ fun EventDetailScreen(
                     }
                 }
                 event != null -> {
-                    EventDetailContent(event = event)
+                    EventDetailContent(event = event, navController = navController)
                 }
             }
         }
@@ -163,7 +171,15 @@ fun EventDetailScreen(
     
     // Dialog pro editaci události
     event?.let { currentEvent ->
-        if (currentEvent.isLocalSafe()) {
+        if (!currentEvent.isLocalSafe() && myUserId != null && currentEvent.createdByUserId == myUserId) {
+            StudentEventDialog(
+                isVisible = showEditDialog,
+                myClass = state.myClass,
+                onDismiss = { showEditDialog = false },
+                onSave = { request -> viewModel.onIntent(CalendarIntent.SaveStudentEvent(request, currentEvent.id)) },
+                initialEvent = currentEvent
+            )
+        } else if (currentEvent.isLocalSafe()) {
             AddEditEventDialog(
                 isVisible = showEditDialog,
                 onDismiss = { showEditDialog = false },
@@ -186,7 +202,10 @@ fun EventDetailScreen(
                 TextButton(
                     onClick = {
                         isDeleting = true
-                        viewModel.onIntent(CalendarIntent.DeleteLocalEvent(eventId))
+                        viewModel.onIntent(
+                            if (event?.isLocalSafe() == false) CalendarIntent.DeleteStudentEvent(eventId)
+                            else CalendarIntent.DeleteLocalEvent(eventId)
+                        )
                     },
                     enabled = !isDeleting
                 ) {
@@ -225,7 +244,7 @@ private fun Event.isEffectivelyAllDay(): Boolean {
 }
 
 @Composable
-fun EventDetailContent(event: Event) {
+fun EventDetailContent(event: Event, navController: NavHostController? = null) {
     val scrollState = rememberScrollState()
     val dateFormat = SimpleDateFormat("EEEE, d. MMMM yyyy", Locale("cs", "CZ"))
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -428,6 +447,51 @@ fun EventDetailContent(event: Event) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                }
+            }
+        }
+
+        // Kdo událost vidí / kdo ji přidal
+        eventMetaLine(event)?.let { meta ->
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(meta, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        // Témata (články / kategorie, na které se událost vztahuje)
+        if (event.themes.isNotEmpty()) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Témata", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        event.themes.forEach { theme ->
+                            AssistChip(
+                                onClick = {
+                                    when {
+                                        theme.postId != null -> navController?.navigate(PostDetailRoute(postId = theme.postId))
+                                        theme.categoryId != null -> navController?.navigate(CategoryListRoute(categoryName = theme.name))
+                                    }
+                                },
+                                label = { Text(theme.name.ifBlank { "Téma" }) },
+                                leadingIcon = {
+                                    Icon(
+                                        if (theme.postId != null) Icons.Default.Article else Icons.Default.Folder,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }

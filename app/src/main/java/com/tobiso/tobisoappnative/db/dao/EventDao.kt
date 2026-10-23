@@ -28,6 +28,10 @@ interface EventDao {
     @Query("DELETE FROM events WHERE ownerKey = :ownerKey")
     suspend fun deleteOwnedBy(ownerKey: String)
 
+    /** Removes [ownerKey]'s cached events overlapping a time range (before re-inserting that range from the server). */
+    @Query("DELETE FROM events WHERE ownerKey = :ownerKey AND startDate <= :rangeEnd AND COALESCE(endDate, startDate) >= :rangeStart")
+    suspend fun deleteOwnedInRange(ownerKey: String, rangeStart: Long, rangeEnd: Long)
+
     @Query("DELETE FROM events WHERE ownerKey IS NOT NULL")
     suspend fun deleteAllOwned()
 

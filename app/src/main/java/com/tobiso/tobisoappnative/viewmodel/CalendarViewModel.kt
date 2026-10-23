@@ -5,10 +5,8 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
-import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.Event
 import com.tobiso.tobisoappnative.model.LocalEventManager
-import com.tobiso.tobisoappnative.model.OfflineDataManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,8 +22,8 @@ import javax.inject.Inject
 class CalendarViewModel @Inject constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
-    private val offlineDataManager: OfflineDataManager,
-    private val api: ApiService,
+    private val calendarRepo: com.tobiso.tobisoappnative.repository.CalendarRepository,
+    private val classesRepo: com.tobiso.tobisoappnative.repository.ClassesRepository,
 ) : BaseAndroidViewModel<CalendarState, CalendarIntent, CalendarEffect>(
     application, CalendarState(), savedStateHandle
 ) {
@@ -51,6 +49,9 @@ class CalendarViewModel @Inject constructor(
             is CalendarIntent.AddLocalEvent -> addLocalEvent(intent.event)
             is CalendarIntent.UpdateLocalEvent -> updateLocalEvent(intent.event)
             is CalendarIntent.DeleteLocalEvent -> deleteLocalEvent(intent.eventId)
+            is CalendarIntent.SaveStudentEvent -> saveStudentEvent(intent.request, intent.editId)
+            is CalendarIntent.DeleteStudentEvent -> deleteStudentEvent(intent.eventId)
+            CalendarIntent.RefreshMyClass -> refreshMyClass()
         }
     }
 
@@ -99,51 +100,15 @@ class CalendarViewModel @Inject constructor(
                     .withDayOfMonth(startOfMonth.toLocalDate().lengthOfMonth())
                     .withHour(23).withMinute(59).withSecond(59)
                 val zone = ZoneId.systemDefault()
-
-                val startDate = startOfMonth.format(apiDateFormatter)
-                val endDate = endOfMonth.format(apiDateFormatter)
                 val startDateObj = Date.from(startOfMonth.atZone(zone).toInstant())
                 val endDateObj = Date.from(endOfMonth.atZone(zone).toInstant())
 
-                try {
-                    if (offlineDataManager.isEventsCacheFresh(15)) {
-                        val cached = offlineDataManager.getCachedEvents() ?: emptyList()
-                        val cachedInRange = cached.filter { ev ->
-                            val evStart = ev.getStartDateSafe()
-                            val evEnd = ev.getEndDateSafe()
-                            ((evStart.before(endDateObj) || evStart == endDateObj)) &&
-                                    ((evEnd.after(startDateObj) || evEnd == startDateObj))
-                        }
-                        val localEvents = try {
-                            LocalEventManager.expandRecurringEvents(getApplication(), startDateObj, endDateObj)
-                        } catch (_: Exception) { emptyList() }
-                        setState { copy(events = cachedInRange + localEvents, isLoading = false) }
-                        return@launch
-                    }
-                } catch (e: Exception) {
-                    Timber.w("Error checking/using events cache: ${e.message}")
-                }
-
-                val apiEvents = try {
-                    api.getEventsInRange(startDate, endDate).toList()
-                } catch (e: Exception) {
-                    Timber.e(e, "Error loading API events")
-                    emptyList()
-                }
-
-                try {
-                    if (apiEvents.isNotEmpty()) offlineDataManager.saveEvents(apiEvents)
-                } catch (e: Exception) {
-                    Timber.w("Failed to save API events to cache: ${e.message}")
-                }
-
+                val serverEvents = calendarRepo.loadRange(startDateObj, endDateObj)
                 val localEvents = try {
                     LocalEventManager.expandRecurringEvents(getApplication(), startDateObj, endDateObj)
                 } catch (_: Exception) { emptyList() }
 
-                val allEvents = apiEvents.filter { it.startDate != null } + localEvents
-                setState { copy(events = allEvents) }
-
+                setState { copy(events = serverEvents + localEvents) }
             } catch (e: Exception) {
                 Timber.e(e, "Error loading events")
                 setState { copy(error = "Chyba při načítání eventů: ${e.message}", events = emptyList()) }
@@ -170,18 +135,11 @@ class CalendarViewModel @Inject constructor(
             val event = if (eventId < 0) {
                 LocalEventManager.getLocalEvent(getApplication(), eventId)
             } else {
-                val apiEvent = try {
-                    api.getEvent(eventId)
-                } catch (e: Exception) {
-                    Timber.w(e, "API fetch failed for event $eventId, trying cache")
-                    null
-                }
-                apiEvent ?: try {
-                    offlineDataManager.getCachedEvents()?.find { it.id == eventId }
-                } catch (e: Exception) {
-                    Timber.w(e, "Cache lookup failed for event $eventId")
-                    null
-                }
+                // Class/group/personal events can't be fetched by id as a guest, so look at what the
+                // calendar already loaded (and our cache) before asking the server.
+                currentState.events.find { it.id == eventId && !it.isLocalSafe() }
+                    ?: calendarRepo.cachedEvent(eventId)
+                    ?: calendarRepo.fetchEvent(eventId)
             }
             setState { copy(detailEvent = event, detailEventLoading = false) }
         }
@@ -244,6 +202,57 @@ class CalendarViewModel @Inject constructor(
                 Timber.e(e, "Error deleting local event")
                 emitEffect(CalendarEffect.EventDeleted(success = false, eventId = eventId))
             }
+        }
+    }
+
+    private fun saveStudentEvent(request: com.tobiso.tobisoappnative.model.StudentEventRequest, editId: Int?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = if (editId == null) calendarRepo.createStudentEvent(request).map { }
+            else calendarRepo.updateStudentEvent(editId, request)
+            result.fold(
+                onSuccess = {
+                    loadEventsForMonth(lastLoadedYear, lastLoadedMonth)
+                    if (editId == null) emitEffect(CalendarEffect.EventAdded(success = true))
+                    else emitEffect(CalendarEffect.EventUpdated(success = true))
+                },
+                onFailure = { e ->
+                    emitEffect(CalendarEffect.Message(e.message ?: "Událost se nepodařilo uložit."))
+                    if (editId == null) emitEffect(CalendarEffect.EventAdded(success = false))
+                    else emitEffect(CalendarEffect.EventUpdated(success = false))
+                }
+            )
+        }
+    }
+
+    private fun deleteStudentEvent(eventId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            calendarRepo.deleteStudentEvent(eventId).fold(
+                onSuccess = {
+                    setState {
+                        copy(
+                            events = events.filter { it.id != eventId },
+                            selectedDateEvents = selectedDateEvents.filter { it.id != eventId },
+                            detailEvent = if (detailEvent?.id == eventId) null else detailEvent
+                        )
+                    }
+                    loadEventsForMonth(lastLoadedYear, lastLoadedMonth)
+                    emitEffect(CalendarEffect.EventDeleted(success = true, eventId = eventId))
+                },
+                onFailure = { e ->
+                    emitEffect(CalendarEffect.Message(e.message ?: "Událost se nepodařilo smazat."))
+                    emitEffect(CalendarEffect.EventDeleted(success = false, eventId = eventId))
+                }
+            )
+        }
+    }
+
+    private fun refreshMyClass() {
+        if (!com.tobiso.tobisoappnative.model.AuthSession.isSignedIn) {
+            setState { copy(myClass = null) }
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            classesRepo.getMyClass().onSuccess { m -> setState { copy(myClass = m) } }
         }
     }
 }

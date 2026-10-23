@@ -20,6 +20,7 @@ import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.OfflineDataManager
 import com.tobiso.tobisoappnative.repository.AuthRepository
 import com.tobiso.tobisoappnative.repository.AuthRepositoryImpl
+import com.tobiso.tobisoappnative.repository.CalendarRepository
 import com.tobiso.tobisoappnative.repository.ClassesRepository
 import com.tobiso.tobisoappnative.repository.ClassesRepositoryImpl
 import com.tobiso.tobisoappnative.repository.ExerciseRepository
@@ -125,4 +126,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideClassesRepository(api: ApiService): ClassesRepository = ClassesRepositoryImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideCalendarRepository(api: ApiService, offlineDataManager: OfflineDataManager): CalendarRepository =
+        CalendarRepository(api, offlineDataManager)
 }

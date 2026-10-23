@@ -4,6 +4,7 @@ import com.tobiso.tobisoappnative.base.UiEffect
 import com.tobiso.tobisoappnative.base.UiIntent
 import com.tobiso.tobisoappnative.base.UiState
 import com.tobiso.tobisoappnative.model.Event
+import com.tobiso.tobisoappnative.model.StudentEventRequest
 import java.util.Date
 
 data class CalendarState(
@@ -13,7 +14,9 @@ data class CalendarState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val detailEvent: Event? = null,
-    val detailEventLoading: Boolean = false
+    val detailEventLoading: Boolean = false,
+    /** The signed-in student's class membership (needed to offer Class/Group scope when adding events). */
+    val myClass: com.tobiso.tobisoappnative.model.MyClass? = null
 ) : UiState
 
 sealed interface CalendarIntent : UiIntent {
@@ -24,10 +27,15 @@ sealed interface CalendarIntent : UiIntent {
     data class AddLocalEvent(val event: Event) : CalendarIntent
     data class UpdateLocalEvent(val event: Event) : CalendarIntent
     data class DeleteLocalEvent(val eventId: Int) : CalendarIntent
+    /** Create ([editId] = null) or update the signed-in student's own server event. */
+    data class SaveStudentEvent(val request: StudentEventRequest, val editId: Int? = null) : CalendarIntent
+    data class DeleteStudentEvent(val eventId: Int) : CalendarIntent
+    object RefreshMyClass : CalendarIntent
 }
 
 sealed interface CalendarEffect : UiEffect {
     data class EventAdded(val success: Boolean) : CalendarEffect
     data class EventUpdated(val success: Boolean) : CalendarEffect
     data class EventDeleted(val success: Boolean, val eventId: Int) : CalendarEffect
+    data class Message(val text: String) : CalendarEffect
 }

@@ -33,6 +33,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.tobiso.tobisoappnative.model.Event
+import com.tobiso.tobisoappnative.model.EventScope
+import com.tobiso.tobisoappnative.model.EventType
+import com.tobiso.tobisoappnative.model.AuthSession
+import com.tobiso.tobisoappnative.components.StudentEventDialog
 import com.tobiso.tobisoappnative.viewmodel.CalendarViewModel
 import com.tobiso.tobisoappnative.viewmodel.CalendarIntent
 import com.tobiso.tobisoappnative.viewmodel.CalendarEffect
@@ -52,11 +56,31 @@ import java.time.LocalDate
 import java.util.*
 
 // Enum pro filtrování událostí
-enum class EventFilter(val displayName: String) {
+enum class EventFilter(val displayName: String, val needsAccount: Boolean = false) {
     ALL("Vše"),
     LOCAL("Místní"),
-    REMOTE("Vzdálené")
+    REMOTE("Vzdálené"),
+    CLASS_AND_GROUP("Třída a skupina", needsAccount = true),
+    PERSONAL("Moje události", needsAccount = true),
+    TESTS("Testy"),
+    HOMEWORK("Domácí úkoly"),
+    DAY_OFF("Volno");
+
+    fun matches(event: Event): Boolean = when (this) {
+        ALL -> true
+        LOCAL -> event.isLocalSafe()
+        REMOTE -> !event.isLocalSafe()
+        CLASS_AND_GROUP -> event.eventScope == EventScope.Class || event.eventScope == EventScope.Group
+        PERSONAL -> event.eventScope == EventScope.Personal || event.isLocalSafe()
+        TESTS -> event.eventType == EventType.Test
+        HOMEWORK -> event.eventType == EventType.Homework
+        DAY_OFF -> event.eventType == EventType.DayOff
+    }
 }
+
+/** Local events and the signed-in student's own server events can be edited/deleted. */
+private fun Event.canBeModified(myUserId: Int?): Boolean =
+    isLocalSafe() || (myUserId != null && createdByUserId == myUserId)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +122,14 @@ fun CalendarScreen(
     var eventToDelete by remember { mutableStateOf<Event?>(null) }
     var isDeleting by remember { mutableStateOf(false) }
     
+    // Přihlášený student: události ze serveru (třída/skupina/osobní)
+    val user by AuthSession.user.collectAsStateWithLifecycle()
+    val signedIn = user != null
+    val myUserId = if (signedIn) AuthSession.userId else null
+    var showStudentDialog by remember { mutableStateOf(false) }
+    var showAddChooser by remember { mutableStateOf(false) }
+    var editingStudentEvent by remember { mutableStateOf<Event?>(null) }
+
     // State pro filtrování událostí
     var currentFilter by remember { mutableStateOf(EventFilter.ALL) }
     var showFilterDropdown by remember { mutableStateOf(false) }
@@ -126,8 +158,13 @@ fun CalendarScreen(
         )
     }
 
-    LaunchedEffect(currentMonth, currentYear) {
+    LaunchedEffect(currentMonth, currentYear, user) {
         viewModel.onIntent(CalendarIntent.LoadEventsForMonth(currentYear, currentMonth))
+    }
+    LaunchedEffect(user) {
+        viewModel.onIntent(CalendarIntent.RefreshMyClass)
+        // A filter that only exists for signed-in users must not outlive the session.
+        if (user == null && currentFilter.needsAccount) currentFilter = EventFilter.ALL
     }
     
     // Načtení dat pro FloatingSearchBar
@@ -145,14 +182,19 @@ fun CalendarScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
+                is CalendarEffect.Message -> android.widget.Toast.makeText(context, effect.text, android.widget.Toast.LENGTH_LONG).show()
                 is CalendarEffect.EventAdded -> {
                     if (effect.success) {
+                        showStudentDialog = false
+                        editingStudentEvent = null
                         showAddEventDialog = false
                         selectedDateForNewEvent = null
                     }
                 }
                 is CalendarEffect.EventUpdated -> {
                     if (effect.success) {
+                        showStudentDialog = false
+                        editingStudentEvent = null
                         showAddEventDialog = false
                         editingEvent = null
                         selectedDate?.let { viewModel.onIntent(CalendarIntent.SelectDate(it)) }
@@ -206,7 +248,7 @@ fun CalendarScreen(
                             expanded = showFilterDropdown,
                             onDismissRequest = { showFilterDropdown = false }
                         ) {
-                            EventFilter.entries.forEach { filter ->
+                            EventFilter.entries.filter { !it.needsAccount || signedIn }.forEach { filter ->
                                 DropdownMenuItem(
                                     text = { 
                                         Row(
@@ -383,7 +425,7 @@ fun CalendarScreen(
                         onDateLongClick = { date ->
                             selectedDateForNewEvent = date
                             editingEvent = null
-                            showAddEventDialog = true
+                            if (signedIn) showAddChooser = true else showAddEventDialog = true
                         }
                     )
                 }
@@ -395,11 +437,7 @@ fun CalendarScreen(
                     
                     // Filtruj události podle aktuálního filtru
                     val filteredEvents = selectedDateEvents.filter { event ->
-                        when (currentFilter) {
-                            EventFilter.ALL -> true
-                            EventFilter.LOCAL -> event.isLocalSafe()
-                            EventFilter.REMOTE -> !event.isLocalSafe()
-                        }
+                        currentFilter.matches(event)
                     }
                     
                     DateDetailCard(
@@ -410,10 +448,16 @@ fun CalendarScreen(
                             showDateDetail = false
                             viewModel.onIntent(CalendarIntent.ClearSelectedDate)
                         },
+                        myUserId = myUserId,
                         onEditEvent = { event ->
-                            editingEvent = event
                             selectedDateForNewEvent = null
-                            showAddEventDialog = true
+                            if (event.isLocalSafe()) {
+                                editingEvent = event
+                                showAddEventDialog = true
+                            } else {
+                                editingStudentEvent = event
+                                showStudentDialog = true
+                            }
                         },
                         onDeleteEvent = { eventId ->
                             // Najdi event pro zobrazení v dialogu
@@ -453,7 +497,7 @@ fun CalendarScreen(
             onClick = { 
                 editingEvent = null
                 selectedDateForNewEvent = Calendar.getInstance().time
-                showAddEventDialog = true 
+                if (signedIn) showAddChooser = true else showAddEventDialog = true
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -468,6 +512,43 @@ fun CalendarScreen(
         }
     }
     
+    // Přihlášený uživatel si vybírá, kam událost uloží
+    if (showAddChooser) {
+        AlertDialog(
+            onDismissRequest = { showAddChooser = false },
+            title = { Text("Přidat událost") },
+            text = { Text("Událost pro třídu, skupinu nebo jen pro tebe se uloží na server. Místní událost zůstane jen v tomto zařízení.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAddChooser = false
+                    editingStudentEvent = null
+                    showStudentDialog = true
+                }) { Text("Do mého účtu") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAddChooser = false
+                    showAddEventDialog = true
+                }) { Text("Jen v zařízení") }
+            }
+        )
+    }
+
+    StudentEventDialog(
+        isVisible = showStudentDialog,
+        myClass = state.myClass,
+        onDismiss = {
+            showStudentDialog = false
+            editingStudentEvent = null
+            selectedDateForNewEvent = null
+        },
+        onSave = { request ->
+            viewModel.onIntent(CalendarIntent.SaveStudentEvent(request, editingStudentEvent?.id))
+        },
+        initialEvent = editingStudentEvent,
+        initialDate = selectedDateForNewEvent
+    )
+
     // Dialog pro přidání/úpravu eventu
     AddEditEventDialog(
         isVisible = showAddEventDialog,
@@ -504,8 +585,11 @@ fun CalendarScreen(
                 TextButton(
                     onClick = {
                         isDeleting = true
-                        currentEventToDelete?.id?.let { id ->
-                            viewModel.onIntent(CalendarIntent.DeleteLocalEvent(id))
+                        currentEventToDelete?.let { ev ->
+                            viewModel.onIntent(
+                                if (ev.isLocalSafe()) CalendarIntent.DeleteLocalEvent(ev.id)
+                                else CalendarIntent.DeleteStudentEvent(ev.id)
+                            )
                         }
                     },
                     enabled = !isDeleting
@@ -635,11 +719,7 @@ fun CalendarGrid(
                             val allDayEvents = viewModel.getEventsForDay(events, currentYear, currentMonth, dayNumber)
 
                             val dayEvents = allDayEvents.filter { event ->
-                                when (eventFilter) {
-                                    EventFilter.ALL -> true
-                                    EventFilter.LOCAL -> event.isLocalSafe()
-                                    EventFilter.REMOTE -> !event.isLocalSafe()
-                                }
+                                eventFilter.matches(event)
                             }
 
                             val isSelected = selectedDate?.let { selected ->
@@ -769,6 +849,7 @@ fun DateDetailCard(
     events: List<Event>,
     navController: NavHostController? = null,
     onClose: () -> Unit,
+    myUserId: Int? = null,
     onEditEvent: (Event) -> Unit = {},
     onDeleteEvent: (Int) -> Unit = {}
 ) {
@@ -827,8 +908,8 @@ fun DateDetailCard(
                             onClick = {
                                 navController?.navigate(EventDetailRoute(eventId = event.id))
                             },
-                            onEdit = if (event.isLocalSafe()) { { onEditEvent(event) } } else null,
-                            onDelete = if (event.isLocalSafe()) { { onDeleteEvent(event.id) } } else null
+                            onEdit = if (event.canBeModified(myUserId)) { { onEditEvent(event) } } else null,
+                            onDelete = if (event.canBeModified(myUserId)) { { onDeleteEvent(event.id) } } else null
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -888,6 +969,14 @@ fun EventItem(
                         fontWeight = FontWeight.SemiBold
                     )
                     
+                    eventMetaLine(event)?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     if (!event.isAllDaySafe()) {
                         val startDate = event.getStartDateSafe()
                         val endDate = event.getEndDateSafe()
@@ -1034,6 +1123,23 @@ fun EventItem(
             }
         }
     }
+}
+
+/** "Test · Moje třída · Jana" — type, audience and author of a server event (null for plain public events). */
+internal fun eventMetaLine(event: Event): String? {
+    val parts = buildList {
+        event.eventType?.let { add(it.label) }
+        when (event.eventScope) {
+            EventScope.Class -> add(event.className ?: "Třída")
+            EventScope.Group -> add(listOfNotNull(event.className, event.groupName).joinToString(" · ").ifBlank { "Skupina" })
+            EventScope.Personal -> add("Osobní")
+            else -> Unit
+        }
+        event.createdByName?.takeIf { it.isNotBlank() }?.let { add(it) }
+    }
+    // A plain global admin event ("Volno" for everyone) needs no label.
+    return parts.takeIf { event.eventScope != null && event.eventScope != EventScope.Global || event.isStudentCreated }
+        ?.joinToString(" · ")
 }
 
 private fun isToday(date: Date): Boolean {

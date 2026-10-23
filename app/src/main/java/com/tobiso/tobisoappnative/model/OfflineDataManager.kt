@@ -273,11 +273,22 @@ class OfflineDataManager(
             }
         }
 
-    /** Replaces one account's cached class/group/personal events (global ones live in the public cache). */
-    suspend fun saveMyEvents(ownerKey: String, events: List<Event>) = withContext(Dispatchers.IO) {
+    /** Adds/updates public events without dropping other months already cached. */
+    suspend fun mergeEvents(events: List<Event>) = withContext(Dispatchers.IO) {
+        try {
+            eventDao.insertAll(events.map { it.toEntity() })
+        } catch (e: Exception) {
+            Timber.e(e, "Error merging events")
+        }
+    }
+
+    /** Replaces one account's cached class/group/personal events within [rangeStart]..[rangeEnd]. */
+    suspend fun saveMyEventsInRange(
+        ownerKey: String, rangeStart: Long, rangeEnd: Long, events: List<Event>
+    ) = withContext(Dispatchers.IO) {
         try {
             db.withTransaction {
-                eventDao.deleteOwnedBy(ownerKey)
+                eventDao.deleteOwnedInRange(ownerKey, rangeStart, rangeEnd)
                 eventDao.insertAll(
                     events.filter { it.eventScope != null && it.eventScope != com.tobiso.tobisoappnative.model.EventScope.Global }
                         .map { it.toEntity(ownerKey) }
