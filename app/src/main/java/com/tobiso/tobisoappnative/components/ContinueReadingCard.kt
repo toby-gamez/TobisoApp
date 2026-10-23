@@ -50,6 +50,13 @@ fun ContinueReadingCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+            item.categoryPath?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
             LinearProgressIndicator(
                 progress = { item.percent / 100f },
                 modifier = Modifier.fillMaxWidth(),

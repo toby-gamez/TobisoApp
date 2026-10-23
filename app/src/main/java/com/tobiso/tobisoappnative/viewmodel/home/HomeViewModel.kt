@@ -43,7 +43,8 @@ class HomeViewModel @Inject constructor(
                 onSuccess = { posts -> setState { copy(posts = posts) } },
                 onFailure = { /* categories error already set */ }
             )
-            setState { copy(continueReading = runCatching { readingProgress.lastUnfinished() }.getOrNull()) }
+            val continueReading = runCatching { readingProgress.currentContinueReading() }.getOrNull()
+            setState { copy(continueReading = continueReading) }
             loadArticleOfDay()
             // compute newest list after loading
             computeNewest(null)

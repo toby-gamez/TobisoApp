@@ -8,7 +8,12 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class ContinueReading(val postId: Int, val title: String, val percent: Int)
+data class ContinueReading(
+    val postId: Int,
+    val title: String,
+    val percent: Int,
+    val categoryPath: String? = null
+)
 
 /**
  * Tracks how far the user got in the article they read last.
@@ -30,6 +35,20 @@ class ReadingProgressRepository @Inject constructor(
         val title = prefs.getString(KEY_TITLE, null)
         val percent = prefs.getInt(KEY_PERCENT, 0)
         return if (id >= 0 && !title.isNullOrBlank()) ContinueReading(id, title, percent) else null
+    }
+
+    /**
+     * The article to continue: the account's server-side item when signed in and reachable
+     * (204 = nothing in progress), otherwise the device-local one.
+     */
+    suspend fun currentContinueReading(): ContinueReading? {
+        if (AuthSession.isSignedIn) {
+            val response = runCatching { api.getContinueReading() }.getOrNull()
+            if (response != null && response.isSuccessful) {
+                return response.body()?.let { ContinueReading(it.postId, it.title, it.scrollPercent, it.categoryPath) }
+            }
+        }
+        return lastUnfinished()
     }
 
     suspend fun report(postId: Int, title: String, percent: Int) {

@@ -27,3 +27,12 @@ data class StudentProfile(
 
 @Serializable
 data class ReadProgressRequest(val postId: Int, val scrollPercent: Int)
+
+@Serializable
+data class ContinueReadingDto(
+    val postId: Int,
+    val title: String,
+    val scrollPercent: Int,
+    val categoryPath: String? = null,
+    val filePath: String? = null
+)

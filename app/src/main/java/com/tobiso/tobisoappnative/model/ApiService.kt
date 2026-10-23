@@ -208,6 +208,10 @@ interface ApiService {
     @retrofit2.http.DELETE("user/bookmarks/{postId}")
     suspend fun removeBookmark(@Path("postId") postId: Int): retrofit2.Response<Unit>
 
+    /** 200 with the item, or 204 (null body) when nothing is in progress. */
+    @GET("user/continue-reading")
+    suspend fun getContinueReading(): retrofit2.Response<ContinueReadingDto>
+
     @POST("user/read-progress")
     suspend fun reportReadProgress(@Body request: ReadProgressRequest): retrofit2.Response<Unit>
 }
