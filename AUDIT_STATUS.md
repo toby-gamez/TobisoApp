@@ -42,6 +42,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | 15 | Classes foundation: `Event` + Room v8 (type/scope/class/group/creator/themes/customColor, per-account cache via `ownerKey`), class + student-event endpoints in `ApiService`, `ClassesScreen` (picker, pending, approved, group-change request, leave, rejected) reachable from Profile → Účet → Moje třída. **Next:** calendar integration (`events/mine`, filters, student events FAB, theme chips, notification worker) | 🟡 | see git log |
 | 16 | Scoped calendar (§8.7): `CalendarRepository` (`events/mine` when signed in, public otherwise, per-range freshness + Room fallback — also fixes month loads wiping other months from the cache), type/scope filters, `StudentEventDialog` (Test/Homework/Other × Jen já/Třída/Skupina), edit/delete own events (id from the JWT `sub`), author/audience line, theme chips → post/category, reminders worker uses `events/mine`. **Not done:** picking themes when creating an event; offline event writes (by design) | ✅ | see git log |
 | 17 | `WEB_SPEC.md`: what the web must add for Google sign-in (`auth/google-token`) and server-side gamification (`user/game-state`, versioned blob + merge rules). App work for both is blocked on it | 📄 | see git log |
+| 18 | Parser: `!!!tip` / `!!!sidefact` callouts (nested content, themed boxes) and `$…$` / `$$…$$` math rendered as Unicode (`LatexLite`: exponents, indices, fractions, roots, Greek, operators; unknown commands degrade to readable text). No KaTeX/WebView by design. Math inside tables/code isn't converted | ✅ | see git log |
 | – | Fixed stale unit tests | ✅ | `0f706f0` |
 | – | Numbered lists (`1. foo`) were never parsed (over-escaped regex) | ✅ fixed | `16324ca` |
 | – | `<sub>`/`<sup>` rendered as raw text | ✅ fixed + spacing after bullet lists | `bfc5d7b` |
@@ -86,7 +87,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 
 **Keep (app-only):** gamification, TTS, offline manager, calendar notifications, update checker. These are local-only and cannot sync with web accounts yet.
 
-**Content rendering:** hand-rolled parser (`ContentFormatter.kt`), now covered by tests. Still missing vs web: callouts (`!!!tip`, `!!!sidefact`), math/KaTeX. `<sub>`/`<sup>` and numbered lists now work.
+**Content rendering:** hand-rolled parser (`ContentFormatter.kt`), now covered by tests. Callouts and (Unicode-approximated) math now work. `<sub>`/`<sup>` and numbered lists now work.
 
 ---
 

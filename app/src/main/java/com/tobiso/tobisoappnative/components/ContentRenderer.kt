@@ -8,6 +8,8 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -95,6 +97,36 @@ fun ElementRenderer(
                 else -> MaterialTheme.typography.titleMedium
             }
             Text(text = annotated, style = style.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
+        }
+        is ContentElement.Callout -> {
+            val tip = element.kind == CalloutKind.Tip
+            val container = if (tip) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+            val onContainer = if (tip) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .background(container, shape = MaterialTheme.shapes.large)
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = if (tip) Icons.Default.Lightbulb else Icons.Default.Info,
+                    contentDescription = null,
+                    tint = onContainer
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = element.kind.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = onContainer,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    element.children.forEach { child ->
+                        ElementRenderer(child, isOffline, posts, addendums, navController, onAddendumSelected, showImagePaths, onPersonSelected)
+                    }
+                }
+            }
         }
         is ContentElement.Paragraph -> RenderParagraph(element, isOffline, posts, addendums, navController, onAddendumSelected, onPersonSelected)
         is ContentElement.InlineText -> RenderInlineText(element, isOffline, posts, addendums, navController, onAddendumSelected, onPersonSelected)

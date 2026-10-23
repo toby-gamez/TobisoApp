@@ -27,7 +27,16 @@ sealed class ContentElement {
     data class ImageWithMeta(val alt: String, val url: String, val caption: String?, val source: String?, val isTobiso: Boolean) : ContentElement()
     data class AddendumReference(val addendumId: Int) : ContentElement()
     data class InlineText(val parts: List<InlinePart>) : ContentElement() // pro případné další použití
+    /** `!!!tip … !!!` / `!!!sidefact … !!!` box (same syntax as the web); [children] are parsed like normal content. */
+    data class Callout(val kind: CalloutKind, val children: List<ContentElement>) : ContentElement()
 }
+
+enum class CalloutKind(val label: String) {
+    Tip("Tip"),
+    SideFact("Zajímavost")
+}
+
+private val CALLOUT_REGEX = Regex("""!!!(tip|sidefact)\s+(.*?)\s*!!!""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
 
 sealed class InlinePart {
     data class Text(val text: String) : InlinePart()
@@ -76,7 +85,8 @@ fun extractToc(elements: List<ContentElement>): List<TocEntry> =
 fun parseContentToElements(
     content: String,
     isOffline: Boolean,
-    posts: List<Post>
+    posts: List<Post>,
+    allowIntra: Boolean = true
 ): List<ContentElement> {
     val elements = mutableListOf<ContentElement>()
     val text = content.replace("\u0000", "").trim()
@@ -86,12 +96,27 @@ fun parseContentToElements(
     val intraRegex = Regex("\\.\\.\\.")
     val intraMatches = intraRegex.findAll(text).toList()
     var workingText = text
-    if (intraMatches.size >= 2) {
+    if (allowIntra && intraMatches.size >= 2) {
         val first = intraMatches[0].range.first
         val second = intraMatches[1].range.first
         val intraText = text.substring(first + 3, second).trim()
         elements.add(ContentElement.Intra(intraText))
         workingText = text.substring(0, first) + text.substring(second + 3)
+    }
+
+    // Callout boxes: split the text around them and parse each side (and the box content) on its own.
+    if (CALLOUT_REGEX.containsMatchIn(workingText)) {
+        var last = 0
+        for (m in CALLOUT_REGEX.findAll(workingText)) {
+            val before = workingText.substring(last, m.range.first)
+            if (before.isNotBlank()) elements.addAll(parseContentToElements(before, isOffline, posts, allowIntra = false))
+            val kind = if (m.groupValues[1].equals("tip", ignoreCase = true)) CalloutKind.Tip else CalloutKind.SideFact
+            elements.add(ContentElement.Callout(kind, parseContentToElements(m.groupValues[2], isOffline, posts, allowIntra = false)))
+            last = m.range.last + 1
+        }
+        val after = workingText.substring(last)
+        if (after.isNotBlank()) elements.addAll(parseContentToElements(after, isOffline, posts, allowIntra = false))
+        return elements
     }
 
     // Preprocess paragraphs to detect image+caption+source groups
@@ -341,7 +366,8 @@ fun parseContentToElements(
 }
 
 // --- Inline Markdown Parser pro tučné, kurzívu a inline odkazy ---
-fun parseInlineParts(text: String, posts: List<Post>? = null): List<InlinePart> {
+fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePart> {
+    val text = convertMathSpans(rawText)
     // Podpora **tučné**, *kurzíva*, ***tučné kurzíva***, [odkaz](url), (--DOD-číslo--)
     val result = mutableListOf<InlinePart>()
     var i = 0
@@ -643,6 +669,7 @@ fun injectPersonMentionsIntoElements(
             is ContentElement.Heading -> element.copy(parts = inject(element.parts))
             is ContentElement.BulletList -> element.copy(items = element.items.map { inject(it) })
             is ContentElement.InlineText -> element.copy(parts = inject(element.parts))
+            is ContentElement.Callout -> element.copy(children = injectPersonMentionsIntoElements(element.children, personNames))
             else -> element
         }
     }
