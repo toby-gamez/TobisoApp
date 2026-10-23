@@ -14,7 +14,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.di.injectedApiService
 import com.tobiso.tobisoappnative.model.Event
 import com.tobiso.tobisoappnative.model.LocalEventManager
 // Converted to CoroutineWorker: no runBlocking needed
@@ -177,7 +177,7 @@ class EventNotificationWorker(
         try {
             Timber.d("Requesting events range: $startDate - $endDate")
             val allEventsArray = withContext(Dispatchers.IO) {
-                val api = ApiClient.apiService
+                val api = applicationContext.injectedApiService()
                 // Signed-in students also get reminders for their class / group / personal events.
                 if (com.tobiso.tobisoappnative.model.AuthSession.isSignedIn) {
                     runCatching { api.getMyEvents(startDate, endDate) }

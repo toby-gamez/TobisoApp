@@ -5,7 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.tobiso.tobisoappnative.db.AppDatabase
 import com.tobiso.tobisoappnative.db.entity.FeedbackEntity
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.di.injectedApiService
 import com.tobiso.tobisoappnative.model.FeedbackDto
 import timber.log.Timber
 
@@ -19,6 +19,7 @@ class FeedbackSyncWorker(
         val pendingList = dao.getAllPending()
         if (pendingList.isEmpty()) return Result.success()
 
+        val api = context.injectedApiService()
         var allSucceeded = true
         for (feedback in pendingList) {
             try {
@@ -28,7 +29,7 @@ class FeedbackSyncWorker(
                     message = feedback.message,
                     platform = feedback.platform
                 )
-                ApiClient.apiService.sendFeedback(dto)
+                api.sendFeedback(dto)
                 dao.deleteById(feedback.id)
                 Timber.i("Sent queued feedback #${feedback.id}")
             } catch (e: Exception) {

@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.tobiso.tobisoappnative.model.ApiClient
+import com.tobiso.tobisoappnative.di.injectedApiService
 import com.tobiso.tobisoappnative.model.PersonResponse
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -39,7 +39,7 @@ fun PersonBottomSheet(
         error = null
         person = null
         try {
-            person = ApiClient.apiService.getPerson(clientId, deviceId, personName)
+            person = context.injectedApiService().getPerson(clientId, deviceId, personName)
         } catch (e: Exception) {
             Timber.w(e, "Failed to load person: $personName")
             error = "Informace nejsou k dispozici."
