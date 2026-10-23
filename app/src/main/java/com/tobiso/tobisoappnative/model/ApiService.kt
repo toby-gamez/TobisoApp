@@ -197,4 +197,17 @@ interface ApiService {
 
     @POST("auth/logout-everywhere")
     suspend fun logoutEverywhere(): retrofit2.Response<Unit>
+
+    // Signed-in user data (JWT only)
+    @GET("user/bookmarks")
+    suspend fun getBookmarks(): List<Int>
+
+    @POST("user/bookmarks/{postId}")
+    suspend fun addBookmark(@Path("postId") postId: Int): retrofit2.Response<Unit>
+
+    @retrofit2.http.DELETE("user/bookmarks/{postId}")
+    suspend fun removeBookmark(@Path("postId") postId: Int): retrofit2.Response<Unit>
+
+    @POST("user/read-progress")
+    suspend fun reportReadProgress(@Body request: ReadProgressRequest): retrofit2.Response<Unit>
 }

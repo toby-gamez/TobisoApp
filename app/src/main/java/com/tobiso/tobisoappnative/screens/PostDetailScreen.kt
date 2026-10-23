@@ -98,6 +98,10 @@ import kotlin.math.max
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
 import com.tobiso.tobisoappnative.components.GradeBadge
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import com.tobiso.tobisoappnative.components.QuizCtaCard
 import com.tobiso.tobisoappnative.components.GradePickerSheet
 import com.tobiso.tobisoappnative.components.ContentRenderer
@@ -110,7 +114,7 @@ import com.tobiso.tobisoappnative.components.TableOfContentsDialog
 import kotlinx.serialization.json.JsonNull.content
 import androidx.compose.foundation.text.selection.SelectionContainer
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.FlowPreview::class)
 @Composable
 fun PostDetailScreen(
     postId: Int,
@@ -411,6 +415,15 @@ fun PostDetailScreen(
                             val updatedFormatted by vm.updatedFormatted.collectAsStateWithLifecycle()
 
                             val lazyListState = remember { LazyListState() }
+
+                            // Reading progress → "Pokračovat ve čtení" (+ server when signed in)
+                            LaunchedEffect(lazyListState, postId) {
+                                snapshotFlow {
+                                    val info = lazyListState.layoutInfo
+                                    val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                    if (info.totalItemsCount > 0) (last + 1) * 100 / info.totalItemsCount else 0
+                                }.distinctUntilChanged().debounce(1500).collect { vm.reportReadProgress(postId, it) }
+                            }
 
                             // item0=gradeBadge, item1=wordCount → content starts at index 2
                             val contentItemOffset = 2

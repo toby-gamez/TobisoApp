@@ -59,7 +59,8 @@ class PostDetailViewModel @Inject constructor(
     private val detailRepo: PostsRepository,
     private val postsRepo: PostsRepository,
     private val favoritesRepo: FavoritesRepositoryImpl,
-    private val api: ApiService
+    private val api: ApiService,
+    private val readingProgress: com.tobiso.tobisoappnative.repository.ReadingProgressRepository
 ) : AndroidViewModel(application) {
 
     private val ttsManager = TtsManager(application)
@@ -156,6 +157,11 @@ class PostDetailViewModel @Inject constructor(
     fun selectGrade(postId: Int, gradeId: Int) {
         savePostGradeId(getApplication(), postId, gradeId)
         loadPostDetail(postId)
+    }
+
+    fun reportReadProgress(postId: Int, percent: Int) {
+        val title = _postDetail.value?.takeIf { it.id == postId }?.title ?: return
+        viewModelScope.launch { readingProgress.report(postId, title, percent) }
     }
 
     fun loadDifficulty(postId: Int) {

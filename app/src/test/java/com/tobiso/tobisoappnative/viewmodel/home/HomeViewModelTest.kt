@@ -43,7 +43,7 @@ class HomeViewModelTest {
         coEvery { postsRepo.getCategories() } returns Result.success(listOf(sampleCategory))
         coEvery { postsRepo.getPostsByCategory(null, any()) } returns Result.success(listOf(samplePost))
 
-        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo)
+        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo, mockk(relaxed = true))
         viewModel.onIntent(HomeIntent.Load)
         delay(200)
 
@@ -59,7 +59,7 @@ class HomeViewModelTest {
         coEvery { postsRepo.getPostsByCategory(null, any()) } returns Result.success(listOf(samplePost))
         coEvery { postsRepo.getArticleOfDay() } returns Result.success(samplePost)
 
-        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo)
+        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo, mockk(relaxed = true))
         viewModel.onIntent(HomeIntent.Load)
         delay(200)
 
@@ -73,7 +73,7 @@ class HomeViewModelTest {
         coEvery { postsRepo.getPostsByCategory(null, any()) } returns Result.success(listOf(samplePost))
         coEvery { postsRepo.getArticleOfDay() } returns Result.failure(Exception("404"))
 
-        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo)
+        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo, mockk(relaxed = true))
         viewModel.onIntent(HomeIntent.Load)
         delay(200)
 
@@ -87,7 +87,7 @@ class HomeViewModelTest {
         coEvery { postsRepo.getCategories() } returns Result.failure(Exception("Offline"))
         coEvery { postsRepo.getPostsByCategory(null, any()) } returns Result.failure(Exception("Offline"))
 
-        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo)
+        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo, mockk(relaxed = true))
         viewModel.onIntent(HomeIntent.Load)
         delay(200)
 
@@ -106,7 +106,7 @@ class HomeViewModelTest {
         coEvery { postsRepo.getCategories() } returns Result.success(listOf(sampleCategory, childCategory))
         coEvery { postsRepo.getPostsByCategory(null, any()) } returns Result.success(listOf(samplePost, childPost))
 
-        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo)
+        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo, mockk(relaxed = true))
         viewModel.onIntent(HomeIntent.Load)
         delay(200)
 

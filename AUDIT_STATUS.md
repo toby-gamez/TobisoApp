@@ -38,6 +38,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | 11 | Grade-version picker + "Zkontrolováno" badge (§8.2); choice stored per post, reviewed flag = `PostVersion.isChecked` | ✅ | see git log |
 | 12 | "Ověř si porozumění" (§8.1 A + most of B): rename, `QuizCtaCard`, "Otázka i ze n", explanation always shown in results, "Hotovo"/"Začít znovu". **Still open:** web-style instant per-answer feedback (the app reveals results at the end) | 🟡 | see git log |
 | 13 | Accounts v1 (§8.6): `AuthSession` persisted encrypted (Keystore AES-GCM), 401 → clear + "Přihlášení vypršelo" snackbar, `AuthScreen` login/register/check-inbox, Profile "Účet" section (sign out, sign out everywhere), forgot password + legal docs open the web. **Verified:** read endpoints are `[AllowAnonymous]`, so a Bearer token doesn't break them. **Not yet:** Google button (needs `auth/google-token`), bookmark/read-progress sync | ✅ | see git log |
+| 14 | Bookmark sync (union on first login, then server-authoritative, offline outbox) + reading progress ("Pokračovat ve čtení" on Home, local always, `user/read-progress` when signed in). **Web gap:** no REST endpoint returns the server-side continue-reading item (`GetContinueReadingAsync` is Blazor-only), so the card is device-local; a `GET user/continue-reading` would let it follow the account. Note: every read-progress report also triggers the web's 20-credit daily read bonus | ✅ | see git log |
 | – | Fixed stale unit tests | ✅ | `0f706f0` |
 | – | Numbered lists (`1. foo`) were never parsed (over-escaped regex) | ✅ fixed | `16324ca` |
 | – | `<sub>`/`<sup>` rendered as raw text | ✅ fixed + spacing after bullet lists | `bfc5d7b` |
@@ -70,12 +71,12 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | Class/group/personal calendar events + student-created events (Test/Homework/Other) | `events/mine`, `events/student[/{id}]` | ⚠️ app shows only global events (`Events/range`) and has no type/scope |
 | Event themes (linked posts/categories) | `Event.Themes` | ❌ |
 | Calendar subscription (ICS) | `calendar/{token}.ics` | ❌ not needed in-app (local notifications exist); optional "open feed" link |
-| Server-side progress, bookmarks, export | `api/user/*` | ❌ local `FavoritesScreen` only |
+| Server-side progress, bookmarks, export | `api/user/*` | ✅ bookmarks + read-progress synced; export/stats not wired |
 | Grade-versioned posts | `postversions`, `ai/rewrite-grade` | ✅ picker + reviewed badge (`ai/rewrite-grade` not wired) |
 | ~30 AI tools | `api/ai/*` | ⚠️ 8 wired |
 | Article of the day / random | `pages/article-of-day`, `pages/random` | ✅ Home `ArticleOfDayCard`, cached per day |
 | Post difficulty rating | `posts/{id}/difficulty`, `rate-difficulty` | ✅ `DifficultyRating` at end of post |
-| Reading progress ("continue reading") | `user/read-progress` | ❌ |
+| Reading progress ("continue reading") | `user/read-progress` | ✅ (device-local card, see §0 row 14) |
 | "Ověř si porozumění" as a first-class per-article feature | `Quiz.razor`, `PostDetail.razor` | 🟡 renamed + CTA card done; instant per-answer feedback still open (§8.1) |
 | Legal / cookie consent flow | `Legal` | ❌ (verify Play-store needs when accounts land) |
 | ~~Chronicle / timeline~~ | `api/chronicle/*` | ⛔ out of scope |

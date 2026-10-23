@@ -10,6 +10,7 @@ data class HomeState(
     val categories: List<Category> = emptyList(),
     val posts: List<Post> = emptyList(),
     val articleOfDay: Post? = null,
+    val continueReading: com.tobiso.tobisoappnative.repository.ContinueReading? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val isOffline: Boolean = false,

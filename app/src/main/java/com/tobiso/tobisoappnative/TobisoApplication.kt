@@ -8,6 +8,9 @@ import timber.log.Timber
 @HiltAndroidApp
 class TobisoApplication : Application() {
 
+    @javax.inject.Inject
+    lateinit var userSyncManager: com.tobiso.tobisoappnative.repository.UserSyncManager
+
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.DEBUG) {
@@ -28,6 +31,7 @@ class TobisoApplication : Application() {
             com.tobiso.tobisoappnative.model.AuthSession.initialize(this)
             QuestionProgressManager.initialize(this)
             PetManager.initialize(this)
+            userSyncManager.start()
         } catch (e: Exception) {
             Timber.e(e, "Critical initialization error – app may not function correctly")
         }

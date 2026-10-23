@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import com.tobiso.tobisoappnative.components.ArticleOfDayCard
+import com.tobiso.tobisoappnative.components.ContinueReadingCard
 import com.tobiso.tobisoappnative.viewmodel.home.HomeViewModel
 import com.tobiso.tobisoappnative.viewmodel.home.HomeIntent
 import com.tobiso.tobisoappnative.viewmodel.home.HomeEffect
@@ -342,11 +343,20 @@ fun HomeScreen(navController: NavHostController) {
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
+                                Column {
+                                state.continueReading?.let {
+                                    ContinueReadingCard(
+                                        item = it,
+                                        onOpen = { id -> navController.navigate(PostDetailRoute(postId = id)) },
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                }
                                 ArticleOfDayCard(
                                     post = state.articleOfDay,
                                     onOpenPost = { navController.navigate(PostDetailRoute(postId = it)) },
                                     onRandom = { vm.onIntent(HomeIntent.OpenRandomArticle) }
                                 )
+                                }
                             }
                             items(subjects) { subject ->
                                 SubjectCard(
@@ -416,12 +426,21 @@ fun HomeScreen(navController: NavHostController) {
 
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp)) {
                         item(key = "article_of_day") {
+                            Column {
+                            state.continueReading?.let {
+                                    ContinueReadingCard(
+                                        item = it,
+                                        onOpen = { id -> navController.navigate(PostDetailRoute(postId = id)) },
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                }
                             ArticleOfDayCard(
                                 post = state.articleOfDay,
                                 onOpenPost = { navController.navigate(PostDetailRoute(postId = it)) },
                                 onRandom = { vm.onIntent(HomeIntent.OpenRandomArticle) },
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
+                            }
                         }
                         items(items = newestPosts, key = { it.id }) { post ->
                             PostListItem(

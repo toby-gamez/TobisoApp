@@ -24,3 +24,6 @@ data class StudentProfile(
     val credits: Int = 0,
     val role: String = "student"
 )
+
+@Serializable
+data class ReadProgressRequest(val postId: Int, val scrollPercent: Int)
