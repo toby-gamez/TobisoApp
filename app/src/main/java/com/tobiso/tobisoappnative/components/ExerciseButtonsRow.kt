@@ -17,12 +17,10 @@ fun ExerciseButtonsRow(
     hasExercises: Boolean,
     exercisesLoading: Boolean,
     exercises: List<InteractiveExerciseResponse>,
-    hasQuestions: Boolean,
     onLoadExercises: () -> Unit,
-    onOpenExercise: (Int, String?) -> Unit,
-    onOpenQuestions: () -> Unit
+    onOpenExercise: (Int, String?) -> Unit
 ) {
-    if (hasExercises || exercisesLoading || exercises.isNotEmpty() || hasQuestions) {
+    if (hasExercises || exercisesLoading || exercises.isNotEmpty()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -49,12 +47,6 @@ fun ExerciseButtonsRow(
                             }
                         }
                     }
-                }
-            }
-
-            if (hasQuestions) {
-                Button(onClick = onOpenQuestions, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
-                    Text("Ověř si porozumění")
                 }
             }
         }

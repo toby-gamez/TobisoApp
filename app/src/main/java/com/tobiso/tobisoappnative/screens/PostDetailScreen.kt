@@ -490,7 +490,6 @@ fun PostDetailScreen(
                                         hasExercises = hasExercises,
                                         exercisesLoading = exercisesLoading,
                                         exercises = exercises,
-                                        hasQuestions = hasQuestions || questions.isNotEmpty(),
                                         onLoadExercises = {
                                             coroutineScope.launch {
                                                 try {
@@ -519,8 +518,7 @@ fun PostDetailScreen(
                                                     android.widget.Toast.makeText(context, "Chyba při otevírání cvičení", android.widget.Toast.LENGTH_SHORT).show()
                                                 }
                                             }
-                                        },
-                                        onOpenQuestions = { navController.navigate(QuestionsRoute(postId = postId)) }
+                                        }
                                     )
                                 }
                                 if (hasQuestions || questions.isNotEmpty()) {
