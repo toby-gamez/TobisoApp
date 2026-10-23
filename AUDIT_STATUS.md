@@ -37,6 +37,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | 10 | Difficulty rating (§8.4) + article of the day / random (§8.5) | ✅ | see git log |
 | 11 | Grade-version picker + "Zkontrolováno" badge (§8.2); choice stored per post, reviewed flag = `PostVersion.isChecked` | ✅ | see git log |
 | 12 | "Ověř si porozumění" (§8.1 A + most of B): rename, `QuizCtaCard`, "Otázka i ze n", explanation always shown in results, "Hotovo"/"Začít znovu". **Still open:** web-style instant per-answer feedback (the app reveals results at the end) | 🟡 | see git log |
+| 13 | Accounts v1 (§8.6): `AuthSession` persisted encrypted (Keystore AES-GCM), 401 → clear + "Přihlášení vypršelo" snackbar, `AuthScreen` login/register/check-inbox, Profile "Účet" section (sign out, sign out everywhere), forgot password + legal docs open the web. **Verified:** read endpoints are `[AllowAnonymous]`, so a Bearer token doesn't break them. **Not yet:** Google button (needs `auth/google-token`), bookmark/read-progress sync | ✅ | see git log |
 | – | Fixed stale unit tests | ✅ | `0f706f0` |
 | – | Numbered lists (`1. foo`) were never parsed (over-escaped regex) | ✅ fixed | `16324ca` |
 | – | `<sub>`/`<sup>` rendered as raw text | ✅ fixed + spacing after bullet lists | `bfc5d7b` |
@@ -64,7 +65,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 
 | Web capability | Web endpoints / pages | App today |
 |---|---|---|
-| User accounts (email + verification + reset; Google is web-only for now) — **user accounts only; the app has no admin login or admin features** | `api/auth/student-login`, `register`, `forgot-password`, `reset-password`, `me`, `logout-everywhere` | ❌ (seam exists, no UI) |
+| User accounts (email + verification + reset; Google is web-only for now) — **user accounts only; the app has no admin login or admin features** | `api/auth/student-login`, `register`, `forgot-password`, `reset-password`, `me`, `logout-everywhere` | 🟡 email/password login + register done; Google and sync open |
 | School classes (join, groups, group-change request, leave) | `api/classes`, `classes/mine`, `join`, `mine/groups` | ❌ |
 | Class/group/personal calendar events + student-created events (Test/Homework/Other) | `events/mine`, `events/student[/{id}]` | ⚠️ app shows only global events (`Events/range`) and has no type/scope |
 | Event themes (linked posts/categories) | `Event.Themes` | ❌ |
@@ -203,7 +204,7 @@ The web has **two** distinct things under this name. Mirror both.
 - `GET pages/article-of-day`, `GET pages/random` → a `Post`. Home screen: "Článek dne" card (sage-tinted) and a "Náhodný článek" action. Cache article-of-day per calendar day for offline.
 
 ### 8.6 Accounts, bookmarks, read progress (optional sign-in)
-- **Correction:** `POST auth/login` is the **admin** login (Basic-config credentials) — never use it. The app uses `POST auth/student-login` `{email, password}` → `{token, displayName, credits}`; `GET auth/me` → profile.
+- **Correction:** `POST auth/login` is the **admin** login (Basic-config credentials) — never use it. The app uses `POST auth/student-login` `{username: <email>, password}` (web `LoginRequest(Username, Password)`) → `{token, displayName, credits}`; `GET auth/me` → profile.
 - Register: `POST auth/register {email, displayName, password (min 10), acceptedTerms}`; the account is **unverified** and cannot sign in until the mailed link is confirmed (web page `/overeni-emailu`). Login of an unverified account returns `403 {code:"email_unverified"}` (and re-sends the mail) → show a "check your inbox" state. Password reset runs entirely on the web (`/zapomenute-heslo`) — link out with a custom tab instead of re-implementing.
 - **Google sign-in (decided: in scope):** the web callback sets an HttpOnly cookie and returns no token, so the app cannot piggyback on it. Plan: the web adds `POST auth/google-token` (Google ID token → student JWT, same shape as `student-login`); the app uses Credential Manager (`GetGoogleIdOption`) and sends the ID token. Ship email/password first, add the Google button when the endpoint is live. Web needs the Android OAuth client ID (package + signing SHA-1) registered as an accepted audience.
 - Sessions are revocable: the JWT's `sst` stamp is validated each request, so "log out everywhere"/password reset yield 401 at any time. Store the token in `EncryptedSharedPreferences`, set `AuthSession.token` at app start; on 401 clear it and fall back to anonymous (and show a non-blocking "sign in again" prompt).

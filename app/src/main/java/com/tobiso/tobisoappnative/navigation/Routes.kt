@@ -16,6 +16,9 @@ data class CalendarWithDateRoute(val year: Int, val month: Int)
 object ProfileRoute
 
 @Serializable
+object AuthRoute
+
+@Serializable
 object FeedbackRoute
 
 @Serializable

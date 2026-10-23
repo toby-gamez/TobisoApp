@@ -184,4 +184,17 @@ interface ApiService {
 
     @GET("pages/random")
     suspend fun getRandomPost(): Post
+
+    // Accounts (student/user only — never the admin `auth/login`)
+    @POST("auth/student-login")
+    suspend fun studentLogin(@Body request: LoginRequest): StudentLoginResponse
+
+    @POST("auth/register")
+    suspend fun register(@Body request: RegisterRequest): okhttp3.ResponseBody
+
+    @GET("auth/me")
+    suspend fun getMe(): StudentProfile
+
+    @POST("auth/logout-everywhere")
+    suspend fun logoutEverywhere(): retrofit2.Response<Unit>
 }

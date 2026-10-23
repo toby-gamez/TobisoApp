@@ -33,6 +33,9 @@ import androidx.navigation.toRoute
 import androidx.navigation.NavDestination.Companion.hasRoute
 import com.tobiso.tobisoappnative.navigation.BOTTOM_BAR_ROUTES
 import com.tobiso.tobisoappnative.navigation.AiChatHistoryRoute
+import com.tobiso.tobisoappnative.navigation.AuthRoute
+import com.tobiso.tobisoappnative.model.AuthSession
+import com.tobiso.tobisoappnative.screens.AuthScreen
 import com.tobiso.tobisoappnative.navigation.AiChatRoute
 import com.tobiso.tobisoappnative.navigation.AllQuestionsRoute
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
@@ -224,7 +227,23 @@ fun TobisoApp(navigateTo: String? = null) {
                     val destination = navBackStackEntry?.destination
                     val showBottomBar = destination == null ||
                         BOTTOM_BAR_ROUTES.any { destination.hasRoute(it) }
+                    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+                    val sessionExpired by AuthSession.sessionExpired.collectAsStateWithLifecycle()
+                    LaunchedEffect(sessionExpired) {
+                        if (sessionExpired) {
+                            val result = snackbarHostState.showSnackbar(
+                                message = "Přihlášení vypršelo. Pokračuješ jako host.",
+                                actionLabel = "Přihlásit se",
+                                duration = androidx.compose.material3.SnackbarDuration.Long
+                            )
+                            AuthSession.consumeExpired()
+                            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                navController.navigate(AuthRoute)
+                            }
+                        }
+                    }
                     Scaffold(
+                        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
                         bottomBar = {
                             AnimatedVisibility(
                                 visible = showBottomBar,
@@ -264,6 +283,14 @@ fun TobisoApp(navigateTo: String? = null) {
                             }
                             composable<ProfileRoute> {
                                 ProfileScreen(navController = navController)
+                            }
+                            composable<AuthRoute>(
+                                enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
+                                exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
+                                popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
+                                popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
+                            ) {
+                                AuthScreen(navController = navController)
                             }
                             composable<FeedbackRoute>(
                                 enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },

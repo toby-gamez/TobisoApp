@@ -11,19 +11,16 @@ import okhttp3.Request
 import retrofit2.Retrofit
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-/**
- * Optional user session. When a JWT is set, requests carry `Authorization: Bearer <jwt>`
- * instead of the app's Basic credentials (the server picks its auth scheme from that prefix,
- * see Tobiso.Web `SmartAuth`). With no token the app stays anonymous.
- */
-object AuthSession {
-    @Volatile
-    var token: String? = null
-}
-
 private fun okhttp3.Request.Builder.applyAuth(basic: String): okhttp3.Request.Builder {
     val jwt = AuthSession.token
     return header("Authorization", if (jwt.isNullOrBlank()) basic else "Bearer $jwt")
+}
+
+/** A 401 on a request that carried our Bearer token means the session died server-side. */
+private fun okhttp3.Response.notifySessionExpiry() {
+    if (code == 401 && request.header("Authorization")?.startsWith("Bearer ") == true) {
+        AuthSession.onUnauthorized()
+    }
 }
 
 object ApiClient {
@@ -58,6 +55,7 @@ object ApiClient {
             
             val request = requestBuilder.build()
             val response = chain.proceed(request)
+            response.notifySessionExpiry()
             
             if (!response.isSuccessful) {
                 Timber.w("HTTP ${response.code}: ${response.message}")
@@ -85,6 +83,7 @@ object ApiClient {
                     .addHeader("User-Agent", "TobisoApp-Android/${BuildConfig.VERSION_NAME}")
                     .build()
                 val response = chain.proceed(request)
+                response.notifySessionExpiry()
                 if (!response.isSuccessful) {
                     Timber.e("HTTP error: ${response.code} ${response.message}")
                 }

@@ -1,5 +1,10 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.model.AuthSession
+import com.tobiso.tobisoappnative.navigation.AuthRoute
+import com.tobiso.tobisoappnative.viewmodel.auth.AccountViewModel
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Devices
 import com.tobiso.tobisoappnative.navigation.AiChatHistoryRoute
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
 import com.tobiso.tobisoappnative.navigation.ShopRoute
@@ -212,6 +217,7 @@ fun ProfileScreen(navController: NavController) {
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     item { ProfileSection(navController = navController, grades = grades) }
+                    item { AccountSection(navController = navController) }
                     item { PetCareSection() }
                     item { EquippedQuoteSection(navController = navController) }
                     item { AchievementsSection() }
@@ -1878,6 +1884,63 @@ private fun ProfileNavRow(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
             modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+/** Optional account: sign in / register when anonymous, profile + sign-out when signed in. */
+@Composable
+private fun AccountSection(navController: NavController) {
+    val user by AuthSession.user.collectAsStateWithLifecycle()
+    val vm: AccountViewModel = hiltViewModel()
+    var confirmLogoutAll by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    ProfileSectionHeader("Účet")
+    ProfileNavGroup {
+        if (user == null) {
+            ProfileNavRow(
+                icon = Icons.Default.Person,
+                title = "Přihlásit se nebo registrovat",
+                subtitle = "Volitelné – aplikace funguje i bez účtu",
+                onClick = { navController.navigate(AuthRoute) }
+            )
+        } else {
+            ProfileNavRow(
+                icon = Icons.Default.Person,
+                title = user?.displayName?.ifBlank { null } ?: "Přihlášen",
+                subtitle = user?.email,
+                onClick = {}
+            )
+            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+            ProfileNavRow(
+                icon = Icons.AutoMirrored.Filled.Logout,
+                title = "Odhlásit se",
+                onClick = { vm.logout() }
+            )
+            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+            ProfileNavRow(
+                icon = Icons.Default.Devices,
+                title = "Odhlásit na všech zařízeních",
+                subtitle = "Ukončí všechna přihlášení tohoto účtu",
+                onClick = { confirmLogoutAll = true }
+            )
+        }
+    }
+    if (confirmLogoutAll) {
+        AlertDialog(
+            onDismissRequest = { confirmLogoutAll = false },
+            title = { Text("Odhlásit všude?") },
+            text = { Text("Všechna zařízení, kde jsi přihlášen/a, budou odhlášena.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmLogoutAll = false
+                    vm.logoutEverywhere { ok ->
+                        if (!ok) android.widget.Toast.makeText(context, "Odhlášení se nepodařilo", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text("Odhlásit") }
+            },
+            dismissButton = { TextButton(onClick = { confirmLogoutAll = false }) { Text("Zrušit") } }
         )
     }
 }

@@ -25,6 +25,7 @@ class TobisoApplication : Application() {
             IconPackManager.initialize(this)
             BackpackManager.initialize(this)
             AiCreditManager.initialize(this)
+            com.tobiso.tobisoappnative.model.AuthSession.initialize(this)
             QuestionProgressManager.initialize(this)
             PetManager.initialize(this)
         } catch (e: Exception) {

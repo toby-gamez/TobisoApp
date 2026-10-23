@@ -18,6 +18,8 @@ import com.tobiso.tobisoappnative.domain.usecase.ValidateExerciseUseCase
 import com.tobiso.tobisoappnative.model.ApiClient
 import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.OfflineDataManager
+import com.tobiso.tobisoappnative.repository.AuthRepository
+import com.tobiso.tobisoappnative.repository.AuthRepositoryImpl
 import com.tobiso.tobisoappnative.repository.ExerciseRepository
 import com.tobiso.tobisoappnative.repository.ExerciseRepositoryImpl
 import com.tobiso.tobisoappnative.repository.FavoritesRepositoryImpl
@@ -113,4 +115,8 @@ object AppModule {
     @Singleton
     fun provideGetAllQuestionsUseCase(repository: QuestionsRepository): GetAllQuestionsUseCase =
         GetAllQuestionsUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(api: ApiService): AuthRepository = AuthRepositoryImpl(api)
 }
