@@ -2,7 +2,7 @@ package com.tobiso.tobisoappnative
 
 import android.content.Context
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import com.tobiso.tobisoappnative.data.ShopData
 import com.tobiso.tobisoappnative.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,37 +18,37 @@ class IconPackManager private constructor(context: Context) {
 
     // Defaultní Material Icons pro každý předmět
     private val defaultIcons = mapOf(
-        "Mluvnice" to Icons.Default.Spellcheck,
-        "Literatura" to Icons.Default.MenuBook,
-        "Sloh" to Icons.Default.Description,
-        "Hudební výchova" to Icons.Default.LibraryMusic,
-        "Matematika" to Icons.Default.Calculate,
-        "Chemie" to Icons.Default.Science,
-        "Fyzika" to Icons.Default.PrecisionManufacturing,
-        "Přírodopis" to Icons.Default.Eco,
-        "Zeměpis" to Icons.Default.Public
+        "Mluvnice" to Icons.Rounded.Spellcheck,
+        "Literatura" to Icons.Rounded.MenuBook,
+        "Sloh" to Icons.Rounded.Description,
+        "Hudební výchova" to Icons.Rounded.LibraryMusic,
+        "Matematika" to Icons.Rounded.Calculate,
+        "Chemie" to Icons.Rounded.Science,
+        "Fyzika" to Icons.Rounded.PrecisionManufacturing,
+        "Přírodopis" to Icons.Rounded.Eco,
+        "Zeměpis" to Icons.Rounded.Public
     )
 
     // Mapování názvů Material ikon na skutečné ikony
     private val materialIconsMap = mapOf(
-        "edit" to Icons.Default.Edit,
-        "library_books" to Icons.Default.LibraryBooks,
-        "article" to Icons.Default.Article,
-        "music_note" to Icons.Default.MusicNote,
-        "functions" to Icons.Default.Functions,
-        "biotech" to Icons.Default.Biotech,
-        "bolt" to Icons.Default.Bolt,
-        "local_florist" to Icons.Default.LocalFlorist,
-        "language" to Icons.Default.Language,
-        "spellcheck" to Icons.Default.Spellcheck,
-        "menu_book" to Icons.Default.MenuBook,
-        "description" to Icons.Default.Description,
-        "library_music" to Icons.Default.LibraryMusic,
-        "calculate" to Icons.Default.Calculate,
-        "science" to Icons.Default.Science,
-        "precision_manufacturing" to Icons.Default.PrecisionManufacturing,
-        "eco" to Icons.Default.Eco,
-        "public" to Icons.Default.Public
+        "edit" to Icons.Rounded.Edit,
+        "library_books" to Icons.Rounded.LibraryBooks,
+        "article" to Icons.Rounded.Article,
+        "music_note" to Icons.Rounded.MusicNote,
+        "functions" to Icons.Rounded.Functions,
+        "biotech" to Icons.Rounded.Biotech,
+        "bolt" to Icons.Rounded.Bolt,
+        "local_florist" to Icons.Rounded.LocalFlorist,
+        "language" to Icons.Rounded.Language,
+        "spellcheck" to Icons.Rounded.Spellcheck,
+        "menu_book" to Icons.Rounded.MenuBook,
+        "description" to Icons.Rounded.Description,
+        "library_music" to Icons.Rounded.LibraryMusic,
+        "calculate" to Icons.Rounded.Calculate,
+        "science" to Icons.Rounded.Science,
+        "precision_manufacturing" to Icons.Rounded.PrecisionManufacturing,
+        "eco" to Icons.Rounded.Eco,
+        "public" to Icons.Rounded.Public
     )
 
     init {
@@ -76,12 +76,12 @@ class IconPackManager private constructor(context: Context) {
             if (subjectIcon != null) {
                 return when (subjectIcon.iconType) {
                     IconPackType.EMOJI -> subjectIcon.icon
-                    IconPackType.MATERIAL_ICONS -> materialIconsMap[subjectIcon.icon] ?: defaultIcons[subjectName] ?: Icons.Default.Book
+                    IconPackType.MATERIAL_ICONS -> materialIconsMap[subjectIcon.icon] ?: defaultIcons[subjectName] ?: Icons.Rounded.Book
                     IconPackType.CUSTOM_ICONS -> subjectIcon.icon
                 }
             }
         }
-        return defaultIcons[subjectName] ?: Icons.Default.Book
+        return defaultIcons[subjectName] ?: Icons.Rounded.Book
     }
 
     fun isEmojiIcon(subjectName: String): Boolean {

@@ -1,11 +1,13 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.tobiso.tobisoappnative.components.Card
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,7 +38,7 @@ fun FeedbackScreen(
             title = { Text("Zpětná vazba", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )
@@ -54,7 +56,7 @@ fun FeedbackScreen(
             if (isSuccess) {
                 Text("Děkujeme! Vaše zpětná vazba byla úspěšně odeslána.", color = MaterialTheme.colorScheme.primary)
             } else {
-                OutlinedTextField(
+                OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                     value = name,
                     onValueChange = { vm.onNameChange(it) },
                     label = { Text("Vaše jméno") },
@@ -62,7 +64,7 @@ fun FeedbackScreen(
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+                OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                     value = email,
                     onValueChange = { vm.onEmailChange(it) },
                     label = { Text("Váš e-mail") },
@@ -70,7 +72,7 @@ fun FeedbackScreen(
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
+                OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                     value = message,
                     onValueChange = { vm.onMessageChange(it) },
                     label = { Text("Zde napište svou zpětnou vazbu") },

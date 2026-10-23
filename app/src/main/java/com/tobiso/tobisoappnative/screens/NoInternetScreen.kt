@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.compose.ui.unit.sp
+import com.tobiso.tobisoappnative.components.Card
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -9,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.WifiOff
 
 @Composable
 fun NoInternetScreen(
@@ -27,16 +29,22 @@ fun NoInternetScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(32.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.WifiOff,
-                contentDescription = "Bez internetu",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(80.dp)
-            )
+            Box(
+                Modifier.size(96.dp).background(MaterialTheme.colorScheme.primaryContainer, androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.WifiOff,
+                    contentDescription = "Bez internetu",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Bez připojení k internetu",
-                style = MaterialTheme.typography.titleLarge,
+                fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -48,6 +56,7 @@ fun NoInternetScreen(
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = onRetry,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -61,12 +70,13 @@ fun NoInternetScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
                     onClick = offlineCallback,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CloudOff,
+                        imageVector = Icons.Rounded.CloudOff,
                         contentDescription = "Offline režim",
                         modifier = Modifier.size(18.dp)
                     )

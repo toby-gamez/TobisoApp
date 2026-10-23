@@ -13,11 +13,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Whatshot
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -79,7 +84,7 @@ fun StreakScreen(
             title = { Text("Řada", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )
@@ -123,7 +128,7 @@ fun StreakScreen(
                     // Zobrazení Streak Freezes pokud nějaké má
                     if (availableFreezes > 0) {
                         Spacer(modifier = Modifier.height(24.dp))
-                        StreakFreezeCard(availableFreezes = availableFreezes)
+                        StreakFreezeCard(availableFreezes = availableFreezes, onBuy = { navController.navigate(com.tobiso.tobisoappnative.navigation.ShopRoute) })
                     }
                 }
             }
@@ -138,6 +143,9 @@ fun StreakScreen(
             ) {
                 StreakSummaryCards(currentStreak, maxStreak)
 
+                Spacer(modifier = Modifier.height(20.dp))
+                WeekStrip(streakDays, currentDateString)
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 CalendarSection(
@@ -151,7 +159,7 @@ fun StreakScreen(
                 // Zobrazení Streak Freezes pokud nějaké má
                 if (availableFreezes > 0) {
                     Spacer(modifier = Modifier.height(24.dp))
-                    StreakFreezeCard(availableFreezes = availableFreezes)
+                    StreakFreezeCard(availableFreezes = availableFreezes, onBuy = { navController.navigate(com.tobiso.tobisoappnative.navigation.ShopRoute) })
                 }
             }
         }
@@ -160,61 +168,83 @@ fun StreakScreen(
 
 @Composable
 fun StreakSummaryCards(currentStreak: Int, maxStreak: Int) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(32.dp),
+        color = scheme.primaryContainer
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        Row(
+            modifier = Modifier.padding(20.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                Modifier.size(84.dp).background(scheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Whatshot,
-                    contentDescription = "Řada",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Aktuální řada",
-                    style = MaterialTheme.typography.labelLarge
-                )
+                Icon(Icons.Rounded.LocalFireDepartment, contentDescription = "Řada", tint = scheme.onPrimary, modifier = Modifier.size(48.dp))
+            }
+            Column {
+                Text("Aktuální řada", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = scheme.onPrimaryContainer)
                 Text(
                     text = "$currentStreak ${denDnyDni(currentStreak)}",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold
+                    fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 44.sp,
+                    lineHeight = 44.sp,
+                    color = scheme.onPrimaryContainer
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Nejdelší řada: $maxStreak ${denDnyDni(maxStreak)}",
+                    fontSize = 13.sp,
+                    color = scheme.onPrimaryContainer.copy(alpha = 0.85f)
                 )
             }
         }
+    }
+}
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    Icons.Default.Whatshot,
-                    contentDescription = "Max Řada",
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Nejdelší řada",
-                    style = MaterialTheme.typography.labelLarge
-                )
-                Text(
-                    text = "$maxStreak ${denDnyDni(maxStreak)}",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold
-                )
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun WeekStrip(streakDays: Set<String>, todayString: String) {
+    val scheme = MaterialTheme.colorScheme
+    val today = LocalDate.parse(todayString)
+    val monday = today.minusDays((today.dayOfWeek.value - 1).toLong())
+    val labels = listOf("Po", "Út", "St", "Čt", "Pá", "So", "Ne")
+    val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+        for (i in 0..6) {
+            val date = monday.plusDays(i.toLong())
+            val key = date.format(fmt)
+            val done = streakDays.contains(key)
+            val isToday = date == today
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(labels[i], fontSize = 12.sp, color = scheme.onSurfaceVariant)
+                Box(
+                    Modifier
+                        .size(36.dp)
+                        .background(
+                            when {
+                                isToday -> scheme.primary
+                                done -> scheme.primaryContainer
+                                else -> Color.Transparent
+                            },
+                            CircleShape
+                        )
+                        .then(if (!done && !isToday) Modifier.border(1.5.dp, scheme.outlineVariant, CircleShape) else Modifier),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (done) {
+                        Icon(
+                            Icons.Rounded.LocalFireDepartment,
+                            null,
+                            tint = if (isToday) scheme.onPrimary else scheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -229,7 +259,13 @@ fun CalendarSection(
     currentDateString: String,
     onMonthChange: (Int, Int) -> Unit
 ) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer
+    ) {
     Column(
+        modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Navigace měsíce
@@ -250,14 +286,15 @@ fun CalendarSection(
                 }
                 onMonthChange(newMonth, newYear)
             }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Předchozí měsíc")
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Předchozí měsíc")
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             Text(
                 text = monthYearString(calendarMonth, calendarYear),
-                style = MaterialTheme.typography.headlineSmall,
+                fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                fontSize = 19.sp,
                 fontWeight = FontWeight.SemiBold
             )
 
@@ -275,7 +312,7 @@ fun CalendarSection(
                 }
                 onMonthChange(newMonth, newYear)
             }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Další měsíc")
+                Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "Další měsíc")
             }
         }
 
@@ -287,6 +324,7 @@ fun CalendarSection(
             year = calendarYear,
             todayString = currentDateString
         )
+    }
     }
 }
 
@@ -409,13 +447,13 @@ fun CalendarStreak(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
+                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = day.dayNumber.toString(),
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 )
                             }
@@ -424,7 +462,8 @@ fun CalendarStreak(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
+                                    .border(2.dp, MaterialTheme.colorScheme.secondary, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(
@@ -437,7 +476,7 @@ fun CalendarStreak(
                                         )
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.Shield,
+                                        imageVector = Icons.Rounded.Shield,
                                         contentDescription = "Freeze",
                                         tint = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.size(8.dp)
@@ -510,9 +549,10 @@ fun monthYearString(month: Int, year: Int): String {
 }
 
 @Composable
-fun StreakFreezeCard(availableFreezes: Int) {
+fun StreakFreezeCard(availableFreezes: Int, onBuy: (() -> Unit)? = null) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
     ) {
         Row(
@@ -523,7 +563,7 @@ fun StreakFreezeCard(availableFreezes: Int) {
         ) {
             // Ikona vlevo přes celou výšku
             Icon(
-                imageVector = Icons.Default.Shield,
+                imageVector = Icons.Rounded.Shield,
                 contentDescription = "Zmražení řady",
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(48.dp)
@@ -533,7 +573,7 @@ fun StreakFreezeCard(availableFreezes: Int) {
             
             // Text vedle ikony
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             ) {
                 Text(
                     text = "Zmražení řady",
@@ -558,6 +598,14 @@ fun StreakFreezeCard(availableFreezes: Int) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
+            }
+            if (onBuy != null) {
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = onBuy,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                    shape = RoundedCornerShape(50)
+                ) { Text("Koupit", fontWeight = FontWeight.Bold) }
             }
         }
     }

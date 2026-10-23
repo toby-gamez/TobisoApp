@@ -24,9 +24,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -116,12 +116,12 @@ private data class ToolEntry(
 )
 
 private val tools = listOf(
-    ToolEntry(AiTool.FLASHCARDS, "Kartičky", Icons.Default.Style, Color(0xFF6C63FF), "Procvič si pojmy ve formátu otázka/odpověď"),
-    ToolEntry(AiTool.PRACTICE, "Procvičování", Icons.Default.Calculate, Color(0xFF20B2AA), "Úlohy ke článku s řešením"),
-    ToolEntry(AiTool.REAL_WORLD, "Reálný svět", Icons.Default.Public, Color(0xFF4CAF50), "Jak se téma využívá v reálném životě"),
-    ToolEntry(AiTool.WHAT_IF, "Co kdyby?", Icons.Default.Lightbulb, Color(0xFFFF9800), "Myšlenkový experiment k tématu"),
-    ToolEntry(AiTool.FEYNMAN, "Zkus to vysvětlit", Icons.Default.RecordVoiceOver, Color(0xFFE91E63), "Napiš vysvětlení – AI ohodnotí tvé porozumění"),
-    ToolEntry(AiTool.EXPLAIN, "Vysvětli větu", Icons.Default.QuestionMark, Color(0xFF2196F3), "Vlož větu nebo pojem k vysvětlení"),
+    ToolEntry(AiTool.FLASHCARDS, "Kartičky", Icons.Rounded.Style, Color(0xFF6C63FF), "Procvič si pojmy ve formátu otázka/odpověď"),
+    ToolEntry(AiTool.PRACTICE, "Procvičování", Icons.Rounded.Calculate, Color(0xFF20B2AA), "Úlohy ke článku s řešením"),
+    ToolEntry(AiTool.REAL_WORLD, "Reálný svět", Icons.Rounded.Public, Color(0xFF4CAF50), "Jak se téma využívá v reálném životě"),
+    ToolEntry(AiTool.WHAT_IF, "Co kdyby?", Icons.Rounded.Lightbulb, Color(0xFFFF9800), "Myšlenkový experiment k tématu"),
+    ToolEntry(AiTool.FEYNMAN, "Zkus to vysvětlit", Icons.Rounded.RecordVoiceOver, Color(0xFFE91E63), "Napiš vysvětlení – AI ohodnotí tvé porozumění"),
+    ToolEntry(AiTool.EXPLAIN, "Vysvětli větu", Icons.Rounded.QuestionMark, Color(0xFF2196F3), "Vlož větu nebo pojem k vysvětlení"),
 )
 
 @Composable
@@ -190,7 +190,7 @@ private fun AiToolHeader(tool: AiTool, onBack: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
         }
         Spacer(modifier = Modifier.width(4.dp))
         Icon(entry.icon, contentDescription = null, tint = entry.color, modifier = Modifier.size(22.dp))
@@ -215,7 +215,7 @@ private fun ErrorBox(msg: String, onRetry: () -> Unit) {
         Modifier.fillMaxWidth().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(40.dp))
+        Icon(Icons.Rounded.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(40.dp))
         Spacer(modifier = Modifier.height(8.dp))
         Text(msg, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(12.dp))
@@ -300,12 +300,12 @@ private fun FlashcardsContent(vm: AiToolsViewModel, postId: Int) {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     OutlinedButton(onClick = vm::prevFlashcard, enabled = index > 0) {
-                        Icon(Icons.Default.ChevronLeft, null)
+                        Icon(Icons.Rounded.ChevronLeft, null)
                         Text("Předchozí")
                     }
                     Button(onClick = vm::nextFlashcard, enabled = index < total - 1) {
                         Text("Další")
-                        Icon(Icons.Default.ChevronRight, null)
+                        Icon(Icons.Rounded.ChevronRight, null)
                     }
                 }
             }
@@ -389,7 +389,7 @@ private fun WhatIfContent(vm: AiToolsViewModel, postId: Int) {
             keyboardActions = KeyboardActions(onSend = { vm.submitWhatIf(postId) }),
             trailingIcon = {
                 IconButton(onClick = { vm.submitWhatIf(postId) }, enabled = state.whatIfQuestion.isNotBlank() && !state.isLoading) {
-                    Icon(Icons.AutoMirrored.Filled.Send, null)
+                    Icon(Icons.AutoMirrored.Rounded.Send, null)
                 }
             }
         )
@@ -405,7 +405,7 @@ private fun WhatIfContent(vm: AiToolsViewModel, postId: Int) {
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Lightbulb, null, tint = Color(0xFFFF9800), modifier = Modifier.size(20.dp))
+                            Icon(Icons.Rounded.Lightbulb, null, tint = Color(0xFFFF9800), modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("Scénář", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
@@ -444,7 +444,7 @@ private fun FeynmanContent(vm: AiToolsViewModel, postId: Int) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                Icon(Icons.Default.RecordVoiceOver, null, tint = Color(0xFFE91E63), modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.RecordVoiceOver, null, tint = Color(0xFFE91E63), modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Feynmanova technika: vysvětli téma vlastními slovy, jako bys ho vysvětloval/a kamarádovi. AI ohodnotí tvé porozumění.",
@@ -469,7 +469,7 @@ private fun FeynmanContent(vm: AiToolsViewModel, postId: Int) {
             enabled = state.feynmanText.isNotBlank() && !state.isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.Check, null)
+            Icon(Icons.Rounded.Check, null)
             Spacer(Modifier.width(8.dp))
             Text("Ohodnotit porozumění")
         }
@@ -596,7 +596,7 @@ private fun PracticeProblemCard(index: Int, problem: PracticeProblem, isExpanded
                 TextButton(onClick = onToggle) {
                     Text(if (isExpanded) "Skrýt řešení" else "Zobrazit řešení", fontSize = 13.sp)
                     Icon(
-                        if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                         null, modifier = Modifier.size(18.dp)
                     )
                 }

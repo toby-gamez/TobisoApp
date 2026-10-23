@@ -1,17 +1,24 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.compose.material3.Card
 import com.tobiso.tobisoappnative.navigation.CategoryListRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 import com.tobiso.tobisoappnative.navigation.ShopRoute
 import com.tobiso.tobisoappnative.navigation.StreakRoute
 
 import com.tobiso.tobisoappnative.R
-import com.tobiso.tobisoappnative.components.FloatingSearchBar
+import com.tobiso.tobisoappnative.components.*
+import com.tobiso.tobisoappnative.navigation.AiChatRoute
+import com.tobiso.tobisoappnative.utils.NetworkUtils
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import com.tobiso.tobisoappnative.components.GradeBadge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -23,8 +30,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -88,14 +95,15 @@ fun PostListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = post.title,
-                style = MaterialTheme.typography.titleMedium,
+                fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(6.dp))
@@ -169,17 +177,11 @@ fun getSubjectColorByName(subjectName: String): Color = subjectConfigMap[subject
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController) {
-    val isDark = isSystemInDarkTheme()
-    val logoRes = if (isDark) R.drawable.logo_dark else R.drawable.logo_light
     val context = LocalContext.current
-
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val gridState = rememberLazyGridState()
     val vm: HomeViewModel = hiltViewModel()
     var sortMode by remember { mutableStateOf(loadSortMode(context)) }
-    var dropdownExpanded by remember { mutableStateOf(false) }
     val state by vm.uiState.collectAsStateWithLifecycle()
-    val posts = state.posts
     val categories = state.categories
     val subjects = remember(categories) {
         val rootCategories = categories.filter { it.parentId == null && it.name != "More" }
@@ -189,17 +191,13 @@ fun HomeScreen(navController: NavHostController) {
         }
     }
     var selectedSubjectId by remember { mutableStateOf<Int?>(null) }
-    
-    LaunchedEffect(Unit) { 
-        vm.onIntent(HomeIntent.Load)
-    }
-    
-    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
-    val offlineDownloading = state.offlineDownloading
-    val offlineProgress = state.offlineDownloadProgress
-    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Collect one-shot effects
+    LaunchedEffect(Unit) { vm.onIntent(HomeIntent.Load) }
+
+    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val isOffline = !remember { NetworkUtils.isOnline(context) }
+
     LaunchedEffect(Unit) {
         vm.effect.collect { effect ->
             when (effect) {
@@ -209,259 +207,149 @@ fun HomeScreen(navController: NavHostController) {
         }
     }
 
+    val currentStreak = remember { mutableStateOf(0) }
+    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
+    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
+    LaunchedEffect(availableFreezes, usedFreezes) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            currentStreak.value = StreakUtils.getCurrentStreak(context)
+        }
+    }
+
+    val newestPosts by vm.newestPosts.collectAsStateWithLifecycle()
+    LaunchedEffect(state.posts, state.categories, selectedSubjectId, sortMode) {
+        if (sortMode == SortMode.NEWEST) vm.computeNewest(selectedSubjectId)
+    }
+    val categoryMap = remember(categories) { categories.associateBy { it.id } }
+    val rootWithChildren = remember(categories) {
+        categories.filter { it.parentId == null }.filter { root -> categories.any { it.parentId == root.id } }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
-            LargeTopAppBar(
-
-                title = {
-                    Text("Učivo",
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 1
-                    )
-                },
-                actions = {
-                    // Dropdown pro výběr zobrazení (předměty / nejnovější)
-                    IconButton(onClick = { dropdownExpanded = true }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Řazení")
-                    }
-                    DropdownMenu(
-                        expanded = dropdownExpanded,
-                        onDismissRequest = { dropdownExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Podle předmětů") },
-                            onClick = {
-                                sortMode = SortMode.SUBJECTS
-                                saveSortMode(context, SortMode.SUBJECTS)
-                                dropdownExpanded = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Nejnovější") },
-                            onClick = {
-                                sortMode = SortMode.NEWEST
-                                saveSortMode(context, SortMode.NEWEST)
-                                dropdownExpanded = false
-                            }
-                        )
-                    }
-                    // Zobrazení aktivního multiplikátoru
-                    MultiplierIndicator()
-                    
-                    // Zobrazení bodů s novým designem
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable { navController.navigate(ShopRoute) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Stars,
-                            contentDescription = "Body",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = formatPointsBalance(totalPointsFloat),
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    }
-                    // Offline download indicator / tlačítko
-                    if (offlineDownloading) {
-                        Box(modifier = Modifier.padding(end = 8.dp)) {
-                            CircularProgressIndicator(
-                                progress = { offlineProgress.coerceIn(0f, 1f) },
-                                modifier = Modifier.size(28.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    // Streak button s počtem dní (s freeze podporou)
-                    val currentStreak = remember { mutableStateOf(0) }
-                    
-                    // Sledování změn v freeze
-                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
-                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
-                    
-                    LaunchedEffect(availableFreezes, usedFreezes) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            currentStreak.value = StreakUtils.getCurrentStreak(context)
-                        }
-                    }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .clickable { navController.navigate(StreakRoute) }
-                    ) {
-                        if (currentStreak.value > 0) {
-                            Text(
-                                text = currentStreak.value.toString(),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.Whatshot,
-                            contentDescription = "Streak",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-            
-            // Obsah podle režimu (předměty / nejnovější)
             BoxWithConstraints {
-                val columns = getColumnCount(maxWidth)
-                when (sortMode) {
-                    SortMode.SUBJECTS -> {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(columns),
-                            state = gridState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Column {
-                                state.continueReading?.let {
-                                    ContinueReadingCard(
-                                        item = it,
-                                        onOpen = { id -> navController.navigate(PostDetailRoute(postId = id)) },
-                                        modifier = Modifier.padding(bottom = 8.dp)
+                val columns = if (maxWidth >= 600.dp) 3 else 2
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(columns),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(horizontal = 0.dp)) {
+                            LargeScreenHeader(
+                                title = "Učivo",
+                                modifier = Modifier.layout { m, c ->
+                                    val extra = 16.dp.roundToPx()
+                                    val p = m.measure(c.copy(maxWidth = c.maxWidth + extra * 2))
+                                    layout(c.maxWidth, p.height) { p.place(-extra, 0) }
+                                },
+                                actions = {
+                                    StatChip(
+                                        icon = Icons.Rounded.LocalFireDepartment,
+                                        text = currentStreak.value.toString(),
+                                        onClick = { navController.navigate(StreakRoute) }
+                                    )
+                                    StatChip(
+                                        icon = Icons.Rounded.Stars,
+                                        text = formatPointsBalance(totalPointsFloat),
+                                        onClick = { navController.navigate(ShopRoute) }
+                                    )
+                                },
+                                titleTrailing = { GradeChip(filled = false, modifier = Modifier.padding(bottom = 6.dp)) }
+                            )
+                            HomeSearchBar(
+                                navController = navController,
+                                posts = state.posts,
+                                categories = categories,
+                                isOffline = isOffline,
+                                horizontalPadding = 0.dp,
+                                onAiSend = { post, message ->
+                                    navController.navigate(
+                                        AiChatRoute(postId = post.id, postTitle = post.title, firstUserMessage = message)
                                     )
                                 }
-                                ArticleOfDayCard(
-                                    post = state.articleOfDay,
-                                    onOpenPost = { navController.navigate(PostDetailRoute(postId = it)) },
-                                    onRandom = { vm.onIntent(HomeIntent.OpenRandomArticle) }
-                                )
-                                }
-                            }
-                            items(subjects) { subject ->
-                                SubjectCard(
-                                    subject = subject,
-                                    onClick = { navController.navigate(CategoryListRoute(categoryName = subject.name)) }
-                                )
-                            }
-                        }
-                }
-                SortMode.NEWEST -> {
-                    // Tlačítka pro výběr předmětu (root kategorie se skutečnými potomky)
-                    val rootSubjects = remember(categories) { categories.filter { it.parentId == null } }
-                    val rootWithChildren = remember(categories) { rootSubjects.filter { root -> categories.any { it.parentId == root.id } } }
-
-                    val listState = rememberLazyListState()
-                    val coroutineScope = rememberCoroutineScope()
-                    var pendingScrollToTop by remember { mutableStateOf(false) }
-
-                    Column(modifier = Modifier.fillMaxSize()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        FilterChip(
-                            selected = selectedSubjectId == null,
-                            onClick = {
-                                // If we're switching from a subject to "Vše", always set a pending scroll
-                                // so newly inserted items above the current first become visible.
-                                // If we're already on "Vše", only scroll now if not at the top.
-                                if (selectedSubjectId != null) {
-                                    selectedSubjectId = null
-                                    pendingScrollToTop = true
-                                } else {
-                                    val atTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-                                    if (!atTop) coroutineScope.launch { listState.animateScrollToItem(0) }
-                                }
-                            },
-                            label = { Text("Vše") }
-                        )
-
-                        rootWithChildren.forEach { subj ->
-                            FilterChip(
-                                selected = selectedSubjectId == subj.id,
-                                onClick = { selectedSubjectId = subj.id },
-                                label = { Text(subj.name) }
                             )
-                        }
-                    }
-
-                    val categoryMap = remember(categories) { categories.associateBy { it.id } }
-                    val newestPosts by vm.newestPosts.collectAsStateWithLifecycle()
-
-                    LaunchedEffect(state.posts, state.categories, selectedSubjectId) {
-                        vm.computeNewest(selectedSubjectId)
-                    }
-
-                    LaunchedEffect(newestPosts) {
-                        if (pendingScrollToTop) {
-                            coroutineScope.launch { listState.animateScrollToItem(0) }
-                            pendingScrollToTop = false
-                        }
-                    }
-
-                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp)) {
-                        item(key = "article_of_day") {
-                            Column {
                             state.continueReading?.let {
-                                    ContinueReadingCard(
-                                        item = it,
-                                        onOpen = { id -> navController.navigate(PostDetailRoute(postId = id)) },
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    )
+                                ContinueReadingCard(
+                                    item = it,
+                                    onOpen = { id -> navController.navigate(PostDetailRoute(postId = id)) },
+                                    modifier = Modifier
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+                            ) {
+                                listOf(SortMode.SUBJECTS to "Předměty", SortMode.NEWEST to "Nejnovější").forEachIndexed { index, (mode, label) ->
+                                    if (index > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline))
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .background(if (sortMode == mode) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                                            .clickable { sortMode = mode; saveSortMode(context, mode) },
+                                        contentAlignment = Alignment.Center
+                                    ) { Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
                                 }
-                            ArticleOfDayCard(
-                                post = state.articleOfDay,
-                                onOpenPost = { navController.navigate(PostDetailRoute(postId = it)) },
-                                onRandom = { vm.onIntent(HomeIntent.OpenRandomArticle) },
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
+                            }
+                            if (sortMode == SortMode.NEWEST) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = selectedSubjectId == null,
+                                        onClick = { selectedSubjectId = null },
+                                        label = { Text("Vše") },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    rootWithChildren.forEach { subj ->
+                                        FilterChip(
+                                            selected = selectedSubjectId == subj.id,
+                                            onClick = { selectedSubjectId = subj.id },
+                                            label = { Text(subj.name) },
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
-                        items(items = newestPosts, key = { it.id }) { post ->
-                            PostListItem(
-                                post = post,
-                                categoryName = categoryMap[post.categoryId]?.name ?: "Nezařazeno",
-                                onClick = { navController.navigate(PostDetailRoute(postId = post.id)) }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
                     }
+                    if (sortMode == SortMode.SUBJECTS) {
+                        items(subjects) { subject ->
+                            SubjectCard(
+                                subject = subject,
+                                onClick = { navController.navigate(CategoryListRoute(categoryName = subject.name)) },
+                                modifier = Modifier
+                            )
+                        }
+                    } else {
+                        items(newestPosts, key = { it.id }, span = { GridItemSpan(maxLineSpan) }) { post ->
+                            Box {
+                                PostListItem(
+                                    post = post,
+                                    categoryName = categoryMap[post.categoryId]?.name ?: "Nezařazeno",
+                                    onClick = { navController.navigate(PostDetailRoute(postId = post.id)) }
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
-        }
-        
-        // Snackbar host (moved higher)
+
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 80.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 80.dp),
             contentAlignment = Alignment.TopCenter
         ) {
             SnackbarHost(hostState = snackbarHostState)
@@ -476,70 +364,50 @@ fun SubjectCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val (tintBg, tintFg) = subjectTint(subjectHue(subject.name))
     Card(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 100.dp)
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 148.dp).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             val subjectIcon = IconPackManager.getSubjectIcon(subject.name)
             val isEmoji = IconPackManager.isEmojiIcon(subject.name)
-            
-            // Ikona nebo emoji
-            if (isEmoji && subjectIcon is String) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .padding(4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = subjectIcon,
-                        fontSize = 28.sp,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Clip
-                    )
-                }
-            } else {
-                Box(
-                    modifier = Modifier.size(48.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+            Box(
+                modifier = Modifier.size(44.dp).clip(CircleShape).background(tintBg),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isEmoji && subjectIcon is String) {
+                    Text(subjectIcon, fontSize = 22.sp, maxLines = 1)
+                } else {
                     Icon(
                         imageVector = subjectIcon as ImageVector,
                         contentDescription = subject.name,
-                        tint = subject.color,
-                        modifier = Modifier.size(32.dp)
+                        tint = tintFg,
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
+            Text(
+                text = subject.name,
+                fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 17.sp,
+                color = scheme.onSurface
+            )
+            if (subject.description.isNotEmpty()) {
                 Text(
-                    text = subject.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = subject.description,
+                    fontSize = 12.5.sp,
+                    lineHeight = 17.sp,
+                    color = scheme.onSurfaceVariant
                 )
-                if (subject.description.isNotEmpty()) {
-                    Text(
-                        text = subject.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }

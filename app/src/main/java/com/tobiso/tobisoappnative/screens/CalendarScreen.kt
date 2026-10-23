@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import androidx.compose.material3.Card
 import timber.log.Timber
 
 import com.tobiso.tobisoappnative.navigation.EventDetailRoute
@@ -15,7 +16,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
+import com.tobiso.tobisoappnative.components.*
+import androidx.compose.ui.layout.layout
+import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -215,14 +219,23 @@ fun CalendarScreen(
     // Hlavní Box pro celou obrazovku
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
+            modifier = Modifier.fillMaxSize()
         ) {
-            // LargeTopAppBar s akcemi
-            LargeTopAppBar(
-                title = { Text("Kalendář", style = MaterialTheme.typography.titleLarge) },
-                actions = {
+            // Obsah kalendáře
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, bottom = 110.dp)
+            ) {
+                Box(Modifier.layout { m, c ->
+                    val extra = 16.dp.roundToPx()
+                    val p = m.measure(c.copy(maxWidth = c.maxWidth + extra * 2))
+                    layout(c.maxWidth, p.height) { p.place(-extra, 0) }
+                }) {
+                LargeScreenHeader(
+                    title = "Kalendář",
+                    actions = {
                     // Filter dropdown - přesunut doleva
                     Box {
                         Row(
@@ -230,7 +243,7 @@ fun CalendarScreen(
                             modifier = Modifier.clickable { showFilterDropdown = true }
                         ) {
                             Icon(
-                                Icons.Default.FilterList,
+                                Icons.Rounded.FilterList,
                                 contentDescription = "Filtrovat události",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
@@ -258,7 +271,7 @@ fun CalendarScreen(
                                             if (filter == currentFilter) {
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Icon(
-                                                    Icons.Default.Check,
+                                                    Icons.Rounded.Check,
                                                     contentDescription = "Vybráno",
                                                     modifier = Modifier.size(16.dp),
                                                     tint = MaterialTheme.colorScheme.primary
@@ -275,83 +288,35 @@ fun CalendarScreen(
                         }
                     }
                     
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    // Zobrazení bodů s novým designem
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable { navController?.navigate(ShopRoute) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Stars,
-                            contentDescription = "Body",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = formatPointsBalance(totalPointsFloat),
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    }
-                    
-                    // Zobrazení aktivního multiplikátoru
-                    MultiplierIndicator()
-                    
-                    // Streak button s počtem dní (s freeze podporou)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { navController?.navigate(StreakRoute) }
-                    ) {
-                        if (currentStreak.value > 0) {
-                            Text(
-                                text = currentStreak.value.toString(),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.Whatshot,
-                            contentDescription = "Streak",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    // Offline download progress indicator (small circle)
-                    val offlineDownloading = homeState.offlineDownloading
-                    val offlineProgress = homeState.offlineDownloadProgress
-                    if (offlineDownloading) {
-                        Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(
-                                progress = offlineProgress.coerceIn(0f, 1f),
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(20.dp)
-                            )
+                        OutlinedButton(
+                            onClick = {
+                                val now = Calendar.getInstance()
+                                currentMonth = now.get(Calendar.MONTH)
+                                currentYear = now.get(Calendar.YEAR)
+                                viewModel.onIntent(CalendarIntent.SelectDate(now.time))
+                                showDateDetail = true
+                            },
+                            modifier = Modifier.height(36.dp),
+                            shape = RoundedCornerShape(50),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            contentPadding = PaddingValues(start = 10.dp, end = 14.dp)
+                        ) {
+                            Icon(Icons.Rounded.Today, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Dnes", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         }
                     }
-                },
-                scrollBehavior = scrollBehavior,
-            )
-            
-            // Obsah kalendáře
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
-            ) {
+                )
+                }
+                Spacer(Modifier.height(14.dp))
                 // Header s navigací měsíců
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                Column(Modifier.padding(12.dp)) {
                 CalendarHeader(
                     currentMonth = currentMonth,
                     currentYear = currentYear,
@@ -397,7 +362,7 @@ fun CalendarScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Default.Close,
+                                Icons.Rounded.Close,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.size(20.dp)
@@ -428,6 +393,16 @@ fun CalendarScreen(
                             if (signedIn) showAddChooser = true else showAddEventDialog = true
                         }
                     )
+                }
+                }
+                }
+                Row(Modifier.padding(start = 8.dp, top = 10.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    listOf("Moje události" to MaterialTheme.colorScheme.primary, "Prázdniny a svátky" to MaterialTheme.colorScheme.secondary).forEach { (label, color) ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(Modifier.size(8.dp).background(color, CircleShape))
+                            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                 }
 
                 // Detail vybraného dne
@@ -469,6 +444,58 @@ fun CalendarScreen(
                         }
                     )
                 }
+                run {
+                    val startOfToday = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                    }.time
+                    val upcoming = events
+                        .filter { currentFilter.matches(it) && (it.startDate?.let { d -> !d.before(startOfToday) } == true) }
+                        .sortedBy { it.startDate }
+                        .take(4)
+                    if (upcoming.isNotEmpty()) {
+                        SectionLabel("Nejbližší", Modifier.padding(horizontal = 0.dp))
+                        GroupedList {
+                            upcoming.forEachIndexed { index, ev ->
+                                if (index > 0) GroupedListDivider()
+                                val holiday = ev.eventType == EventType.DayOff
+                                val cal = Calendar.getInstance().apply { time = ev.startDate!! }
+                                val month = SimpleDateFormat("LLL", Locale.forLanguageTag("cs-CZ")).format(ev.startDate!!)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { navController?.navigate(EventDetailRoute(eventId = ev.id)) }
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .background(
+                                                if (holiday) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primaryContainer,
+                                                RoundedCornerShape(14.dp)
+                                            ),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        val fg = if (holiday) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                                        Text(cal.get(Calendar.DAY_OF_MONTH).toString(), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = fg)
+                                        Text(month, fontSize = 10.5.sp, color = fg)
+                                    }
+                                    Column(Modifier.weight(1f)) {
+                                        Text(ev.getTitleSafe(), fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                        Text(
+                                            SimpleDateFormat("EEEE", Locale.forLanguageTag("cs-CZ")).format(ev.startDate!!).replaceFirstChar { it.uppercase() } +
+                                                if (ev.isAllDay == true) " · celý den" else "",
+                                            fontSize = 12.5.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 if (isOfflineMode) {
                     val hasCachedApiEvents = events.any { !it.isLocalSafe() }
@@ -493,8 +520,8 @@ fun CalendarScreen(
         }
         
         // Floating Action Button
-        FloatingActionButton(
-            onClick = { 
+        ExtendedFloatingActionButton(
+            onClick = {
                 editingEvent = null
                 selectedDateForNewEvent = Calendar.getInstance().time
                 if (signedIn) showAddChooser = true else showAddEventDialog = true
@@ -502,16 +529,16 @@ fun CalendarScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
-            containerColor = MaterialTheme.colorScheme.primary
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = RoundedCornerShape(20.dp)
         ) {
-            Icon(
-                Icons.Default.Add,
-                contentDescription = "Přidat událost",
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
+            Icon(Icons.Rounded.Add, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Událost", fontWeight = FontWeight.Bold)
         }
     }
-    
+
     // Přihlášený uživatel si vybírá, kam událost uloží
     if (showAddChooser) {
         AlertDialog(
@@ -639,17 +666,18 @@ fun CalendarHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onPreviousMonth) {
-            Icon(Icons.Default.ChevronLeft, contentDescription = "Předchozí měsíc")
+            Icon(Icons.Rounded.ChevronLeft, contentDescription = "Předchozí měsíc")
         }
 
         Text(
             text = "${monthNames[currentMonth]} $currentYear",
-            style = MaterialTheme.typography.headlineSmall,
+            fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+            fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
 
         IconButton(onClick = onNextMonth) {
-            Icon(Icons.Default.ChevronRight, contentDescription = "Další měsíc")
+            Icon(Icons.Rounded.ChevronRight, contentDescription = "Další měsíc")
         }
     }
 }
@@ -737,6 +765,8 @@ fun CalendarGrid(
                                     day = dayNumber,
                                     hasEvents = dayEvents.isNotEmpty(),
                                     eventCount = dayEvents.size,
+                                    hasHoliday = dayEvents.any { it.eventType == EventType.DayOff },
+                                    hasOwn = dayEvents.any { it.eventType != EventType.DayOff },
                                     isToday = isToday(dayDate),
                                     isSelected = isSelected,
                                     onClick = { onDateClick(dayDate) },
@@ -767,79 +797,31 @@ fun CalendarDay(
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    hasHoliday: Boolean = false,
+    hasOwn: Boolean = true
 ) {
+    val scheme = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .padding(2.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(
-                when {
-                    isToday -> MaterialTheme.colorScheme.primary
-                    hasEvents -> MaterialTheme.colorScheme.primaryContainer
-                    else -> Color.Transparent
-                }
-            )
-            .border(
-                width = if (isSelected) 3.dp else 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.secondary 
-                       else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
+            .clip(CircleShape)
+            .background(if (isToday) scheme.primary else Color.Transparent)
+            .then(if (isSelected && !isToday) Modifier.border(2.dp, scheme.primary, CircleShape) else Modifier)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = day.toString(),
-                fontSize = 14.sp,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                color = when {
-                    isToday -> MaterialTheme.colorScheme.onPrimary
-                    hasEvents -> MaterialTheme.colorScheme.onPrimaryContainer
-                    else -> MaterialTheme.colorScheme.onSurface
-                }
+                fontSize = 15.sp,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isToday) scheme.onPrimary else scheme.onSurface
             )
-            
-            if (hasEvents) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(top = 2.dp)
-                ) {
-                    // Ukažeme až 3 tečky pro eventy
-                    repeat(minOf(eventCount, 3)) {
-                        Box(
-                            modifier = Modifier
-                                .size(4.dp)
-                                .background(
-                                    color = if (isToday) MaterialTheme.colorScheme.onPrimary 
-                                           else MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                )
-                        )
-                        if (it < minOf(eventCount, 3) - 1) {
-                            Spacer(modifier = Modifier.width(2.dp))
-                        }
-                    }
-                    
-                    // Pokud je více než 3 eventy, ukážeme "+2" atd.
-                    if (eventCount > 3) {
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = "+${eventCount - 3}",
-                            fontSize = 8.sp,
-                            color = if (isToday) MaterialTheme.colorScheme.onPrimary 
-                                   else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.padding(top = 1.dp).height(5.dp)) {
+                if (hasEvents && hasOwn) Box(Modifier.size(5.dp).background(if (isToday) scheme.onPrimary else scheme.primary, CircleShape))
+                if (hasEvents && hasHoliday) Box(Modifier.size(5.dp).background(if (isToday) scheme.onPrimary else scheme.secondary, CircleShape))
             }
         }
     }
@@ -860,8 +842,8 @@ fun DateDetailCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -873,13 +855,14 @@ fun DateDetailCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = dateFormat.format(date),
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = dateFormat.format(date).replaceFirstChar { it.uppercase() },
+                    fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 
                 IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, contentDescription = "Zavřít")
+                    Icon(Icons.Rounded.Close, contentDescription = "Zavřít")
                 }
             }
 
@@ -1053,7 +1036,7 @@ fun EventItem(
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.LocationOn,
+                                Icons.Rounded.LocationOn,
                                 contentDescription = "Místo",
                                 modifier = Modifier.size(14.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1071,7 +1054,7 @@ fun EventItem(
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.Repeat,
+                                Icons.Rounded.Repeat,
                                 contentDescription = "Opakování",
                                 modifier = Modifier.size(14.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1099,7 +1082,7 @@ fun EventItem(
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.Edit,
+                                    Icons.Rounded.Edit,
                                     contentDescription = "Upravit",
                                     modifier = Modifier.size(16.dp),
                                     tint = MaterialTheme.colorScheme.primary
@@ -1113,7 +1096,7 @@ fun EventItem(
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    Icons.Rounded.Delete,
                                     contentDescription = "Smazat",
                                     modifier = Modifier.size(16.dp),
                                     tint = MaterialTheme.colorScheme.error

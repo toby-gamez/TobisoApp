@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.outlined.Backpack
 import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material3.*
@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun BackpackScreen(
     navController: NavController,
+    embedded: Boolean = false,
     vm: BackpackViewModel = hiltViewModel()
 ) {
     val backpackItems by BackpackManager.instance.backpackItems.collectAsStateWithLifecycle()
@@ -87,17 +88,25 @@ fun BackpackScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         // Top App Bar
+        if (!embedded) {
         TopAppBar(
             title = { Text("Aktovka", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             },
             actions = {
-                MultiplierIndicator()
+                val points by com.tobiso.tobisoappnative.PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+                com.tobiso.tobisoappnative.components.StatChip(
+                    icon = Icons.Rounded.Stars,
+                    text = com.tobiso.tobisoappnative.components.formatPointsBalance(points),
+                    onClick = { navController.navigate(com.tobiso.tobisoappnative.navigation.ShopRoute) }
+                )
+                Spacer(modifier = Modifier.width(12.dp))
             }
         )
+        }
         
         if (backpackItems.isEmpty()) {
             // Prázdná aktovka
@@ -144,6 +153,41 @@ fun BackpackScreen(
                 }
             }
         } else {
+            // Zásoby
+            run {
+                val freezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
+                val food by com.tobiso.tobisoappnative.PetManager.foodCount.collectAsStateWithLifecycle()
+                val water by com.tobiso.tobisoappnative.PetManager.waterCount.collectAsStateWithLifecycle()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        Triple(Icons.Rounded.Shield, "$freezes/3", "Zmražení"),
+                        Triple(Icons.Rounded.Restaurant, "${food}×", "Krmivo"),
+                        Triple(Icons.Rounded.WaterDrop, "${water}×", "Voda")
+                    ).forEach { (icon, value, label) ->
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
+                                .padding(horizontal = 8.dp, vertical = 14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(icon, null, tint = MaterialTheme.colorScheme.secondary)
+                            Text(
+                                value,
+                                fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                                lineHeight = 20.sp
+                            )
+                            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
             // Kategorie navigace
             LazyRow(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -196,10 +240,10 @@ fun BackpackScreen(
                         item(key = "header_$category") {
                             Text(
                                 text = category.displayName,
-                                style = MaterialTheme.typography.headlineSmall,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(vertical = 16.dp)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 4.dp, top = 14.dp, bottom = 2.dp)
                             )
                         }
                         currentIndex++
@@ -301,12 +345,9 @@ fun BackpackCategoryChip(
     FilterChip(
         selected = isActive,
         onClick = onClick,
-        label = {
-            Text(
-                text = category.displayName,
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
-            )
-        }
+        shape = RoundedCornerShape(10.dp),
+        leadingIcon = if (isActive) ({ Icon(Icons.Rounded.Check, null, modifier = Modifier.size(18.dp)) }) else null,
+        label = { Text(text = category.displayName, fontWeight = FontWeight.SemiBold) }
     )
 }
 
@@ -319,13 +360,15 @@ fun BackpackItemCard(
     val containerColor = if (isEquipped) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainer
     }
     
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(
@@ -435,26 +478,26 @@ fun BackpackItemCard(
                                         } else {
                                             Icon(
                                                 imageVector = when (subjectIcon.icon) {
-                                                    "edit" -> Icons.Default.Edit
-                                                    "library_books" -> Icons.Default.LibraryBooks
-                                                    "article" -> Icons.Default.Article
-                                                    "music_note" -> Icons.Default.MusicNote
-                                                    "functions" -> Icons.Default.Functions
-                                                    "biotech" -> Icons.Default.Biotech
-                                                    "bolt" -> Icons.Default.Bolt
-                                                    "local_florist" -> Icons.Default.LocalFlorist
-                                                    "language" -> Icons.Default.Language
+                                                    "edit" -> Icons.Rounded.Edit
+                                                    "library_books" -> Icons.Rounded.LibraryBooks
+                                                    "article" -> Icons.Rounded.Article
+                                                    "music_note" -> Icons.Rounded.MusicNote
+                                                    "functions" -> Icons.Rounded.Functions
+                                                    "biotech" -> Icons.Rounded.Biotech
+                                                    "bolt" -> Icons.Rounded.Bolt
+                                                    "local_florist" -> Icons.Rounded.LocalFlorist
+                                                    "language" -> Icons.Rounded.Language
                                                     // Přidáno mapování pro klasické ikony
-                                                    "spellcheck" -> Icons.Default.Spellcheck
-                                                    "menu_book" -> Icons.Default.MenuBook
-                                                    "description" -> Icons.Default.Description
-                                                    "library_music" -> Icons.Default.LibraryMusic
-                                                    "calculate" -> Icons.Default.Calculate
-                                                    "science" -> Icons.Default.Science
-                                                    "precision_manufacturing" -> Icons.Default.PrecisionManufacturing
-                                                    "eco" -> Icons.Default.Eco
-                                                    "public" -> Icons.Default.Public
-                                                    else -> Icons.Default.Book
+                                                    "spellcheck" -> Icons.Rounded.Spellcheck
+                                                    "menu_book" -> Icons.Rounded.MenuBook
+                                                    "description" -> Icons.Rounded.Description
+                                                    "library_music" -> Icons.Rounded.LibraryMusic
+                                                    "calculate" -> Icons.Rounded.Calculate
+                                                    "science" -> Icons.Rounded.Science
+                                                    "precision_manufacturing" -> Icons.Rounded.PrecisionManufacturing
+                                                    "eco" -> Icons.Rounded.Eco
+                                                    "public" -> Icons.Rounded.Public
+                                                    else -> Icons.Rounded.Book
                                                 },
                                                 contentDescription = subjectIcon.subjectName,
                                                 tint = getSubjectColorByName(subjectIcon.subjectName),
@@ -549,7 +592,7 @@ fun BackpackItemCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CheckCircle,
+                                imageVector = Icons.Rounded.CheckCircle,
                                 contentDescription = "Vybaveno",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
@@ -692,26 +735,26 @@ fun BackpackItemDialog(
                                             } else {
                                                 Icon(
                                                     imageVector = when (subjectIcon.icon) {
-                                                        "edit" -> Icons.Default.Edit
-                                                        "library_books" -> Icons.Default.LibraryBooks
-                                                        "article" -> Icons.Default.Article
-                                                        "music_note" -> Icons.Default.MusicNote
-                                                        "functions" -> Icons.Default.Functions
-                                                        "biotech" -> Icons.Default.Biotech
-                                                        "bolt" -> Icons.Default.Bolt
-                                                        "local_florist" -> Icons.Default.LocalFlorist
-                                                        "language" -> Icons.Default.Language
+                                                        "edit" -> Icons.Rounded.Edit
+                                                        "library_books" -> Icons.Rounded.LibraryBooks
+                                                        "article" -> Icons.Rounded.Article
+                                                        "music_note" -> Icons.Rounded.MusicNote
+                                                        "functions" -> Icons.Rounded.Functions
+                                                        "biotech" -> Icons.Rounded.Biotech
+                                                        "bolt" -> Icons.Rounded.Bolt
+                                                        "local_florist" -> Icons.Rounded.LocalFlorist
+                                                        "language" -> Icons.Rounded.Language
                                                         // Přidáno mapování pro klasické ikony
-                                                        "spellcheck" -> Icons.Default.Spellcheck
-                                                        "menu_book" -> Icons.Default.MenuBook
-                                                        "description" -> Icons.Default.Description
-                                                        "library_music" -> Icons.Default.LibraryMusic
-                                                        "calculate" -> Icons.Default.Calculate
-                                                        "science" -> Icons.Default.Science
-                                                        "precision_manufacturing" -> Icons.Default.PrecisionManufacturing
-                                                        "eco" -> Icons.Default.Eco
-                                                        "public" -> Icons.Default.Public
-                                                        else -> Icons.Default.Book
+                                                        "spellcheck" -> Icons.Rounded.Spellcheck
+                                                        "menu_book" -> Icons.Rounded.MenuBook
+                                                        "description" -> Icons.Rounded.Description
+                                                        "library_music" -> Icons.Rounded.LibraryMusic
+                                                        "calculate" -> Icons.Rounded.Calculate
+                                                        "science" -> Icons.Rounded.Science
+                                                        "precision_manufacturing" -> Icons.Rounded.PrecisionManufacturing
+                                                        "eco" -> Icons.Rounded.Eco
+                                                        "public" -> Icons.Rounded.Public
+                                                        else -> Icons.Rounded.Book
                                                     },
                                                     contentDescription = subjectIcon.subjectName,
                                                     tint = getSubjectColorByName(subjectIcon.subjectName),
@@ -768,7 +811,7 @@ fun BackpackItemDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CheckCircle,
+                            imageVector = Icons.Rounded.CheckCircle,
                             contentDescription = "Vybaveno",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)

@@ -10,9 +10,13 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.rounded.Refresh
+import com.tobiso.tobisoappnative.components.AnswerRow
+import com.tobiso.tobisoappnative.components.AnswerState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -172,14 +176,14 @@ fun QuestionsScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                         }
                     },
                     actions = {
                         if (showResults) {
                             IconButton(onClick = { restartQuiz(startImmediately = false)                             }) {
                                 Icon(
-                                    imageVector = Icons.Filled.Refresh,
+                                    imageVector = Icons.Rounded.Refresh,
                                     contentDescription = "Restart kvízu",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -233,7 +237,7 @@ fun QuestionsScreen(
                                 modifier = Modifier.padding(32.dp)
                             ) {
                                 Icon(
-                                    Icons.Filled.QuestionMark,
+                                    Icons.Rounded.QuestionMark,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(64.dp)
@@ -340,7 +344,7 @@ fun QuestionsScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Icon(
-                                                imageVector = if (isCorrect) Icons.Filled.CheckCircle else Icons.Filled.Close,
+                                                imageVector = if (isCorrect) Icons.Rounded.CheckCircle else Icons.Rounded.Close,
                                                 contentDescription = if (isCorrect) "Správně" else "Špatně",
                                                 tint = if (isCorrect) com.tobiso.tobisoappnative.ui.theme.StatusColors.success else com.tobiso.tobisoappnative.ui.theme.StatusColors.danger
                                             )
@@ -491,7 +495,7 @@ fun QuestionsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        Icons.Filled.Quiz,
+                                        Icons.Rounded.Quiz,
                                         contentDescription = null,
                                         modifier = Modifier.size(24.dp),
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -526,9 +530,9 @@ fun QuestionsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        if (hasTextQuestions && hasMultipleChoice) Icons.Filled.EditNote
-                                        else if (hasTextQuestions) Icons.Filled.Edit
-                                        else Icons.Filled.RadioButtonChecked,
+                                        if (hasTextQuestions && hasMultipleChoice) Icons.Rounded.EditNote
+                                        else if (hasTextQuestions) Icons.Rounded.Edit
+                                        else Icons.Rounded.RadioButtonChecked,
                                         contentDescription = null,
                                         modifier = Modifier.size(24.dp),
                                         tint = MaterialTheme.colorScheme.onSecondaryContainer
@@ -568,7 +572,7 @@ fun QuestionsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        Icons.Filled.Assessment,
+                                        Icons.Rounded.Assessment,
                                         contentDescription = null,
                                         modifier = Modifier.size(24.dp),
                                         tint = MaterialTheme.colorScheme.onTertiaryContainer
@@ -596,7 +600,7 @@ fun QuestionsScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Filled.WifiOff,
+                                            Icons.Rounded.WifiOff,
                                             contentDescription = "Offline režim",
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(20.dp)
@@ -639,31 +643,38 @@ fun QuestionsScreen(
                                     .verticalScroll(rememberScrollState())
                             ) {
                                 // Progress bar
-                                LinearProgressIndicator(
-                                    progress = { (currentQuestionIndex + 1).toFloat() / totalQuestions },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                
-                                Spacer(modifier = Modifier.height(24.dp))
-                                
-                                // Otázka
-                                Card {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-                                        Text(
-                                            "Otázka ${currentQuestionIndex + 1} ze $totalQuestions",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            question.text,
-                                            style = MaterialTheme.typography.headlineSmall
-                                        )
-                                    }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    LinearProgressIndicator(
+                                        progress = { (currentQuestionIndex + 1).toFloat() / totalQuestions },
+                                        modifier = Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        gapSize = 0.dp,
+                                        drawStopIndicator = {}
+                                    )
+                                    Text(
+                                        "${currentQuestionIndex + 1} / $totalQuestions",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
-                                
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                Text(
+                                    question.text,
+                                    fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 26.sp,
+                                    lineHeight = 32.sp
+                                )
+
                                 Spacer(modifier = Modifier.height(24.dp))
-                                
+
                                 val checked = currentQuestionIndex in checkedQuestions
 
                                 // Možnosti odpovědí nebo textové pole
@@ -729,41 +740,20 @@ fun QuestionsScreen(
                                         answerOrder.forEach { origIdx ->
                                             val option = question.options[origIdx]
                                             val isChecked = multiSelectedAnswers[currentQuestionIndex]?.contains(origIdx) == true
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 4.dp)
-                                                    .clickable(enabled = !checked) {
-                                                        val current = multiSelectedAnswers[currentQuestionIndex]?.toMutableSet() ?: mutableSetOf()
-                                                        if (isChecked) current.remove(origIdx) else current.add(origIdx)
-                                                        multiSelectedAnswers = multiSelectedAnswers.toMutableMap().apply {
-                                                            put(currentQuestionIndex, current)
-                                                        }
-                                                    },
-                                                colors = CardDefaults.cardColors(
-                                                    containerColor = answerContainerColor(
-                                                        checked = checked,
-                                                        isSelected = isChecked,
-                                                        isCorrectOption = origIdx in question.correctAnswers
-                                                    )
-                                                )
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(16.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Checkbox(
-                                                        checked = isChecked,
-                                                        onCheckedChange = null,
-                                                        enabled = !checked
-                                                    )
-                                                    Spacer(modifier = Modifier.width(12.dp))
-                                                    Text(
-                                                        option,
-                                                        style = MaterialTheme.typography.bodyLarge
-                                                    )
+                                            AnswerRow(
+                                                letter = 'A' + answerOrder.indexOf(origIdx),
+                                                text = option,
+                                                modifier = Modifier.padding(vertical = 4.dp),
+                                                enabled = !checked,
+                                                state = answerStateOf(checked, isChecked, origIdx in question.correctAnswers),
+                                                onClick = {
+                                                    val current = multiSelectedAnswers[currentQuestionIndex]?.toMutableSet() ?: mutableSetOf()
+                                                    if (isChecked) current.remove(origIdx) else current.add(origIdx)
+                                                    multiSelectedAnswers = multiSelectedAnswers.toMutableMap().apply {
+                                                        put(currentQuestionIndex, current)
+                                                    }
                                                 }
-                                            }
+                                            )
                                         }
                                     }
                                 } else {
@@ -777,46 +767,20 @@ fun QuestionsScreen(
                                             val option = question.options[origIdx]
                                             val isSelected = selectedAnswers[currentQuestionIndex] == origIdx
 
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 4.dp)
-                                                    .selectable(
-                                                        selected = isSelected,
-                                                        enabled = !checked,
-                                                        onClick = {
-                                                            // Single choice is checked instantly, as on the web.
-                                                            selectedAnswers = selectedAnswers.toMutableMap().apply {
-                                                                put(currentQuestionIndex, origIdx)
-                                                            }
-                                                            checkedQuestions = checkedQuestions + currentQuestionIndex
-                                                        },
-                                                        role = Role.RadioButton
-                                                    ),
-                                                colors = CardDefaults.cardColors(
-                                                    containerColor = answerContainerColor(
-                                                        checked = checked,
-                                                        isSelected = isSelected,
-                                                        isCorrectOption = origIdx == question.correctAnswer
-                                                    )
-                                                )
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(16.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    RadioButton(
-                                                        selected = isSelected,
-                                                        onClick = null,
-                                                        enabled = !checked
-                                                    )
-                                                    Spacer(modifier = Modifier.width(12.dp))
-                                                    Text(
-                                                        option,
-                                                        style = MaterialTheme.typography.bodyLarge
-                                                    )
+                                            AnswerRow(
+                                                letter = 'A' + answerOrder.indexOf(origIdx),
+                                                text = option,
+                                                modifier = Modifier.padding(vertical = 4.dp),
+                                                enabled = !checked,
+                                                state = answerStateOf(checked, isSelected, origIdx == question.correctAnswer),
+                                                onClick = {
+                                                    // Single choice is checked instantly, as on the web.
+                                                    selectedAnswers = selectedAnswers.toMutableMap().apply {
+                                                        put(currentQuestionIndex, origIdx)
+                                                    }
+                                                    checkedQuestions = checkedQuestions + currentQuestionIndex
                                                 }
-                                            }
+                                            )
                                         }
                                     }
                                 }
@@ -857,36 +821,34 @@ fun QuestionsScreen(
                                 // Navigační tlačítka
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     if (currentQuestionIndex > 0) {
                                         OutlinedButton(
-                                            onClick = { currentQuestionIndex-- }
-                                        ) {
-                                            Text("Předchozí")
-                                        }
-                                    } else {
-                                        Spacer(modifier = Modifier.width(1.dp))
+                                            onClick = { currentQuestionIndex-- },
+                                            modifier = Modifier.weight(1f).height(52.dp),
+                                            shape = RoundedCornerShape(50)
+                                        ) { Text("Předchozí", fontWeight = FontWeight.SemiBold) }
                                     }
-                                    
+
                                     // The next step unlocks once this question has been checked.
                                     val hasAnswered = checked
-                                    
+
                                     if (currentQuestionIndex < totalQuestions - 1) {
                                         Button(
                                             onClick = { currentQuestionIndex++ },
-                                            enabled = hasAnswered
-                                        ) {
-                                            Text("Další")
-                                        }
+                                            enabled = hasAnswered,
+                                            modifier = Modifier.weight(1f).height(52.dp),
+                                            shape = RoundedCornerShape(50)
+                                        ) { Text("Další →", fontWeight = FontWeight.Bold) }
                                     } else {
                                         val allAnswered = shuffledQuestions.indices.all { it in checkedQuestions }
                                         Button(
                                             onClick = { showResults = true },
-                                            enabled = hasAnswered && allAnswered
-                                        ) {
-                                            Text("Dokončit")
-                                        }
+                                            enabled = hasAnswered && allAnswered,
+                                            modifier = Modifier.weight(1f).height(52.dp),
+                                            shape = RoundedCornerShape(50)
+                                        ) { Text("Dokončit", fontWeight = FontWeight.Bold) }
                                     }
                                 }
                             }
@@ -896,6 +858,13 @@ fun QuestionsScreen(
             }
         
     }
+}
+
+private fun answerStateOf(checked: Boolean, isSelected: Boolean, isCorrectOption: Boolean): AnswerState = when {
+    !checked -> if (isSelected) AnswerState.Selected else AnswerState.Idle
+    isCorrectOption -> AnswerState.Correct
+    isSelected -> AnswerState.Wrong
+    else -> AnswerState.Idle
 }
 
 /** Container color of an answer row: neutral before checking; sage = correct, terracotta = the user's wrong pick. */
@@ -913,7 +882,7 @@ private fun QuestionFeedback(correct: Boolean, correctTextAnswer: String?, expla
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = if (correct) Icons.Filled.CheckCircle else Icons.Filled.Close,
+                imageVector = if (correct) Icons.Rounded.CheckCircle else Icons.Rounded.Close,
                 contentDescription = null,
                 tint = if (correct) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
             )
@@ -934,7 +903,7 @@ private fun QuestionFeedback(correct: Boolean, correctTextAnswer: String?, expla
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
             ) {
                 Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Filled.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Icon(Icons.Rounded.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
                     Text(explanation, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
             }

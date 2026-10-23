@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -96,7 +96,7 @@ fun AddEditEventDialog(
                     )
                     
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Zavřít")
+                        Icon(Icons.Rounded.Close, contentDescription = "Zavřít")
                     }
                 }
                 
@@ -204,7 +204,7 @@ fun AddEditEventDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        Icons.Default.CalendarToday,
+                                        Icons.Rounded.CalendarToday,
                                         contentDescription = null,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -223,7 +223,7 @@ fun AddEditEventDialog(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Default.AccessTime,
+                                            Icons.Rounded.AccessTime,
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -260,7 +260,7 @@ fun AddEditEventDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        Icons.Default.CalendarToday,
+                                        Icons.Rounded.CalendarToday,
                                         contentDescription = null,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -279,7 +279,7 @@ fun AddEditEventDialog(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Default.AccessTime,
+                                            Icons.Rounded.AccessTime,
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -408,7 +408,7 @@ fun AddEditEventDialog(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            Icons.Default.CalendarToday,
+                                            Icons.Rounded.CalendarToday,
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -423,7 +423,7 @@ fun AddEditEventDialog(
                                     IconButton(
                                         onClick = { recurrenceEndDate = null }
                                     ) {
-                                        Icon(Icons.Default.Clear, contentDescription = "Zrušit konec")
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Zrušit konec")
                                     }
                                 }
                             }

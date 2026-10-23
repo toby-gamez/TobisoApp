@@ -13,11 +13,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -401,7 +401,7 @@ fun FloatingSearchBar(
                                         .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.AttachFile,
+                                        imageVector = Icons.Rounded.AttachFile,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
@@ -420,7 +420,7 @@ fun FloatingSearchBar(
                                         modifier = Modifier.size(28.dp)
                                     ) {
                                         Icon(
-                                            Icons.Default.Clear,
+                                            Icons.Rounded.Clear,
                                             contentDescription = "Odpojit článek",
                                             modifier = Modifier.size(14.dp)
                                         )
@@ -447,7 +447,7 @@ fun FloatingSearchBar(
                                 },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = if (aiMode) Icons.Filled.AutoAwesome else Icons.Default.Search,
+                                    imageVector = if (aiMode) Icons.Rounded.AutoAwesome else Icons.Rounded.Search,
                                     contentDescription = if (aiMode) "AI mod" else "Hledat",
                                     tint = if (aiMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
                                 )
@@ -455,7 +455,7 @@ fun FloatingSearchBar(
                             trailingIcon = {
                                     if (searchText.isNotEmpty()) {
                                     IconButton(onClick = { searchText = "" }) {
-                                        Icon(Icons.Default.Clear, contentDescription = "Smazat")
+                                        Icon(Icons.Rounded.Clear, contentDescription = "Smazat")
                                     }
                                 }
                             },
@@ -506,9 +506,9 @@ fun FloatingSearchBar(
                         ) {
                             Icon(
                                 imageVector = when {
-                                    aiMode && attachedPost != null && searchText.isNotEmpty() -> Icons.Default.Send
-                                    aiMode -> Icons.Default.Search
-                                    else -> Icons.Filled.AutoAwesome
+                                    aiMode && attachedPost != null && searchText.isNotEmpty() -> Icons.Rounded.Send
+                                    aiMode -> Icons.Rounded.Search
+                                    else -> Icons.Rounded.AutoAwesome
                                 },
                                 contentDescription = when {
                                     isOffline && !aiMode -> "AI nedostupné (offline)"

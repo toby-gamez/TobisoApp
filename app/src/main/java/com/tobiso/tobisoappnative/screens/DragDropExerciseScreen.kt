@@ -1,12 +1,13 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.Card
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +22,7 @@ import com.tobiso.tobisoappnative.viewmodel.dragdrop.DragDropExerciseIntent
 import com.tobiso.tobisoappnative.viewmodel.dragdrop.DragDropExerciseViewModel
 import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
 import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.tobiso.tobisoappnative.model.*
 import com.tobiso.tobisoappnative.PointsManager
@@ -76,13 +77,13 @@ fun DragDropExerciseScreen(
                 title = { Text(state.exerciseTitle.ifEmpty { "Drag & Drop cvičení" }, style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                     }
                 },
                 actions = {
                     if (!state.instructionsMarkdown.isNullOrEmpty()) {
                         IconButton(onClick = { ttsViewModel.speak(state.instructionsMarkdown ?: "") }) {
-                            Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Číst nahlas")
+                            Icon(Icons.AutoMirrored.Rounded.VolumeUp, contentDescription = "Číst nahlas")
                         }
                     }
                 }

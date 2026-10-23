@@ -3,7 +3,7 @@ package com.tobiso.tobisoappnative.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,7 +35,7 @@ fun AiConsentDialog(
         onDismissRequest = onDismissed,
         icon = {
             Icon(
-                imageVector = Icons.Filled.AutoAwesome,
+                imageVector = Icons.Rounded.AutoAwesome,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )

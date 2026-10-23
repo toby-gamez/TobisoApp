@@ -14,8 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -73,7 +73,7 @@ fun SentenceSelectPanel(
                     .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.TouchApp, null, tint = accentColor, modifier = Modifier.size(18.dp))
+                Icon(Icons.Rounded.TouchApp, null, tint = accentColor, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Klepni na větu k vysvětlení",
@@ -81,7 +81,7 @@ fun SentenceSelectPanel(
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, null)
+                    Icon(Icons.Rounded.Close, null)
                 }
             }
 
@@ -127,7 +127,7 @@ fun SentenceSelectPanel(
                                             )
                                         } else {
                                             Icon(
-                                                Icons.AutoMirrored.Filled.Send, null,
+                                                Icons.AutoMirrored.Rounded.Send, null,
                                                 tint = Color.White,
                                                 modifier = Modifier.size(17.dp)
                                             )
@@ -139,7 +139,7 @@ fun SentenceSelectPanel(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            Icons.Default.Clear, null,
+                                            Icons.Rounded.Clear, null,
                                             modifier = Modifier.size(15.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -164,7 +164,7 @@ fun SentenceSelectPanel(
                             ) {
                                 Column(Modifier.padding(12.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.QuestionMark, null, tint = accentColor, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Rounded.QuestionMark, null, tint = accentColor, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(6.dp))
                                         Text("Vysvětlení", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     }
@@ -215,7 +215,7 @@ fun SentenceSelectPanel(
                                 onClick = { vm.submitExplain(postId) },
                                 enabled = state.explainInput.isNotBlank() && !state.isLoading
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, null)
+                                Icon(Icons.AutoMirrored.Rounded.Send, null)
                             }
                         }
                     )

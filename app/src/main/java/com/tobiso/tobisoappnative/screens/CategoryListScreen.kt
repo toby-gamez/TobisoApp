@@ -25,10 +25,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,7 +36,12 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.TimeZone
-import com.tobiso.tobisoappnative.components.FloatingSearchBar
+import com.tobiso.tobisoappnative.components.*
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.ui.unit.sp
 import com.tobiso.tobisoappnative.components.GradeBadge
 import com.tobiso.tobisoappnative.utils.loadGradeId
 import com.tobiso.tobisoappnative.viewmodel.categorylist.CategoryListViewModel
@@ -78,7 +83,19 @@ fun CategoryListScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text(parentCategoryName, style = MaterialTheme.typography.headlineLarge) },
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        navController.navigate(com.tobiso.tobisoappnative.navigation.HomeRoute) {
+                            popUpTo(com.tobiso.tobisoappnative.navigation.HomeRoute) { inclusive = true }
+                        }
+                    }) { Icon(Icons.Rounded.Search, contentDescription = "Hledat", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
 
@@ -107,7 +124,7 @@ fun CategoryListScreen(
                             modifier = Modifier.padding(32.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Description,
+                                imageVector = Icons.Rounded.Description,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(64.dp)
@@ -129,150 +146,192 @@ fun CategoryListScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
-                        if (filteredCategories.isNotEmpty()) {
-                            if (hasBoth) {
-                                item {
-                                    Text(
-                                        text = "Podkategorie",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 6.dp)
-                                    )
-                                }
+                        item {
+                            val parentOfParent = parentCategory?.parentId?.let { pid -> categories.find { it.id == pid }?.name }
+                            Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp)) {
+                                Text(
+                                    text = parentOfParent ?: "Učivo",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = parentCategoryName,
+                                    fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 30.sp,
+                                    lineHeight = 34.sp
+                                )
+                                Text(
+                                    text = "${displayItems.size} článků",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                            items(filteredCategories) { category ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { navController.navigate(CategoryListRoute(categoryName = category.name)) }
-                                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                        }
+                        if (filteredCategories.isNotEmpty()) {
+                            item { SectionLabel("Oblasti") }
+                            if (displayItems.isEmpty()) item {
+                                GroupedList(Modifier.padding(horizontal = 16.dp)) {
+                                    filteredCategories.forEachIndexed { index, category ->
+                                        if (index > 0) GroupedListDivider()
+                                        GroupedListRow(
+                                            title = category.name,
+                                            leading = {
+                                                IconCircle(
+                                                    icon = Icons.Rounded.Folder,
+                                                    size = 36.dp,
+                                                    background = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            },
+                                            onClick = { navController.navigate(CategoryListRoute(categoryName = category.name)) }
+                                        )
+                                    }
+                                }
+                            } else item {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Outlined.Folder,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Text(
-                                        text = category.name,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.weight(1f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Icon(
-                                        Icons.Default.ChevronRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    items(filteredCategories) { category ->
+                                        Card(
+                                            onClick = { navController.navigate(CategoryListRoute(categoryName = category.name)) },
+                                            shape = RoundedCornerShape(20.dp),
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                                            elevation = CardDefaults.cardElevation(0.dp),
+                                            modifier = Modifier.widthIn(min = 118.dp)
+                                        ) {
+                                            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                                                Icon(
+                                                    Icons.Rounded.Folder,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(22.dp)
+                                                )
+                                                Spacer(Modifier.height(8.dp))
+                                                Text(
+                                                    text = category.name,
+                                                    fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 17.sp,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                val n = summaries.count { it.categoryId == category.id }
+                                                if (n > 0) {
+                                                    Text(
+                                                        "$n ${com.tobiso.tobisoappnative.utils.pluralCs(n, "článek", "články", "článků")}",
+                                                        fontSize = 12.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
 
                         if (displayItems.isNotEmpty()) {
-                            if (hasBoth) {
-                                item {
-                                    Text(
-                                        text = "Články",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 6.dp)
-                                    )
-                                }
-                            }
-                            items(displayItems) { item ->
-                                val postId = when (item) {
-                                    is PostSummaryResponse -> item.id
-                                    is Post -> item.id
-                                    else -> return@items
-                                }
-                                val postTitle = when (item) {
-                                    is PostSummaryResponse -> item.title
-                                    is Post -> (item as Post).title
-                                    else -> ""
-                                }
-                                val lastEdit = when (item) {
-                                    is PostSummaryResponse -> item.lastEdit
-                                    is Post -> (item as Post).lastEdit
-                                    else -> null
-                                }
-                                val lastFix = when (item) {
-                                    is PostSummaryResponse -> item.lastFix
-                                    is Post -> (item as Post).lastFix
-                                    else -> null
-                                }
-                                val createdAt = when (item) {
-                                    is Post -> (item as Post).createdAt
-                                    else -> null
-                                }
-                                val gradeName = when (item) {
-                                    is PostSummaryResponse -> bestMatchGradeName(item.availableGradeNames, selectedGradeId, grades)
-                                    is Post -> (item as Post).activeVersion?.gradeName
-                                    else -> null
-                                }
-                                val postForFavorite = when (item) {
-                                    is Post -> item as Post
-                                    is PostSummaryResponse -> Post(id = item.id, title = item.title, filePath = item.filePath, categoryId = item.categoryId)
-                                    else -> null
-                                }
-                                val locale = java.util.Locale("cs", "CZ")
-                                val inputFmt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply { timeZone = TimeZone.getTimeZone("UTC") }
-                                val outputFmt = java.text.SimpleDateFormat("dd. MM. yyyy", locale).apply { timeZone = TimeZone.getDefault() }
-                                val formatted = listOfNotNull(lastEdit, lastFix, createdAt)
-                                    .mapNotNull { try { inputFmt.parse(it) } catch (_: Exception) { null } }
-                                    .maxOrNull()?.let { outputFmt.format(it) } ?: ""
-
-                                val isFavorite = favoritePosts.any { it.id == postId }
+                            item {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { navController.navigate(PostDetailRoute(postId = postId)) }
-                                        .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+                                    Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.MenuBook,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = postTitle,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        if (formatted.isNotBlank()) {
-                                            Text(
-                                                text = formatted,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                            )
-                                        }
-                                        if (gradeName != null) {
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            GradeBadge(gradeName = gradeName)
-                                        }
+                                    Text("Články v „$parentCategoryName“", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Rounded.Sort, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                        Text("Podle osnovy", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                                     }
-                                    IconButton(onClick = {
-                                        if (isFavorite) vm.unsavePost(postId)
-                                        else postForFavorite?.let { vm.savePost(it) }
-                                    }) {
-                                        Icon(
-                                            imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.Star,
-                                            contentDescription = if (isFavorite) "Odebrat z oblíbených" else "Uložit do oblíbených",
-                                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                                }
+                            }
+                            item {
+                                GroupedList(Modifier.padding(horizontal = 16.dp)) {
+                                    displayItems.forEachIndexed { index, item ->
+                                        val postId = when (item) {
+                                            is PostSummaryResponse -> item.id
+                                            is Post -> item.id
+                                            else -> return@forEachIndexed
+                                        }
+                                        val postTitle = when (item) {
+                                            is PostSummaryResponse -> item.title
+                                            is Post -> item.title
+                                            else -> ""
+                                        }
+                                        val lastEdit = (item as? PostSummaryResponse)?.lastEdit ?: (item as? Post)?.lastEdit
+                                        val lastFix = (item as? PostSummaryResponse)?.lastFix ?: (item as? Post)?.lastFix
+                                        val createdAt = (item as? Post)?.createdAt
+                                        val gradeName = when (item) {
+                                            is PostSummaryResponse -> bestMatchGradeName(item.availableGradeNames, selectedGradeId, grades)
+                                            is Post -> item.activeVersion?.gradeName
+                                            else -> null
+                                        }
+                                        val postForFavorite = when (item) {
+                                            is Post -> item
+                                            is PostSummaryResponse -> Post(id = item.id, title = item.title, filePath = item.filePath, categoryId = item.categoryId)
+                                            else -> null
+                                        }
+                                        val locale = java.util.Locale("cs", "CZ")
+                                        val inputFmt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS", locale).apply { timeZone = TimeZone.getTimeZone("UTC") }
+                                        val outputFmt = java.text.SimpleDateFormat("dd. MM. yyyy", locale).apply { timeZone = TimeZone.getDefault() }
+                                        val formatted = listOfNotNull(lastEdit, lastFix, createdAt)
+                                            .mapNotNull { try { inputFmt.parse(it) } catch (_: Exception) { null } }
+                                            .maxOrNull()?.let { outputFmt.format(it) } ?: ""
+                                        val isFavorite = favoritePosts.any { it.id == postId }
+
+                                        if (index > 0) GroupedListDivider()
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { navController.navigate(PostDetailRoute(postId = postId)) }
+                                                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            IconCircle(
+                                                icon = Icons.AutoMirrored.Rounded.MenuBook,
+                                                size = 36.dp,
+                                                background = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                tint = MaterialTheme.colorScheme.secondary
+                                            )
+                                            Spacer(modifier = Modifier.width(14.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = postTitle,
+                                                    fontSize = 16.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    if (gradeName != null) GradeBadge(gradeName = gradeName)
+                                                    if (formatted.isNotBlank()) {
+                                                        Text(
+                                                            text = formatted,
+                                                            fontSize = 13.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    if (isFavorite) vm.unsavePost(postId)
+                                                    else postForFavorite?.let { vm.savePost(it) }
+                                                },
+                                                modifier = Modifier.size(44.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarOutline,
+                                                    contentDescription = if (isFavorite) "Odebrat z oblíbených" else "Uložit do oblíbených",
+                                                    tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }

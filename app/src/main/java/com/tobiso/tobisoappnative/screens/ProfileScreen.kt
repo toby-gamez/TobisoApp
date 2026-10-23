@@ -4,10 +4,10 @@ import com.tobiso.tobisoappnative.utils.pluralCs
 import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.navigation.AuthRoute
 import com.tobiso.tobisoappnative.navigation.ClassesRoute
-import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.rounded.School
 import com.tobiso.tobisoappnative.viewmodel.auth.AccountViewModel
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.Devices
 import com.tobiso.tobisoappnative.navigation.AiChatHistoryRoute
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
 import com.tobiso.tobisoappnative.navigation.ShopRoute
@@ -22,6 +22,12 @@ import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import com.tobiso.tobisoappnative.components.GroupedList
+import com.tobiso.tobisoappnative.components.GroupedListRow
+import com.tobiso.tobisoappnative.components.IconCircle
+import com.tobiso.tobisoappnative.components.SectionLabel
+import com.tobiso.tobisoappnative.components.StatChip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.tobiso.tobisoappnative.utils.generatePointsAchievements
@@ -118,94 +124,8 @@ fun ProfileScreen(navController: NavController) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
+            modifier = Modifier.fillMaxSize()
         ) {
-            LargeTopAppBar(
-                title = { Text("Profil", style = MaterialTheme.typography.titleLarge) },
-                actions = {
-                    // Zobrazení aktivního multiplikátoru
-                    MultiplierIndicator()
-                    
-                    // Zobrazení bodů s novým designem
-                    val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable { navController.navigate(ShopRoute) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Stars,
-                            contentDescription = "Body",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = formatPointsBalance(totalPointsFloat),
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    }
-                    
-                    // Streak button s počtem dní (s freeze podporou)
-                    val context = LocalContext.current
-                    val currentStreak = remember { mutableStateOf(0) }
-                    
-                    // Sledování změn v freeze
-                    val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
-                    val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
-                    
-                    LaunchedEffect(availableFreezes, usedFreezes) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            currentStreak.value = com.tobiso.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
-                        }
-                    }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { navController.navigate(StreakRoute) }
-                    ) {
-                        if (currentStreak.value > 0) {
-                            Text(
-                                text = currentStreak.value.toString(),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.Whatshot,
-                            contentDescription = "Streak",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    // Offline download progress indicator (small circle)
-                    val offlineDownloading by vm.offlineDownloading.collectAsStateWithLifecycle()
-                    val offlineProgress by vm.offlineDownloadProgress.collectAsStateWithLifecycle()
-                    if (offlineDownloading) {
-                        Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(
-                                progress = { offlineProgress.coerceIn(0f, 1f) },
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-
             if (postLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -219,56 +139,60 @@ fun ProfileScreen(navController: NavController) {
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
+                    item { Spacer(Modifier.height(56.dp)) }
                     item { ProfileSection(navController = navController, grades = grades) }
+                    item { ProfileStatCards(navController) }
                     item { AccountSection(navController = navController) }
                     item { PetCareSection() }
                     item { EquippedQuoteSection(navController = navController) }
                     item { AchievementsSection() }
 
-                    item { ProfileSectionHeader("Aktivita") }
+                    item { ProfileSectionHeader("Moje věci") }
                     item {
                         ProfileNavGroup {
                             ProfileNavRow(
-                                icon = Icons.Default.Whatshot,
-                                title = "Streak",
-                                subtitle = "Sleduj svou sérii a zmrazování",
-                                onClick = { navController.navigate(StreakRoute) }
+                                icon = Icons.Rounded.Storefront,
+                                title = "Obchod",
+                                subtitle = "Utrať body za vylepšení a zvířátka",
+                                onClick = { navController.navigate(ShopRoute) }
                             )
-                        }
-                    }
-
-                    item { ProfileSectionHeader("Knihovna") }
-                    item {
-                        ProfileNavGroup {
+                            ProfileDivider()
                             ProfileNavRow(
-                                icon = Icons.Default.Favorite,
+                                icon = Icons.Rounded.Backpack,
+                                title = "Aktovka",
+                                subtitle = "Tvoje věci a vylepšení k použití",
+                                onClick = { navController.navigate(BackpackRoute) }
+                            )
+                            ProfileDivider()
+                            ProfileNavRow(
+                                icon = Icons.Rounded.Favorite,
                                 title = "Oblíbené",
                                 subtitle = "Tvé uložené útržky a články",
                                 onClick = { navController.navigate(FavoritesRoute) }
                             )
-                            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                            ProfileDivider()
                             ProfileNavRow(
-                                icon = Icons.Default.Forum,
-                                title = "Nedávné AI chaty",
+                                icon = Icons.Rounded.Forum,
+                                title = "AI konverzace",
                                 subtitle = "Prohlédni nebo pokračuj v konverzacích",
                                 onClick = { navController.navigate(AiChatHistoryRoute) }
                             )
                         }
                     }
 
-                    item { ProfileSectionHeader("Nastavení") }
+                    item { ProfileSectionHeader("Aplikace") }
                     item {
                         ProfileNavGroup {
                             ProfileNavRow(
-                                icon = Icons.Default.CloudDownload,
-                                title = "Správce offline dat",
+                                icon = Icons.Rounded.CloudDownload,
+                                title = "Offline data",
                                 subtitle = "Správa a stažení offline dat",
                                 onClick = { navController.navigate(OfflineManagerRoute) }
                             )
-                            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                            ProfileDivider()
                             ProfileNavRow(
-                                icon = Icons.Default.Update,
-                                title = "Aktualizátor",
+                                icon = Icons.Rounded.Update,
+                                title = "Aktualizace",
                                 subtitle = "Aktualizuj si aplikaci",
                                 onClick = { navController.navigate(UpdaterRoute) }
                             )
@@ -279,21 +203,21 @@ fun ProfileScreen(navController: NavController) {
                     item {
                         ProfileNavGroup {
                             ProfileNavRow(
-                                icon = Icons.Default.RateReview,
+                                icon = Icons.Rounded.RateReview,
                                 title = "Zpětná vazba",
                                 subtitle = "Napište nám, co byste chtěli změnit",
                                 onClick = { navController.navigate(FeedbackRoute) }
                             )
-                            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                            ProfileDivider()
                             ProfileNavRow(
-                                icon = Icons.Default.Info,
+                                icon = Icons.Rounded.Info,
                                 title = "O aplikaci",
                                 subtitle = "Vše o aplikaci Tobiso",
                                 onClick = { navController.navigate(AboutRoute) }
                             )
-                            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                            ProfileDivider()
                             ProfileNavRow(
-                                icon = Icons.Default.History,
+                                icon = Icons.Rounded.History,
                                 title = "Deník změn",
                                 subtitle = "Novinky a opravy",
                                 onClick = { navController.navigate(ChangelogRoute) }
@@ -310,9 +234,9 @@ fun ProfileScreen(navController: NavController) {
                         item {
                             ProfileNavGroup {
                                 filteredPosts.forEachIndexed { index, post ->
-                                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                                    if (index > 0) ProfileDivider()
                                     ProfileNavRow(
-                                        icon = Icons.Default.Description,
+                                        icon = Icons.Rounded.Description,
                                         title = post.title,
                                         subtitle = when (post.title) {
                                             "O mně" -> "Něco drobného o autoru aplikace"
@@ -534,293 +458,128 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(2.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        val equippedQuoteText = BackpackManager.instance.equippedQuote.collectAsStateWithLifecycle().value?.quote
+            ?.split(" - ")?.let { if (it.size > 1) it.dropLast(1).joinToString(" - ") else it.first() }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                // Gradient hero header (top 110 dp)
+            // Avatar with prestige border
+            PrestigeAvatarBorder(tier = prestigeTier, surfaceColor = MaterialTheme.colorScheme.surface) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp)
-                        .background(heroBrush)
+                        .size(76.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .clickable { showFullscreenImage = true },
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Prestige shimmer + particles overlay
-                    PrestigeHeroOverlay(tier = prestigeTier)
-
-                    // Theme badge – top right
-                    equippedTheme?.let { theme ->
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(10.dp)
-                                .background(Color.White.copy(alpha = 0.22f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(theme.powerUpIcon ?: "🎨", fontSize = 12.sp)
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = theme.name,
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    if (profileImageUri != null) {
+                        AsyncImage(
+                            model = File(profileImageUri!!),
+                            contentDescription = "Profilový obrázek",
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            profileName.firstOrNull()?.uppercase() ?: "?",
+                            fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 30.sp,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
                     }
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .clickable { imagePickerLauncher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PhotoCamera,
+                        contentDescription = "Změnit obrázek",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
 
-                    // Pet emoji – bottom left, tap to show speech bubble
+            Column(Modifier.weight(1f)) {
+                if (isEditingName) {
+                    OutlinedTextField(
+                        value = tempName,
+                        onValueChange = { tempName = it },
+                        label = { Text("Jméno") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            Row {
+                                IconButton(onClick = {
+                                    profileName = tempName
+                                    saveProfileName(context, tempName)
+                                    isEditingName = false
+                                }) { Icon(Icons.Rounded.Check, contentDescription = "Uložit") }
+                                IconButton(onClick = {
+                                    tempName = profileName
+                                    isEditingName = false
+                                }) { Icon(Icons.Rounded.Close, contentDescription = "Zrušit") }
+                            }
+                        }
+                    )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { isEditingName = true; tempName = profileName }
+                    ) {
+                        Text(
+                            text = profileName.ifEmpty { "Nastav jméno" },
+                            fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 28.sp,
+                            lineHeight = 31.sp,
+                            color = if (profileName.isEmpty()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Icon(Icons.Rounded.Edit, contentDescription = "Upravit jméno", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                equippedQuoteText?.let {
+                    Text(
+                        "„$it“",
+                        fontSize = 14.sp,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    com.tobiso.tobisoappnative.components.GradeChip(filled = true)
                     equippedPet?.petIcon?.let { petIcon ->
                         Box(
                             modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(start = 16.dp, bottom = 10.dp)
-                                .size(38.dp)
+                                .size(26.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.25f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
                                 .clickable {
                                     currentBubbleText = getRandomBubbleForPet(petIcon)
                                     showPetBubble = true
                                 },
                             contentAlignment = Alignment.Center
-                        ) {
-                            Text(petIcon, fontSize = 20.sp)
-                        }
+                        ) { Text(petIcon, fontSize = 14.sp) }
                     }
-                }
-
-                // Content column – avatar straddles the gradient / surface boundary
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Spacer: 110 dp gradient − 40 dp (half of 80 dp avatar) = 70 dp
-                    Spacer(Modifier.height(70.dp))
-
-                    // Avatar with prestige border
-                    val surfaceColor = MaterialTheme.colorScheme.surface
-                    PrestigeAvatarBorder(tier = prestigeTier, surfaceColor = surfaceColor) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .clickable { showFullscreenImage = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (profileImageUri != null) {
-                                AsyncImage(
-                                    model = File(profileImageUri!!),
-                                    contentDescription = "Profilový obrázek",
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Profilový obrázek",
-                                    modifier = Modifier.size(36.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-
-                        // Camera button
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .size(26.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                                .clickable { imagePickerLauncher.launch("image/*") },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PhotoCamera,
-                                contentDescription = "Změnit obrázek",
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    // Name / inline edit
-                    if (isEditingName) {
-                        OutlinedTextField(
-                            value = tempName,
-                            onValueChange = { tempName = it },
-                            label = { Text("Jméno") },
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp),
-                            trailingIcon = {
-                                Row {
-                                    IconButton(onClick = {
-                                        profileName = tempName
-                                        saveProfileName(context, tempName)
-                                        isEditingName = false
-                                    }) {
-                                        Icon(Icons.Default.Check, contentDescription = "Uložit")
-                                    }
-                                    IconButton(onClick = {
-                                        tempName = profileName
-                                        isEditingName = false
-                                    }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Zrušit")
-                                    }
-                                }
-                            }
-                        )
-                    } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable {
-                                isEditingName = true
-                                tempName = profileName
-                            }
-                        ) {
-                            Text(
-                                text = profileName.ifEmpty { "Nastav jméno" },
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (profileName.isEmpty())
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Upravit jméno",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    // Points pill + backpack button
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .clickable { navController.navigate(ShopRoute) }
-                                .padding(horizontal = 18.dp, vertical = 8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Stars,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    text = "${formatPointsBalance(totalPointsFloat)} bodů",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.width(12.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .clickable { navController.navigate(BackpackRoute) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Backpack,
-                                contentDescription = "Aktovka",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        if (grades.isNotEmpty()) {
-                            var selectedGradeId by remember { mutableStateOf(loadGradeId(context)) }
-                            LaunchedEffect(grades) {
-                                if (selectedGradeId == null && grades.isNotEmpty()) {
-                                    val default = grades.find { it.level == 9 } ?: grades.last()
-                                    selectedGradeId = default.id
-                                    saveGradeId(context, default.id)
-                                }
-                            }
-                            val selectedGrade = grades.find { it.id == selectedGradeId }
-                            var expanded by remember { mutableStateOf(false) }
-
-                            Spacer(Modifier.width(12.dp))
-
-                            Box {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .background(
-                                            MaterialTheme.colorScheme.primaryContainer,
-                                            RoundedCornerShape(14.dp)
-                                        )
-                                        .clickable { expanded = true }
-                                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                                ) {
-                                    Text(
-                                        text = selectedGrade?.name ?: grades.firstOrNull()?.name ?: "",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(Modifier.width(6.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDropDown,
-                                        contentDescription = "Vybrat ročník",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    grades.forEach { grade ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    text = grade.name,
-                                                    fontWeight = if (selectedGradeId == grade.id) FontWeight.Bold else FontWeight.Normal
-                                                )
-                                            },
-                                            onClick = {
-                                                selectedGradeId = grade.id
-                                                saveGradeId(context, grade.id)
-                                                expanded = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    equippedTheme?.let { theme ->
+                        Text("${theme.powerUpIcon ?: "🎨"} ${theme.name}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                 }
             }
@@ -924,7 +683,7 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = Icons.Rounded.Person,
                         contentDescription = "Profilový obrázek",
                         modifier = Modifier.size(200.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -938,7 +697,7 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                         .padding(16.dp)
                         .background(Color.Black.copy(alpha = 0.5f), CircleShape)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Zavřít", tint = Color.White)
+                    Icon(Icons.Rounded.Close, contentDescription = "Zavřít", tint = Color.White)
                 }
             }
         }
@@ -1000,112 +759,88 @@ fun PetCareSection() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(2.dp)
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
             if (petHealth == PetHealth.ALIVE) {
-                // Growth stage + progress bar
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "${equippedPet!!.petIcon ?: "🐾"} ",
-                        fontSize = 24.sp
-                    )
-                    Text(
-                        text = stage.emoji,
-                        fontSize = 18.sp
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stage.displayName,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = "${(growthLevel * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                val nowMs = System.currentTimeMillis()
+                val hMs = 60 * 60 * 1000L
+                val fedAt = PetManager.getLastFedTime(petId)
+                val wateredAt = PetManager.getLastWateredTime(petId)
+                val hFed = if (fedAt > 0) (nowMs - fedAt) / hMs else 0L
+                val hWater = if (wateredAt > 0) (nowMs - wateredAt) / hMs else 0L
+                val hungry = hFed >= PetManager.HUNGER_WARNING_HOURS
+                val thirsty = hWater >= PetManager.THIRST_WARNING_HOURS
+                val fullness = (1f - hFed.toFloat() / (PetManager.HUNGER_WARNING_HOURS * 2f)).coerceIn(0f, 1f)
+                val hydration = (1f - hWater.toFloat() / (PetManager.THIRST_WARNING_HOURS * 2f)).coerceIn(0f, 1f)
+                val sec = MaterialTheme.colorScheme.secondary
+                val onSc = MaterialTheme.colorScheme.onSecondaryContainer
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Progress bar
-                LinearProgressIndicator(
-                    progress = { growthLevel },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = when (stage) {
-                        GrowthStage.BABY -> Color(0xFFFF9800)
-                        GrowthStage.ADOLESCENT -> Color(0xFF4CAF50)
-                        GrowthStage.ADULT -> Color(0xFF2196F3)
-                        GrowthStage.FULLY_GROWN -> Color(0xFF9C27B0)
-                    },
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-
-                // Hunger/thirst warning reminder
-                val now = System.currentTimeMillis()
-                val hourMs = 60 * 60 * 1000L
-                val lastFed = PetManager.getLastFedTime(petId)
-                val lastWatered = PetManager.getLastWateredTime(petId)
-                val hoursSinceFed = if (lastFed > 0) (now - lastFed) / hourMs else 0L
-                val hoursSinceWatered = if (lastWatered > 0) (now - lastWatered) / hourMs else 0L
-
-                val isHungry = hoursSinceFed >= PetManager.HUNGER_WARNING_HOURS
-                val isThirsty = hoursSinceWatered >= PetManager.THIRST_WARNING_HOURS
-
-                if (isThirsty || isHungry) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = Color(0xFFFFF3E0).copy(alpha = 0.7f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color(0xFFE65100),
-                            modifier = Modifier.size(18.dp)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(
+                        Modifier.size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.background),
+                        contentAlignment = Alignment.Center
+                    ) { Text(equippedPet!!.petIcon ?: "🐾", fontSize = 28.sp) }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            equippedPet!!.name,
+                            fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 19.sp,
+                            lineHeight = 21.sp
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        if (isThirsty && isHungry) {
-                            Text(
-                                text = "Zvířátko má hlad a žízeň!",
-                                color = Color(0xFFE65100),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        } else if (isThirsty) {
-                            Text(
-                                text = "Zvířátko má žízeň! Napoj ho.",
-                                color = Color(0xFFE65100),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        } else {
-                            Text(
-                                text = "Zvířátko má hlad! Nakrm ho.",
-                                color = Color(0xFFE65100),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
+                        Text(
+                            when {
+                                thirsty && hungry -> "Zvířátko má hlad a žízeň!"
+                                thirsty -> "Zvířátko má žízeň! Napoj ho."
+                                hungry -> "Zvířátko má hlad! Nakrm ho."
+                                else -> "${stage.emoji} ${stage.displayName} · ${(growthLevel * 100).toInt()} %"
+                            },
+                            fontSize = 13.sp,
+                            modifier = Modifier.alpha(0.85f)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    @Composable
+                    fun RowScope.Bar(label: String, value: Float, color: Color) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text("${(value * 100).toInt()} %", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                            LinearProgressIndicator(
+                                progress = { value },
+                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                                color = color,
+                                trackColor = onSc.copy(alpha = 0.15f),
+                                gapSize = 0.dp,
+                                drawStopIndicator = {}
                             )
                         }
                     }
+                    Bar("Sytost", fullness, if (hungry) MaterialTheme.colorScheme.primary else sec)
+                    Bar("Žízeň", hydration, if (thirsty) MaterialTheme.colorScheme.primary else sec)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LinearProgressIndicator(
+                        progress = { growthLevel },
+                        modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)),
+                        color = sec,
+                        trackColor = onSc.copy(alpha = 0.15f),
+                        gapSize = 0.dp,
+                        drawStopIndicator = {}
+                    )
+                    Text("${stage.emoji} ${stage.displayName}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1129,14 +864,21 @@ fun PetCareSection() {
                         },
                         enabled = foodCount > 0 && canFeed,
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(50),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF9800),
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                            containerColor = Color.Transparent,
+                            contentColor = onSc,
+                            disabledContainerColor = Color.Transparent,
+                            disabledContentColor = onSc.copy(alpha = 0.5f)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, onSc.copy(alpha = 0.35f)),
+                        contentPadding = PaddingValues(horizontal = 8.dp)
                     ) {
+                        Icon(Icons.Rounded.Restaurant, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(
-                            if (canFeed) "🍖 Nakrmit" else "🍖 Plné bříško",
-                            fontSize = 12.sp
+                            if (canFeed) "Nakrmit · ${foodCount}×" else "Plné bříško",
+                            fontSize = 14.sp, fontWeight = FontWeight.Bold
                         )
                     }
 
@@ -1155,14 +897,20 @@ fun PetCareSection() {
                         },
                         enabled = waterCount > 0 && canWater,
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(50),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2196F3),
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                            containerColor = sec,
+                            contentColor = MaterialTheme.colorScheme.onSecondary,
+                            disabledContainerColor = onSc.copy(alpha = 0.12f),
+                            disabledContentColor = onSc.copy(alpha = 0.5f)
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp)
                     ) {
+                        Icon(Icons.Rounded.WaterDrop, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(
-                            if (canWater) "💧 Napít" else "💧 Není žíznivé",
-                            fontSize = 12.sp
+                            if (canWater) "Napojit · ${waterCount}×" else "Není žíznivé",
+                            fontSize = 14.sp, fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -1189,19 +937,6 @@ fun PetCareSection() {
                             )
                         }
                     }
-                }
-
-                // Count info
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "🍖 ${foodCount}x    💧 ${waterCount}x",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
 
             } else {
@@ -1251,7 +986,7 @@ fun PetCareSection() {
                     )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Favorite,
+                        imageVector = Icons.Rounded.Favorite,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
@@ -1505,7 +1240,7 @@ fun AchievementsSection() {
                     .clickable { expanded = !expanded }
             ) {
                 Icon(
-                    imageVector = Icons.Default.Stars,
+                    imageVector = Icons.Rounded.Stars,
                     contentDescription = "Úspěchy",
                     tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(24.dp)
@@ -1525,7 +1260,7 @@ fun AchievementsSection() {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                     contentDescription = if (expanded) "Sbalit" else "Rozbalit",
                     tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f),
                     modifier = Modifier.size(24.dp)
@@ -1779,28 +1514,63 @@ fun GradeSelectorSection(grades: List<com.tobiso.tobisoappnative.model.Grade>) {
 }
 
 @Composable
+private fun ProfileStatCards(navController: NavController) {
+    val context = LocalContext.current
+    val points by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+    val streak = remember { mutableStateOf(0) }
+    val badges = remember { getCompletedStreakMilestones(context).size }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            streak.value = com.tobiso.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)
+        }
+    }
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        @Composable
+        fun RowScope.Stat(icon: ImageVector, tint: Color, value: String, label: String, onClick: (() -> Unit)?) {
+            Card(
+                onClick = onClick ?: {},
+                enabled = onClick != null,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer, disabledContainerColor = scheme.surfaceContainer),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Column(Modifier.padding(12.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+                    Text(
+                        value,
+                        fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        lineHeight = 24.sp
+                    )
+                    Text(label, fontSize = 12.sp, color = scheme.onSurfaceVariant)
+                }
+            }
+        }
+        Stat(Icons.Rounded.Stars, scheme.primary, formatPointsBalance(points), "Body") { navController.navigate(ShopRoute) }
+        Stat(Icons.Rounded.LocalFireDepartment, scheme.primary, "${streak.value} ${com.tobiso.tobisoappnative.screens.denDnyDni(streak.value)}", "Řada") { navController.navigate(StreakRoute) }
+        Stat(Icons.Rounded.MilitaryTech, scheme.secondary, "$badges", "Odznaky", null)
+    }
+}
+
+@Composable
 private fun ProfileSectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 6.dp)
-    )
+    SectionLabel(title)
+}
+
+@Composable
+private fun ProfileDivider() {
+    HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable
 private fun ProfileNavGroup(content: @Composable () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(0.dp)
-    ) {
-        Column { content() }
-    }
+    GroupedList(Modifier.padding(horizontal = 16.dp)) { content() }
 }
 
 @Composable
@@ -1854,41 +1624,12 @@ private fun ProfileNavRow(
     subtitle: String? = null,
     onClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            }
-        }
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-            modifier = Modifier.size(20.dp)
-        )
-    }
+    GroupedListRow(
+        title = title,
+        subtitle = subtitle,
+        leading = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
+        onClick = onClick
+    )
 }
 
 /** Optional account: sign in / register when anonymous, profile + sign-out when signed in. */
@@ -1905,22 +1646,22 @@ private fun AccountSection(navController: NavController) {
     ProfileNavGroup {
         if (user == null) {
             ProfileNavRow(
-                icon = Icons.Default.Person,
+                icon = Icons.Rounded.Person,
                 title = "Přihlásit se nebo registrovat",
                 subtitle = "Volitelné – aplikace funguje i bez účtu",
                 onClick = { navController.navigate(AuthRoute) }
             )
         } else {
             ProfileNavRow(
-                icon = Icons.Default.Person,
+                icon = Icons.Rounded.Person,
                 title = user?.displayName?.ifBlank { null } ?: "Přihlášen",
                 subtitle = user?.email,
                 onClick = {}
             )
             stats?.takeIf { it.totalRead > 0 || it.streakDays > 0 }?.let { st ->
-                HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                ProfileDivider()
                 ProfileNavRow(
-                    icon = Icons.Default.Whatshot,
+                    icon = Icons.Rounded.Whatshot,
                     title = "Série ${st.streakDays} ${pluralCs(st.streakDays, "den", "dny", "dní")}",
                     subtitle = "Přečteno ${st.totalRead} ${pluralCs(st.totalRead, "článek", "články", "článků")}" +
                         (st.badges.takeIf { it.isNotEmpty() }
@@ -1928,22 +1669,22 @@ private fun AccountSection(navController: NavController) {
                     onClick = {}
                 )
             }
-            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+            ProfileDivider()
             ProfileNavRow(
-                icon = Icons.Default.School,
+                icon = Icons.Rounded.School,
                 title = "Moje třída",
                 subtitle = "Třída, skupiny a společný kalendář",
                 onClick = { navController.navigate(ClassesRoute) }
             )
-            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+            ProfileDivider()
             ProfileNavRow(
-                icon = Icons.AutoMirrored.Filled.Logout,
+                icon = Icons.AutoMirrored.Rounded.Logout,
                 title = "Odhlásit se",
                 onClick = { vm.logout() }
             )
-            HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+            ProfileDivider()
             ProfileNavRow(
-                icon = Icons.Default.Devices,
+                icon = Icons.Rounded.Devices,
                 title = "Odhlásit na všech zařízeních",
                 subtitle = "Ukončí všechna přihlášení tohoto účtu",
                 onClick = { confirmLogoutAll = true }

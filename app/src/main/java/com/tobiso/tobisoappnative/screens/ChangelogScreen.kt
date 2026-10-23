@@ -1,11 +1,12 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.Card
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -275,7 +276,7 @@ fun ChangelogScreen(navController: NavController) {
             title = { Text("Deník změn", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )

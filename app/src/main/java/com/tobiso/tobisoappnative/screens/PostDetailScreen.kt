@@ -18,10 +18,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.outlined.Star
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -46,16 +56,16 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.text.ClickableText
 // selection removed from this screen — selection moved to PlainTextScreen
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Help
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.text.AnnotatedString
 import com.tobiso.tobisoappnative.model.Addendum
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 // combinedClickable not used here
@@ -64,9 +74,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.platform.LocalContext
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.components.TtsPlayer
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.Print
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
@@ -81,8 +91,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import android.provider.MediaStore
 import android.content.ContentValues
 import android.os.Environment
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.Clear
 import kotlin.getOrElse
 import coil.compose.AsyncImage
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -97,7 +107,14 @@ import com.tobiso.tobisoappnative.viewmodel.ai.AiToolsViewModel
 import kotlin.math.max
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.EditCalendar
 import com.tobiso.tobisoappnative.components.GradeBadge
+import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.StarOutline
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -267,26 +284,20 @@ fun PostDetailScreen(
         modifier = Modifier.fillMaxSize()
     ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                modifier = Modifier.fillMaxSize()
             ) {
-                LargeTopAppBar(
-                    title = { 
-                        val collapsedFraction = scrollBehavior.state.collapsedFraction
-                        val fontSize = (28 - (15 * collapsedFraction)).sp
-                        Text(
-                            text = postDetail?.title ?: "Detail článku",
-                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = fontSize),
-                            maxLines = 3
-                        ) 
+                val breadcrumb by vm.breadcrumb.collectAsStateWithLifecycle()
+                LaunchedEffect(postDetail?.categoryId) { vm.loadBreadcrumb(postDetail?.categoryId) }
+                TopAppBar(
+                    title = {
+                        Text(breadcrumb, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                         }
                     },
-                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                     actions = {
                         PostActionsRow(
                             postDetail = postDetail,
@@ -343,7 +354,7 @@ fun PostDetailScreen(
                                 modifier = Modifier.padding(32.dp)
                             ) {
                                 Icon(
-                                    Icons.Filled.Close,
+                                    Icons.Rounded.Close,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(64.dp)
@@ -387,7 +398,7 @@ fun PostDetailScreen(
                                     modifier = Modifier.padding(32.dp)
                                 ) {
                                     Icon(
-                                        Icons.Filled.Close,
+                                        Icons.Rounded.Close,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(64.dp)
@@ -421,15 +432,11 @@ fun PostDetailScreen(
 
                             // Reading progress → "Pokračovat ve čtení" (+ server when signed in)
                             LaunchedEffect(lazyListState, postId) {
-                                snapshotFlow {
-                                    val info = lazyListState.layoutInfo
-                                    val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
-                                    if (info.totalItemsCount > 0) (last + 1) * 100 / info.totalItemsCount else 0
-                                }.distinctUntilChanged().debounce(1500).collect { vm.reportReadProgress(postId, it) }
+                                snapshotFlow { (readFractionOf(lazyListState) * 100).toInt() }.distinctUntilChanged().debounce(1500).collect { vm.reportReadProgress(postId, it) }
                             }
 
-                            // item0=gradeBadge, item1=wordCount → content starts at index 2
-                            val contentItemOffset = 2
+                            // item0=header → content starts at index 1
+                            val contentItemOffset = 1
                             val activeHeadingIdx by remember {
                                 derivedStateOf {
                                     val contentIdx = lazyListState.firstVisibleItemIndex - contentItemOffset
@@ -437,6 +444,19 @@ fun PostDetailScreen(
                                     tableOfContents.indexOfLast { it.elementIndex <= contentIdx }
                                 }
                             }
+
+                            val readFraction by remember {
+                                derivedStateOf { readFractionOf(lazyListState) }
+                            }
+                            LinearProgressIndicator(
+                                progress = { readFraction },
+                                modifier = Modifier.fillMaxWidth().height(3.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Butt,
+                                gapSize = 0.dp,
+                                drawStopIndicator = {}
+                            )
 
                             // Nový custom markdown renderer
                             LazyColumn(
@@ -447,42 +467,34 @@ fun PostDetailScreen(
                             ) {
                                 item {
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    postDetail?.activeVersion?.gradeName?.let {
-                                        GradeBadge(
-                                            gradeName = it,
-                                            reviewed = postDetail?.activeVersion?.isChecked == true,
-                                            onClick = if (grades.size > 1) ({ showGradePicker = true }) else null
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                }
-                                item {
-                                    val showQuizShortcut = hasQuestions || questions.isNotEmpty()
-                                    if (wordCountText != null || showQuizShortcut) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            if (showQuizShortcut) {
-                                                androidx.compose.material3.AssistChip(
-                                                    onClick = {
-                                                        // grade badge + word count + every content element + spacer + exercise row precede the card
-                                                        coroutineScope.launch { lazyListState.animateScrollToItem(contentItemOffset + contentElements.size + 2) }
-                                                    },
-                                                    label = { Text("Přejít na ověření porozumění") }
-                                                )
-                                            } else Spacer(Modifier.width(1.dp))
-                                            wordCountText?.let { infoText ->
-                                                Text(
-                                                    text = infoText,
-                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    textAlign = TextAlign.End
-                                                )
+                                    Text(
+                                        text = postDetail?.title ?: "",
+                                        fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 32.sp,
+                                        lineHeight = 36.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Row(
+                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.horizontalScroll(rememberScrollState())
+                                    ) {
+                                        postDetail?.activeVersion?.gradeName?.let {
+                                            GradeBadge(
+                                                gradeName = it,
+                                                reviewed = postDetail?.activeVersion?.isChecked == true,
+                                                onClick = if (grades.size > 1) ({ showGradePicker = true }) else null
+                                            )
+                                        }
+                                        wordCountText?.let {
+                                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Icon(Icons.Rounded.Schedule, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                                             }
                                         }
                                     }
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                                 // Render each content element as its own lazy item (virtualized)
                                 itemsIndexed(contentElements, key = { index, _ -> index }) { _, element ->
@@ -563,21 +575,35 @@ fun PostDetailScreen(
                                     RelatedPostsList(relatedPosts = filteredRelated, posts = posts, navController = navController)
                                 }
                                 item {
-                                    Text(
-                                        text = "Vytvořeno: $createdFormatted",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        textAlign = TextAlign.Start
-                                    )
-                                    if (updatedFormatted.isNotBlank()) {
-                                        Text(
-                                            text = "Upraveno: $updatedFormatted",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            textAlign = TextAlign.Start
-                                        )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        @Composable
+                                        fun RowScope.DateBox(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .background(MaterialTheme.colorScheme.surfaceContainer, androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+                                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                                                Column {
+                                                    Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                                }
+                                            }
+                                        }
+                                        DateBox(Icons.Rounded.EditCalendar, "Vytvořeno", createdFormatted)
+                                        if (updatedFormatted.isNotBlank()) {
+                                            DateBox(Icons.Rounded.Update, "Upraveno", updatedFormatted)
+                                        }
                                     }
                                 }
                                 item {
-                                    Spacer(modifier = Modifier.height(80.dp))
+                                    Spacer(modifier = Modifier.height(120.dp))
                                 }
                             }
 
@@ -601,55 +627,155 @@ fun PostDetailScreen(
 
             
 
-        // Sticky bottom action bar — AI + Ověř si porozumění + Cvičení
-        // Nezobrazujeme bar dokud se nedokončí úvodní načítání (loaded=true) a nemáme internet
-        val showActionsBar = loaded && isConnected
-        if (showActionsBar) {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp,
-                shadowElevation = 0.dp,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+        // Floating toolbar — TTS, favourite, ask AI. The pill expands in place into a text input.
+        if (loaded && postDetail != null) {
+            val postTitle = postDetail?.title ?: ""
+            val isFav = favoritePosts.any { it.id == postDetail?.id }
+            val aiFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+            val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+            val sendAi: () -> Unit = {
+                if (aiInputText.isNotBlank()) {
+                    if (hasAiConsent(context)) {
+                        navController.navigate(
+                            AiChatRoute(
+                                postId = postId,
+                                postTitle = android.net.Uri.encode(postTitle),
+                                firstUserMessage = android.net.Uri.encode(aiInputText)
+                            )
+                        )
+                        aiInputText = ""
+                        aiInputExpanded = false
+                    } else {
+                        showAiConsentDialog = true
+                    }
+                }
+            }
+            LaunchedEffect(aiInputExpanded) {
+                if (aiInputExpanded) {
+                    kotlinx.coroutines.delay(120)
+                    runCatching { aiFocus.requestFocus() }
+                    keyboard?.show()
+                } else {
+                    keyboard?.hide()
+                }
+            }
+            androidx.activity.compose.BackHandler(enabled = aiInputExpanded) { aiInputExpanded = false }
+
+            Box(
                 modifier = Modifier
                     .align(androidx.compose.ui.Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                contentAlignment = androidx.compose.ui.Alignment.BottomCenter
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(if (aiInputExpanded) 28.dp else 50.dp),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.animateContentSize(
+                        animationSpec = androidx.compose.animation.core.spring(
+                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBouncy,
+                            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
+                        )
+                    )
                 ) {
-                    val postTitle = postDetail?.title ?: ""
-                    AiInputBar(
-                        aiInputText = aiInputText,
-                        onTextChange = { aiInputText = it },
-                        aiInputExpanded = aiInputExpanded,
-                        onExpandedChange = { aiInputExpanded = it },
-                        postTitle = postTitle,
-                        enabled = aiInputText.isNotBlank(),
-                        onSend = {
-                            if (aiInputText.isNotBlank()) {
-                                if (hasAiConsent(context)) {
-                                    navController.navigate(
-                                        AiChatRoute(
-                                            postId = postId,
-                                            postTitle = android.net.Uri.encode(postTitle),
-                                            firstUserMessage = android.net.Uri.encode(aiInputText)
+                    AnimatedContent(
+                        targetState = aiInputExpanded,
+                        transitionSpec = { (fadeIn(tween(180, 80)) + scaleIn(initialScale = 0.92f)) togetherWith fadeOut(tween(100)) },
+                        label = "askAi"
+                    ) { expanded ->
+                        if (expanded) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(6.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                IconButton(onClick = { aiInputExpanded = false }, modifier = Modifier.size(48.dp)) {
+                                    Icon(Icons.Rounded.Close, contentDescription = "Zavřít")
+                                }
+                                Box(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                                    if (aiInputText.isEmpty()) {
+                                        Text(
+                                            "Zeptej se na cokoliv k článku…",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
                                         )
+                                    }
+                                    androidx.compose.foundation.text.BasicTextField(
+                                        value = aiInputText,
+                                        onValueChange = { aiInputText = it },
+                                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                                        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                                        maxLines = 4,
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                        keyboardActions = KeyboardActions(onSend = { sendAi() }),
+                                        modifier = Modifier.fillMaxWidth().focusRequester(aiFocus)
                                     )
-                                    aiInputText = ""
-                                    aiInputExpanded = false
-                                } else {
-                                    showAiConsentDialog = true
+                                }
+                                val canSend = aiInputText.isNotBlank()
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(
+                                            if (canSend) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            androidx.compose.foundation.shape.CircleShape
+                                        )
+                                        .clickable(enabled = canSend) { sendAi() },
+                                    contentAlignment = androidx.compose.ui.Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Rounded.Send,
+                                        contentDescription = "Odeslat",
+                                        tint = if (canSend) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.padding(6.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        val plainText = TextUtils.extractPlainTextForTts(postDetail?.activeContent ?: "")
+                                        if (plainText.isNotEmpty()) ttsViewModel.speak(plainText)
+                                    },
+                                    modifier = Modifier.size(48.dp)
+                                ) { Icon(Icons.Rounded.VolumeUp, contentDescription = "Přečíst článek") }
+                                IconButton(
+                                    onClick = { postDetail?.let { if (isFav) vm.unsavePost(it.id) else vm.savePost(it) } },
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Icon(
+                                        if (isFav) Icons.Rounded.Star else Icons.Rounded.StarOutline,
+                                        contentDescription = if (isFav) "Odebrat z oblíbených" else "Uložit do oblíbených",
+                                        tint = if (isFav) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                                    )
+                                }
+                                if (isConnected) {
+                                    Surface(
+                                        onClick = { aiInputExpanded = true },
+                                        color = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.height(48.dp).padding(horizontal = 18.dp),
+                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp))
+                                            Text("Zeptat se", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        }
+                                    }
                                 }
                             }
                         }
-                    )
+                    }
                 }
             }
         }
-
-        
 
         // Dialog pro vysvětlení permission
         if (showPermissionDialog) {
@@ -743,6 +869,20 @@ fun PostDetailScreen(
             }
         }
     }
+}
+
+/** 0 at the very top, 1 once the end of the list is reached, linear in between. */
+private fun readFractionOf(state: LazyListState): Float {
+    if (!state.canScrollBackward) return 0f
+    if (!state.canScrollForward) return 1f
+    val info = state.layoutInfo
+    val total = info.totalItemsCount
+    val visible = info.visibleItemsInfo
+    val first = visible.firstOrNull() ?: return 0f
+    val within = if (first.size > 0) (-first.offset).coerceAtLeast(0).toFloat() / first.size else 0f
+    val position = first.index + within
+    val maxPosition = (total - visible.size).coerceAtLeast(1).toFloat()
+    return (position / maxPosition).coerceIn(0f, 0.99f)
 }
 
 @Composable

@@ -3,9 +3,9 @@ package com.tobiso.tobisoappnative.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,7 +71,7 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                     title = { Text("Přehrávač videa", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                         }
                     }
                 )
@@ -91,7 +91,7 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                     title = { Text("Přehrávač videa", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                         }
                     }
                 )
@@ -236,7 +236,7 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                     .padding(16.dp)
             ) {
                 Icon(
-                    Icons.Default.FullscreenExit,
+                    Icons.Rounded.FullscreenExit,
                     contentDescription = "Ukončit fullscreen",
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -250,14 +250,14 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
                     title = { Text("Přehrávač videa", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                         }
                     },
                     actions = {
                         // Zobrazení aktivního multiplikátoru
                         MultiplierIndicator()
                         IconButton(onClick = { toggleFullscreen() }) {
-                            Icon(Icons.Default.Fullscreen, contentDescription = "Fullscreen")
+                            Icon(Icons.Rounded.Fullscreen, contentDescription = "Fullscreen")
                         }
                     }
                 )

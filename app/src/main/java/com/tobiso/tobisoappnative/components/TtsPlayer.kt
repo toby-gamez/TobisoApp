@@ -12,7 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -196,7 +196,7 @@ fun TtsPlayer(
                                 enabled = ttsStatus.currentSegment > 1
                             ) {
                                 Icon(
-                                    Icons.Default.SkipPrevious,
+                                    Icons.Rounded.SkipPrevious,
                                     contentDescription = "Předchozí segment",
                                     tint = if (ttsStatus.currentSegment > 1)
                                         MaterialTheme.colorScheme.primary
@@ -212,7 +212,7 @@ fun TtsPlayer(
                                     onClick = { ttsManager.pause() }
                                 ) {
                                     Icon(
-                                        Icons.Default.Pause,
+                                        Icons.Rounded.Pause,
                                         contentDescription = "Pozastavit",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -223,7 +223,7 @@ fun TtsPlayer(
                                     onClick = { ttsManager.resume() }
                                 ) {
                                     Icon(
-                                        Icons.Default.PlayArrow,
+                                        Icons.Rounded.PlayArrow,
                                         contentDescription = "Pokračovat",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -245,7 +245,7 @@ fun TtsPlayer(
                                     enabled = ttsStatus.isInitialized
                                 ) {
                                     Icon(
-                                        Icons.Default.PlayArrow,
+                                        Icons.Rounded.PlayArrow,
                                         contentDescription = "Přehrát",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -260,7 +260,7 @@ fun TtsPlayer(
                                 enabled = ttsStatus.currentSegment < ttsStatus.totalSegments
                             ) {
                                 Icon(
-                                    Icons.Default.SkipNext,
+                                    Icons.Rounded.SkipNext,
                                     contentDescription = "Další segment",
                                     tint = if (ttsStatus.currentSegment < ttsStatus.totalSegments)
                                         MaterialTheme.colorScheme.primary
@@ -276,7 +276,7 @@ fun TtsPlayer(
                             onClick = { isMaximized = !isMaximized }
                         ) {
                             Icon(
-                                Icons.Default.ExpandLess,
+                                Icons.Rounded.ExpandLess,
                                 contentDescription = if (isMaximized) "Minimalizovat" else "Maximalizovat",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.rotate(rotation)
@@ -289,7 +289,7 @@ fun TtsPlayer(
                             enabled = ttsStatus.state != TtsState.IDLE && ttsStatus.state != TtsState.INITIALIZING
                         ) {
                             Icon(
-                                Icons.Default.Stop,
+                                Icons.Rounded.Stop,
                                 contentDescription = "Zastavit",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -313,7 +313,7 @@ fun TtsSpeedControl(
             onClick = { showSpeedControl = !showSpeedControl }
         ) {
             Icon(
-                Icons.Default.Speed,
+                Icons.Rounded.Speed,
                 contentDescription = "Rychlost řeči"
             )
             Spacer(modifier = Modifier.width(4.dp))

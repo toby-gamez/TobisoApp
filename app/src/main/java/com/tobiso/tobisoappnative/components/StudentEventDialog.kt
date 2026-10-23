@@ -13,8 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.CalendarToday
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.InputChip
@@ -132,7 +132,7 @@ fun StudentEventDialog(
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Zavřít") }
+                    IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, contentDescription = "Zavřít") }
                 }
                 Spacer(Modifier.height(12.dp))
 
@@ -186,7 +186,7 @@ fun StudentEventDialog(
                                     selected = true,
                                     onClick = { themes = themes.filter { it.key != t.key } },
                                     label = { Text(t.name, maxLines = 1) },
-                                    trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Odebrat téma", modifier = Modifier.size(16.dp)) }
+                                    trailingIcon = { Icon(Icons.Rounded.Close, contentDescription = "Odebrat téma", modifier = Modifier.size(16.dp)) }
                                 )
                             }
                         }
@@ -216,7 +216,7 @@ fun StudentEventDialog(
                     Text("Datum", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedButton(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                            Icon(Icons.Rounded.CalendarToday, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
                             Text(dateFormat.format(start))
                         }
                         Text("–")

@@ -6,8 +6,8 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.rememberCoroutineScope
@@ -123,7 +123,7 @@ fun ImageCropperDialog(
                 ) {
                     IconButton(onClick = onDismiss) {
                         Icon(
-                            Icons.Default.Close,
+                            Icons.Rounded.Close,
                             contentDescription = "Zrušit",
                             tint = Color.White
                         )
@@ -153,7 +153,7 @@ fun ImageCropperDialog(
                         }
                     ) {
                         Icon(
-                            Icons.Default.Check,
+                            Icons.Rounded.Check,
                             contentDescription = "Potvrdit",
                             tint = Color.White
                         )

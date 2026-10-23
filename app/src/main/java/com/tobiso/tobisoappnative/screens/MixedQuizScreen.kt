@@ -9,9 +9,18 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.*
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
+import com.tobiso.tobisoappnative.components.AnswerRow
+import com.tobiso.tobisoappnative.components.AnswerState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,6 +72,32 @@ fun MixedQuizScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
+                val quizActive = state.quizStarted && !state.showResults && state.error == null && !state.isLoading && state.mixedQuestions.isNotEmpty()
+                if (quizActive) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 20.dp, top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Zavřít")
+                        }
+                        LinearProgressIndicator(
+                            progress = { (state.currentQuestionIndex + 1).toFloat() / totalQuestions },
+                            modifier = Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            gapSize = 0.dp,
+                            drawStopIndicator = {}
+                        )
+                        Text(
+                            "${state.currentQuestionIndex + 1} / $totalQuestions",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
                 TopAppBar(
                     title = {
                         Text(
@@ -75,7 +110,7 @@ fun MixedQuizScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                         }
                     },
                     actions = {
@@ -83,11 +118,12 @@ fun MixedQuizScreen(
 
                         if (state.showResults) {
                             IconButton(onClick = { vm.onIntent(MixedQuizIntent.RestartQuiz) }) {
-                                Icon(Icons.Filled.Refresh, contentDescription = "Znovu")
+                                Icon(Icons.Rounded.Refresh, contentDescription = "Znovu")
                             }
                         }
                     }
                 )
+                }
 
                 when {
                     state.error != null -> {
@@ -97,7 +133,7 @@ fun MixedQuizScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    Icons.Filled.Error,
+                                    Icons.Rounded.Error,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(64.dp)
@@ -132,7 +168,7 @@ fun MixedQuizScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    Icons.Filled.QuestionMark,
+                                    Icons.Rounded.QuestionMark,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(64.dp)
@@ -241,7 +277,7 @@ fun MixedQuizScreen(
                                     Column(modifier = Modifier.padding(16.dp)) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                imageVector = if (isCorrect) Icons.Filled.CheckCircle else Icons.Filled.Close,
+                                                imageVector = if (isCorrect) Icons.Rounded.CheckCircle else Icons.Rounded.Close,
                                                 contentDescription = if (isCorrect) "Správně" else "Špatně",
                                                 tint = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
                                             )
@@ -303,7 +339,7 @@ fun MixedQuizScreen(
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     Icon(
-                                                        Icons.Filled.Lightbulb,
+                                                        Icons.Rounded.Lightbulb,
                                                         contentDescription = "Vysvětlení",
                                                         tint = MaterialTheme.colorScheme.tertiary,
                                                         modifier = Modifier.size(16.dp)
@@ -346,7 +382,7 @@ fun MixedQuizScreen(
                                     modifier = Modifier.padding(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Filled.Quiz, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                                    Icon(Icons.Rounded.Quiz, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text("Počet otázek", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
@@ -366,9 +402,9 @@ fun MixedQuizScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        if (hasTextQuestions && hasMultipleChoice) Icons.Filled.EditNote
-                                        else if (hasTextQuestions) Icons.Filled.Edit
-                                        else Icons.Filled.RadioButtonChecked,
+                                        if (hasTextQuestions && hasMultipleChoice) Icons.Rounded.EditNote
+                                        else if (hasTextQuestions) Icons.Rounded.Edit
+                                        else Icons.Rounded.RadioButtonChecked,
                                         contentDescription = null,
                                         modifier = Modifier.size(24.dp),
                                         tint = MaterialTheme.colorScheme.onSecondaryContainer
@@ -400,7 +436,7 @@ fun MixedQuizScreen(
                                     modifier = Modifier.padding(16.dp),
                                     verticalAlignment = Alignment.Top
                                 ) {
-                                    Icon(Icons.AutoMirrored.Filled.Article, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                                    Icon(Icons.AutoMirrored.Rounded.Article, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text("Články (${uniquePostIds.size})", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f))
@@ -421,7 +457,7 @@ fun MixedQuizScreen(
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
                                 ) {
                                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Filled.WifiOff, contentDescription = "Offline režim", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Rounded.WifiOff, contentDescription = "Offline režim", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("Offline režim — používají se uložené otázky", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
@@ -441,112 +477,136 @@ fun MixedQuizScreen(
 
                     else -> {
                         currentQuestion?.let { question ->
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp)
-                                    .verticalScroll(rememberScrollState())
-                            ) {
-                                LinearProgressIndicator(
-                                    progress = { (state.currentQuestionIndex + 1).toFloat() / totalQuestions },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Spacer(modifier = Modifier.height(24.dp))
-
-                                Card {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-                                        Text(
-                                            "Otázka ${state.currentQuestionIndex + 1} z $totalQuestions",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.primary
+                            val scheme = MaterialTheme.colorScheme
+                            val selected = state.selectedAnswers[state.currentQuestionIndex]
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    state.questionsPosts.find { it.id == question.postId }?.title?.let { topic ->
+                                        AssistChip(
+                                            onClick = {},
+                                            label = { Text(topic, maxLines = 1) },
+                                            shape = RoundedCornerShape(10.dp)
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(question.text, style = MaterialTheme.typography.headlineSmall)
                                     }
-                                }
-
-                                Spacer(modifier = Modifier.height(24.dp))
-
-                                if (question.isTextQuestion) {
-                                    val isNumericAnswer = remember(question.correctTextAnswer) {
-                                        val correctAnswer = question.correctTextAnswer?.trim() ?: ""
-                                        correctAnswer.matches(Regex("^[^a-zA-ZáčďéěíňóřšťůúýžÁČĎÉĚÍŇÓŘŠŤŮÚÝŽ]*$")) && correctAnswer.isNotEmpty()
-                                    }
-
-                                    OutlinedTextField(
-                                        value = state.textAnswers[state.currentQuestionIndex] ?: "",
-                                        onValueChange = { newText ->
-                                            vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, newText))
-                                        },
-                                        label = { Text("Zadejte vaši odpověď...") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true,
-                                        readOnly = isNumericAnswer,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                                    Text(
+                                        question.text,
+                                        fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 26.sp,
+                                        lineHeight = 32.sp
                                     )
 
-                                    if (isNumericAnswer) {
-                                        Spacer(modifier = Modifier.height(16.dp))
-                                        CustomNumericKeyboard(
-                                            alternateSymbol = if ((question.correctTextAnswer ?: "").contains(":")) ":" else "%",
-                                            onKeyPress = { key ->
-                                                val currentText = state.textAnswers[state.currentQuestionIndex] ?: ""
-                                                vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, currentText + key))
+                                    if (question.isTextQuestion) {
+                                        val isNumericAnswer = remember(question.correctTextAnswer) {
+                                            val correctAnswer = question.correctTextAnswer?.trim() ?: ""
+                                            correctAnswer.matches(Regex("^[^a-zA-ZáčďéěíňóřšťůúýžÁČĎÉĚÍŇÓŘŠŤŮÚÝŽ]*$")) && correctAnswer.isNotEmpty()
+                                        }
+
+                                        OutlinedTextField(
+                                            value = state.textAnswers[state.currentQuestionIndex] ?: "",
+                                            onValueChange = { newText ->
+                                                vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, newText))
                                             },
-                                            onBackspace = {
-                                                val currentText = state.textAnswers[state.currentQuestionIndex] ?: ""
-                                                if (currentText.isNotEmpty()) {
-                                                    vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, currentText.dropLast(1)))
-                                                }
-                                            }
+                                            label = { Text("Zadejte vaši odpověď...") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
+                                            readOnly = isNumericAnswer,
+                                            shape = RoundedCornerShape(22.dp),
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                                         )
-                                    }
-                                } else {
-                                    Column(modifier = Modifier.selectableGroup()) {
-                                        question.options.forEachIndexed { index, option ->
-                                            Row(
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .selectable(
-                                                        selected = (state.selectedAnswers[state.currentQuestionIndex] == index),
-                                                        onClick = { vm.onIntent(MixedQuizIntent.SelectAnswer(state.currentQuestionIndex, index)) }
-                                                    )
-                                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                RadioButton(
-                                                    selected = (state.selectedAnswers[state.currentQuestionIndex] == index),
-                                                    onClick = null
+
+                                        if (isNumericAnswer) {
+                                            CustomNumericKeyboard(
+                                                alternateSymbol = if ((question.correctTextAnswer ?: "").contains(":")) ":" else "%",
+                                                onKeyPress = { key ->
+                                                    val currentText = state.textAnswers[state.currentQuestionIndex] ?: ""
+                                                    vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, currentText + key))
+                                                },
+                                                onBackspace = {
+                                                    val currentText = state.textAnswers[state.currentQuestionIndex] ?: ""
+                                                    if (currentText.isNotEmpty()) {
+                                                        vm.onIntent(MixedQuizIntent.SetTextAnswer(state.currentQuestionIndex, currentText.dropLast(1)))
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    } else {
+                                        Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            question.options.forEachIndexed { index, option ->
+                                                val answered = selected != null
+                                                AnswerRow(
+                                                    letter = 'A' + index,
+                                                    text = option,
+                                                    enabled = !answered,
+                                                    state = when {
+                                                        !answered -> AnswerState.Idle
+                                                        index == question.correctAnswer -> AnswerState.Correct
+                                                        index == selected -> AnswerState.Wrong
+                                                        else -> AnswerState.Idle
+                                                    },
+                                                    onClick = { vm.onIntent(MixedQuizIntent.SelectAnswer(state.currentQuestionIndex, index)) }
                                                 )
-                                                Text(text = option, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
+                                            }
+                                        }
+                                        if (selected != null) {
+                                            val ok = selected == question.correctAnswer
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(22.dp))
+                                                    .background(if (ok) scheme.secondaryContainer else scheme.primaryContainer)
+                                                    .padding(16.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    if (ok) "Správně!" else "Tentokrát ne",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 16.sp,
+                                                    color = if (ok) scheme.onSecondaryContainer else scheme.onPrimaryContainer
+                                                )
+                                                question.explanation?.takeIf { it.isNotBlank() }?.let {
+                                                    Text(
+                                                        it,
+                                                        fontSize = 14.5.sp,
+                                                        lineHeight = 22.sp,
+                                                        color = if (ok) scheme.onSecondaryContainer else scheme.onPrimaryContainer
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(32.dp))
-
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     if (state.currentQuestionIndex > 0) {
-                                        OutlinedButton(onClick = { vm.onIntent(MixedQuizIntent.PreviousQuestion) }) {
-                                            Text("Předchozí")
-                                        }
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
+                                        OutlinedButton(
+                                            onClick = { vm.onIntent(MixedQuizIntent.PreviousQuestion) },
+                                            modifier = Modifier.weight(1f).height(52.dp),
+                                            shape = RoundedCornerShape(50)
+                                        ) { Text("Předchozí", fontWeight = FontWeight.SemiBold) }
                                     }
-
-                                    if (state.currentQuestionIndex < totalQuestions - 1) {
-                                        Button(onClick = { vm.onIntent(MixedQuizIntent.NextQuestion) }) {
-                                            Text("Další")
-                                        }
-                                    } else {
-                                        Button(onClick = { vm.onIntent(MixedQuizIntent.FinishQuiz) }) {
-                                            Text("Dokončit")
-                                        }
+                                    Button(
+                                        onClick = {
+                                            if (state.currentQuestionIndex < totalQuestions - 1) vm.onIntent(MixedQuizIntent.NextQuestion)
+                                            else vm.onIntent(MixedQuizIntent.FinishQuiz)
+                                        },
+                                        modifier = Modifier.weight(1.4f).height(52.dp),
+                                        shape = RoundedCornerShape(50)
+                                    ) {
+                                        Text(
+                                            if (state.currentQuestionIndex < totalQuestions - 1) "Další →" else "Dokončit",
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 }
                             }

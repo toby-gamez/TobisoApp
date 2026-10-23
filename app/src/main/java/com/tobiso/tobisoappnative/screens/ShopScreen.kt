@@ -15,9 +15,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.derivedStateOf
@@ -52,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 @Composable
 fun ShopScreen(
     navController: NavController,
+    embedded: Boolean = false,
     vm: ShopViewModel = hiltViewModel()
 ) {
     val totalPoints by PointsManager.instance.totalPoints.collectAsStateWithLifecycle()
@@ -100,58 +101,25 @@ fun ShopScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
+        if (!embedded) {
         // Top App Bar
         TopAppBar(
             title = { Text("Obchod", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             },
             actions = {
-                // Ikona aktovky
-                IconButton(
-                    onClick = { navController.navigate(BackpackRoute) }
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Backpack,
-                        contentDescription = "Aktovka",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                
-                // Zobrazení aktivního multiplikátoru
-                MultiplierIndicator()
-                
-                // Zobrazení bodů
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(end = 16.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = RoundedCornerShape(20.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Stars,
-                        contentDescription = "Body",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = formatPointsBalance(totalPointsFloat),
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                }
+                com.tobiso.tobisoappnative.components.StatChip(
+                    icon = Icons.Rounded.Stars,
+                    text = formatPointsBalance(totalPointsFloat)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
             }
         )
-        
+        }
+
         // Navigační kategorie (pouze pro scroll)
         LazyRow(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -218,10 +186,10 @@ fun ShopScreen(
                 item(key = "header_$category") {
                     Text(
                         text = category.displayName,
-                        style = MaterialTheme.typography.headlineSmall,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(vertical = 16.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp, top = 14.dp, bottom = 2.dp)
                     )
                 }
                 currentIndex++
@@ -368,6 +336,21 @@ fun ShopScreen(
 }
 
 @Composable
+fun PricePill(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, container: Color, content: Color) {
+    Row(
+        modifier = Modifier
+            .height(32.dp)
+            .background(container, RoundedCornerShape(50))
+            .padding(start = 8.dp, end = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(icon, null, tint = content, modifier = Modifier.size(16.dp))
+        Text(text, color = content, fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
+    }
+}
+
+@Composable
 fun CategoryNavigationChip(
     category: ShopCategory,
     isActive: Boolean,
@@ -376,12 +359,9 @@ fun CategoryNavigationChip(
     FilterChip(
         selected = isActive,
         onClick = onClick,
-        label = {
-            Text(
-                text = category.displayName,
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
-            )
-        }
+        shape = RoundedCornerShape(10.dp),
+        leadingIcon = if (isActive) ({ Icon(Icons.Rounded.Check, null, modifier = Modifier.size(18.dp)) }) else null,
+        label = { Text(text = category.displayName, fontWeight = FontWeight.SemiBold) }
     )
 }
 
@@ -396,12 +376,7 @@ fun ShopItemCard(
     cooldownTimeLeft: Long = 0,
     onClick: () -> Unit
 ) {
-    val containerColor = when {
-        isPurchased -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        isOnCooldown && item.type == ShopItemType.POINTS_MULTIPLIER -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        !canAfford -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
+    val containerColor = MaterialTheme.colorScheme.surfaceContainer
     
     val isClickable = !isPurchased && !(isOnCooldown && item.type == ShopItemType.POINTS_MULTIPLIER)
     
@@ -409,7 +384,9 @@ fun ShopItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = isClickable) { onClick() },
-        colors = CardDefaults.cardColors(containerColor = containerColor)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -607,26 +584,26 @@ fun ShopItemCard(
                                                 } else {
                                                     Icon(
                                                         imageVector = when (subjectIcon.icon) {
-                                                            "edit" -> Icons.Default.Edit
-                                                            "library_books" -> Icons.AutoMirrored.Filled.LibraryBooks
-                                                            "article" -> Icons.AutoMirrored.Filled.Article
-                                                            "music_note" -> Icons.Default.MusicNote
-                                                            "functions" -> Icons.Default.Functions
-                                                            "biotech" -> Icons.Default.Biotech
-                                                            "bolt" -> Icons.Default.Bolt
-                                                            "local_florist" -> Icons.Default.LocalFlorist
-                                                            "language" -> Icons.Default.Language
+                                                            "edit" -> Icons.Rounded.Edit
+                                                            "library_books" -> Icons.AutoMirrored.Rounded.LibraryBooks
+                                                            "article" -> Icons.AutoMirrored.Rounded.Article
+                                                            "music_note" -> Icons.Rounded.MusicNote
+                                                            "functions" -> Icons.Rounded.Functions
+                                                            "biotech" -> Icons.Rounded.Biotech
+                                                            "bolt" -> Icons.Rounded.Bolt
+                                                            "local_florist" -> Icons.Rounded.LocalFlorist
+                                                            "language" -> Icons.Rounded.Language
                                                             // Přidáno mapování pro klasické ikony
-                                                            "spellcheck" -> Icons.Default.Spellcheck
-                                                            "menu_book" -> Icons.AutoMirrored.Filled.MenuBook
-                                                            "description" -> Icons.Default.Description
-                                                            "library_music" -> Icons.Default.LibraryMusic
-                                                            "calculate" -> Icons.Default.Calculate
-                                                            "science" -> Icons.Default.Science
-                                                            "precision_manufacturing" -> Icons.Default.PrecisionManufacturing
-                                                            "eco" -> Icons.Default.Eco
-                                                            "public" -> Icons.Default.Public
-                                                            else -> Icons.Default.Book
+                                                            "spellcheck" -> Icons.Rounded.Spellcheck
+                                                            "menu_book" -> Icons.AutoMirrored.Rounded.MenuBook
+                                                            "description" -> Icons.Rounded.Description
+                                                            "library_music" -> Icons.Rounded.LibraryMusic
+                                                            "calculate" -> Icons.Rounded.Calculate
+                                                            "science" -> Icons.Rounded.Science
+                                                            "precision_manufacturing" -> Icons.Rounded.PrecisionManufacturing
+                                                            "eco" -> Icons.Rounded.Eco
+                                                            "public" -> Icons.Rounded.Public
+                                                            else -> Icons.Rounded.Book
                                                         },
                                                         contentDescription = subjectIcon.subjectName,
                                                         tint = getSubjectColorByName(subjectIcon.subjectName),
@@ -715,7 +692,7 @@ fun ShopItemCard(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Schedule,
+                                            imageVector = Icons.Rounded.Schedule,
                                             contentDescription = "Cooldown",
                                             tint = MaterialTheme.colorScheme.secondary,
                                             modifier = Modifier.size(16.dp)
@@ -751,7 +728,7 @@ fun ShopItemCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Shield,
+                                    imageVector = Icons.Rounded.Shield,
                                     contentDescription = "Zmražení řady",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
@@ -765,23 +742,12 @@ fun ShopItemCard(
                                 )
                             }
                         } else {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Zakoupeno",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Vlastníš",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            PricePill(
+                                text = "Vlastníš",
+                                icon = Icons.Rounded.Check,
+                                container = MaterialTheme.colorScheme.secondaryContainer,
+                                content = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     } else {
                         // Pro Zmražení řady zobraz počet vlastněných místo ceny
@@ -793,7 +759,7 @@ fun ShopItemCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Shield,
+                                        imageVector = Icons.Rounded.Shield,
                                         contentDescription = "Zmražení řady",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
@@ -811,7 +777,7 @@ fun ShopItemCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Stars,
+                                        imageVector = Icons.Rounded.Stars,
                                         contentDescription = "Body",
                                         tint = if (canAfford) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(12.dp)
@@ -857,7 +823,7 @@ fun ShopItemCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Stars,
+                                        imageVector = Icons.Rounded.Stars,
                                         contentDescription = "Body",
                                         tint = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
@@ -888,7 +854,7 @@ fun ShopItemCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Schedule,
+                                        imageVector = Icons.Rounded.Schedule,
                                         contentDescription = "Cooldown",
                                         tint = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.size(16.dp)
@@ -908,29 +874,19 @@ fun ShopItemCard(
                             }
                         } else {
                             // Standardní zobrazení ceny pro ostatní itemy
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Stars,
-                                    contentDescription = "Body",
-                                    tint = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
+                            if (canAfford) {
+                                PricePill(
                                     text = item.price.toString(),
-                                    color = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.Bold
+                                    icon = Icons.Rounded.Stars,
+                                    container = MaterialTheme.colorScheme.primary,
+                                    content = MaterialTheme.colorScheme.onPrimary
                                 )
-                            }
-                            
-                            if (!canAfford) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Nedostatek bodů",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
+                            } else {
+                                PricePill(
+                                    text = item.price.toString(),
+                                    icon = Icons.Rounded.Lock,
+                                    container = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    content = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -1158,26 +1114,26 @@ fun PurchaseDialog(
                                                     } else {
                                                         Icon(
                                                             imageVector = when (subjectIcon.icon) {
-                                                                "edit" -> Icons.Default.Edit
-                                                                "library_books" -> Icons.AutoMirrored.Filled.LibraryBooks
-                                                                "article" -> Icons.AutoMirrored.Filled.Article
-                                                                "music_note" -> Icons.Default.MusicNote
-                                                                "functions" -> Icons.Default.Functions
-                                                                "biotech" -> Icons.Default.Biotech
-                                                                "bolt" -> Icons.Default.Bolt
-                                                                "local_florist" -> Icons.Default.LocalFlorist
-                                                                "language" -> Icons.Default.Language
+                                                                "edit" -> Icons.Rounded.Edit
+                                                                "library_books" -> Icons.AutoMirrored.Rounded.LibraryBooks
+                                                                "article" -> Icons.AutoMirrored.Rounded.Article
+                                                                "music_note" -> Icons.Rounded.MusicNote
+                                                                "functions" -> Icons.Rounded.Functions
+                                                                "biotech" -> Icons.Rounded.Biotech
+                                                                "bolt" -> Icons.Rounded.Bolt
+                                                                "local_florist" -> Icons.Rounded.LocalFlorist
+                                                                "language" -> Icons.Rounded.Language
                                                                 // Přidáno mapování pro klasické ikony
-                                                                "spellcheck" -> Icons.Default.Spellcheck
-                                                            "menu_book" -> Icons.AutoMirrored.Filled.MenuBook
-                                                                "description" -> Icons.Default.Description
-                                                                "library_music" -> Icons.Default.LibraryMusic
-                                                                "calculate" -> Icons.Default.Calculate
-                                                                "science" -> Icons.Default.Science
-                                                                "precision_manufacturing" -> Icons.Default.PrecisionManufacturing
-                                                                "eco" -> Icons.Default.Eco
-                                                                "public" -> Icons.Default.Public
-                                                                else -> Icons.Default.Book
+                                                                "spellcheck" -> Icons.Rounded.Spellcheck
+                                                            "menu_book" -> Icons.AutoMirrored.Rounded.MenuBook
+                                                                "description" -> Icons.Rounded.Description
+                                                                "library_music" -> Icons.Rounded.LibraryMusic
+                                                                "calculate" -> Icons.Rounded.Calculate
+                                                                "science" -> Icons.Rounded.Science
+                                                                "precision_manufacturing" -> Icons.Rounded.PrecisionManufacturing
+                                                                "eco" -> Icons.Rounded.Eco
+                                                                "public" -> Icons.Rounded.Public
+                                                                else -> Icons.Rounded.Book
                                                             },
                                                             contentDescription = subjectIcon.subjectName,
                                                             tint = getSubjectColorByName(subjectIcon.subjectName),
@@ -1269,7 +1225,7 @@ fun PurchaseDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Stars,
+                                imageVector = Icons.Rounded.Stars,
                                 contentDescription = "Body",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
@@ -1399,7 +1355,7 @@ fun UsePowerUpDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Schedule,
+                            imageVector = Icons.Rounded.Schedule,
                             contentDescription = "Cooldown",
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)

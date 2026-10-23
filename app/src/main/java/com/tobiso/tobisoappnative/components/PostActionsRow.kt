@@ -6,13 +6,13 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.FormatListBulleted
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.FormatListBulleted
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Print
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -54,39 +54,16 @@ fun PostActionsRow(
     if (hasToc) {
         IconButton(onClick = onTocClick) {
             Icon(
-                imageVector = Icons.Filled.FormatListBulleted,
+                imageVector = Icons.Rounded.FormatListBulleted,
                 contentDescription = "Obsah článku",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 
-    Box {
-        IconButton(onClick = { if (!isOffline) onAiToolsClick() }) {
-            Icon(
-                imageVector = Icons.Filled.AutoAwesome,
-                contentDescription = if (isOffline) "AI nedostupné (offline)" else "AI nástroje",
-                tint = if (isOffline)
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                else
-                    MaterialTheme.colorScheme.primary
-            )
-        }
-        if (isOffline) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = 2.dp, y = 2.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.error)
-            )
-        }
-    }
-
     IconButton(onClick = { menuExpanded = true }) {
         Icon(
-            imageVector = Icons.Filled.MoreVert,
+            imageVector = Icons.Rounded.MoreVert,
             contentDescription = "Další možnosti",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -100,7 +77,7 @@ fun PostActionsRow(
             DropdownMenuItem(
                 text = { Text("Přečíst článek") },
                 leadingIcon = {
-                    Icon(Icons.Filled.VolumeUp, contentDescription = null)
+                    Icon(Icons.Rounded.VolumeUp, contentDescription = null)
                 },
                 onClick = { menuExpanded = false; onTts() }
             )
@@ -111,7 +88,7 @@ fun PostActionsRow(
             text = { Text(if (isFavorite) "Odebrat z oblíbených" else "Uložit do oblíbených") },
             leadingIcon = {
                 Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
+                    imageVector = if (isFavorite) Icons.Rounded.Star else Icons.Outlined.Star,
                     contentDescription = null,
                     tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -121,9 +98,14 @@ fun PostActionsRow(
 
         if (!isOffline) {
             DropdownMenuItem(
+                text = { Text("AI nástroje") },
+                leadingIcon = { Icon(Icons.Rounded.AutoAwesome, contentDescription = null) },
+                onClick = { menuExpanded = false; onAiToolsClick() }
+            )
+            DropdownMenuItem(
                 text = { Text("Stáhnout PDF") },
                 leadingIcon = {
-                    Icon(Icons.Filled.Print, contentDescription = null)
+                    Icon(Icons.Rounded.Print, contentDescription = null)
                 },
                 onClick = { menuExpanded = false; onDownloadClick() }
             )
@@ -131,7 +113,7 @@ fun PostActionsRow(
             DropdownMenuItem(
                 text = { Text("Sdílet odkaz") },
                 leadingIcon = {
-                    Icon(Icons.Filled.Share, contentDescription = null)
+                    Icon(Icons.Rounded.Share, contentDescription = null)
                 },
                 onClick = { menuExpanded = false; onShareClick() }
             )

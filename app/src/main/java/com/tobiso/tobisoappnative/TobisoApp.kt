@@ -38,7 +38,6 @@ import com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import com.tobiso.tobisoappnative.components.TtsPlayer
 import com.tobiso.tobisoappnative.utils.checkPointsAchievements
-import com.tobiso.tobisoappnative.components.FloatingSearchBar
 import com.tobiso.tobisoappnative.navigation.AppNavHost
 import com.tobiso.tobisoappnative.components.PointsOverlayHost
 
@@ -122,6 +121,7 @@ fun TobisoApp(navigateTo: String? = null) {
                             ttsViewModel = ttsViewModel,
                             modifier = Modifier
                                 .padding(paddingValues)
+                                .consumeWindowInsets(paddingValues)
                                 .imePadding()
                         )
                     }
@@ -139,46 +139,6 @@ fun TobisoApp(navigateTo: String? = null) {
                                 .fillMaxWidth()
                                 .align(Alignment.BottomCenter)
                                 .padding(start = 8.dp, end = 8.dp, bottom = adjustedBottom)
-                        )
-                    }
-
-                    // Floating Search Bar
-                    val showFloatingSearch = BOTTOM_BAR_ROUTES.any { destination?.hasRoute(it) == true }
-
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = showFloatingSearch,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomCenter),
-                        enter = androidx.compose.animation.fadeIn(
-                            animationSpec = androidx.compose.animation.core.tween(300)
-                        ) + androidx.compose.animation.slideInVertically(
-                            initialOffsetY = { it / 2 },
-                            animationSpec = androidx.compose.animation.core.tween(300)
-                        ),
-                        exit = androidx.compose.animation.fadeOut(
-                            animationSpec = androidx.compose.animation.core.tween(200)
-                        ) + androidx.compose.animation.slideOutVertically(
-                            targetOffsetY = { it / 2 },
-                            animationSpec = androidx.compose.animation.core.tween(200)
-                        )
-                    ) {
-                        FloatingSearchBar(
-                            navController = navController,
-                            viewModel = mainViewModel,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = if (bottomBarVisible) 100.dp else 16.dp),
-                            isOffline = !isConnected,
-                            onAiSend = { post, message ->
-                                navController.navigate(
-                                    AiChatRoute(
-                                        postId = post.id,
-                                        postTitle = post.title,
-                                        firstUserMessage = message
-                                    )
-                                )
-                            }
                         )
                     }
 

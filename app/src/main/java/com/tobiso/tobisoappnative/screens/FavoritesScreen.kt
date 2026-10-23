@@ -8,6 +8,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -19,12 +22,12 @@ import androidx.compose.ui.platform.LocalContext
 import com.tobiso.tobisoappnative.viewmodel.favorites.FavoritesViewModel
 import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +44,7 @@ fun FavoritesScreen(
     val posts by vm.fetchedPosts.collectAsStateWithLifecycle()
     val favoritePosts by vm.favoritePosts.collectAsStateWithLifecycle()
     val snippets by vm.snippets.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
 
     LaunchedEffect(selectedTab) {
@@ -65,13 +69,10 @@ fun FavoritesScreen(
             ),
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             },
             actions = {
-                // Zobrazení aktivního multiplikátoru
-                MultiplierIndicator()
-                
                 when (selectedTab) {
                     0 -> {
                         if (snippets.isNotEmpty()) {
@@ -79,7 +80,7 @@ fun FavoritesScreen(
                                 showDeleteDialog = true
                                 deleteType = 0 
                             }) {
-                                Icon(Icons.Filled.Delete, contentDescription = "Smazat všechny útržky")
+                                Icon(Icons.Rounded.Delete, contentDescription = "Smazat všechny útržky")
                             }
                         }
                     }
@@ -89,29 +90,37 @@ fun FavoritesScreen(
                                 showDeleteDialog = true
                                 deleteType = 1 
                             }) {
-                                Icon(Icons.Filled.Delete, contentDescription = "Smazat všechny články")
+                                Icon(Icons.Rounded.Delete, contentDescription = "Smazat všechny články")
                             }
                         }
                     }
                 }
             }
         )
-        TabRow(
-            selectedTabIndex = selectedTab,
-            modifier = Modifier.fillMaxWidth()
+        PrimaryTabRow(
+            selectedTabIndex = if (selectedTab == 1) 0 else 1,
+            modifier = Modifier.fillMaxWidth(),
+            indicator = {
+                TabRowDefaults.PrimaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(if (selectedTab == 1) 0 else 1, matchContentSize = false),
+                    width = 56.dp,
+                    height = 3.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Útržky") }
-            )
             Tab(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
-                text = { Text("Články") }
+                text = { Text("Články · ${favoritePosts.size}", fontWeight = FontWeight.SemiBold) }
+            )
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text("Útržky · ${snippets.size}", fontWeight = FontWeight.SemiBold) }
             )
         }
-        
+
         // Dialog potvrzení
         if (showDeleteDialog) {
             AlertDialog(
@@ -142,7 +151,7 @@ fun FavoritesScreen(
                             modifier = Modifier.padding(32.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Bookmark,
+                                imageVector = Icons.Rounded.Bookmark,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(64.dp)
@@ -183,7 +192,8 @@ fun FavoritesScreen(
                                             navController.navigate(PostDetailRoute(postId = snippet.postId))
                                         } else mod
                                     },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                                 elevation = CardDefaults.cardElevation(0.dp)
                             ) {
                                 Row(
@@ -212,13 +222,24 @@ fun FavoritesScreen(
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                         )
                                     }
-                                    IconButton(onClick = { vm.removeSnippet(snippet) }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Odstranit útržek",
-                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                            modifier = Modifier.size(20.dp)
-                                        )
+                                    Column {
+                                        IconButton(onClick = {
+                                            val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(android.content.Intent.EXTRA_TEXT, snippet.content)
+                                            }
+                                            context.startActivity(android.content.Intent.createChooser(send, null))
+                                        }) {
+                                            Icon(androidx.compose.material.icons.Icons.Rounded.Share, contentDescription = "Sdílet", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                                        }
+                                        IconButton(onClick = { vm.removeSnippet(snippet) }) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Delete,
+                                                contentDescription = "Odstranit útržek",
+                                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -234,7 +255,7 @@ fun FavoritesScreen(
                             modifier = Modifier.padding(32.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Star,
+                                imageVector = Icons.Rounded.Star,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(64.dp)
@@ -263,41 +284,45 @@ fun FavoritesScreen(
                                 .mapNotNull { try { inputFmt.parse(it) } catch (_: Exception) { null } }
                                 .maxOrNull()?.let { outputFmt.format(it) } ?: ""
 
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { navController.navigate(PostDetailRoute(postId = post.id)) }
-                                    .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Card(
+                                onClick = { navController.navigate(PostDetailRoute(postId = post.id)) },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                                elevation = CardDefaults.cardElevation(0.dp)
                             ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.MenuBook,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = post.title,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium
+                                Row(
+                                    modifier = Modifier.padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    com.tobiso.tobisoappnative.components.IconCircle(
+                                        icon = Icons.AutoMirrored.Rounded.MenuBook,
+                                        size = 44.dp,
+                                        background = MaterialTheme.colorScheme.secondaryContainer,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer
                                     )
-                                    if (formatted.isNotBlank()) {
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = formatted,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                            text = post.title,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        if (formatted.isNotBlank()) {
+                                            Text(
+                                                text = formatted,
+                                                fontSize = 13.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    IconButton(onClick = { vm.unsavePost(post.id) }, modifier = Modifier.size(48.dp)) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Star,
+                                            contentDescription = "Odebrat z oblíbených",
+                                            tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                }
-                                IconButton(onClick = { vm.unsavePost(post.id) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = "Odebrat z oblíbených",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
                                 }
                             }
                         }

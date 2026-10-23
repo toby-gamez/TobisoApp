@@ -7,11 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.rounded.Help
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -111,7 +111,7 @@ fun ElementRenderer(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Icon(
-                    imageVector = if (tip) Icons.Default.Lightbulb else Icons.Default.Info,
+                    imageVector = if (tip) Icons.Rounded.Lightbulb else Icons.Rounded.Info,
                     contentDescription = null,
                     tint = onContainer
                 )
@@ -207,7 +207,7 @@ fun ElementRenderer(
             if (isOffline) Text(text = "*[Video nedostupné v offline režimu]*", style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.padding(vertical = 8.dp))
             else DisableSelection { 
                 OutlinedButton(onClick = { navController.navigate(VideoPlayerRoute(videoUrl = Uri.encode(element.videoUrl))) }, modifier = Modifier.padding(vertical = 8.dp)) {
-                    Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Přehrát video", tint = MaterialTheme.colorScheme.primary)
+                    Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = "Přehrát video", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Video", color = MaterialTheme.colorScheme.primary)
                 }
@@ -287,7 +287,7 @@ private fun RenderParagraph(
                 }
                 val addendumId = range.item.toIntOrNull()
                 val addendum = addendums.find { it.id == addendumId }
-                if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Default.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
+                if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Rounded.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
                 lastIndex = end
             }
                 if (lastIndex < text.length) {
@@ -347,7 +347,7 @@ private fun RenderInlineText(
                 }
                 val addendumId = range.item.toIntOrNull()
                 val addendum = addendums.find { it.id == addendumId }
-                if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Default.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
+                if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Rounded.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
                 lastIndex = end
             }
             if (lastIndex < text.length) {
@@ -407,7 +407,7 @@ private fun RenderBulletList(
                                 }
                                 val addendumId = range.item.toIntOrNull()
                                 val addendum = addendums.find { it.id == addendumId }
-                                if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Default.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
+                                if (addendum != null) IconButton(onClick = { onAddendumSelected(addendum) }, modifier = Modifier.size(18.dp).padding(horizontal = 2.dp)) { Icon(imageVector = Icons.Rounded.Help, contentDescription = "Zobrazit dodatek", tint = MaterialTheme.colorScheme.primary) }
                                 lastIndex = end
                             }
                             if (lastIndex < text.length) {
@@ -441,7 +441,7 @@ private fun RenderImage(
 
     if (finalUrlForImage != null) {
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-            AsyncImage(model = finalUrlForImage, contentDescription = alt, modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 400.dp).padding(vertical = 6.dp))
+            LoadingAsyncImage(model = finalUrlForImage, contentDescription = alt, modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 400.dp).padding(vertical = 6.dp))
             if (!caption.isNullOrBlank() || !source.isNullOrBlank()) {
                 DisableSelection {
                     Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
@@ -502,7 +502,7 @@ private fun RenderTableCell(cell: String, isOffline: Boolean, posts: List<Post>)
         if (isBlocked) {
             Text(text = "[${alt.ifBlank { "obrázek" }}]", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground))
         } else {
-            AsyncImage(
+            LoadingAsyncImage(
                 model = resolvedUrl,
                 contentDescription = alt,
                 modifier = Modifier.fillMaxWidth().heightIn(max = 120.dp)
@@ -635,7 +635,7 @@ private fun RenderInlinePartsRow(
                             )
                         )
                         Icon(
-                            imageVector = Icons.Default.Person,
+                            imageVector = Icons.Rounded.Person,
                             contentDescription = null,
                             tint = linkColor,
                             modifier = Modifier.size(14.dp).padding(start = 2.dp)

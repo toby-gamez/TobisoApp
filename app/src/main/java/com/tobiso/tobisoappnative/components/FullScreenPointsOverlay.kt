@@ -7,7 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Stars
+import androidx.compose.material.icons.rounded.Stars
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -133,7 +133,7 @@ fun FullScreenPointsOverlay(points: Int, totalPointsFloat: Float) {
                 modifier = Modifier.alpha(secondaryAlpha)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Stars,
+                    imageVector = Icons.Rounded.Stars,
                     contentDescription = "Body",
                     tint = primaryColor,
                     modifier = Modifier.size(24.dp)
@@ -290,7 +290,7 @@ fun FullScreenMilestoneOverlay(points: Int, totalPointsFloat: Float, milestoneDa
                 modifier = Modifier.alpha(secondaryAlpha)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Stars,
+                    imageVector = Icons.Rounded.Stars,
                     contentDescription = "Body",
                     tint = milestoneColor,
                     modifier = Modifier.size(20.dp)
@@ -382,7 +382,7 @@ fun FullScreenTotalPointsOverlay(totalPointsFloat: Float) {
             modifier = Modifier.scale(textScale)
         ) {
             Icon(
-                imageVector = Icons.Default.Stars,
+                imageVector = Icons.Rounded.Stars,
                 contentDescription = "Body",
                 tint = primaryColor,
                 modifier = Modifier.size(48.dp)
@@ -577,7 +577,7 @@ fun FullScreenPrestigeTierOverlay(tier: PrestigeTier, totalEarnedPoints: Int) {
                 modifier = Modifier.alpha(labelAlpha)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Stars,
+                    imageVector = Icons.Rounded.Stars,
                     contentDescription = null,
                     tint = colors.first(),
                     modifier = Modifier.size(20.dp)
@@ -901,7 +901,7 @@ fun FullScreenAchievementOverlay(points: Int, totalPointsFloat: Float, achieveme
                 modifier = Modifier.alpha(secondaryAlpha)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Stars,
+                    imageVector = Icons.Rounded.Stars,
                     contentDescription = "Body",
                     tint = achievementColor,
                     modifier = Modifier.size(20.dp)

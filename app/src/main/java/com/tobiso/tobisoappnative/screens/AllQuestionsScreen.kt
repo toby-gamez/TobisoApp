@@ -11,8 +11,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.rounded.*
+import androidx.compose.material.icons.rounded.*
+import com.tobiso.tobisoappnative.components.*
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -81,96 +85,19 @@ fun AllQuestionsScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                LargeTopAppBar(
-                    title = {
-                        val fraction = scrollBehavior.state.collapsedFraction
-                        Text(
-                            text = "Procvičování",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontSize = (36 - 16 * fraction).sp
-                            ),
-                            maxLines = 1
-                        )
-                    },
+            val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+            val header: @Composable () -> Unit = {
+                LargeScreenHeader(
+                    title = "Procvičování",
                     actions = {
-                        MultiplierIndicator()
-
-                        val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = RoundedCornerShape(20.dp)
-                                )
-                                .clickable { navController.navigate(ShopRoute) }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Stars,
-                                contentDescription = "Body",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = formatPointsBalance(totalPointsFloat),
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        }
-
-                        val currentStreak = remember { mutableStateOf(0) }
-                        val availableFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
-                        val usedFreezes by com.tobiso.tobisoappnative.StreakFreezeManager.instance.usedFreezes.collectAsStateWithLifecycle()
-                        LaunchedEffect(availableFreezes, usedFreezes) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                currentStreak.value = StreakUtils.getCurrentStreak(context)
-                            }
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .clickable { navController.navigate(StreakRoute) }
-                        ) {
-                            if (currentStreak.value > 0) {
-                                Text(
-                                    text = currentStreak.value.toString(),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(end = 4.dp)
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Default.Whatshot,
-                                contentDescription = "Streak",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-                        val offlineDownloading by vm.offlineDownloading.collectAsStateWithLifecycle()
-                        val offlineProgress by vm.offlineDownloadProgress.collectAsStateWithLifecycle()
-                        if (offlineDownloading) {
-                            Box(modifier = Modifier.padding(end = 8.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(
-                                    progress = { offlineProgress.coerceIn(0f, 1f) },
-                                    strokeWidth = 2.dp,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    },
-                    scrollBehavior = scrollBehavior
+                        StatChip(
+                            icon = Icons.Rounded.Stars,
+                            text = formatPointsBalance(totalPointsFloat),
+                            onClick = { navController.navigate(ShopRoute) }
+                        )
+                    }
                 )
-
             }
 
             PullToRefreshBox(
@@ -186,14 +113,14 @@ fun AllQuestionsScreen(navController: NavController) {
                 }
             ) {
                 when {
-                    allQuestionsError != null -> ErrorState(
+                    allQuestionsError != null -> Column { header(); ErrorState(
                         message = allQuestionsError ?: "Neznámá chyba",
                         onRetry = { vm.loadAllQuestions() }
-                    )
+                    ) }
 
-                    allQuestionsLoading -> LoadingState()
+                    allQuestionsLoading -> Column { header(); LoadingState() }
 
-                    allQuestions.isEmpty() -> EmptyState()
+                    allQuestions.isEmpty() -> Column { header(); EmptyState() }
 
                     else -> PracticeHubContent(
                         vm = vm,
@@ -204,7 +131,8 @@ fun AllQuestionsScreen(navController: NavController) {
                         categoryExercisesMap = categoryExercisesMap,
                         allExercises = allExercises,
                         posts = questionsPosts,
-                        navController = navController
+                        navController = navController,
+                        header = header
                     )
                 }
             }
@@ -223,7 +151,8 @@ private fun PracticeHubContent(
     categoryExercisesMap: Map<Int, List<InteractiveExerciseResponse>>,
     allExercises: List<InteractiveExerciseResponse>,
     posts: List<com.tobiso.tobisoappnative.model.Post>,
-    navController: NavController
+    navController: NavController,
+    header: @Composable () -> Unit = {}
 ) {
     val rootCategories = remember(categories, categoryQuestionIdsMap) {
         categories.filter { cat ->
@@ -278,6 +207,7 @@ private fun PracticeHubContent(
         contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
+        item { header() }
         item {
             QuickActionsSection(
                 totalCount = allQuestionsCount,
@@ -302,81 +232,71 @@ private fun PracticeHubContent(
         if (weakCategories.isNotEmpty()) {
             item {
                 WeakSpotsSection(
-                    weakCategories = weakCategories,
-                    onCategoryClick = { catId ->
-                        val ids = categoryQuestionIdsMap[catId] ?: emptyList()
+                    count = weakCategories.size,
+                    onClick = {
+                        val ids = weakCategories.flatMap { categoryQuestionIdsMap[it.categoryId] ?: emptyList() }.distinct().shuffled().take(10)
                         if (ids.isNotEmpty()) navController.navigate(MixedQuizRoute(ids.joinToString(",")))
                     }
                 )
             }
         }
 
-        if (visibleExercises.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Interaktivní cvičení",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp)
-                )
-            }
-            items(displayedExercises) { exercise ->
-                val contextLabel = remember(exercise, categories, posts) {
-                    exercise.categoryIds?.firstOrNull()?.let { catId -> categories.find { it.id == catId }?.name }
-                        ?: exercise.postIds?.firstOrNull()?.let { postId -> posts.find { it.id == postId }?.title }
-                }
-                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    ExerciseRow(
-                        exercise = exercise,
-                        contextLabel = contextLabel,
-                        onClick = { navigateToExercise(navController, exercise) }
-                    )
-                }
-            }
-            if (visibleExercises.size > 3) {
-                item {
-                    TextButton(
-                        onClick = { exercisesExpanded = !exercisesExpanded },
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    ) {
-                        Text(if (exercisesExpanded) "Zobrazit méně" else "Zobrazit vše (${visibleExercises.size})")
-                    }
-                }
-            }
-        }
-
+        item { SectionLabel("Procvičovat dle tématu") }
         item {
-            Text(
-                text = "Procvičovat dle tématu",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp)
-            )
-        }
-
-        items(rootCategories.chunked(2)) { row ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                row.forEach { category ->
+            GroupedList(Modifier.padding(horizontal = 16.dp)) {
+                rootCategories.forEachIndexed { index, category ->
                     val questionIds = categoryQuestionIdsMap[category.id] ?: emptyList()
                     val progress = if (questionIds.isNotEmpty())
                         QuestionProgressManager.instance.getProgressForQuestions(questionIds.toSet())
                     else -1f
-                    CategoryCard(
-                        modifier = Modifier.weight(1f),
+                    if (index > 0) GroupedListDivider()
+                    TopicRow(
                         name = category.name,
                         questionCount = questionIds.size,
                         progress = if (progress < 0f) null else progress,
                         onClick = { sheetCategoryId = category.id }
                     )
                 }
-                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
             }
-            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        if (allExercises.isNotEmpty()) {
+            item { SectionLabel("Interaktivní cvičení") }
+            val types = listOf(
+                Triple("drag-drop", "Přetahování", Icons.Rounded.DragIndicator),
+                Triple("matching", "Přiřazování", Icons.Rounded.Link),
+                Triple("timeline", "Časová osa", Icons.Rounded.Timeline),
+                Triple("circuit", "Obvody", Icons.Rounded.ElectricalServices)
+            ).filter { (type, _, _) -> allExercises.any { it.type == type } }
+            items(types.chunked(2)) { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    pair.forEach { (type, label, icon) ->
+                        val ofType = allExercises.filter { it.type == type }
+                        Card(
+                            onClick = { navigateToExercise(navController, ofType.random()) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                            elevation = CardDefaults.cardElevation(0.dp)
+                        ) {
+                            Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+                                Text(label, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                Text(
+                                    "${ofType.size} ${com.tobiso.tobisoappnative.utils.pluralCs(ofType.size, "cvičení", "cvičení", "cvičení")}",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+            item { Spacer(Modifier.height(100.dp)) }
         }
     }
 }
@@ -409,7 +329,7 @@ private fun TopicSheet(
                 Text(text = subjectIcon, fontSize = 28.sp)
             } else {
                 Icon(
-                    imageVector = subjectIcon as? ImageVector ?: Icons.AutoMirrored.Filled.MenuBook,
+                    imageVector = subjectIcon as? ImageVector ?: Icons.AutoMirrored.Rounded.MenuBook,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
@@ -579,8 +499,8 @@ private fun SubcategoryRow(
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = when {
-                    hasChildren || expandable -> if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore
-                    else -> Icons.Default.ChevronRight
+                    hasChildren || expandable -> if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore
+                    else -> Icons.Rounded.ChevronRight
                 },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
@@ -637,220 +557,144 @@ private fun QuickActionsSection(
     onAll: () -> Unit,
     onRandomExercise: (() -> Unit)?
 ) {
-    Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)) {
-        Text(
-            text = "Rychlý start",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 10.dp)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            QuickActionCard(
-                title = "Rychlý dril",
-                subtitle = "10 náhodných otázek",
-                icon = Icons.Default.FlashOn,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                onClick = onQuickDrill
+    val scheme = MaterialTheme.colorScheme
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        HeroCard(containerColor = scheme.primary) {
+            Text("RYCHLÝ START", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = scheme.onPrimary.copy(alpha = 0.8f), letterSpacing = 1.sp)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "10 otázek napříč tvým ročníkem",
+                fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 24.sp,
+                lineHeight = 28.sp,
+                color = scheme.onPrimary
             )
-            QuickActionCard(
-                title = "Denní výzva",
-                subtitle = "20 otázek dne",
-                icon = Icons.Default.Today,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                onClick = onDailyChallenge
-            )
-            QuickActionCard(
-                title = "Vše",
-                subtitle = "$totalCount otázek",
-                icon = Icons.AutoMirrored.Filled.LibraryBooks,
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                onClick = onAll
-            )
-            if (onRandomExercise != null) {
-                QuickActionCard(
-                    title = "Náhodné cvičení",
-                    subtitle = "Interaktivní cvičení",
-                    icon = Icons.Default.Shuffle,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    onClick = onRandomExercise
-                )
+            Spacer(Modifier.height(16.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Button(
+                    onClick = onQuickDrill,
+                    colors = ButtonDefaults.buttonColors(containerColor = scheme.onPrimary, contentColor = scheme.primary),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Začít", fontWeight = FontWeight.Bold)
+                }
+                Text("~5 min · až 50 bodů", fontSize = 13.sp, color = scheme.onPrimary.copy(alpha = 0.85f))
             }
         }
-    }
-}
-
-@Composable
-private fun QuickActionCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    containerColor: Color,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .width(140.dp)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier.size(28.dp)
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
-private fun WeakSpotsSection(
-    weakCategories: List<WeakCategory>,
-    onCategoryClick: (Int) -> Unit
-) {
-    Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.TrendingDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "Slabá místa",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
         Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            weakCategories.forEach { weak ->
-                WeakCategoryChip(weak = weak, onClick = { onCategoryClick(weak.categoryId) })
+            AssistChip(onClick = onDailyChallenge, label = { Text("Denní výzva · 20") }, shape = RoundedCornerShape(10.dp))
+            AssistChip(onClick = onAll, label = { Text("Vše · $totalCount") }, shape = RoundedCornerShape(10.dp))
+            if (onRandomExercise != null) {
+                AssistChip(onClick = onRandomExercise, label = { Text("Náhodné cvičení") }, shape = RoundedCornerShape(10.dp))
             }
         }
     }
 }
 
 @Composable
-private fun WeakCategoryChip(weak: WeakCategory, onClick: () -> Unit) {
-    val pct = (weak.percentage * 100).toInt()
-    Card(
-        modifier = Modifier.clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(
-                text = weak.name,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "$pct% správně",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
+private fun WeakSpotsSection(count: Int, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        HeroCard(containerColor = scheme.secondaryContainer, onClick = onClick) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                IconCircle(
+                    icon = Icons.Rounded.TrackChanges,
+                    size = 48.dp,
+                    background = scheme.secondary.copy(alpha = 0.18f),
+                    tint = scheme.secondary
+                )
+                Column(Modifier.weight(1f)) {
+                    Text("Slabá místa", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = scheme.onSecondaryContainer)
+                    Text(
+                        "$count ${com.tobiso.tobisoappnative.utils.pluralCs(count, "téma", "témata", "témat")}, ve kterých chybuješ",
+                        fontSize = 13.sp,
+                        color = scheme.onSecondaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+                Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = scheme.onSecondaryContainer)
+            }
         }
     }
 }
 
 @Composable
-private fun CategoryCard(
-    modifier: Modifier = Modifier,
-    name: String,
-    questionCount: Int,
-    progress: Float?,
-    onClick: () -> Unit
-) {
+private fun TopicRow(name: String, questionCount: Int, progress: Float?, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
     val subjectIcon = IconPackManager.getSubjectIcon(name)
     val isEmoji = IconPackManager.isEmojiIcon(name)
-
-    Card(
-        modifier = modifier.clickable(enabled = questionCount > 0, onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(16.dp)
+    val (tintBg, tintFg) = subjectTint(subjectHue(name))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = questionCount > 0, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(tintBg), contentAlignment = Alignment.Center) {
             if (isEmoji && subjectIcon is String) {
-                Text(
-                    text = subjectIcon,
-                    fontSize = 24.sp,
-                    modifier = Modifier.size(28.dp)
-                )
+                Text(subjectIcon, fontSize = 20.sp)
             } else {
-                Icon(
-                    imageVector = subjectIcon as? ImageVector ?: Icons.AutoMirrored.Filled.MenuBook,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                Icon(subjectIcon as? ImageVector ?: Icons.AutoMirrored.Rounded.MenuBook, null, tint = tintFg, modifier = Modifier.size(22.dp))
+            }
+        }
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    if (questionCount > 0) "$questionCount otázek" else "Žádné otázky",
+                    fontSize = 13.sp,
+                    color = scheme.onSurfaceVariant
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                lineHeight = 18.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = if (questionCount > 0) "$questionCount otázek" else "Žádné otázky",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
             if (progress != null && questionCount > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 LinearProgressIndicator(
                     progress = { progress.coerceIn(0f, 1f) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = when {
-                        progress >= 0.8f -> com.tobiso.tobisoappnative.ui.theme.StatusColors.success
-                        progress >= 0.5f -> com.tobiso.tobisoappnative.ui.theme.StatusColors.warning
-                        else -> MaterialTheme.colorScheme.error
-                    },
-                    trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                    modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
+                    color = scheme.secondary,
+                    trackColor = scheme.surfaceContainerHigh,
+                    gapSize = 0.dp,
+                    drawStopIndicator = {}
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ExerciseCard(exercise: InteractiveExerciseResponse, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val (icon, typeLabel) = when (exercise.type) {
+        "timeline" -> Icons.Rounded.Timeline to "Časová osa"
+        "drag-drop" -> Icons.Rounded.DragIndicator to "Přetahování"
+        "matching" -> Icons.Rounded.Link to "Přiřazování"
+        "circuit" -> Icons.Rounded.ElectricalServices to "Obvod"
+        else -> Icons.Rounded.Extension to "Cvičení"
+    }
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = scheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconCircle(icon = icon, size = 40.dp, background = scheme.secondaryContainer, tint = scheme.onSecondaryContainer)
+            Text(typeLabel, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Text(
+                exercise.title ?: "Cvičení",
+                fontSize = 12.5.sp,
+                color = scheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -871,11 +715,11 @@ private fun ExerciseRow(
     onClick: () -> Unit
 ) {
     val (icon, typeLabel) = when (exercise.type) {
-        "timeline" -> Icons.Default.Timeline to "Časová osa"
-        "drag-drop" -> Icons.Default.DragIndicator to "Přetahování"
-        "matching" -> Icons.AutoMirrored.Filled.CompareArrows to "Párování"
-        "circuit" -> Icons.Default.AccountTree to "Obvod"
-        else -> Icons.Default.Extension to "Cvičení"
+        "timeline" -> Icons.Rounded.Timeline to "Časová osa"
+        "drag-drop" -> Icons.Rounded.DragIndicator to "Přetahování"
+        "matching" -> Icons.AutoMirrored.Rounded.CompareArrows to "Párování"
+        "circuit" -> Icons.Rounded.AccountTree to "Obvod"
+        else -> Icons.Rounded.Extension to "Cvičení"
     }
     val subtitle = if (contextLabel != null) "$typeLabel · $contextLabel" else typeLabel
     Row(
@@ -910,7 +754,7 @@ private fun ExerciseRow(
             )
         }
         Icon(
-            imageVector = Icons.Default.ChevronRight,
+            imageVector = Icons.Rounded.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
             modifier = Modifier.size(20.dp)
@@ -923,7 +767,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
             Icon(
-                Icons.Filled.Error,
+                Icons.Rounded.Error,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(64.dp)
@@ -955,7 +799,7 @@ private fun EmptyState() {
             modifier = Modifier.padding(32.dp)
         ) {
             Icon(
-                Icons.Filled.QuestionMark,
+                Icons.Rounded.QuestionMark,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(64.dp)

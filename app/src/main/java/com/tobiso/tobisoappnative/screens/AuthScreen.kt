@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.tobiso.tobisoappnative.components.Card
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -14,12 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MarkEmailRead
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.MarkEmailRead
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -115,7 +116,7 @@ fun AuthScreen(navController: NavController) {
             },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )
@@ -127,7 +128,7 @@ fun AuthScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
             ) {
-                Icon(Icons.Default.MarkEmailRead, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Rounded.MarkEmailRead, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Text("Zkontroluj schránku", style = MaterialTheme.typography.headlineSmall)
                 Text(
                     (if (state.justRegistered) "Poslali jsme ti e-mail s odkazem pro potvrzení účtu na "
@@ -135,7 +136,7 @@ fun AuthScreen(navController: NavController) {
                         ". Po jeho otevření se můžeš přihlásit.",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                Button(onClick = { vm.onIntent(AuthIntent.BackToLogin) }, modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = { vm.onIntent(AuthIntent.BackToLogin) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Text("Přejít na přihlášení")
                 }
             }
@@ -152,19 +153,19 @@ fun AuthScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
+                FilterChip(shape = RoundedCornerShape(10.dp), 
                     selected = state.mode == AuthMode.LOGIN,
                     onClick = { vm.onIntent(AuthIntent.SetMode(AuthMode.LOGIN)) },
                     label = { Text("Přihlášení") }
                 )
-                FilterChip(
+                FilterChip(shape = RoundedCornerShape(10.dp), 
                     selected = state.mode == AuthMode.REGISTER,
                     onClick = { vm.onIntent(AuthIntent.SetMode(AuthMode.REGISTER)) },
                     label = { Text("Registrace") }
                 )
             }
 
-            OutlinedTextField(
+            OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                 value = state.email,
                 onValueChange = { vm.onIntent(AuthIntent.EmailChanged(it)) },
                 label = { Text("E-mail") },
@@ -173,7 +174,7 @@ fun AuthScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
             if (state.mode == AuthMode.REGISTER) {
-                OutlinedTextField(
+                OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                     value = state.displayName,
                     onValueChange = { vm.onIntent(AuthIntent.DisplayNameChanged(it)) },
                     label = { Text("Přezdívka (volitelné)") },
@@ -181,7 +182,7 @@ fun AuthScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            OutlinedTextField(
+            OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                 value = state.password,
                 onValueChange = { vm.onIntent(AuthIntent.PasswordChanged(it)) },
                 label = { Text("Heslo") },
@@ -194,7 +195,7 @@ fun AuthScreen(navController: NavController) {
                 trailingIcon = {
                     IconButton(onClick = { showPassword = !showPassword }) {
                         Icon(
-                            if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
                             contentDescription = if (showPassword) "Skrýt heslo" else "Zobrazit heslo"
                         )
                     }
@@ -255,7 +256,7 @@ fun AuthScreen(navController: NavController) {
                 ) { Text("Pokračovat přes Google") }
             }
             if (state.mode == AuthMode.LOGIN) {
-                TextButton(onClick = { openWeb("/zapomenute-heslo") }, modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = { openWeb("/zapomenute-heslo") }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Text("Zapomenuté heslo")
                 }
             }

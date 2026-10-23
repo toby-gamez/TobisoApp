@@ -1,4 +1,5 @@
 package com.tobiso.tobisoappnative.screens
+import com.tobiso.tobisoappnative.components.Card
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import timber.log.Timber
 
@@ -9,7 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -100,7 +101,7 @@ fun EventDetailScreen(
                     // Jednoduchá navigace zpět na předchozí obrazovku
                     navController.popBackStack()
                 }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             },
             actions = {
@@ -115,7 +116,7 @@ fun EventDetailScreen(
                             onClick = { showEditDialog = true }
                         ) {
                             Icon(
-                                    Icons.Default.Edit,
+                                    Icons.Rounded.Edit,
                                     contentDescription = "Upravit událost",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -129,7 +130,7 @@ fun EventDetailScreen(
                                 }
                             ) {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    Icons.Rounded.Delete,
                                     contentDescription = "Smazat událost",
                                     tint = MaterialTheme.colorScheme.error
                                 )
@@ -260,8 +261,8 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
         // Hlavní karta s názvem a časem
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
@@ -300,7 +301,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
                         if (event.isEffectivelyAllDay()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.Default.CalendarToday,
+                                    Icons.Rounded.CalendarToday,
                                     contentDescription = "Datum",
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -315,7 +316,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.Default.Schedule,
+                                    Icons.Rounded.Schedule,
                                     contentDescription = "Čas",
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -344,14 +345,14 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
         if (!event.description.isNullOrBlank()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.Description,
+                            Icons.Rounded.Description,
                             contentDescription = "Popis",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -379,14 +380,14 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
         if (!event.location.isNullOrBlank()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.LocationOn,
+                            Icons.Rounded.LocationOn,
                             contentDescription = "Místo",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -413,14 +414,14 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
         if (event.isRecurringSafe() && !event.recurrencePattern.isNullOrBlank()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.Repeat,
+                            Icons.Rounded.Repeat,
                             contentDescription = "Opakování",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -454,9 +455,9 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
 
         // Kdo událost vidí / kdo ji přidal
         eventMetaLine(event)?.let { meta ->
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp)) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Rounded.Groups, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(meta, style = MaterialTheme.typography.bodyMedium)
                 }
@@ -465,10 +466,10 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
 
         // Témata (články / kategorie, na které se událost vztahuje)
         if (event.themes.isNotEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Témata", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     }
@@ -485,7 +486,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
                                 label = { Text(theme.name.ifBlank { "Téma" }) },
                                 leadingIcon = {
                                     Icon(
-                                        if (theme.postId != null) Icons.Default.Article else Icons.Default.Folder,
+                                        if (theme.postId != null) Icons.Rounded.Article else Icons.Rounded.Folder,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -500,14 +501,14 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
         // Další informace
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(24.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.Info,
+                        Icons.Rounded.Info,
                         contentDescription = "Další informace",
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -551,7 +552,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = if (event.isLocalSafe()) Icons.Default.Smartphone else Icons.Default.Cloud,
+                            imageVector = if (event.isLocalSafe()) Icons.Rounded.Smartphone else Icons.Rounded.Cloud,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
                             tint = if (event.isLocalSafe()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant

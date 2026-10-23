@@ -9,7 +9,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -161,7 +161,7 @@ fun ColorPickerDialog(
                     )
                     
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Zavřít")
+                        Icon(Icons.Rounded.Close, contentDescription = "Zavřít")
                     }
                 }
                 
@@ -193,7 +193,7 @@ fun ColorPickerDialog(
                         ) {
                             if (isSelected) {
                                 Icon(
-                                    imageVector = Icons.Default.Close, // Použijeme Close jako checkmark
+                                    imageVector = Icons.Rounded.Close, // Použijeme Close jako checkmark
                                     contentDescription = "Vybrána",
                                     tint = Color.White,
                                     modifier = Modifier.size(24.dp)

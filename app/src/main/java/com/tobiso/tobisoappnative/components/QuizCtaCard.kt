@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Quiz
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,36 +34,32 @@ fun QuizCtaCard(
     onStart: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val countText = if (questionCount > 0) {
+        "$questionCount ${pluralCs(questionCount, "otázka", "otázky", "otázek")}"
+    } else "Ověř si porozumění"
     Card(
+        onClick = onStart,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = scheme.primary, contentColor = scheme.onPrimary)
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                    Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.FactCheck,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-                Text("Ověř si porozumění", style = MaterialTheme.typography.titleMedium)
+        Row(
+            Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                Modifier.size(48.dp).background(scheme.onPrimary.copy(alpha = 0.2f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.Quiz, contentDescription = null, tint = scheme.onPrimary)
             }
-            val countText = if (questionCount > 0) {
-                " ($questionCount ${pluralCs(questionCount, "otázka", "otázky", "otázek")})"
-            } else ""
-            Text("Zjisti, jak dobře látku ovládáš$countText.", style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onStart, shape = CircleShape) {
-                Text("Spustit kvíz")
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.padding(start = 8.dp).size(18.dp)
-                )
+            Column(Modifier.weight(1f)) {
+                Text("Vyzkoušet se", style = MaterialTheme.typography.titleMedium, color = scheme.onPrimary)
+                Text(countText, fontSize = 13.sp, color = scheme.onPrimary.copy(alpha = 0.85f))
             }
+            Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = scheme.onPrimary)
         }
     }
 }

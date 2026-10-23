@@ -43,6 +43,7 @@ import com.tobiso.tobisoappnative.navigation.UpdaterRoute
 import com.tobiso.tobisoappnative.navigation.VideoPlayerRoute
 import com.tobiso.tobisoappnative.navigation.AboutRoute
 import com.tobiso.tobisoappnative.screens.HomeScreen
+import com.tobiso.tobisoappnative.screens.ShopHubScreen
 import com.tobiso.tobisoappnative.screens.CalendarScreen
 import com.tobiso.tobisoappnative.screens.EventDetailScreen
 import com.tobiso.tobisoappnative.screens.ProfileScreen
@@ -292,7 +293,7 @@ fun AppNavHost(
             popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
         ) {
-            ShopScreen(navController = navController)
+            ShopHubScreen(navController = navController, initialTab = 0)
         }
         composable<BackpackRoute>(
             enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
@@ -300,7 +301,7 @@ fun AppNavHost(
             popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
         ) {
-            BackpackScreen(navController = navController)
+            ShopHubScreen(navController = navController, initialTab = 1)
         }
         composable<AiChatRoute>(
             enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },

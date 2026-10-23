@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.Card
+import androidx.compose.ui.unit.sp
 import android.content.Intent
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import androidx.compose.foundation.Image
@@ -9,7 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,7 +89,7 @@ fun AboutScreen(navController: NavController) {
             title = { Text("O aplikaci", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )
@@ -96,7 +98,8 @@ fun AboutScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -104,37 +107,37 @@ fun AboutScreen(navController: NavController) {
                 contentDescription = "Logo",
                 modifier = Modifier.size(120.dp)
             )
-            Text("Autor: Taneq (Tobias)", style = MaterialTheme.typography.bodyMedium)
-            Text("v$currentVersion", style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(24.dp))
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             Text(
-                text = "Popis aplikace",
-                style = MaterialTheme.typography.titleMedium,
+                "Tobiso",
+                fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                fontSize = 28.sp
             )
-            Text("Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 9. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků, offline režim, bodový systém pro otázky, řada otevření aplikace a s tím odměny, profil, obchod a aktovka, procvičování a kalendář událostí, kdy není škola + vaše události. Další budou pokračovat!", style = MaterialTheme.typography.bodyMedium)
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-            Text(
-                text = "Licence",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text("All rights reserved", style = MaterialTheme.typography.bodyMedium)
-            Text("Tento software nesmí být kopírován, upravován ani distribuován bez výslovného svolení autora. Kontribuce přes platformu Github jsou vítány.", style = MaterialTheme.typography.bodyMedium)
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-            Text(
-                text = "Použité knihovny",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Spacer(Modifier.height(8.dp))
-            Column {
-                libraries.forEach { lib ->
-                    Text(lib, style = MaterialTheme.typography.bodySmall)
+            Text("Autor: Taneq (Tobias) · v$currentVersion", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Box(Modifier.fillMaxWidth()) { com.tobiso.tobisoappnative.components.SectionLabel("Popis aplikace", Modifier.padding(start = 4.dp)) }
+            Card(Modifier.fillMaxWidth()) {
+                Text(
+                    "Tato aplikace zobrazuje obsah z Tobiso.com a její vývoj bude pokračovat. Aplikace nemá žádnou telemetrii ani něco jako cookies. Jak už je Tobiso.com, tato aplikace je také primárně zaměřena na jednu školu, a to momentálně do 9. ročníku základní školy. K dispozici jsou již speciální funkce jako ukládání článků a útržků, offline režim, bodový systém pro otázky, řada otevření aplikace a s tím odměny, profil, obchod a aktovka, procvičování a kalendář událostí, kdy není škola + vaše události. Další budou pokračovat!",
+                    fontSize = 15.sp, lineHeight = 23.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            Box(Modifier.fillMaxWidth()) { com.tobiso.tobisoappnative.components.SectionLabel("Licence", Modifier.padding(start = 4.dp)) }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("All rights reserved", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 15.sp)
+                    Text("Tento software nesmí být kopírován, upravován ani distribuován bez výslovného svolení autora. Kontribuce přes platformu Github jsou vítány.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Box(Modifier.fillMaxWidth()) { com.tobiso.tobisoappnative.components.SectionLabel("Použité knihovny", Modifier.padding(start = 4.dp)) }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    libraries.forEach { lib ->
+                        Text(lib, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }

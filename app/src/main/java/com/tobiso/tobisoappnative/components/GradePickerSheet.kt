@@ -3,7 +3,7 @@ package com.tobiso.tobisoappnative.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -43,7 +43,7 @@ fun GradePickerSheet(
                         { Text("Pro tento ročník není verze – zobrazí se nejbližší") }
                     } else null,
                     trailingContent = if (active) {
-                        { Icon(Icons.Default.Check, contentDescription = "Aktivní", tint = MaterialTheme.colorScheme.primary) }
+                        { Icon(Icons.Rounded.Check, contentDescription = "Aktivní", tint = MaterialTheme.colorScheme.primary) }
                     } else null,
                     colors = ListItemDefaults.colors(
                         headlineColor = if (missing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,

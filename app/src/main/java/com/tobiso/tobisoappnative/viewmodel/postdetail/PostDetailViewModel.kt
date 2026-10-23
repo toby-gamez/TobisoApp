@@ -168,6 +168,27 @@ class PostDetailViewModel @Inject constructor(
         loadPostDetail(postId)
     }
 
+    private val _breadcrumb = MutableStateFlow("")
+    /** "Root · … · Category" path of the current post, shown in the top bar. */
+    val breadcrumb: StateFlow<String> = _breadcrumb
+
+    fun loadBreadcrumb(categoryId: Int?) {
+        if (categoryId == null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            postsRepo.getCategories().onSuccess { cats ->
+                val byId = cats.associateBy { it.id }
+                val path = mutableListOf<String>()
+                var cur = byId[categoryId]
+                var guard = 0
+                while (cur != null && guard++ < 10) {
+                    path.add(0, cur.name)
+                    cur = cur.parentId?.let { byId[it] }
+                }
+                _breadcrumb.value = path.takeLast(2).joinToString(" · ")
+            }
+        }
+    }
+
     fun reportReadProgress(postId: Int, percent: Int) {
         val title = _postDetail.value?.takeIf { it.id == postId }?.title ?: return
         viewModelScope.launch { readingProgress.report(postId, title, percent) }

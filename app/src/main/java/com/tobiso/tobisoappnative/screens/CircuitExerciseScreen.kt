@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.tobiso.tobisoappnative.components.Card
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -11,8 +13,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.components.ContentRenderer
 import com.tobiso.tobisoappnative.components.ExerciseLoadingContent
@@ -85,13 +87,13 @@ fun CircuitExerciseScreen(
                 title = { Text(state.exerciseTitle.ifEmpty { "Cvičení: obvod" }, style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                     }
                 },
                 actions = {
                     if (!state.instructionsMarkdown.isNullOrEmpty()) {
                         IconButton(onClick = { ttsViewModel.speak(state.instructionsMarkdown ?: "") }) {
-                            Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Číst nahlas")
+                            Icon(Icons.AutoMirrored.Rounded.VolumeUp, contentDescription = "Číst nahlas")
                         }
                     }
                 }
@@ -178,7 +180,7 @@ fun CircuitExerciseScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
                 ) {
                     // draw connections and preview
                     Canvas(modifier = Modifier.matchParentSize()) {
@@ -315,7 +317,7 @@ fun CircuitExerciseScreen(
                                         else -> ""
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        OutlinedTextField(
+                                        OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                                             value = textVal,
                                             onValueChange = { newText ->
                                                 textVal = newText
@@ -337,7 +339,7 @@ fun CircuitExerciseScreen(
                                 IconButton(onClick = {
                                     vm.onIntent(CircuitExerciseIntent.RemoveComponent(comp.id))
                                 }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Smazat")
+                                    Icon(Icons.Rounded.Close, contentDescription = "Smazat")
                                 }
                             }
                         }

@@ -2,9 +2,9 @@ package com.tobiso.tobisoappnative.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -28,11 +28,11 @@ fun AiInputBar(
                 onValueChange = { onTextChange(it); if (!aiInputExpanded) onExpandedChange(true) },
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("Nějaká otázka k článku...") },
-                leadingIcon = { Icon(imageVector = Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                leadingIcon = { Icon(imageVector = Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 trailingIcon = {
                     if (aiInputText.isNotBlank()) {
                         IconButton(onClick = { onTextChange(""); onExpandedChange(false) }) {
-                            Icon(Icons.Filled.Clear, contentDescription = "Smazat")
+                            Icon(Icons.Rounded.Clear, contentDescription = "Smazat")
                         }
                     }
                 },
@@ -48,7 +48,7 @@ fun AiInputBar(
             )
             Spacer(modifier = Modifier.width(8.dp))
             SmallFloatingActionButton(onClick = { if (aiInputText.isNotBlank()) onSend() }, containerColor = if (aiInputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, contentColor = if (aiInputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Odeslat")
+                Icon(imageVector = Icons.AutoMirrored.Rounded.Send, contentDescription = "Odeslat")
             }
         }
     }

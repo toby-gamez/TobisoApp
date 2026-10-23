@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.screens
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.tobiso.tobisoappnative.components.Card
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,10 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -77,7 +78,7 @@ fun ClassesScreen(navController: NavController) {
             title = { Text("Moje třída", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             }
         )
@@ -190,7 +191,7 @@ fun ClassesScreen(navController: NavController) {
 private fun GroupChips(groups: List<ClassGroup>, selected: Set<Int>, onToggle: (Int) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         groups.forEach { g ->
-            FilterChip(selected = g.id in selected, onClick = { onToggle(g.id) }, label = { Text(g.name) })
+            FilterChip(shape = RoundedCornerShape(10.dp), selected = g.id in selected, onClick = { onToggle(g.id) }, label = { Text(g.name) })
         }
     }
 }

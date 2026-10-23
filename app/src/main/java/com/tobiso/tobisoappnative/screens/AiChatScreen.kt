@@ -17,10 +17,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,51 +88,49 @@ fun AiChatScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        val decodedTitle = Uri.decode(postTitle)
         TopAppBar(
-            title = { Text("AI asistent", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle) },
+            title = {
+                Column {
+                    Text("AI asistent", style = com.tobiso.tobisoappnative.ui.theme.SecondaryTopBarTitle)
+                    if (decodedTitle.isNotBlank()) {
+                        Text(
+                            "K článku $decodedTitle",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zpět")
                 }
             },
             actions = {
                 remainingQuestions?.let { remaining ->
-                    Text(
-                        text = "Zbývá: $remaining",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Text(
+                            "Zbývá: $remaining",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
             }
         )
-
-        // Připojený článek
-        val decodedTitle = Uri.decode(postTitle)
-        if (decodedTitle.isNotBlank()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.secondaryContainer)
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AttachFile,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = decodedTitle,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
 
         LazyColumn(
             state = listState,
@@ -175,34 +178,53 @@ fun AiChatScreen(
             }
         }
 
-        // Input řádek
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 3.dp,
-            shadowElevation = 0.dp,
-            shape = RoundedCornerShape(28.dp)
-        ) {
+        // Návrhy otázek
+        if (!limitReached && !isLoading && messages.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
+                listOf("Dej mi příklad", "Vysvětli jednodušeji", "Vyzkoušej mě").forEach { suggestion ->
+                    AssistChip(
+                        onClick = { vm.onIntent(AiChatIntent.SendMessage(suggestion)) },
+                        label = { Text(suggestion) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+            }
+        }
+
+        // Input řádek
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            val canSend = inputText.isNotBlank() && !isLoading && !limitReached
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 52.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (inputText.isEmpty()) {
+                    Text("Nějaké doplňující otázky...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                androidx.compose.foundation.text.BasicTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Nějaké doplňující otázky...") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.AutoAwesome,
-                            contentDescription = "AI hvězdiček",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
                     enabled = !limitReached,
                     maxLines = 4,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(
                         onSend = {
@@ -212,30 +234,25 @@ fun AiChatScreen(
                             }
                         }
                     ),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    )
+                    modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                SmallFloatingActionButton(
-                    onClick = {
-                        if (inputText.isNotBlank()) {
-                            vm.onIntent(AiChatIntent.SendMessage(inputText))
-                            inputText = ""
-                        }
+            }
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(if (canSend) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .clickable(enabled = canSend) {
+                        vm.onIntent(AiChatIntent.SendMessage(inputText))
+                        inputText = ""
                     },
-                    containerColor = if (inputText.isNotBlank() && !isLoading && !limitReached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (inputText.isNotBlank() && !isLoading && !limitReached) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Odeslat"
-                    )
-                }
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.Send,
+                    contentDescription = "Odeslat",
+                    tint = if (canSend) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
             }
         }
     }
@@ -275,13 +292,13 @@ private fun ThinkingBubble() {
     ) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clip(RoundedCornerShape(24.dp, 24.dp, 24.dp, 6.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Filled.AutoAwesome,
+                    imageVector = Icons.Rounded.AutoAwesome,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp)
@@ -327,17 +344,17 @@ private fun ChatBubble(
                 .widthIn(max = 280.dp)
                 .clip(
                     if (isUser)
-                        RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
+                        RoundedCornerShape(24.dp, 24.dp, 6.dp, 24.dp)
                     else
-                        RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
+                        RoundedCornerShape(24.dp, 24.dp, 24.dp, 6.dp)
                 )
                 .background(
                     if (isUser)
                         MaterialTheme.colorScheme.primary
                     else
-                        MaterialTheme.colorScheme.surfaceVariant
+                        MaterialTheme.colorScheme.surfaceContainer
                 )
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
                 text = displayedText,
@@ -345,7 +362,7 @@ private fun ChatBubble(
                 color = if (isUser)
                     MaterialTheme.colorScheme.onPrimary
                 else
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    MaterialTheme.colorScheme.onSurface
             )
         }
     }
