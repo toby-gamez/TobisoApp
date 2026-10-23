@@ -58,6 +58,7 @@ interface AuthRepository {
     suspend fun register(email: String, displayName: String?, password: String, acceptedTerms: Boolean): Result<Unit>
     suspend fun refreshProfile(): Result<AuthUser>
     suspend fun logout()
+    suspend fun stats(): Result<com.tobiso.tobisoappnative.model.UserStats>
     /** Revokes every session of the account (server-side security stamp), then signs out locally. */
     suspend fun logoutEverywhere(): Result<Unit>
 }
@@ -112,4 +113,7 @@ class AuthRepositoryImpl(private val api: ApiService) : AuthRepository {
     } catch (e: Exception) {
         Result.failure(mapAuthError(e))
     }
+
+    override suspend fun stats(): Result<com.tobiso.tobisoappnative.model.UserStats> =
+        runCatching { api.getUserStats() }
 }

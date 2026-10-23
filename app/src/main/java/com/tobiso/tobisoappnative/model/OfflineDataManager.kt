@@ -283,6 +283,11 @@ class OfflineDataManager(
     }
 
     /** Replaces one account's cached class/group/personal events within [rangeStart]..[rangeEnd]. */
+    /** Drops the cached class/group/personal events of one account (called when it signs out). */
+    suspend fun purgeOwnedEvents(ownerKey: String) = withContext(Dispatchers.IO) {
+        try { eventDao.deleteOwnedBy(ownerKey) } catch (e: Exception) { Timber.w(e, "Could not purge events of $ownerKey") }
+    }
+
     suspend fun saveMyEventsInRange(
         ownerKey: String, rangeStart: Long, rangeEnd: Long, events: List<Event>
     ) = withContext(Dispatchers.IO) {

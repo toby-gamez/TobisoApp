@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.utils.pluralCs
 import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.navigation.AuthRoute
 import com.tobiso.tobisoappnative.navigation.ClassesRoute
@@ -1897,6 +1898,8 @@ private fun AccountSection(navController: NavController) {
     val vm: AccountViewModel = hiltViewModel()
     var confirmLogoutAll by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val stats by vm.stats.collectAsStateWithLifecycle()
+    LaunchedEffect(user != null) { if (user != null) vm.loadStats() else Unit }
 
     ProfileSectionHeader("Účet")
     ProfileNavGroup {
@@ -1914,6 +1917,17 @@ private fun AccountSection(navController: NavController) {
                 subtitle = user?.email,
                 onClick = {}
             )
+            stats?.takeIf { it.totalRead > 0 || it.streakDays > 0 }?.let { st ->
+                HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                ProfileNavRow(
+                    icon = Icons.Default.Whatshot,
+                    title = "Série ${st.streakDays} ${pluralCs(st.streakDays, "den", "dny", "dní")}",
+                    subtitle = "Přečteno ${st.totalRead} ${pluralCs(st.totalRead, "článek", "články", "článků")}" +
+                        (st.badges.takeIf { it.isNotEmpty() }
+                            ?.joinToString(prefix = " · odznaky: ") { "${it.subjectName} (${it.level})" }.orEmpty()),
+                    onClick = {}
+                )
+            }
             HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
             ProfileNavRow(
                 icon = Icons.Default.School,

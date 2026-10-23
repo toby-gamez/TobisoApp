@@ -40,3 +40,18 @@ data class ContinueReadingDto(
 /** Body of `POST auth/google-token`; [acceptedTerms] is only needed when the Google account has no Tobiso account yet. */
 @Serializable
 data class GoogleTokenRequest(val idToken: String, val acceptedTerms: Boolean = false)
+
+/** `GET user/stats`: reading streak, article count and per-subject badges. */
+@Serializable
+data class UserStats(
+    val streakDays: Int = 0,
+    val totalRead: Int = 0,
+    val perSubject: List<SubjectRead> = emptyList(),
+    val badges: List<SubjectBadge> = emptyList()
+)
+
+@Serializable
+data class SubjectRead(val subjectName: String = "", val count: Int = 0)
+
+@Serializable
+data class SubjectBadge(val subjectName: String = "", @Serializable(with = LenientStringSerializer::class) val level: String = "")

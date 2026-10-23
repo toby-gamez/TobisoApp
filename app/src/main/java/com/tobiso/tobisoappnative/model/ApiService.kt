@@ -215,6 +215,9 @@ interface ApiService {
     @GET("user/continue-reading")
     suspend fun getContinueReading(): retrofit2.Response<ContinueReadingDto>
 
+    @GET("user/stats")
+    suspend fun getUserStats(): UserStats
+
     @POST("user/read-progress")
     suspend fun reportReadProgress(@Body request: ReadProgressRequest): retrofit2.Response<Unit>
 
