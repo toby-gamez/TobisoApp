@@ -280,6 +280,12 @@ class PostsRepositoryImpl(
         }
     }
 
+    override suspend fun getAvailableGradeIds(postId: Int): Result<Set<Int>> = try {
+        Result.success(api.getPostVersions(postId).mapNotNull { it.gradeId }.toSet())
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     override suspend fun getDifficulty(postId: Int): Result<PostDifficultyResponse> {
         return try {
             Result.success(api.getPostDifficulty(postId))

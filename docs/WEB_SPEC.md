@@ -25,7 +25,7 @@ _Implemented as `{ idToken, acceptedTerms }` → `StudentLoginResponse`; a new G
 
 **What I need from you for the app side:** the **web OAuth client ID** (public value), and to register the app's package name + signing-cert SHA-1 (debug and release) as an *Android* OAuth client in the same Google Cloud project (Credential Manager requires it, even though the server only checks the web client ID as audience).
 
-## 2. Gamification state — `GET/PUT /api/user/game-state`
+## 2. Gamification state — `GET/PUT /api/user/game-state`  ✅ DONE on the web (app wired: `gamesync/`)
 
 **Decision (from the user):** when signed in the **server is the source of truth**; when anonymous the device stays authoritative (as now). On first sign-in the app merges (never loses local progress).
 
@@ -74,7 +74,7 @@ PUT /api/user/game-state   body { "baseRevision": 12, "state": { … } }
 * `GET /api/user/continue-reading` — wired.
 * `POST /api/user/read-progress`, `GET/POST/DELETE /api/user/bookmarks` — wired.
 
-## 4. Nice-to-have
+## 4. Nice-to-have (stats + versions are now wired in the app)
 
 * `GET /api/user/stats` is not shown in the app yet (streak/badges per subject) — would fit the Profile screen.
 * An endpoint listing which grade versions of a post exist (`GET /api/posts/{id}/versions`) would let the grade picker mark unavailable grades; today the server just returns the closest one.

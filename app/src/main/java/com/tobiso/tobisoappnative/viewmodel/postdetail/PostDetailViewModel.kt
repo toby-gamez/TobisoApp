@@ -146,6 +146,15 @@ class PostDetailViewModel @Inject constructor(
     private val _grades = MutableStateFlow<List<Grade>>(emptyList())
     val grades: StateFlow<List<Grade>> = _grades
 
+    /** Grade ids this article exists in, or null while unknown (then every grade is offered as before). */
+    private val _availableGradeIds = MutableStateFlow<Set<Int>?>(null)
+    val availableGradeIds: StateFlow<Set<Int>?> = _availableGradeIds
+
+    fun loadAvailableGrades(postId: Int) {
+        _availableGradeIds.value = null
+        viewModelScope.launch { postsRepo.getAvailableGradeIds(postId).onSuccess { _availableGradeIds.value = it } }
+    }
+
     fun loadGrades() {
         if (_grades.value.isNotEmpty()) return
         viewModelScope.launch {

@@ -133,11 +133,14 @@ fun PostDetailScreen(
     val questions by vm.questions.collectAsStateWithLifecycle()
     val grades by vm.grades.collectAsStateWithLifecycle()
     var showGradePicker by remember { mutableStateOf(false) }
+    val availableGradeIds by vm.availableGradeIds.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { vm.loadGrades() }
+    LaunchedEffect(postId) { vm.loadAvailableGrades(postId) }
     if (showGradePicker) {
         GradePickerSheet(
             grades = grades,
             activeGradeId = postDetail?.activeVersion?.gradeId,
+            availableGradeIds = availableGradeIds,
             onSelect = { vm.selectGrade(postId, it.id) },
             onDismiss = { showGradePicker = false }
         )

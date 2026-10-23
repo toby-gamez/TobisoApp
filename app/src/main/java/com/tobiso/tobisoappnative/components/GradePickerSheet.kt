@@ -23,6 +23,7 @@ import androidx.compose.foundation.clickable
 fun GradePickerSheet(
     grades: List<Grade>,
     activeGradeId: Int?,
+    availableGradeIds: Set<Int>? = null,
     onSelect: (Grade) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -35,12 +36,17 @@ fun GradePickerSheet(
             )
             grades.forEach { grade ->
                 val active = grade.id == activeGradeId
+                val missing = availableGradeIds != null && grade.id !in availableGradeIds
                 ListItem(
                     headlineContent = { Text(grade.name) },
+                    supportingContent = if (missing) {
+                        { Text("Pro tento ročník není verze – zobrazí se nejbližší") }
+                    } else null,
                     trailingContent = if (active) {
                         { Icon(Icons.Default.Check, contentDescription = "Aktivní", tint = MaterialTheme.colorScheme.primary) }
                     } else null,
                     colors = ListItemDefaults.colors(
+                        headlineColor = if (missing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         containerColor = if (active) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surfaceContainerLow
                     ),

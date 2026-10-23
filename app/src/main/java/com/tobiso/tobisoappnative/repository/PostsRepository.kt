@@ -26,6 +26,8 @@ interface PostsRepository {
 
     suspend fun getArticleOfDay(): Result<Post>
     suspend fun getRandomPost(): Result<Post>
+    /** Grade versions that exist for the post (ids of [Grade]); fails offline. */
+    suspend fun getAvailableGradeIds(postId: Int): Result<Set<Int>>
     suspend fun getDifficulty(postId: Int): Result<PostDifficultyResponse>
     /** Submits a 1 (easy) – 3 (hard) vote and remembers it locally. Returns the server's message. */
     suspend fun rateDifficulty(postId: Int, rating: Int, deviceId: String): Result<String>
