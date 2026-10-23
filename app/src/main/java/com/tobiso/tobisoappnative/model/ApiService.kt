@@ -189,6 +189,9 @@ interface ApiService {
     @POST("auth/student-login")
     suspend fun studentLogin(@Body request: LoginRequest): StudentLoginResponse
 
+    @POST("auth/google-token")
+    suspend fun googleLogin(@Body request: GoogleTokenRequest): StudentLoginResponse
+
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequest): okhttp3.ResponseBody
 

@@ -32,4 +32,17 @@ class JwtSubjectTest {
             AuthSession.signOut()
         }
     }
+
+    @Test
+    fun `ownerKey is based on the account id and survives profile updates`() {
+        AuthSession.signIn(jwt("""{"sub":"12"}"""), AuthUser("Jana"))
+        try {
+            assertEquals("u12", AuthSession.ownerKey)
+            AuthSession.updateUser(AuthUser("Jana", "j@x.cz"))
+            assertEquals("u12", AuthSession.ownerKey)
+        } finally {
+            AuthSession.signOut()
+        }
+        assertNull(AuthSession.ownerKey)
+    }
 }

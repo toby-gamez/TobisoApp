@@ -32,6 +32,7 @@ API_USERNAME=admin
 API_PASSWORD=secret123
 SECURITY_TOKEN_SECRET=<your_secret>
 CERT_FINGERPRINT=<sha256_base64_of_signing_cert>
+GOOGLE_WEB_CLIENT_ID=<web OAuth client id, same as the server's Google:ClientId>   # optional; empty hides the Google button
 ```
 
 For release builds, `app/keystore.properties` must also exist with `keyAlias`, `keyPassword`, `storeFile`, `storePassword`.

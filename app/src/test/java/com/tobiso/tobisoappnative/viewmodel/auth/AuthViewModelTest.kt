@@ -107,4 +107,58 @@ class AuthViewModelTest {
         assertEquals("Nesprávný email nebo heslo.", vm.uiState.value.error)
         assertFalse(vm.uiState.value.isLoading)
     }
+
+    // ── Google sign-in ───────────────────────────────────────────────────
+
+    @Test
+    fun `google token for an existing account signs in`() = runTest {
+        coEvery { repo.loginWithGoogle("tok", false) } returns Result.success(AuthUser("A"))
+        vm.effect.test {
+            vm.onIntent(AuthIntent.GoogleToken("tok"))
+            assertEquals(AuthEffect.SignedIn, awaitItem())
+        }
+        assertNull(vm.uiState.value.googleTermsToken)
+    }
+
+    @Test
+    fun `new google account asks for the terms and retries with the same token`() = runTest {
+        coEvery { repo.loginWithGoogle("tok", false) } returns Result.failure(AuthFailure.Rejected("terms"))
+        coEvery { repo.loginWithGoogle("tok", true) } returns Result.success(AuthUser("A"))
+
+        vm.onIntent(AuthIntent.GoogleToken("tok"))
+        assertEquals("tok", vm.uiState.value.googleTermsToken)
+        assertNull(vm.uiState.value.error)
+
+        vm.effect.test {
+            vm.onIntent(AuthIntent.AcceptGoogleTerms)
+            assertEquals(AuthEffect.SignedIn, awaitItem())
+        }
+        assertNull(vm.uiState.value.googleTermsToken)
+        coVerify { repo.loginWithGoogle("tok", true) }
+    }
+
+    @Test
+    fun `declining the terms drops the token`() = runTest {
+        coEvery { repo.loginWithGoogle("tok", false) } returns Result.failure(AuthFailure.Rejected("terms"))
+        vm.onIntent(AuthIntent.GoogleToken("tok"))
+        vm.onIntent(AuthIntent.DismissGoogleTerms)
+        assertNull(vm.uiState.value.googleTermsToken)
+        coVerify(exactly = 0) { repo.loginWithGoogle(any(), true) }
+    }
+
+    @Test
+    fun `a rejected google token after accepting terms shows the error`() = runTest {
+        coEvery { repo.loginWithGoogle("tok", false) } returns Result.failure(AuthFailure.Rejected("terms"))
+        coEvery { repo.loginWithGoogle("tok", true) } returns Result.failure(AuthFailure.InvalidCredentials())
+        vm.onIntent(AuthIntent.GoogleToken("tok"))
+        vm.onIntent(AuthIntent.AcceptGoogleTerms)
+        assertEquals("Nesprávný email nebo heslo.", vm.uiState.value.error)
+        assertNull(vm.uiState.value.googleTermsToken)
+    }
+
+    @Test
+    fun `google picker failure is shown`() = runTest {
+        vm.onIntent(AuthIntent.GoogleFailed("Na zařízení není žádný účet Google."))
+        assertEquals("Na zařízení není žádný účet Google.", vm.uiState.value.error)
+    }
 }

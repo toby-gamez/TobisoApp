@@ -73,6 +73,8 @@ android {
             buildConfigField("String", "SECURITY_TOKEN_SECRET", "\"\"")
             buildConfigField("String", "CERT_PINS", "\"\"")
             buildConfigField("String", "CERT_PINS_BACKUP", "\"\"")
+            // Public OAuth *web* client ID (the audience the server validates); empty hides the Google button.
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties["GOOGLE_WEB_CLIENT_ID"] ?: ""}\"")
         }
         debug {
             isDebuggable = true
@@ -89,6 +91,7 @@ android {
             buildConfigField("String", "CERT_PINS", "\"\"")
             // Debug: no backup pins by default
             buildConfigField("String", "CERT_PINS_BACKUP", "\"\"")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties["GOOGLE_WEB_CLIENT_ID"] ?: ""}\"")
         }
     }
     testOptions {
@@ -176,6 +179,11 @@ dependencies {
     // Baseline profile
     implementation(libs.androidx.profileinstaller)
     "baselineProfile"(project(":baselineprofile"))
+
+    // Google sign-in (Credential Manager)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     // Logging
     implementation(libs.timber)

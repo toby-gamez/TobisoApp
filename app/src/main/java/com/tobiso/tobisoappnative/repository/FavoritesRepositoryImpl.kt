@@ -94,7 +94,7 @@ class FavoritesRepositoryImpl(
         }
     }
 
-    private fun userKey(): String? = AuthSession.user.value?.let { it.email ?: it.displayName }
+    private fun userKey(): String? = AuthSession.ownerKey
 
     /** Best-effort push of the outbox after a local change; failures stay queued for the next full sync. */
     private suspend fun pushPending() {

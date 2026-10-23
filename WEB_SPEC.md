@@ -2,7 +2,9 @@
 
 Written 2026-10-23 from the app side. Both items are **optional-account** features: anonymous users keep working exactly as today. Everything below is for **students/users only** (JWT with `role=student`); the app never uses admin credentials.
 
-## 1. `POST /api/auth/google-token` — Google sign-in for the Android app
+## 1. `POST /api/auth/google-token` — Google sign-in for the Android app  ✅ DONE on the web (app wired)
+
+_Implemented as `{ idToken, acceptedTerms }` → `StudentLoginResponse`; a new Google account without `acceptedTerms` gets `400` (the app then asks for consent and retries with the same token). Audience is `Google:ClientId`, so the Android client must request the token with that same **web** client ID (`GOOGLE_WEB_CLIENT_ID` in `local.properties`)._
 
 **Why:** the web's Google callback sets an HttpOnly cookie and returns no token, so the app can't reuse it. The app will use Android Credential Manager (`GetGoogleIdOption`) to obtain a **Google ID token** and trade it for the same student JWT that `student-login` returns.
 

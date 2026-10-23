@@ -47,8 +47,14 @@ object AuthSession {
     /** The account's numeric id, read from the JWT's `sub` claim (the server issues it as the user id). */
     val userId: Int? get() = token?.let { jwtSubject(it) }?.toIntOrNull()
 
-    /** Stable key for per-account caches (null when anonymous). */
-    val ownerKey: String? get() = _user.value?.let { it.email ?: it.displayName }?.takeIf { isSignedIn }
+    /**
+     * Stable key for per-account caches and sync bookkeeping (null when anonymous). Based on the account id, so it is
+     * the same for email and Google sign-in and doesn't change when the profile loads; falls back to email/name for
+     * tokens without a readable `sub`.
+     */
+    val ownerKey: String?
+        get() = if (!isSignedIn) null
+        else userId?.let { "u$it" } ?: _user.value?.let { it.email ?: it.displayName }
 
     fun initialize(context: Context) {
         appContext = context.applicationContext

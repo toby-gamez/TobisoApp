@@ -28,6 +28,8 @@ kotlinxCoroutines = "1.11.0"
 coil = "2.7.0"
 splashscreen = "1.2.0"
 ossLicenses = "17.5.1"
+credentials = "1.6.0"
+googleid = "1.1.0"
 datastore = "1.2.1"
 workManager = "2.11.2"
 desugar_jdk_libs = "2.1.5"
@@ -73,6 +75,9 @@ retrofit-coroutines-adapter = { group = "com.jakewharton.retrofit", name = "retr
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 play-services-oss-licenses = { group = "com.google.android.gms", name = "play-services-oss-licenses", version.ref = "ossLicenses" }
 androidx-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3Exoplayer" }

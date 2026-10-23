@@ -36,3 +36,7 @@ data class ContinueReadingDto(
     val categoryPath: String? = null,
     val filePath: String? = null
 )
+
+/** Body of `POST auth/google-token`; [acceptedTerms] is only needed when the Google account has no Tobiso account yet. */
+@Serializable
+data class GoogleTokenRequest(val idToken: String, val acceptedTerms: Boolean = false)

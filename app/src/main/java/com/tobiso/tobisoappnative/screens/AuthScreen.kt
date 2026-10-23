@@ -49,6 +49,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.tobiso.tobisoappnative.BuildConfig
+import com.tobiso.tobisoappnative.repository.GoogleSignInResult
+import com.tobiso.tobisoappnative.repository.requestGoogleIdToken
+import kotlinx.coroutines.launch
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
 import com.tobiso.tobisoappnative.viewmodel.auth.AuthEffect
 import com.tobiso.tobisoappnative.viewmodel.auth.AuthIntent
 import com.tobiso.tobisoappnative.viewmodel.auth.AuthMode
@@ -64,6 +69,7 @@ fun AuthScreen(navController: NavController) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showPassword by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         vm.effect.collect { effect ->
@@ -76,6 +82,22 @@ fun AuthScreen(navController: NavController) {
     fun openWeb(path: String) {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webUrl(path))))
     }
+
+    if (state.googleTermsToken != null) {
+        AlertDialog(
+            onDismissRequest = { vm.onIntent(AuthIntent.DismissGoogleTerms) },
+            title = { Text("Vytvořit účet Tobiso?") },
+            text = {
+                Column {
+                    Text("K tomuto účtu Google ještě neexistuje účet Tobiso. Vytvořením účtu souhlasíš s Podmínkami použití a Zásadami ochrany osobních údajů.")
+                    TextButton(onClick = { openWeb("/pravni-dokumenty") }) { Text("Zobrazit dokumenty") }
+                }
+            },
+            confirmButton = { TextButton(onClick = { vm.onIntent(AuthIntent.AcceptGoogleTerms) }) { Text("Souhlasím a pokračovat") } },
+            dismissButton = { TextButton(onClick = { vm.onIntent(AuthIntent.DismissGoogleTerms) }) { Text("Zrušit") } }
+        )
+    }
+
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
@@ -208,6 +230,21 @@ fun AuthScreen(navController: NavController) {
                 } else {
                     Text(if (state.mode == AuthMode.LOGIN) "Přihlásit se" else "Vytvořit účet")
                 }
+            }
+            if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotBlank()) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            when (val r = requestGoogleIdToken(context, BuildConfig.GOOGLE_WEB_CLIENT_ID)) {
+                                is GoogleSignInResult.Token -> vm.onIntent(AuthIntent.GoogleToken(r.idToken))
+                                is GoogleSignInResult.Failed -> vm.onIntent(AuthIntent.GoogleFailed(r.message))
+                                GoogleSignInResult.Cancelled -> Unit
+                            }
+                        }
+                    },
+                    enabled = !state.isLoading,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Pokračovat přes Google") }
             }
             if (state.mode == AuthMode.LOGIN) {
                 TextButton(onClick = { openWeb("/zapomenute-heslo") }, modifier = Modifier.fillMaxWidth()) {

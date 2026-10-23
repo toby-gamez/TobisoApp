@@ -3,6 +3,7 @@ package com.tobiso.tobisoappnative.repository
 import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.model.AuthUser
+import com.tobiso.tobisoappnative.model.GoogleTokenRequest
 import com.tobiso.tobisoappnative.model.LoginRequest
 import com.tobiso.tobisoappnative.model.RegisterRequest
 import kotlinx.serialization.json.Json
@@ -48,6 +49,11 @@ fun mapAuthError(e: Throwable): AuthFailure = when (e) {
 
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<AuthUser>
+    /**
+     * Trades a Google ID token for a Tobiso session. Fails with [AuthFailure.Rejected] (HTTP 400) when the Google
+     * account is new and [acceptedTerms] is false.
+     */
+    suspend fun loginWithGoogle(idToken: String, acceptedTerms: Boolean): Result<AuthUser>
     /** Creates an unverified account; success means the confirmation mail was sent. */
     suspend fun register(email: String, displayName: String?, password: String, acceptedTerms: Boolean): Result<Unit>
     suspend fun refreshProfile(): Result<AuthUser>
@@ -63,6 +69,17 @@ class AuthRepositoryImpl(private val api: ApiService) : AuthRepository {
         val user = AuthUser(displayName = r.displayName, email = email.trim(), credits = r.credits)
         AuthSession.signIn(r.token, user)
         Result.success(user)
+    } catch (e: Exception) {
+        Result.failure(mapAuthError(e))
+    }
+
+    override suspend fun loginWithGoogle(idToken: String, acceptedTerms: Boolean): Result<AuthUser> = try {
+        val r = api.googleLogin(GoogleTokenRequest(idToken, acceptedTerms))
+        // The response carries no email; refresh the profile lazily (auth/me) — until then the display name is the key.
+        val user = AuthUser(displayName = r.displayName, email = null, credits = r.credits)
+        AuthSession.signIn(r.token, user)
+        refreshProfile()
+        Result.success(AuthSession.user.value ?: user)
     } catch (e: Exception) {
         Result.failure(mapAuthError(e))
     }

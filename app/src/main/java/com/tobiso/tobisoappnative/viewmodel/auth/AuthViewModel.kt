@@ -25,6 +25,13 @@ class AuthViewModel @Inject constructor(
                 copy(mode = AuthMode.LOGIN, verificationEmail = null, justRegistered = false, password = "", error = null)
             }
             AuthIntent.Submit -> submit()
+            is AuthIntent.GoogleToken -> googleSignIn(intent.idToken, acceptedTerms = false)
+            is AuthIntent.GoogleFailed -> setState { copy(isLoading = false, error = intent.message) }
+            AuthIntent.AcceptGoogleTerms -> currentState.googleTermsToken?.let {
+                setState { copy(googleTermsToken = null) }
+                googleSignIn(it, acceptedTerms = true)
+            }
+            AuthIntent.DismissGoogleTerms -> setState { copy(googleTermsToken = null) }
         }
     }
 
@@ -61,6 +68,29 @@ class AuthViewModel @Inject constructor(
                     onFailure = { e -> onFailure(mapAuthError(e), s.email) }
                 )
             }
+        }
+    }
+
+    private fun googleSignIn(idToken: String, acceptedTerms: Boolean) {
+        if (currentState.isLoading) return
+        setState { copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            repo.loginWithGoogle(idToken, acceptedTerms).fold(
+                onSuccess = {
+                    setState { copy(isLoading = false) }
+                    emitEffect(AuthEffect.SignedIn)
+                },
+                onFailure = { e ->
+                    val failure = mapAuthError(e)
+                    // The server answers 400 for a Google account that has no Tobiso account yet and hasn't
+                    // accepted the terms; ask once, then retry with the same (still valid) ID token.
+                    if (!acceptedTerms && failure is AuthFailure.Rejected) {
+                        setState { copy(isLoading = false, googleTermsToken = idToken) }
+                    } else {
+                        setState { copy(isLoading = false, error = failure.message) }
+                    }
+                }
+            )
         }
     }
 

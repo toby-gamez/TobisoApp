@@ -23,7 +23,7 @@ class UserSyncManager @Inject constructor(
         started = true
         scope.launch {
             AuthSession.user
-                .map { user -> user?.let { it.email ?: it.displayName } }
+                .map { AuthSession.ownerKey }
                 .distinctUntilChanged()
                 .collect { key -> if (key != null) favorites.syncBookmarks() }
         }
