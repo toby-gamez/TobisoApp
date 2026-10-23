@@ -53,6 +53,35 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `load sets article of the day when available`() = runTest {
+        Dispatchers.setMain(Dispatchers.Unconfined)
+        coEvery { postsRepo.getCategories() } returns Result.success(listOf(sampleCategory))
+        coEvery { postsRepo.getPostsByCategory(null, any()) } returns Result.success(listOf(samplePost))
+        coEvery { postsRepo.getArticleOfDay() } returns Result.success(samplePost)
+
+        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo)
+        viewModel.onIntent(HomeIntent.Load)
+        delay(200)
+
+        assert(viewModel.uiState.value.articleOfDay?.id == samplePost.id)
+    }
+
+    @Test
+    fun `load survives article of the day failure`() = runTest {
+        Dispatchers.setMain(Dispatchers.Unconfined)
+        coEvery { postsRepo.getCategories() } returns Result.success(listOf(sampleCategory))
+        coEvery { postsRepo.getPostsByCategory(null, any()) } returns Result.success(listOf(samplePost))
+        coEvery { postsRepo.getArticleOfDay() } returns Result.failure(Exception("404"))
+
+        viewModel = HomeViewModel(mockk(relaxed = true), postsRepo, offlineRepo)
+        viewModel.onIntent(HomeIntent.Load)
+        delay(200)
+
+        assert(viewModel.uiState.value.articleOfDay == null)
+        assert(viewModel.uiState.value.posts.size == 1)
+    }
+
+    @Test
     fun `load sets offline flag when categories fail`() = runTest {
         Dispatchers.setMain(Dispatchers.Unconfined)
         coEvery { postsRepo.getCategories() } returns Result.failure(Exception("Offline"))

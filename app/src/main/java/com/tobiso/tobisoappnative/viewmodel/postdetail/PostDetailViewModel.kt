@@ -45,6 +45,12 @@ import android.provider.MediaStore
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+data class DifficultyState(
+    val results: com.tobiso.tobisoappnative.model.PostDifficultyResponse? = null,
+    val myVote: Int? = null,
+    val submitting: Boolean = false
+)
+
 @HiltViewModel
 class PostDetailViewModel @Inject constructor(
     application: Application,
@@ -129,7 +135,32 @@ class PostDetailViewModel @Inject constructor(
     private val _personNames = MutableStateFlow<List<String>>(emptyList())
     val personNames: StateFlow<List<String>> = _personNames
 
+    private val _difficulty = MutableStateFlow(DifficultyState())
+    val difficulty: StateFlow<DifficultyState> = _difficulty
+
     fun getTtsManager(): TtsManager = ttsManager
+
+    fun loadDifficulty(postId: Int) {
+        _difficulty.value = DifficultyState(myVote = postsRepo.getMyDifficultyVote(postId))
+        viewModelScope.launch {
+            postsRepo.getDifficulty(postId).onSuccess { r ->
+                _difficulty.value = _difficulty.value.copy(results = r)
+            }
+        }
+    }
+
+    fun rateDifficulty(postId: Int, rating: Int) {
+        if (_difficulty.value.myVote != null || _difficulty.value.submitting) return
+        _difficulty.value = _difficulty.value.copy(submitting = true)
+        viewModelScope.launch {
+            val deviceId = com.tobiso.tobisoappnative.AiCreditManager.instance.deviceId
+            postsRepo.rateDifficulty(postId, rating, deviceId)
+            // Whether "ok" or "already_rated", show results; failures leave voting open.
+            val vote = postsRepo.getMyDifficultyVote(postId)
+            val results = postsRepo.getDifficulty(postId).getOrNull() ?: _difficulty.value.results
+            _difficulty.value = DifficultyState(results = results, myVote = vote)
+        }
+    }
 
     fun loadPostDetail(postId: Int) {
         val gradeId = loadGradeId(getApplication())

@@ -4,6 +4,13 @@ import android.content.Context
 import com.tobiso.tobisoappnative.model.Addendum
 import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.Category
+import com.tobiso.tobisoappnative.model.DifficultyRatingRequest
+import com.tobiso.tobisoappnative.model.PostDifficultyResponse
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import com.tobiso.tobisoappnative.model.OfflineDataManager
@@ -231,6 +238,75 @@ class PostsRepositoryImpl(
             }
             .distinctBy { it.id }
             .toList()
+    }
+
+    private val prefs by lazy {
+        context.applicationContext.getSharedPreferences("post_extras", Context.MODE_PRIVATE)
+    }
+    private val json = Json { ignoreUnknownKeys = true }
+
+    private fun today(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+
+    override suspend fun getArticleOfDay(): Result<Post> {
+        val day = today()
+        fun cached(anyDay: Boolean): Post? {
+            if (!anyDay && prefs.getString(KEY_AOD_DAY, null) != day) return null
+            return prefs.getString(KEY_AOD_POST, null)?.let { runCatching { json.decodeFromString<Post>(it) }.getOrNull() }
+        }
+        cached(anyDay = false)?.let { return Result.success(it) }
+        return try {
+            if (!NetworkUtils.isOnline(context)) {
+                return cached(anyDay = true)?.let { Result.success(it) }
+                    ?: Result.failure(IllegalStateException("Článek dne není dostupný offline"))
+            }
+            val post = api.getArticleOfDay()
+            prefs.edit().putString(KEY_AOD_DAY, day).putString(KEY_AOD_POST, json.encodeToString(post.copy(content = null, versions = null))).apply()
+            Result.success(post)
+        } catch (e: Exception) {
+            cached(anyDay = true)?.let { Result.success(it) } ?: Result.failure(e)
+        }
+    }
+
+    override suspend fun getRandomPost(): Result<Post> {
+        return try {
+            if (NetworkUtils.isOnline(context)) {
+                Result.success(api.getRandomPost())
+            } else {
+                offlineDataManager.getCachedPosts()?.randomOrNull()?.let { Result.success(it) }
+                    ?: Result.failure(IllegalStateException("Články nejsou dostupné v offline režimu"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getDifficulty(postId: Int): Result<PostDifficultyResponse> {
+        return try {
+            Result.success(api.getPostDifficulty(postId))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun rateDifficulty(postId: Int, rating: Int, deviceId: String): Result<String> {
+        return try {
+            val message = api.ratePostDifficulty(postId, DifficultyRatingRequest(rating, deviceId)).message
+            // "already_rated" means a vote exists server-side; keep our local copy so results stay visible.
+            if (prefs.getInt(voteKey(postId), 0) == 0) prefs.edit().putInt(voteKey(postId), rating).apply()
+            Result.success(message)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getMyDifficultyVote(postId: Int): Int? =
+        prefs.getInt(voteKey(postId), 0).takeIf { it in 1..3 }
+
+    private fun voteKey(postId: Int) = "difficulty_vote_$postId"
+
+    private companion object {
+        const val KEY_AOD_DAY = "aod_day"
+        const val KEY_AOD_POST = "aod_post"
     }
 
     private fun getAllAncestorCategoryIds(

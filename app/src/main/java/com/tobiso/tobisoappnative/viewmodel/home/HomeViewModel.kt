@@ -26,6 +26,7 @@ class HomeViewModel @Inject constructor(
         when (intent) {
             HomeIntent.Load -> load()
             HomeIntent.DownloadAllOfflineData -> downloadAllOfflineData()
+            HomeIntent.OpenRandomArticle -> openRandomArticle()
         }
     }
 
@@ -41,9 +42,25 @@ class HomeViewModel @Inject constructor(
                 onSuccess = { posts -> setState { copy(posts = posts) } },
                 onFailure = { /* categories error already set */ }
             )
+            loadArticleOfDay()
             // compute newest list after loading
             computeNewest(null)
             setState { copy(isLoading = false) }
+        }
+    }
+
+    private suspend fun loadArticleOfDay() {
+        runCatching { postsRepo.getArticleOfDay() }.getOrNull()?.onSuccess { post ->
+            setState { copy(articleOfDay = post) }
+        }
+    }
+
+    private fun openRandomArticle() {
+        viewModelScope.launch {
+            postsRepo.getRandomPost().fold(
+                onSuccess = { emitEffect(HomeEffect.NavigateToPost(it.id)) },
+                onFailure = { emitEffect(HomeEffect.ShowToast("Náhodný článek se nepodařilo načíst")) }
+            )
         }
     }
 

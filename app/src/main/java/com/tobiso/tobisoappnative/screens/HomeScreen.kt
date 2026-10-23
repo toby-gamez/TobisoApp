@@ -36,6 +36,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import com.tobiso.tobisoappnative.components.ArticleOfDayCard
 import com.tobiso.tobisoappnative.viewmodel.home.HomeViewModel
 import com.tobiso.tobisoappnative.viewmodel.home.HomeIntent
 import com.tobiso.tobisoappnative.viewmodel.home.HomeEffect
@@ -201,6 +203,7 @@ fun HomeScreen(navController: NavHostController) {
         vm.effect.collect { effect ->
             when (effect) {
                 is HomeEffect.ShowToast -> snackbarHostState.showSnackbar(effect.message)
+                is HomeEffect.NavigateToPost -> navController.navigate(PostDetailRoute(postId = effect.postId))
             }
         }
     }
@@ -338,6 +341,13 @@ fun HomeScreen(navController: NavHostController) {
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                ArticleOfDayCard(
+                                    post = state.articleOfDay,
+                                    onOpenPost = { navController.navigate(PostDetailRoute(postId = it)) },
+                                    onRandom = { vm.onIntent(HomeIntent.OpenRandomArticle) }
+                                )
+                            }
                             items(subjects) { subject ->
                                 SubjectCard(
                                     subject = subject,
@@ -405,6 +415,14 @@ fun HomeScreen(navController: NavHostController) {
                     }
 
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp)) {
+                        item(key = "article_of_day") {
+                            ArticleOfDayCard(
+                                post = state.articleOfDay,
+                                onOpenPost = { navController.navigate(PostDetailRoute(postId = it)) },
+                                onRandom = { vm.onIntent(HomeIntent.OpenRandomArticle) },
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
                         items(items = newestPosts, key = { it.id }) { post ->
                             PostListItem(
                                 post = post,

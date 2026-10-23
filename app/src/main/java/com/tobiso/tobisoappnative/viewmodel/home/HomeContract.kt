@@ -9,6 +9,7 @@ import com.tobiso.tobisoappnative.model.Post
 data class HomeState(
     val categories: List<Category> = emptyList(),
     val posts: List<Post> = emptyList(),
+    val articleOfDay: Post? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val isOffline: Boolean = false,
@@ -19,8 +20,10 @@ data class HomeState(
 sealed interface HomeIntent : UiIntent {
     object Load : HomeIntent
     object DownloadAllOfflineData : HomeIntent
+    object OpenRandomArticle : HomeIntent
 }
 
 sealed interface HomeEffect : UiEffect {
     data class ShowToast(val message: String) : HomeEffect
+    data class NavigateToPost(val postId: Int) : HomeEffect
 }

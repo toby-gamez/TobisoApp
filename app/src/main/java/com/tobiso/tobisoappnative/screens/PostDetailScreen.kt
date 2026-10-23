@@ -103,6 +103,7 @@ import com.tobiso.tobisoappnative.components.ElementRenderer
 import com.tobiso.tobisoappnative.components.PostActionsRow
 import com.tobiso.tobisoappnative.components.ExerciseButtonsRow
 import com.tobiso.tobisoappnative.components.RelatedPostsList
+import com.tobiso.tobisoappnative.components.DifficultyRating
 import com.tobiso.tobisoappnative.components.TableOfContentsDialog
 import kotlinx.serialization.json.JsonNull.content
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -124,6 +125,8 @@ fun PostDetailScreen(
     val exercisesLoading by vm.exercisesLoading.collectAsStateWithLifecycle()
     val exercisesError by vm.exercisesError.collectAsStateWithLifecycle()
     val questions by vm.questions.collectAsStateWithLifecycle()
+    val difficulty by vm.difficulty.collectAsStateWithLifecycle()
+    LaunchedEffect(postId) { vm.loadDifficulty(postId) }
     val relatedPosts by vm.relatedPosts.collectAsStateWithLifecycle()
     val relatedPostsError by vm.relatedPostsError.collectAsStateWithLifecycle()
     val relatedPostsLoading by vm.relatedPostsLoading.collectAsStateWithLifecycle()
@@ -488,6 +491,13 @@ fun PostDetailScreen(
                                             }
                                         },
                                         onOpenQuestions = { navController.navigate(QuestionsRoute(postId = postId)) }
+                                    )
+                                }
+                                item {
+                                    DifficultyRating(
+                                        state = difficulty,
+                                        onRate = { vm.rateDifficulty(postId, it) },
+                                        modifier = Modifier.padding(vertical = 8.dp)
                                     )
                                 }
                                 item {

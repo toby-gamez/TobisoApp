@@ -167,4 +167,21 @@ interface ApiService {
         @retrofit2.http.Header("X-Device-Id") deviceId: String,
         @Query("name") name: String
     ): PersonResponse
+
+    // Difficulty rating (anonymous, keyed by deviceId)
+    @GET("Posts/{id}/difficulty")
+    suspend fun getPostDifficulty(@Path("id") id: Int): PostDifficultyResponse
+
+    @POST("Posts/{id}/rate-difficulty")
+    suspend fun ratePostDifficulty(
+        @Path("id") id: Int,
+        @Body request: DifficultyRatingRequest
+    ): DifficultyRatingResult
+
+    // Article of the day / random article
+    @GET("pages/article-of-day")
+    suspend fun getArticleOfDay(): Post
+
+    @GET("pages/random")
+    suspend fun getRandomPost(): Post
 }
