@@ -555,8 +555,8 @@ private fun SubcategoryRow(
                                 .height(4.dp)
                                 .clip(RoundedCornerShape(2.dp)),
                             color = when {
-                                progress >= 0.8f -> Color(0xFF4CAF50)
-                                progress >= 0.5f -> Color(0xFFFFC107)
+                                progress >= 0.8f -> com.tobiso.tobisoappnative.ui.theme.StatusColors.success
+                                progress >= 0.5f -> com.tobiso.tobisoappnative.ui.theme.StatusColors.warning
                                 else -> MaterialTheme.colorScheme.error
                             },
                             trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
@@ -844,8 +844,8 @@ private fun CategoryCard(
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp)),
                     color = when {
-                        progress >= 0.8f -> Color(0xFF4CAF50)
-                        progress >= 0.5f -> Color(0xFFFFC107)
+                        progress >= 0.8f -> com.tobiso.tobisoappnative.ui.theme.StatusColors.success
+                        progress >= 0.5f -> com.tobiso.tobisoappnative.ui.theme.StatusColors.warning
                         else -> MaterialTheme.colorScheme.error
                     },
                     trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)

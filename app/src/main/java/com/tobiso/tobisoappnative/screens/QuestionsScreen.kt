@@ -265,9 +265,9 @@ fun QuestionsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(
                                     containerColor = when {
-                                        scorePercentage >= 80 -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                                        scorePercentage >= 60 -> Color(0xFFFFC107).copy(alpha = 0.1f)
-                                        else -> Color(0xFFFF5722).copy(alpha = 0.1f)
+                                        scorePercentage >= 80 -> com.tobiso.tobisoappnative.ui.theme.StatusColors.success.copy(alpha = 0.1f)
+                                        scorePercentage >= 60 -> com.tobiso.tobisoappnative.ui.theme.StatusColors.warning.copy(alpha = 0.1f)
+                                        else -> com.tobiso.tobisoappnative.ui.theme.StatusColors.danger.copy(alpha = 0.1f)
                                     }
                                 )
                             ) {
@@ -291,9 +291,9 @@ fun QuestionsScreen(
                                         style = MaterialTheme.typography.headlineLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = when {
-                                            scorePercentage >= 80 -> Color(0xFF4CAF50)
-                                            scorePercentage >= 60 -> Color(0xFFFFC107)
-                                            else -> Color(0xFFFF5722)
+                                            scorePercentage >= 80 -> com.tobiso.tobisoappnative.ui.theme.StatusColors.success
+                                            scorePercentage >= 60 -> com.tobiso.tobisoappnative.ui.theme.StatusColors.warning
+                                            else -> com.tobiso.tobisoappnative.ui.theme.StatusColors.danger
                                         }
                                     )
                                 }
@@ -329,9 +329,9 @@ fun QuestionsScreen(
                                         .padding(vertical = 4.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (isCorrect) {
-                                            Color(0xFF4CAF50).copy(alpha = 0.1f)
+                                            com.tobiso.tobisoappnative.ui.theme.StatusColors.success.copy(alpha = 0.1f)
                                         } else {
-                                            Color(0xFFFF5722).copy(alpha = 0.1f)
+                                            com.tobiso.tobisoappnative.ui.theme.StatusColors.danger.copy(alpha = 0.1f)
                                         }
                                     )
                                 ) {
@@ -342,7 +342,7 @@ fun QuestionsScreen(
                                             Icon(
                                                 imageVector = if (isCorrect) Icons.Filled.CheckCircle else Icons.Filled.Close,
                                                 contentDescription = if (isCorrect) "Správně" else "Špatně",
-                                                tint = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
+                                                tint = if (isCorrect) com.tobiso.tobisoappnative.ui.theme.StatusColors.success else com.tobiso.tobisoappnative.ui.theme.StatusColors.danger
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
@@ -367,13 +367,13 @@ fun QuestionsScreen(
                                                 Text(
                                                     "Vaše odpověď: $userText",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
+                                                    color = if (isCorrect) com.tobiso.tobisoappnative.ui.theme.StatusColors.success else com.tobiso.tobisoappnative.ui.theme.StatusColors.danger
                                                 )
                                                 if (!isCorrect) {
                                                     Text(
                                                         "Správná odpověď: $correctText",
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = Color(0xFF4CAF50)
+                                                        color = com.tobiso.tobisoappnative.ui.theme.StatusColors.success
                                                     )
                                                 }
                                             }
@@ -385,7 +385,7 @@ fun QuestionsScreen(
                                                 Text(
                                                     "Vaše odpovědi: ${selectedLabels.ifEmpty { "—" }}",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
+                                                    color = if (isCorrect) com.tobiso.tobisoappnative.ui.theme.StatusColors.success else com.tobiso.tobisoappnative.ui.theme.StatusColors.danger
                                                 )
                                                 if (!isCorrect) {
                                                     val correctLabels = question.correctAnswers
@@ -394,7 +394,7 @@ fun QuestionsScreen(
                                                     Text(
                                                         "Správné odpovědi: $correctLabels",
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = Color(0xFF4CAF50)
+                                                        color = com.tobiso.tobisoappnative.ui.theme.StatusColors.success
                                                     )
                                                 }
                                             }
@@ -404,14 +404,14 @@ fun QuestionsScreen(
                                                     Text(
                                                         "Vaše odpověď: ${question.options[selectedAnswer]}",
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = if (isCorrect) Color(0xFF4CAF50) else Color(0xFFFF5722)
+                                                        color = if (isCorrect) com.tobiso.tobisoappnative.ui.theme.StatusColors.success else com.tobiso.tobisoappnative.ui.theme.StatusColors.danger
                                                     )
                                                 }
                                                 if (!isCorrect && question.correctAnswer >= 0 && question.correctAnswer < question.options.size) {
                                                     Text(
                                                         "Správná odpověď: ${question.options[question.correctAnswer]}",
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = Color(0xFF4CAF50)
+                                                        color = com.tobiso.tobisoappnative.ui.theme.StatusColors.success
                                                     )
                                                 }
                                             }

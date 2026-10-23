@@ -44,6 +44,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | 17 | `WEB_SPEC.md`: what the web must add for Google sign-in (`auth/google-token`) and server-side gamification (`user/game-state`, versioned blob + merge rules). App work for both is blocked on it | 📄 | see git log |
 | 18 | Parser: `!!!tip` / `!!!sidefact` callouts (nested content, themed boxes) and `$…$` / `$$…$$` math rendered as Unicode (`LatexLite`: exponents, indices, fractions, roots, Greek, operators; unknown commands degrade to readable text). No KaTeX/WebView by design. Math inside tables/code isn't converted | ✅ | see git log |
 | 19 | Quiz instant feedback (§8.1 B): single choice locks and is checked on tap, multi-select/text use "Zkontrolovat odpověď"; sage = correct, terracotta = wrong, correct options revealed, explanation always shown; Next unlocks after checking | ✅ | see git log |
+| 20 | `StatusColors` (sage/amber/terracotta) replaces stock Material green/red/yellow on the quiz screens. Rarity/tier colors on Profile/Shop/Backpack are intentional game colors and were left | 🟡 | see git log |
 | – | Fixed stale unit tests | ✅ | `0f706f0` |
 | – | Numbered lists (`1. foo`) were never parsed (over-escaped regex) | ✅ fixed | `16324ca` |
 | – | `<sub>`/`<sup>` rendered as raw text | ✅ fixed + spacing after bullet lists | `bfc5d7b` |
