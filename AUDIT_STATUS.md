@@ -35,6 +35,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | 8 | Baseline Profile module (`:baselineprofile`) | 🟡 module + generator compile; **profile not generated yet** (no device was connected). Run `./gradlew :app:generateBaselineProfile` with the phone attached, then commit `app/src/main/baseline-prof.txt` | `6b6f563` |
 | 9 | `ContentFormatter` tests | ✅ | `55d7bdb` |
 | 10 | Difficulty rating (§8.4) + article of the day / random (§8.5) | ✅ | see git log |
+| 11 | Grade-version picker + "Zkontrolováno" badge (§8.2); choice stored per post, reviewed flag = `PostVersion.isChecked` | ✅ | see git log |
 | – | Fixed stale unit tests | ✅ | `0f706f0` |
 | – | Numbered lists (`1. foo`) were never parsed (over-escaped regex) | ✅ fixed | `16324ca` |
 | – | `<sub>`/`<sup>` rendered as raw text | ✅ fixed + spacing after bullet lists | `bfc5d7b` |
@@ -68,7 +69,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | Event themes (linked posts/categories) | `Event.Themes` | ❌ |
 | Calendar subscription (ICS) | `calendar/{token}.ics` | ❌ not needed in-app (local notifications exist); optional "open feed" link |
 | Server-side progress, bookmarks, export | `api/user/*` | ❌ local `FavoritesScreen` only |
-| Grade-versioned posts | `postversions`, `ai/rewrite-grade` | ⚠️ `gradeId` + `activeVersion`; no picker / reviewed badge |
+| Grade-versioned posts | `postversions`, `ai/rewrite-grade` | ✅ picker + reviewed badge (`ai/rewrite-grade` not wired) |
 | ~30 AI tools | `api/ai/*` | ⚠️ 8 wired |
 | Article of the day / random | `pages/article-of-day`, `pages/random` | ✅ Home `ArticleOfDayCard`, cached per day |
 | Post difficulty rating | `posts/{id}/difficulty`, `rate-difficulty` | ✅ `DifficultyRating` at end of post |

@@ -98,6 +98,7 @@ import kotlin.math.max
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.ContentElement
 import com.tobiso.tobisoappnative.components.GradeBadge
+import com.tobiso.tobisoappnative.components.GradePickerSheet
 import com.tobiso.tobisoappnative.components.ContentRenderer
 import com.tobiso.tobisoappnative.components.ElementRenderer
 import com.tobiso.tobisoappnative.components.PostActionsRow
@@ -125,6 +126,17 @@ fun PostDetailScreen(
     val exercisesLoading by vm.exercisesLoading.collectAsStateWithLifecycle()
     val exercisesError by vm.exercisesError.collectAsStateWithLifecycle()
     val questions by vm.questions.collectAsStateWithLifecycle()
+    val grades by vm.grades.collectAsStateWithLifecycle()
+    var showGradePicker by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { vm.loadGrades() }
+    if (showGradePicker) {
+        GradePickerSheet(
+            grades = grades,
+            activeGradeId = postDetail?.activeVersion?.gradeId,
+            onSelect = { vm.selectGrade(postId, it.id) },
+            onDismiss = { showGradePicker = false }
+        )
+    }
     val difficulty by vm.difficulty.collectAsStateWithLifecycle()
     LaunchedEffect(postId) { vm.loadDifficulty(postId) }
     val relatedPosts by vm.relatedPosts.collectAsStateWithLifecycle()
@@ -419,7 +431,11 @@ fun PostDetailScreen(
                                 item {
                                     Spacer(modifier = Modifier.height(4.dp))
                                     postDetail?.activeVersion?.gradeName?.let {
-                                        GradeBadge(gradeName = it)
+                                        GradeBadge(
+                                            gradeName = it,
+                                            reviewed = postDetail?.activeVersion?.isChecked == true,
+                                            onClick = if (grades.size > 1) ({ showGradePicker = true }) else null
+                                        )
                                         Spacer(modifier = Modifier.height(8.dp))
                                     }
                                 }

@@ -11,5 +11,7 @@ data class PostVersion(
     val gradeLevel: Int? = null,
     val content: String,
     val lastFix: String? = null,
-    val lastEdit: String? = null
+    val lastEdit: String? = null,
+    /** Reviewed by an editor (web: "Zkontrolováno"). */
+    val isChecked: Boolean? = null
 )

@@ -20,6 +20,18 @@ fun saveGradeId(context: Context, gradeId: Int?) {
     else prefs.edit().putInt(KEY_GRADE_ID, gradeId).apply()
 }
 
+/** Grade chosen for one specific post via the version picker; falls back to the global grade. */
+fun loadPostGradeId(context: Context, postId: Int): Int? {
+    val prefs = context.getSharedPreferences(GRADE_PREFS, Context.MODE_PRIVATE)
+    val value = prefs.getInt("post_grade_$postId", -1)
+    return if (value == -1) loadGradeId(context) else value
+}
+
+fun savePostGradeId(context: Context, postId: Int, gradeId: Int) {
+    context.getSharedPreferences(GRADE_PREFS, Context.MODE_PRIVATE)
+        .edit().putInt("post_grade_$postId", gradeId).apply()
+}
+
 fun List<PostVersion>.bestMatchForLevel(gradeLevel: Int): PostVersion? {
     val candidates = filter { (it.gradeLevel ?: 0) <= gradeLevel }
     return if (candidates.isNotEmpty()) candidates.maxByOrNull { it.gradeLevel ?: 0 }

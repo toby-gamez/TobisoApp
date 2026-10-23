@@ -23,7 +23,9 @@ import com.tobiso.tobisoappnative.components.extractToc
 import com.tobiso.tobisoappnative.components.parseContentToElements
 import com.tobiso.tobisoappnative.components.injectPersonMentionsIntoElements
 import com.tobiso.tobisoappnative.model.ApiService
-import com.tobiso.tobisoappnative.utils.loadGradeId
+import com.tobiso.tobisoappnative.utils.loadPostGradeId
+import com.tobiso.tobisoappnative.utils.savePostGradeId
+import com.tobiso.tobisoappnative.model.Grade
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -140,6 +142,22 @@ class PostDetailViewModel @Inject constructor(
 
     fun getTtsManager(): TtsManager = ttsManager
 
+    private val _grades = MutableStateFlow<List<Grade>>(emptyList())
+    val grades: StateFlow<List<Grade>> = _grades
+
+    fun loadGrades() {
+        if (_grades.value.isNotEmpty()) return
+        viewModelScope.launch {
+            detailRepo.getGrades().onSuccess { _grades.value = it.sortedBy { g -> g.level } }
+        }
+    }
+
+    /** Remembers the chosen grade for this post and re-fetches the matching version. */
+    fun selectGrade(postId: Int, gradeId: Int) {
+        savePostGradeId(getApplication(), postId, gradeId)
+        loadPostDetail(postId)
+    }
+
     fun loadDifficulty(postId: Int) {
         _difficulty.value = DifficultyState(myVote = postsRepo.getMyDifficultyVote(postId))
         viewModelScope.launch {
@@ -163,7 +181,7 @@ class PostDetailViewModel @Inject constructor(
     }
 
     fun loadPostDetail(postId: Int) {
-        val gradeId = loadGradeId(getApplication())
+        val gradeId = loadPostGradeId(getApplication(), postId)
         viewModelScope.launch(Dispatchers.IO) {
             detailRepo.getPost(postId, gradeId).fold(
                 onSuccess = { post ->
