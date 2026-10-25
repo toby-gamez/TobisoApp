@@ -12,6 +12,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tobiso.tobisoappnative.model.Grade
@@ -25,36 +30,54 @@ fun GradePickerSheet(
     activeGradeId: Int?,
     availableGradeIds: Set<Int>? = null,
     onSelect: (Grade) -> Unit,
+    onGenerateWithAi: ((Grade) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
+    var pickingAiGrade by remember { mutableStateOf(false) }
+    val eligible = if (availableGradeIds == null) grades else grades.filter { it.id in availableGradeIds }
+    val missingGrades = if (availableGradeIds == null) emptyList() else grades.filter { it.id !in availableGradeIds }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(bottom = 24.dp)) {
             Text(
-                "Verze pro ročník",
+                if (pickingAiGrade) "Napsat AI pro ročník" else "Verze pro ročník",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
             )
-            grades.forEach { grade ->
-                val active = grade.id == activeGradeId
-                val missing = availableGradeIds != null && grade.id !in availableGradeIds
-                ListItem(
-                    headlineContent = { Text(grade.name) },
-                    supportingContent = if (missing) {
-                        { Text("Pro tento ročník není verze – zobrazí se nejbližší") }
-                    } else null,
-                    trailingContent = if (active) {
-                        { Icon(Icons.Rounded.Check, contentDescription = "Aktivní", tint = MaterialTheme.colorScheme.primary) }
-                    } else null,
-                    colors = ListItemDefaults.colors(
-                        headlineColor = if (missing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                        containerColor = if (active) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow
-                    ),
-                    modifier = Modifier.clickable {
-                        onSelect(grade)
-                        onDismiss()
-                    }
-                )
+            if (pickingAiGrade) {
+                missingGrades.forEach { grade ->
+                    ListItem(
+                        headlineContent = { Text(grade.name) },
+                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        modifier = Modifier.clickable {
+                            onGenerateWithAi?.invoke(grade)
+                            onDismiss()
+                        }
+                    )
+                }
+            } else {
+                eligible.forEach { grade ->
+                    val active = grade.id == activeGradeId
+                    ListItem(
+                        headlineContent = { Text(grade.name) },
+                        trailingContent = if (active) {
+                            { Icon(Icons.Rounded.Check, contentDescription = "Aktivní", tint = MaterialTheme.colorScheme.primary) }
+                        } else null,
+                        colors = ListItemDefaults.colors(
+                            containerColor = if (active) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        modifier = Modifier.clickable {
+                            onSelect(grade)
+                            onDismiss()
+                        }
+                    )
+                }
+                if (onGenerateWithAi != null && missingGrades.isNotEmpty()) {
+                    TextButton(
+                        onClick = { pickingAiGrade = true },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    ) { Text("Napsat pomocí AI pro jiný ročník") }
+                }
             }
         }
     }

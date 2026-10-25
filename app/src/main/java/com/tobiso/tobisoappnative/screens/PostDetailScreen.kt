@@ -161,15 +161,6 @@ fun PostDetailScreen(
     val availableGradeIds by vm.availableGradeIds.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { vm.loadGrades() }
     LaunchedEffect(postId) { vm.loadAvailableGrades(postId) }
-    if (showGradePicker) {
-        GradePickerSheet(
-            grades = grades,
-            activeGradeId = postDetail?.activeVersion?.gradeId,
-            availableGradeIds = availableGradeIds,
-            onSelect = { vm.selectGrade(postId, it.id) },
-            onDismiss = { showGradePicker = false }
-        )
-    }
     val difficulty by vm.difficulty.collectAsStateWithLifecycle()
     LaunchedEffect(postId) { vm.loadDifficulty(postId) }
     val relatedPosts by vm.relatedPosts.collectAsStateWithLifecycle()
@@ -259,6 +250,30 @@ fun PostDetailScreen(
     var aiInputText by remember { mutableStateOf("") }
     var aiInputExpanded by remember { mutableStateOf(false) }
     var showAiConsentDialog by remember { mutableStateOf(false) }
+    if (showGradePicker) {
+        GradePickerSheet(
+            grades = grades,
+            activeGradeId = postDetail?.activeVersion?.gradeId,
+            availableGradeIds = availableGradeIds,
+            onSelect = { vm.selectGrade(postId, it.id) },
+            onGenerateWithAi = { grade ->
+                aiInputText = "Přepiš tento článek pro ročník ${grade.name}."
+                if (hasAiConsent(context)) {
+                    navController.navigate(
+                        AiChatRoute(
+                            postId = postId,
+                            postTitle = android.net.Uri.encode(postDetail?.title ?: ""),
+                            firstUserMessage = android.net.Uri.encode(aiInputText)
+                        )
+                    )
+                    aiInputText = ""
+                } else {
+                    showAiConsentDialog = true
+                }
+            },
+            onDismiss = { showGradePicker = false }
+        )
+    }
     var showAiToolsSheet by remember { mutableStateOf(false) }
     var showSentenceSelectPanel by remember { mutableStateOf(false) }
     var showTocDialog by remember { mutableStateOf(false) }

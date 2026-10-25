@@ -17,11 +17,11 @@ class AiCreditManager private constructor(context: Context) {
         prefs.edit().putString(KEY_DEVICE_ID, it).apply()
     }
 
-    private val _bonusRemaining = MutableStateFlow(0)
-    val bonusRemaining: StateFlow<Int> = _bonusRemaining
-
     /** Last remaining-question count the server reported, or null if never asked yet. */
     val lastKnownRemaining: Int? = prefs.getInt(KEY_LAST_REMAINING, -1).takeIf { it >= 0 }
+
+    private val _bonusRemaining = MutableStateFlow(lastKnownRemaining ?: 0)
+    val bonusRemaining: StateFlow<Int> = _bonusRemaining
 
     fun updateBonusRemaining(remaining: Int) {
         _bonusRemaining.value = remaining

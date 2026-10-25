@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.time.ZoneId
 import java.util.Date
 
 object LocalEventManager {
@@ -115,62 +114,7 @@ object LocalEventManager {
         return events.find { it.id == eventId }
     }
     
-    // Pomocná funkce pro generování eventů s opakováním
-    suspend fun expandRecurringEvents(context: Context, startDate: Date, endDate: Date): List<Event> {
-        val localEvents = loadLocalEvents(context)
-        val expandedEvents = mutableListOf<Event>()
-        
-        localEvents.forEach { event ->
-            if (event.isRecurringSafe()) {
-                expandedEvents.addAll(generateRecurringInstances(event, startDate, endDate))
-            } else {
-                // Pouze přidej událost pokud se překrývá se zadaným rozsahem
-                val eventStart = event.getStartDateSafe()
-                val eventEnd = event.getEndDateSafe()
-                
-                if (eventStart.before(endDate) && eventEnd.after(startDate)) {
-                    expandedEvents.add(event)
-                }
-            }
-        }
-        
-        return expandedEvents
-    }
-    
-    private fun generateRecurringInstances(event: Event, rangeStart: Date, rangeEnd: Date): List<Event> {
-        val instances = mutableListOf<Event>()
-        val eventStart = event.getStartDateSafe()
-        val eventEnd = event.getEndDateSafe()
-        val duration = eventEnd.time - eventStart.time
-        val zone = ZoneId.systemDefault()
-
-        var current = eventStart.toInstant().atZone(zone).toLocalDateTime()
-
-        val rangeEndLocal = rangeEnd.toInstant().atZone(zone).toLocalDateTime()
-
-        while (current.toInstant(zone.rules.getOffset(current)).isBefore(rangeEnd.toInstant())) {
-            val instanceStart = Date.from(current.toInstant(zone.rules.getOffset(current)))
-            val instanceEnd = Date(instanceStart.time + duration)
-
-            if (event.recurrenceEndDate != null) {
-                val endDay = event.recurrenceEndDate.toInstant().atZone(zone).toLocalDate()
-                if (current.toLocalDate().isAfter(endDay)) break
-            }
-
-            val rangeStartLocal = rangeStart.toInstant().atZone(zone).toLocalDateTime()
-            if (!instanceEnd.toInstant().isBefore(rangeStart.toInstant())) {
-                instances.add(event.copy(startDate = instanceStart, endDate = instanceEnd))
-            }
-
-            current = when (event.recurrencePattern?.lowercase()) {
-                "daily"   -> current.plusDays(1)
-                "weekly"  -> current.plusWeeks(1)
-                "monthly" -> current.plusMonths(1)
-                "yearly"  -> current.plusYears(1)
-                else      -> break
-            }
-        }
-
-        return instances
-    }
+    // Local events (recurring ones expanded) overlapping the range
+    suspend fun expandRecurringEvents(context: Context, startDate: Date, endDate: Date): List<Event> =
+        RecurrenceExpander.expand(loadLocalEvents(context), startDate, endDate)
 }

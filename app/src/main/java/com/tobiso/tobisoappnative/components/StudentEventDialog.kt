@@ -49,6 +49,8 @@ import java.util.Locale
 
 private const val MAX_THEMES = 5
 private val STUDENT_TYPES = listOf(EventType.Test, EventType.Homework, EventType.Other)
+/** Tests and homework only make sense inside a class. */
+private val NO_CLASS_TYPES = listOf(EventType.Other)
 private val apiFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
 
 private fun startOfDay(d: Date): Date = Calendar.getInstance().apply {
@@ -104,7 +106,8 @@ fun StudentEventDialog(
     var description by remember { mutableStateOf(initialEvent?.description ?: "") }
     var start by remember { mutableStateOf(initialEvent?.startDate ?: initialDate ?: Date()) }
     var end by remember { mutableStateOf(initialEvent?.endDate ?: initialEvent?.startDate ?: initialDate ?: Date()) }
-    var type by remember { mutableStateOf(initialEvent?.eventType?.takeIf { it in STUDENT_TYPES } ?: EventType.Test) }
+    val types = if (inClass) STUDENT_TYPES else NO_CLASS_TYPES
+    var type by remember { mutableStateOf(initialEvent?.eventType?.takeIf { it in types } ?: types.first()) }
     var scope by remember {
         mutableStateOf(initialEvent?.eventScope?.takeIf { it != EventScope.Global && (inClass || it == EventScope.Personal) } ?: EventScope.Personal)
     }
@@ -142,9 +145,9 @@ fun StudentEventDialog(
                         maxLines = 3, modifier = Modifier.fillMaxWidth()
                     )
 
-                    Text("Typ", style = MaterialTheme.typography.labelLarge)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        STUDENT_TYPES.forEach { t ->
+                    if (types.size > 1) Text("Typ", style = MaterialTheme.typography.labelLarge)
+                    if (types.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        types.forEach { t ->
                             FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t.label) })
                         }
                     }

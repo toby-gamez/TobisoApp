@@ -16,8 +16,7 @@ import com.tobiso.tobisoappnative.components.GradeBadge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*import androidx.compose.foundation.border
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -165,11 +164,12 @@ data class SubjectConfig(
 val subjectConfigMap = mapOf(
     "Český jazyk" to SubjectConfig(Color(0xFFFF9800), "Gramatika, literatura a sloh"),
     "Hudební výchova" to SubjectConfig(Color(0xFF9C27B0), "Hudební teorie, autoři, žánry, písně, díla a dějiny"),
-    "Matematika" to SubjectConfig(Color(0xFF1976D2), "Algebra a geometrie"),
+    "Matematika" to SubjectConfig(Color(0xFF1976D2), "Algebra, geometrie a výroková logika"),
     "Chemie" to SubjectConfig(Color(0xFFF44336), "Tělesa, látky, zákony, prvky, sloučeniny a názvosloví"),
     "Fyzika" to SubjectConfig(Color(0xFF607D8B), "Zákony fyziky, jevy, veličiny, stroje a světlo"),
     "Přírodopis" to SubjectConfig(Color(0xFF4CAF50), "Lidské tělo, minerály, horniny a geologie"),
     "Zeměpis" to SubjectConfig(Color(0xFF795548), "Vše o ČR a globálních tématech"),
+    "Odborné" to SubjectConfig(Color(0xFF93008F), "Technické obory, hardware a software")
 )
 
 val subjectColorsFallback = listOf(
@@ -261,8 +261,7 @@ fun HomeScreen(navController: NavHostController) {
                                     aiCredits?.let {
                                         StatChip(
                                             icon = Icons.Rounded.AutoAwesome,
-                                            text = it.toString(),
-                                            onClick = { navController.navigate(ShopRoute) }
+                                            text = it.toString()
                                         )
                                     }
                                     StatChip(
@@ -331,12 +330,25 @@ fun HomeScreen(navController: NavHostController) {
                         }
                     }
                     if (sortMode == SortMode.SUBJECTS) {
-                        itemsIndexed(subjects) { index, subject ->
-                            SubjectCard(
-                                subject = subject,
-                                onClick = { navController.navigate(CategoryListRoute(categoryName = subject.name)) },
-                                modifier = Modifier.cozyEntrance(subject.name, index).cozyPress(0.95f)
-                            )
+                        val rows = subjects.chunked(columns)
+                        itemsIndexed(rows, span = { _, _ -> GridItemSpan(maxLineSpan) }) { rowIndex, rowSubjects ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                rowSubjects.forEachIndexed { i, subject ->
+                                    SubjectCard(
+                                        subject = subject,
+                                        onClick = { navController.navigate(CategoryListRoute(categoryName = subject.name)) },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .cozyEntrance(subject.name, rowIndex * columns + i)
+                                            .cozyPress(0.95f)
+                                    )
+                                }
+                                repeat(columns - rowSubjects.size) { Spacer(Modifier.weight(1f)) }
+                            }
                         }
                     } else {
                         items(newestPosts, key = { it.id }, span = { GridItemSpan(maxLineSpan) }) { post ->
@@ -379,7 +391,7 @@ fun SubjectCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 148.dp).padding(16.dp),
+            modifier = Modifier.fillMaxSize().heightIn(min = 148.dp).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             val subjectIcon = IconPackManager.getSubjectIcon(subject.name)

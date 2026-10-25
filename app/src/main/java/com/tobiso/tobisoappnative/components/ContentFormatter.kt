@@ -571,7 +571,7 @@ fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePar
             text.startsWith("`", i) -> {
                 val end = text.indexOf("`", i + 1)
                 if (end > i + 1) {
-                    result.add(InlinePart.Code(text.substring(i + 1, end)))
+                    result.addAll(parseCodeSpan(text.substring(i + 1, end), posts))
                     i = end + 1
                 } else {
                     result.add(InlinePart.Text("`"))
@@ -718,6 +718,22 @@ fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePar
         }
     }
     return result
+}
+
+/**
+ * Content of a `code span`. Stays monospace, but fractions (1/2, {a+b}/{c}) inside it are still parsed into
+ * [InlinePart.Fraction]s. Spans containing `*` skip this so code like `a*b*c` isn't turned into italics.
+ */
+private fun parseCodeSpan(inner: String, posts: List<Post>?): List<InlinePart> {
+    if (!inner.contains('/') || inner.contains('*')) return listOf(InlinePart.Code(inner))
+    fun asCode(parts: List<InlinePart>): List<InlinePart> = parts.map { part ->
+        when (part) {
+            is InlinePart.Fraction -> InlinePart.Fraction(asCode(part.numerator), asCode(part.denominator))
+            else -> InlinePart.Code(inlinePartsToText(listOf(part)))
+        }
+    }
+    val parts = parseInlineParts(inner, posts)
+    return if (parts.any { it is InlinePart.Fraction }) asCode(parts) else listOf(InlinePart.Code(inner))
 }
 
 // Builds a regex matching all inflected Czech forms of a canonical person name.

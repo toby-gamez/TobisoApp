@@ -162,4 +162,16 @@ class WebParityContentTest {
         val f = parse("1\u3164/\u31642").single() as ContentElement.Paragraph
         assertTrue(f.parts.single() is InlinePart.Fraction)
     }
+
+    @Test
+    fun `fractions inside inline code are parsed and stay code`() {
+        val p = parse("Spočti `1/2 + {a+b}/{c}` hned").single() as ContentElement.Paragraph
+        val fractions = p.parts.filterIsInstance<InlinePart.Fraction>()
+        assertEquals(2, fractions.size)
+        assertEquals(listOf<InlinePart>(InlinePart.Code("1")), fractions[0].numerator)
+        assertEquals("a+b", inlinePartsToText(fractions[1].numerator))
+        // paths / products without fractions remain a single code part
+        val q = parse("`a*b/c` a `x/y/z`").single() as ContentElement.Paragraph
+        assertTrue(q.parts.contains(InlinePart.Code("a*b/c")))
+    }
 }

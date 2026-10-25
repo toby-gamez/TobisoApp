@@ -105,7 +105,9 @@ class CalendarViewModel @Inject constructor(
                 val startDateObj = Date.from(startOfMonth.atZone(zone).toInstant())
                 val endDateObj = Date.from(endOfMonth.atZone(zone).toInstant())
 
-                val serverEvents = calendarRepo.loadRange(startDateObj, endDateObj)
+                val serverEvents = com.tobiso.tobisoappnative.model.RecurrenceExpander.expand(
+                    calendarRepo.loadRange(startDateObj, endDateObj), startDateObj, endDateObj
+                )
                 val localEvents = try {
                     LocalEventManager.expandRecurringEvents(getApplication(), startDateObj, endDateObj)
                 } catch (_: Exception) { emptyList() }

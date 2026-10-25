@@ -66,15 +66,15 @@ import java.time.LocalDate
 import java.util.*
 
 // Enum pro filtrování událostí
-enum class EventFilter(val displayName: String, val needsAccount: Boolean = false) {
+enum class EventFilter(val displayName: String, val needsAccount: Boolean = false, val needsClass: Boolean = false) {
     ALL("Vše"),
     LOCAL("Místní"),
     REMOTE("Vzdálené"),
     CLASS_AND_GROUP("Třída a skupina", needsAccount = true),
     PERSONAL("Moje události", needsAccount = true),
-    TESTS("Testy"),
-    HOMEWORK("Domácí úkoly"),
-    DAY_OFF("Volno");
+    TESTS("Testy", needsClass = true),
+    HOMEWORK("Domácí úkoly", needsClass = true),
+    DAY_OFF("Volno", needsClass = true);
 
     fun matches(event: Event): Boolean = when (this) {
         ALL -> true
@@ -135,6 +135,7 @@ fun CalendarScreen(
     // Přihlášený student: události ze serveru (třída/skupina/osobní)
     val user by AuthSession.user.collectAsStateWithLifecycle()
     val signedIn = user != null
+    val inClass = state.myClass?.membershipStatus == com.tobiso.tobisoappnative.model.ClassMembershipStatus.Approved
     val myUserId = if (signedIn) AuthSession.userId else null
     var showStudentDialog by remember { mutableStateOf(false) }
     var showAddChooser by remember { mutableStateOf(false) }
@@ -175,6 +176,9 @@ fun CalendarScreen(
         viewModel.onIntent(CalendarIntent.RefreshMyClass)
         // A filter that only exists for signed-in users must not outlive the session.
         if (user == null && currentFilter.needsAccount) currentFilter = EventFilter.ALL
+    }
+    LaunchedEffect(inClass) {
+        if (!inClass && currentFilter.needsClass) currentFilter = EventFilter.ALL
     }
     
     // Načtení dat pro FloatingSearchBar
@@ -267,7 +271,7 @@ fun CalendarScreen(
                             expanded = showFilterDropdown,
                             onDismissRequest = { showFilterDropdown = false }
                         ) {
-                            EventFilter.entries.filter { !it.needsAccount || signedIn }.forEach { filter ->
+                            EventFilter.entries.filter { (!it.needsAccount || signedIn) && (!it.needsClass || inClass) }.forEach { filter ->
                                 DropdownMenuItem(
                                     text = { 
                                         Row(

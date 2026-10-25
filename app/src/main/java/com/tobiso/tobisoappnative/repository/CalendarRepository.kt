@@ -5,6 +5,7 @@ import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.model.Event
 import com.tobiso.tobisoappnative.model.EventScope
 import com.tobiso.tobisoappnative.model.OfflineDataManager
+import com.tobiso.tobisoappnative.model.RecurrenceExpander
 import com.tobiso.tobisoappnative.model.StudentEventRequest
 import retrofit2.HttpException
 import timber.log.Timber
@@ -27,7 +28,7 @@ class CalendarRepository(
     private fun inRange(events: List<Event>, start: Date, end: Date) = events.filter { ev ->
         val s = ev.getStartDateSafe()
         val e = ev.getEndDateSafe()
-        !s.after(end) && !e.before(start)
+        (!s.after(end) && !e.before(start)) || RecurrenceExpander.mayReach(ev, start, end)
     }
 
     /** monthKey("owner", range) → time of the last successful fetch; keeps a month from being refetched for [CACHE_MINUTES]. */
