@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import com.tobiso.tobisoappnative.PointsManager
 import com.tobiso.tobisoappnative.QuestionProgressManager
+import com.tobiso.tobisoappnative.gamesync.toSubmission
 import com.tobiso.tobisoappnative.components.CustomNumericKeyboard
 import com.tobiso.tobisoappnative.utils.normalizeText
 
@@ -141,6 +142,13 @@ fun QuestionsScreen(
                 q.id to isCorrect
             }.toMap()
             QuestionProgressManager.instance.recordResults(results)
+            com.tobiso.tobisoappnative.gamesync.GameSyncManager.instance?.reportQuiz(
+                shuffledQuestions.mapIndexed { displayIndex, origIndex ->
+                    questions[origIndex].toSubmission(
+                        selectedAnswers[displayIndex], multiSelectedAnswers[displayIndex], textAnswers[displayIndex]
+                    )
+                }
+            )
         }
     }
     

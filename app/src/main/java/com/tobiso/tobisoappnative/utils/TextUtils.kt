@@ -7,7 +7,12 @@ object TextUtils {
      * Extrahuje čistý text z markdown obsahu pro TTS
      */
     fun extractPlainTextForTts(markdownContent: String): String {
-        return markdownContent
+        return stripImageGroups(
+            markdownContent
+                // Grafy [grafN]…[/grafN] a samostatné řádky s videem/dokumentem se nečtou
+                .replace(com.tobiso.tobisoappnative.components.graph.GraphParser.blockRegex, "")
+                .replace(Regex("(?m)^[*_]\\[[^\\]]*]\\([^)]*\\)\\s*$"), "")
+        )
             // Odstranění obrázků
             .replace(Regex("!\\[.*?](?:\\(.*?\\))?"), "")
             // Nahrazení odkazů jen textem
@@ -38,6 +43,35 @@ object TextUtils {
             .trim()
     }
     
+    /**
+     * Odstraní obrázky spolu s popisem a zdrojem (odstavce "Zdroj…"/"Autor…" za obrázkem)
+     * a samostatné odstavce se zdrojem.
+     */
+    private fun stripImageGroups(content: String): String {
+        val imgRx = Regex("^!\\[[^\\]]*]\\([^)]+\\)\\s*$")
+        fun isSource(p: String) = p.startsWith("Zdroj") || p.startsWith("Autor")
+        val paras = Regex("\r?\n[ \t]*\r?\n+").split(content).map { it.trim() }
+        val out = mutableListOf<String>()
+        var i = 0
+        while (i < paras.size) {
+            val p = paras[i]
+            if (imgRx.matches(p)) {
+                var j = i + 1
+                var look = 0
+                var srcIdx = -1
+                while (j < paras.size && look < 3) {
+                    if (paras[j].isNotEmpty() && isSource(paras[j])) { srcIdx = j; break }
+                    j++; look++
+                }
+                i = if (srcIdx >= 0) srcIdx + 1 else i + 1
+                continue
+            }
+            if (!isSource(p)) out.add(p)
+            i++
+        }
+        return out.joinToString("\n\n")
+    }
+
     /**
      * Rozdělí dlouhý text na kratší segmenty vhodné pro TTS
      */

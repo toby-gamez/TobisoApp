@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Help
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lightbulb
@@ -19,6 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.text.font.FontFamily
+import com.tobiso.tobisoappnative.components.graph.GraphView
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
@@ -136,7 +140,7 @@ fun ElementRenderer(
                 element.items.forEachIndexed { idx, item ->
                     Row(verticalAlignment = androidx.compose.ui.Alignment.Top, modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)) {
                         Text("${idx + 1}.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp, top = 2.dp))
-                        Text(item, style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), modifier = Modifier.weight(1f))
+                        RichLine(item, MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground), isOffline, posts, addendums, navController, onAddendumSelected, onPersonSelected, Modifier.weight(1f))
                     }
                 }
             }
@@ -148,7 +152,7 @@ fun ElementRenderer(
         }
         is ContentElement.BlockQuote -> { 
             Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small).padding(12.dp)) {
-                Text(text = element.text, style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onBackground))
+                RichLine(element.text, MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onBackground), isOffline, posts, addendums, navController, onAddendumSelected, onPersonSelected)
             }
         }
         is ContentElement.Table -> {
@@ -234,6 +238,84 @@ fun ElementRenderer(
         }
         is ContentElement.AddendumReference -> {
             // handled inline
+        }
+        is ContentElement.Graph -> GraphView(element.source)
+        is ContentElement.BoxDiagram -> BoxDiagramView(element)
+        is ContentElement.Document -> {
+            DisableSelection {
+                OutlinedButton(
+                    enabled = !isOffline,
+                    onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(element.url))
+                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        try { navController.context.startActivity(intent) } catch (e: Exception) { timber.log.Timber.e(e, "Chyba při otevírání dokumentu") }
+                    },
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    Icon(imageVector = Icons.Rounded.FileDownload, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(element.label.ifBlank { "Dokument" })
+                }
+            }
+        }
+    }
+}
+
+/** A line of markdown (numbered-list item, quote) rendered with inline formatting and links. */
+@Composable
+private fun RichLine(
+    text: String,
+    style: TextStyle,
+    isOffline: Boolean,
+    posts: List<Post>,
+    addendums: List<Addendum>,
+    navController: NavController,
+    onAddendumSelected: (Addendum) -> Unit,
+    onPersonSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val linkColor = MaterialTheme.colorScheme.primary
+    val parts = remember(text, posts) { parseInlineParts(text, posts) }
+    val annotated = remember(parts, linkColor) { buildAnnotatedStringFromParts(parts, linkColor) }
+    val clickable = annotated.getStringAnnotations(0, annotated.length).isNotEmpty()
+    if (!clickable) Text(text = annotated, style = style, modifier = modifier)
+    else ClickableText(text = annotated, style = style, modifier = modifier, onClick = { offset ->
+        handleAnnotatedClick(annotated, offset, parts, posts, isOffline, navController, addendums, onAddendumSelected, onPersonSelected)
+    })
+}
+
+@Composable
+private fun BoxDiagramView(element: ContentElement.BoxDiagram) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        element.roots.forEach { BoxNodeView(it) }
+    }
+}
+
+@Composable
+private fun BoxNodeView(node: BoxNode) {
+    val lineColor = MaterialTheme.colorScheme.outline
+    Column {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.medium)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Text(node.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            if (!node.description.isNullOrBlank()) {
+                Text(node.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f))
+            }
+        }
+        if (node.children.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .padding(start = 14.dp, top = 6.dp)
+                    .drawBehind { drawLine(lineColor, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(0f, size.height), 2.dp.toPx()) }
+                    .padding(start = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                node.children.forEach { BoxNodeView(it) }
+            }
         }
     }
 }
@@ -682,6 +764,9 @@ fun buildAnnotatedStringFromParts(parts: List<InlinePart>, linkColor: Color = Co
                     append("/")
                     append(buildAnnotatedStringFromParts(part.denominator, linkColor))
                 }
+                is InlinePart.Code -> withStyle(
+                    SpanStyle(fontFamily = FontFamily.Monospace, fontSize = 0.9f.em, background = linkColor.takeIf { it != Color.Unspecified }?.copy(alpha = 0.12f) ?: Color.Unspecified)
+                ) { append(part.text) }
                 is InlinePart.PersonMention -> {
                     val start = length
                     withStyle(SpanStyle(color = linkColor, fontWeight = FontWeight.Bold)) { append(part.name) }

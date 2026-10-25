@@ -199,6 +199,25 @@ class ContentFormatterTest {
     }
 
     @Test
+    fun `plain words with slash are not fractions`() {
+        val parts = parseInlineParts("proč/kde")
+        assertTrue(parts.none { it is InlinePart.Fraction })
+        assertEquals("proč/kde", inlinePartsToText(parts))
+    }
+
+    @Test
+    fun `numeric slash is a fraction`() {
+        val parts = parseInlineParts("1/2")
+        assertTrue(parts.single() is InlinePart.Fraction)
+    }
+
+    @Test
+    fun `explicit word fraction via braces`() {
+        val parts = parseInlineParts("{proč}/{kde}")
+        assertTrue(parts.single() is InlinePart.Fraction)
+    }
+
+    @Test
     fun `inlinePartsToText renders fraction`() {
         val f = InlinePart.Fraction(listOf(InlinePart.Text("1")), listOf(InlinePart.Text("2")))
         assertEquals("1/2", inlinePartsToText(listOf(f)))

@@ -104,7 +104,7 @@ class ShopViewModel @Inject constructor(
 
         val success = ShopManager.instance.purchaseItem(item)
         if (success) {
-            _successMessage.value = "Nákup proběhl úspěšně! ✅"
+            _successMessage.value = "Nákup proběhl úspěšně!"
             _showSuccessMessage.value = true
         } else {
             _errorMessage.value = "Nedostatek bodů pro nákup tohoto itemu!"
@@ -112,18 +112,18 @@ class ShopViewModel @Inject constructor(
         }
     }
 
-    /** Signed in: the server prices and grants the credits to the account (permanent) and deducts the points. */
+    /** Signed in: the server prices and grants the credits to the account (permanent) and spends its own exchange points. */
     private suspend fun claimAiCredits(item: ShopItem) {
         _isPurchasing.value = true
         gameSync.claimAiCredits(item.id).fold(
             onSuccess = {
-                _successMessage.value = "Získáno +${it.credits} AI otázek. ✅"
+                _successMessage.value = "Získáno +${it.credits} AI otázek."
                 _showSuccessMessage.value = true
                 auth.refreshProfile()
             },
             onFailure = { e ->
                 _errorMessage.value = when ((e as? com.tobiso.tobisoappnative.gamesync.GameSyncManager.ClaimFailure)?.code) {
-                    409 -> "Nedostatek bodů, nebo se stav hry mezitím změnil. Zkus to znovu."
+                    409 -> "Nedostatek směnných bodů. Získáš je za správné odpovědi v kvízech."
                     429 -> "Dnes už jsi za body získal/a maximum AI otázek."
                     400 -> "Tuto položku nelze zakoupit."
                     null -> e.message ?: "Nepodařilo se spojit se serverem. Body zůstaly."

@@ -1,8 +1,5 @@
 package com.tobiso.tobisoappnative.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,7 +12,6 @@ import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -93,7 +89,7 @@ fun IconButton(
 )
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-/** Determinate progress bar that glides to each new value instead of jumping. */
+/** Determinate progress bar. Deliberately not animated, so it always shows the exact current value. */
 @Composable
 fun LinearProgressIndicator(
     progress: () -> Float,
@@ -104,8 +100,7 @@ fun LinearProgressIndicator(
     gapSize: Dp = ProgressIndicatorDefaults.LinearIndicatorTrackGapSize,
     drawStopIndicator: DrawScope.() -> Unit = { }
 ) {
-    val animated by animateFloatAsState(progress(), tween(600, easing = FastOutSlowInEasing), label = "cozyProgress")
-    androidx.compose.material3.LinearProgressIndicator({ animated }, modifier, color, trackColor, strokeCap, gapSize, drawStopIndicator)
+    androidx.compose.material3.LinearProgressIndicator(progress, modifier, color, trackColor, strokeCap, gapSize, drawStopIndicator)
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)

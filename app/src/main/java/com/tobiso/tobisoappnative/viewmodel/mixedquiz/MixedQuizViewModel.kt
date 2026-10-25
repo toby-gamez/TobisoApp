@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.QuestionProgressManager
 import com.tobiso.tobisoappnative.base.BaseAndroidViewModel
+import com.tobiso.tobisoappnative.gamesync.toSubmission
 import com.tobiso.tobisoappnative.domain.usecase.GetAllQuestionsUseCase
 import com.tobiso.tobisoappnative.manager.IPointsManager
 import com.tobiso.tobisoappnative.utils.NetworkUtils
@@ -148,6 +149,13 @@ class MixedQuizViewModel @Inject constructor(
             q.id to isCorrect
         }.filterNotNull().toMap()
         QuestionProgressManager.instance.recordResults(progressResults)
+        com.tobiso.tobisoappnative.gamesync.GameSyncManager.instance?.reportQuiz(
+            s.shuffledIndices.mapIndexedNotNull { displayIndex, questionIndex ->
+                s.mixedQuestions.getOrNull(questionIndex)?.toSubmission(
+                    s.selectedAnswers[displayIndex], null, s.textAnswers[displayIndex]
+                )
+            }
+        )
 
         setState { copy(showResults = true, pointsAwarded = true) }
     }

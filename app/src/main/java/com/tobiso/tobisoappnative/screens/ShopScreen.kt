@@ -63,6 +63,16 @@ fun ShopScreen(
 ) {
     val totalPoints by PointsManager.instance.totalPoints.collectAsStateWithLifecycle()
     val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+    // AI credits are bought with server-owned exchange points when signed in (the local points are client-written).
+    val signedInUser by com.tobiso.tobisoappnative.model.AuthSession.user.collectAsStateWithLifecycle()
+    val exchangeFlow = com.tobiso.tobisoappnative.gamesync.GameSyncManager.instance?.exchangePoints
+    val exchangePoints by (exchangeFlow ?: kotlinx.coroutines.flow.MutableStateFlow<Int?>(null)).collectAsStateWithLifecycle()
+    val usesExchangePoints = signedInUser != null || com.tobiso.tobisoappnative.model.AuthSession.isSignedIn
+    LaunchedEffect(usesExchangePoints) {
+        if (usesExchangePoints) com.tobiso.tobisoappnative.gamesync.GameSyncManager.instance?.refreshExchangePoints()
+    }
+    fun pointsFor(item: com.tobiso.tobisoappnative.model.ShopItem): Int =
+        if (item.type == ShopItemType.AI_CREDIT && usesExchangePoints) exchangePoints ?: 0 else totalPoints
     val purchasedItemIds by ShopManager.instance.purchasedItems.collectAsStateWithLifecycle()
     val activeMultiplier by PointsManager.instance.activeMultiplier.collectAsStateWithLifecycle()
     val availableFreezes by StreakFreezeManager.instance.availableFreezes.collectAsStateWithLifecycle()
@@ -199,7 +209,7 @@ fun ShopScreen(
                             ShopItemType.MYSTERY_BOX -> false
                             else -> purchasedItemIds.contains(item.id)
                         },
-                        canAfford = totalPoints >= item.price,
+                        canAfford = pointsFor(item) >= item.price,
                         isOnCooldown = ShopManager.instance.isOnCooldown(item.id),
                         cooldownTimeLeft = ShopManager.instance.getCooldownTimeLeft(item.id),
                         availableFreezes = availableFreezes,
@@ -231,7 +241,8 @@ fun ShopScreen(
         selectedItem?.let { item ->
             PurchaseDialog(
                 item = item,
-                totalPoints = totalPoints,
+                totalPoints = pointsFor(item),
+                pointsLabel = if (item.type == ShopItemType.AI_CREDIT && usesExchangePoints) "Tvoje směnné body:" else "Tvoje body:",
                 isPurchased = when (item.type) {
                     ShopItemType.AI_CREDIT -> false
                     else -> purchasedItemIds.contains(item.id)
@@ -293,12 +304,24 @@ fun ShopScreen(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text(
-                    text = successMessage,
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    textAlign = TextAlign.Center
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                        text = successMessage,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -316,12 +339,24 @@ fun ShopScreen(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text(
-                    text = "❌ $errorMessage",
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onError,
-                    textAlign = TextAlign.Center
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Error,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onError
+                    )
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.onError,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -730,7 +765,7 @@ fun ShopItemCard(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "${StreakFreezeManager.instance.getAvailableFreezes()}/3",
+                                    text = "${availableFreezes}/3",
                                     color = MaterialTheme.colorScheme.primary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
@@ -761,7 +796,7 @@ fun ShopItemCard(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "${StreakFreezeManager.instance.getAvailableFreezes()}/3",
+                                        text = "${availableFreezes}/3",
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -894,6 +929,7 @@ fun PurchaseDialog(
     item: ShopItem,
     totalPoints: Int,
     isPurchased: Boolean,
+    pointsLabel: String = "Tvoje body:",
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -1238,7 +1274,7 @@ fun PurchaseDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Tvoje body:",
+                            text = pointsLabel,
                             fontWeight = FontWeight.Bold
                         )
                         Text(

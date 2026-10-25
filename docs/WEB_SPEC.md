@@ -67,7 +67,13 @@ PUT /api/user/game-state   body { "baseRevision": 12, "state": { … } }
 | backpack equips, pet state | take the side with the newer `updatedAt` per section |
 | freezes | `min(max(local, server), 3)` |
 
-**Anti-cheat note:** with a client-written blob the user can edit their own points. If points ever gate something with real value (the AI-credit shop already converts points → credits!), award them through an **action endpoint** instead, e.g. `POST /api/user/points/claim { reason, ref }` with server-side rules, and keep only cosmetic state in the blob. Tell me if you want that split now — the shop's "buy AI credits with points" is the part that needs it.
+**Anti-cheat (done):** the blob is cosmetic only and the server never trusts it. AI credits are bought with separate, server-owned *exchange points*:
+
+* `GET /api/user/points` → `{ balance, earnedToday, dailyEarnCap }`
+* `POST /api/user/points/earn` body `{ answers: [{ questionId, answerIds?, text? }] }` (max 50). The server grades the answers against its own questions and pays 2 points per correct answer, once per question per UTC day, up to 150 points/day. The app never sends an amount. Answers from the web Quiz page earn the same way.
+* `POST /api/user/points/claim` body `{ reason: "ai_credits", ref }` spends exchange points → `{ credits, points }` (`points` = remaining exchange points). 409 `insufficient_points`, 429 `daily_limit` (20 credits/day).
+
+The app reports finished quizzes (`QuestionsScreen`, `MixedQuizViewModel`) through `GameSyncManager.reportQuiz` and shows the exchange balance for AI-credit items in the shop.
 
 ## 3. Already done on the web (thanks) — no action
 

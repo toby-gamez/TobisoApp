@@ -223,6 +223,12 @@ interface ApiService {
     @retrofit2.http.PUT("user/game-state")
     suspend fun putGameState(@Body request: GameStatePutRequest): retrofit2.Response<GameStatePutResponse>
 
+    @GET("user/points")
+    suspend fun getPoints(): PointsWalletResponse
+
+    @POST("user/points/earn")
+    suspend fun earnPoints(@Body request: PointsEarnRequest): PointsEarnResponse
+
     @POST("user/points/claim")
     suspend fun claimPoints(@Body request: PointsClaimRequest): retrofit2.Response<PointsClaimResponse>
 

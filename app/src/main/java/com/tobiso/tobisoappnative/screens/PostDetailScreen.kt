@@ -1,6 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
-import com.tobiso.tobisoappnative.components.LinearProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 
 import com.tobiso.tobisoappnative.components.IconButton
 

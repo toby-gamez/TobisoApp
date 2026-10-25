@@ -13,12 +13,16 @@ import com.tobiso.tobisoappnative.model.GameStatePutRequest
 import com.tobiso.tobisoappnative.model.GameStateResponse
 import com.tobiso.tobisoappnative.model.PointsClaimRequest
 import com.tobiso.tobisoappnative.model.PointsClaimResponse
+import com.tobiso.tobisoappnative.model.PointsEarnRequest
+import com.tobiso.tobisoappnative.model.QuizAnswerSubmission
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -71,9 +75,12 @@ class GameSyncManager @Inject constructor(
     fun start() {
         if (started) return
         started = true
+        instance = this
         listeners.forEach { (file, l) -> store.prefs(file).registerOnSharedPreferenceChangeListener(l) }
         scope.launch {
-            AuthSession.user.map { AuthSession.ownerKey }.distinctUntilChanged().collect { key -> if (key != null) sync() }
+            AuthSession.user.map { AuthSession.ownerKey }.distinctUntilChanged().collect { key ->
+                if (key != null) { refreshExchangePoints(); sync() } else _exchangePoints.value = null
+            }
         }
     }
 
@@ -114,28 +121,43 @@ class GameSyncManager @Inject constructor(
         }
     }
 
-    /** Buys AI credits with points on the server (the web owns the price list); returns the new totals. */
-    suspend fun claimAiCredits(itemId: Int): Result<PointsClaimResponse> {
-        // Make sure the server has the points we are about to spend.
-        if (!sync()) return Result.failure(IllegalStateException("Synchronizace se serverem se nezdařila."))
-        return mutex.withLock {
+    /** Server-owned exchange points (earned from graded quiz answers); null until loaded or when signed out. */
+    private val _exchangePoints = MutableStateFlow<Int?>(null)
+    val exchangePoints: StateFlow<Int?> = _exchangePoints
+
+    suspend fun refreshExchangePoints() {
+        if (!AuthSession.isSignedIn) { _exchangePoints.value = null; return }
+        try {
+            _exchangePoints.value = api.getPoints().balance
+        } catch (e: Exception) {
+            Timber.w(e, "Loading exchange points failed")
+        }
+    }
+
+    /** Sends finished quiz answers for server-side grading; the server decides whether and how much to award. */
+    fun reportQuiz(answers: List<QuizAnswerSubmission>) {
+        if (!AuthSession.isSignedIn || answers.isEmpty()) return
+        scope.launch {
             try {
-                val response = api.claimPoints(PointsClaimRequest("ai_credits", itemId.toString()))
-                val body = response.body()
-                if (response.isSuccessful && body != null) {
-                    // The server already deducted the points from the stored state; mirror that locally.
-                    written["$POINTS_FILE/$KEY_POINTS"] = PrefValue.F(body.points)
-                    store.prefs(POINTS_FILE).edit().putFloat(KEY_POINTS, body.points).apply()
-                    PointsManager.instance.reloadFromPrefs()
-                    meta.edit().putInt(key("revision"), body.revision).putFloat(key("points"), body.points).apply()
-                    Result.success(body)
-                } else {
-                    Result.failure(ClaimFailure(response.code(), errorMessage(response)))
-                }
+                _exchangePoints.value = api.earnPoints(PointsEarnRequest(answers.take(50))).balance
             } catch (e: Exception) {
-                Result.failure(e)
+                Timber.w(e, "Reporting quiz answers failed")
             }
         }
+    }
+
+    /** Buys AI credits with exchange points; the server owns the price list and the balance. */
+    suspend fun claimAiCredits(itemId: Int): Result<PointsClaimResponse> = try {
+        val response = api.claimPoints(PointsClaimRequest("ai_credits", itemId.toString()))
+        val body = response.body()
+        if (response.isSuccessful && body != null) {
+            _exchangePoints.value = body.points
+            Result.success(body)
+        } else {
+            Result.failure(ClaimFailure(response.code(), errorMessage(response)))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 
     class ClaimFailure(val code: Int, message: String?) : Exception(message)
@@ -189,8 +211,13 @@ class GameSyncManager @Inject constructor(
         r.errorBody()?.string()?.let { json.parseToJsonElement(it).jsonObject["message"]?.toString()?.trim('"') }
     }.getOrNull()
 
-    private companion object {
-        const val DEBOUNCE_MS = 5_000L
-        const val MAX_ATTEMPTS = 3
+    companion object {
+        /** Set by [start]; lets screens that aren't injected report quiz answers. */
+        @Volatile
+        var instance: GameSyncManager? = null
+            private set
+
+        private const val DEBOUNCE_MS = 5_000L
+        private const val MAX_ATTEMPTS = 3
     }
 }

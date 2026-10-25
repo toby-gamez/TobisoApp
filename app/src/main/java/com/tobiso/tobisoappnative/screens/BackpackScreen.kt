@@ -331,12 +331,24 @@ fun BackpackScreen(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text(
-                    text = "✅ $successMessage",
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    textAlign = TextAlign.Center
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                        text = successMessage,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }

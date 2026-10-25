@@ -2,6 +2,7 @@
 
 package com.tobiso.tobisoappnative.components
 
+import com.tobiso.tobisoappnative.components.graph.GraphParser
 import com.tobiso.tobisoappnative.model.Post
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -29,11 +30,67 @@ sealed class ContentElement {
     data class InlineText(val parts: List<InlinePart>) : ContentElement() // pro případné další použití
     /** `!!!tip … !!!` / `!!!sidefact … !!!` box (same syntax as the web); [children] are parsed like normal content. */
     data class Callout(val kind: CalloutKind, val children: List<ContentElement>) : ContentElement()
+    /** `[grafN] … [/grafN]` block; [source] is the raw body, parsed by `GraphParser` when rendered. */
+    data class Graph(val source: String) : ContentElement()
+    /** `_[label](documents/x.docx)` download link. */
+    data class Document(val label: String, val url: String) : ContentElement()
+    /** `| title :: description |` lines: a vertical stack ([isTree] = false) or, when indented, a tree. */
+    data class BoxDiagram(val roots: List<BoxNode>, val isTree: Boolean) : ContentElement()
 }
+
+data class BoxNode(val title: String, val description: String?, val children: List<BoxNode> = emptyList())
 
 enum class CalloutKind(val label: String) {
     Tip("Tip"),
     SideFact("Zajímavost")
+}
+
+private const val GRAPH_MARKER = "GRAPH_META::"
+private val BOX_ROW_REGEX = Regex("""^\s*\|(.*)\|\s*$""")
+private val BOX_SEPARATOR_REGEX = Regex("""^[|\s:\-]+$""")
+private val VIDEO_LINE_REGEX = Regex("""^\*\[([^\]]*)]\(([^)]+)\)\s*$""")
+private val DOC_LINE_REGEX = Regex("""^_\[([^\]]*)]\(([^)]+)\)\s*$""")
+private const val FILES_BASE = "https://files.tobiso.com/"
+
+private fun resolveFileUrl(url: String) = if (url.startsWith("http")) url else FILES_BASE + url.removePrefix("/")
+
+/** Swaps every graph block outside ``` fences for a `GRAPH_META::<urlencoded source>` paragraph. */
+private fun replaceGraphBlocks(text: String): String {
+    val fences = Regex("```").findAll(text).map { it.range.first }.toList()
+    return GraphParser.blockRegex.replace(text) { m ->
+        val insideFence = fences.count { it < m.range.first } % 2 == 1
+        if (insideFence) m.value
+        else "\n\n" + GRAPH_MARKER + URLEncoder.encode(m.groupValues[2], "UTF-8").replace(".", "%2E") + "\n\n"
+    }
+}
+
+private fun parseBoxRow(line: String): Pair<Int, BoxNode>? {
+    val inner = BOX_ROW_REGEX.matchEntire(line)?.groupValues?.get(1)?.trim() ?: return null
+    var t = inner
+    if (t.startsWith(",")) t = t.substring(1).trimStart()
+    if (t.endsWith(",")) t = t.dropLast(1).trimEnd()
+    if (t.isEmpty()) return null
+    val idx = t.indexOf("::")
+    val title = (if (idx >= 0) t.substring(0, idx) else t).trim()
+    val desc = if (idx >= 0) t.substring(idx + 2).trim().ifEmpty { null } else null
+    var indent = 0
+    for (c in line) { if (c == ' ') indent++ else if (c == '\t') indent += 4 else break }
+    return indent to BoxNode(title, desc)
+}
+
+/** Builds roots from (indent, node) rows; each row hangs under the closest less-indented row above it. */
+private fun buildBoxTree(rows: List<Pair<Int, BoxNode>>): List<BoxNode> {
+    class Mut(val node: BoxNode, val kids: MutableList<Mut> = mutableListOf())
+    val roots = mutableListOf<Mut>()
+    val stack = ArrayDeque<Pair<Int, Mut>>()
+    for ((indent, node) in rows) {
+        while (stack.isNotEmpty() && stack.last().first >= indent) stack.removeLast()
+        val m = Mut(node)
+        (stack.lastOrNull()?.second?.kids ?: roots).add(m)
+        stack.addLast(indent to m)
+    }
+    fun freeze(m: Mut): BoxNode = m.node.copy(children = m.kids.map(::freeze))
+    return roots.map(::freeze)
 }
 
 private val CALLOUT_REGEX = Regex("""!!!(tip|sidefact)\s+(.*?)\s*!!!""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
@@ -48,6 +105,7 @@ sealed class InlinePart {
     data class Strikethrough(val parts: List<InlinePart>) : InlinePart()
     data class Subscript(val text: String) : InlinePart()
     data class Superscript(val text: String) : InlinePart()
+    data class Code(val text: String) : InlinePart()
     data class Fraction(val numerator: List<InlinePart>, val denominator: List<InlinePart>) : InlinePart()
     // name = text as it appears in content (may be inflected); canonicalName = lookup key for API
     data class PersonMention(val name: String, val canonicalName: String = name) : InlinePart()
@@ -67,6 +125,7 @@ fun inlinePartsToText(parts: List<InlinePart>): String =
             is InlinePart.Strikethrough -> inlinePartsToText(part.parts)
             is InlinePart.Subscript -> part.text
             is InlinePart.Superscript -> part.text
+            is InlinePart.Code -> part.text
             is InlinePart.Fraction -> inlinePartsToText(part.numerator) + "/" + inlinePartsToText(part.denominator)
             is InlinePart.Addendum -> ""
         }
@@ -89,8 +148,17 @@ fun parseContentToElements(
     allowIntra: Boolean = true
 ): List<ContentElement> {
     val elements = mutableListOf<ContentElement>()
-    val text = content.replace("\u0000", "").trim()
+    // Invisible fillers (Hangul fillers U+3164/U+FFA0/U+115F/U+1160, zero-width chars) are removed entirely, so they can't split e.g. fractions.
+    val text = content.replace("\u0000", "")
+        .replace(Regex("[\u3164\uFFA0\u115F\u1160\u200B\u2060\uFEFF]"), "")
+        .trim()
     if (text.isBlank()) return emptyList()
+
+    // Graph blocks first (like the web): park each behind a one-line marker so no other rule touches its source.
+    if (text.contains("[graf", ignoreCase = true)) {
+        val replaced = replaceGraphBlocks(text)
+        if (replaced != text) return parseContentToElements(replaced, isOffline, posts, allowIntra)
+    }
 
     // 1. Intra (odděleno prvními dvěma výskyty "...")
     val intraRegex = Regex("\\.\\.\\.")
@@ -122,7 +190,8 @@ fun parseContentToElements(
     // Preprocess paragraphs to detect image+caption+source groups
     fun preprocessImageGroups(contentStr: String): String {
         if (contentStr.isBlank()) return contentStr
-        val paras = Regex("\r?\n[ \t]*\r?\n+").split(contentStr).map { it.trim() }.toMutableList()
+        val paras = Regex("\r?\n[ \t]*\r?\n+").split(contentStr)
+            .map { if (it.trimStart().startsWith("|")) it.trim('\n', '\r').trimEnd() else it.trim() }.toMutableList()
         val imgRx = Regex("^!\\[([^\\]]*)\\]\\(([^)]+)\\)\\s*$")
         val out = mutableListOf<String>()
         var idx = 0
@@ -185,6 +254,24 @@ fun parseContentToElements(
     while (i < lines.size) {
         val line = lines[i].trimEnd()
         var didAddBullet = false
+        if (line.startsWith(GRAPH_MARKER)) {
+            elements.add(ContentElement.Graph(URLDecoder.decode(line.removePrefix(GRAPH_MARKER), "UTF-8")))
+            i++
+            continue
+        }
+        // Video / dokument na samostatném řádku: *[alt](videos/x.mp4), _[název](documents/x.docx)
+        val videoMatch = VIDEO_LINE_REGEX.matchEntire(line.trim())
+        if (videoMatch != null) {
+            elements.add(ContentElement.VideoPlayer(resolveFileUrl(videoMatch.groupValues[2]), null))
+            i++
+            continue
+        }
+        val docMatch = DOC_LINE_REGEX.matchEntire(line.trim())
+        if (docMatch != null) {
+            elements.add(ContentElement.Document(docMatch.groupValues[1], resolveFileUrl(docMatch.groupValues[2])))
+            i++
+            continue
+        }
         // Nadpisy
         if (line.startsWith("#")) {
             val level = line.takeWhile { it == '#' }.length
@@ -216,30 +303,24 @@ fun parseContentToElements(
             elements.add(ContentElement.BlockQuote(quoteLines.joinToString("\n")))
             continue
         }
-        // Odrážky (každý řádek začínající - , * , + je vždy odrážka, i kdyby byl sám)
-        // Podpora až 4 úrovní odrážek podle počtu mezer před "- "
-        val bulletLevels = listOf(
-            Regex("^- "),        // level 1
-            Regex("^  - "),      // level 2
-            Regex("^    - "),    // level 3
-            Regex("^      - ")   // level 4
-        )
-        for ((level, regex) in bulletLevels.withIndex()) {
-            if (regex.containsMatchIn(line)) {
-                val items = mutableListOf<List<InlinePart>>()
-                    items.add(parseInlineParts(line.replaceFirst(regex, ""), posts))
+        // Odrážky (-, * nebo +; úroveň podle odsazení po 2 mezerách, max. 4 úrovně)
+        val bulletRegex = Regex("^( *)[-*+] ")
+        val bulletMatch = bulletRegex.find(line)
+        if (bulletMatch != null) {
+            fun levelOf(ln: String): Int? = bulletRegex.find(ln)?.let { minOf(it.groupValues[1].length / 2, 3) + 1 }
+            val level = levelOf(line)!!
+            val items = mutableListOf<List<InlinePart>>()
+            items.add(parseInlineParts(line.replaceFirst(bulletRegex, ""), posts))
+            i++
+            while (i < lines.size && levelOf(lines[i].trimEnd()) == level) {
+                items.add(parseInlineParts(lines[i].trimEnd().replaceFirst(bulletRegex, ""), posts))
                 i++
-                while (i < lines.size && regex.containsMatchIn(lines[i].trimEnd())) {
-                        items.add(parseInlineParts(lines[i].trimEnd().replaceFirst(regex, ""), posts))
-                    i++
-                }
-                elements.add(ContentElement.BulletList(items, level + 1))
-                didAddBullet = true
-                break
             }
+            elements.add(ContentElement.BulletList(items, level))
+            continue
         }
         // Číslované odrážky
-        val numberedRegex = Regex("^\\d+\\. ")
+        val numberedRegex = Regex("^\\d+[.)] ")
         if (numberedRegex.containsMatchIn(line)) {
             val items = mutableListOf(line.replaceFirst(numberedRegex, ""))
             i++
@@ -286,6 +367,21 @@ fun parseContentToElements(
             elements.add(ContentElement.Table(header, rows))
             i = j
             continue
+        }
+        // Box diagram: consecutive "| title :: description |" lines without a table separator row
+        if (BOX_ROW_REGEX.matches(line)) {
+            var j = i
+            val block = mutableListOf<String>()
+            while (j < lines.size && BOX_ROW_REGEX.matches(lines[j].trimEnd())) { block.add(lines[j].trimEnd()); j++ }
+            val looksLikeTable = block.any { BOX_SEPARATOR_REGEX.matches(it.trim()) && it.contains('-') }
+            val rows = if (looksLikeTable) emptyList() else block.mapNotNull { parseBoxRow(it) }
+            if (rows.isNotEmpty()) {
+                val isTree = rows.map { it.first }.distinct().size > 1
+                val roots = if (isTree) buildBoxTree(rows) else rows.map { it.second }
+                elements.add(ContentElement.BoxDiagram(roots, isTree))
+                i = j
+                continue
+            }
         }
         // Paragraph-level image metadata marker injected by preprocessImageGroups
         if (line.startsWith("IMG_META::")) {
@@ -367,7 +463,7 @@ fun parseContentToElements(
 
 // --- Inline Markdown Parser pro tučné, kurzívu a inline odkazy ---
 fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePart> {
-    val text = convertMathSpans(rawText)
+    val text = convertMathSpans(rawText).replace("->", "→")
     // Podpora **tučné**, *kurzíva*, ***tučné kurzíva***, [odkaz](url), (--DOD-číslo--)
     val result = mutableListOf<InlinePart>()
     var i = 0
@@ -468,6 +564,17 @@ fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePar
                     i = closeParen + 1
                 } else {
                     result.add(InlinePart.Text("["))
+                    i += 1
+                }
+            }
+            // `inline code`
+            text.startsWith("`", i) -> {
+                val end = text.indexOf("`", i + 1)
+                if (end > i + 1) {
+                    result.add(InlinePart.Code(text.substring(i + 1, end)))
+                    i = end + 1
+                } else {
+                    result.add(InlinePart.Text("`"))
                     i += 1
                 }
             }
@@ -573,10 +680,12 @@ fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePar
                     text.indexOf("#s#", i),
                     text.indexOf("<sub>", i),
                     text.indexOf("<sup>", i),
-                    text.indexOf("{", i)
+                    text.indexOf("{", i),
+                    text.indexOf("`", i)
                 ).filter { it >= 0 }.minOrNull() ?: n
                 val chunk = text.substring(i, next)
-                // Detect plain token/token fractions (e.g. 2/2, x/1) within text runs
+                // Detect plain numeric fractions (e.g. 2/2) within text runs. Words like
+                // "proč/kde" are not fractions — explicit fractions use {num}/{den}.
                 var last = 0
                 var ci = 0
                 while (ci < chunk.length) {
@@ -585,7 +694,10 @@ fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePar
                         val numToken = chunk.substring(numStart, ci)
                         val denEnd = (ci + 1 until chunk.length).firstOrNull { !chunk[it].isLetterOrDigit() } ?: chunk.length
                         val denToken = chunk.substring(ci + 1, denEnd)
-                        if (numToken.isNotEmpty() && denToken.isNotEmpty()) {
+                        if (numToken.isNotEmpty() && denToken.isNotEmpty() &&
+                            numToken.all { it.isDigit() || it == '.' } &&
+                            denToken.all { it.isDigit() || it == '.' }
+                        ) {
                             if (numStart > last) result.add(InlinePart.Text(chunk.substring(last, numStart)))
                             result.add(InlinePart.Fraction(
                                 numerator = listOf(InlinePart.Text(numToken)),

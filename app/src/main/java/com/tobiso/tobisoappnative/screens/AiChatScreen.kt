@@ -126,7 +126,7 @@ fun AiChatScreen(
                     ) {
                         Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         Text(
-                            "Zbývá: $remaining",
+                            "$remaining",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -360,7 +360,7 @@ private fun ChatBubble(
                 )
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Text(
+            com.tobiso.tobisoappnative.components.ChatMarkdownText(
                 text = displayedText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isUser)

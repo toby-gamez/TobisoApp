@@ -84,7 +84,7 @@ class AuthViewModel @Inject constructor(
                     val failure = mapAuthError(e)
                     // The server answers 400 for a Google account that has no Tobiso account yet and hasn't
                     // accepted the terms; ask once, then retry with the same (still valid) ID token.
-                    if (!acceptedTerms && failure is AuthFailure.Rejected) {
+                    if (!acceptedTerms && failure is AuthFailure.TermsRequired) {
                         setState { copy(isLoading = false, googleTermsToken = idToken) }
                     } else {
                         setState { copy(isLoading = false, error = failure.message) }

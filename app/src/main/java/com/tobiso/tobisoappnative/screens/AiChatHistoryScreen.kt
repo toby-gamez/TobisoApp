@@ -121,12 +121,15 @@ private fun SwipeToDeleteSession(
         state = dismissState,
         enableDismissFromStartToEnd = false,
         backgroundContent = {
-            Box(
+            // Draw the red background only while actually swiping; otherwise it bleeds around the card edges.
+            val swiping = dismissState.dismissDirection != SwipeToDismissBoxValue.Settled &&
+                dismissState.progress > 0f
+            if (swiping) Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         MaterialTheme.colorScheme.errorContainer,
-                        RoundedCornerShape(16.dp)
+                        RoundedCornerShape(24.dp)
                     ),
                 contentAlignment = Alignment.CenterEnd
             ) {
@@ -164,7 +167,7 @@ private fun SessionCard(session: AiChatSessionEntity, onClick: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = session.postTitle,
+                    text = android.net.Uri.decode(session.postTitle),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,

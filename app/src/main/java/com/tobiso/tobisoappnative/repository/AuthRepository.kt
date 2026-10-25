@@ -21,6 +21,8 @@ sealed class AuthFailure(message: String) : Exception(message) {
     class RateLimited : AuthFailure("Příliš mnoho pokusů. Zkus to prosím za chvíli.")
     class Network : AuthFailure("Nepodařilo se spojit se serverem. Zkontroluj připojení.")
     class Rejected(message: String) : AuthFailure(message)
+    /** A new Google account that hasn't accepted the terms yet (server code `terms_required`). */
+    class TermsRequired(message: String) : AuthFailure(message)
     class Unknown : AuthFailure("Něco se pokazilo. Zkus to prosím znovu.")
 }
 
@@ -36,6 +38,7 @@ fun mapAuthError(e: Throwable): AuthFailure = when (e) {
         val message = obj?.get("message")?.jsonPrimitive?.contentOrNull
         when {
             e.code() == 403 && code == "email_unverified" -> AuthFailure.EmailUnverified()
+            e.code() == 400 && code == "terms_required" -> AuthFailure.TermsRequired(message ?: "")
             e.code() == 401 -> AuthFailure.InvalidCredentials()
             e.code() == 429 -> AuthFailure.RateLimited()
             e.code() in 400..499 && !message.isNullOrBlank() -> AuthFailure.Rejected(message)
@@ -50,7 +53,7 @@ fun mapAuthError(e: Throwable): AuthFailure = when (e) {
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<AuthUser>
     /**
-     * Trades a Google ID token for a Tobiso session. Fails with [AuthFailure.Rejected] (HTTP 400) when the Google
+     * Trades a Google ID token for a Tobiso session. Fails with [AuthFailure.TermsRequired] (HTTP 400, code `terms_required`) when the Google
      * account is new and [acceptedTerms] is false.
      */
     suspend fun loginWithGoogle(idToken: String, acceptedTerms: Boolean): Result<AuthUser>
