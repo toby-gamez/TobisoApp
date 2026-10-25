@@ -1,5 +1,15 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.cozyEntrance
+
+import com.tobiso.tobisoappnative.components.LinearProgressIndicator
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.OutlinedButton
+
+import com.tobiso.tobisoappnative.components.Button
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -266,7 +276,7 @@ fun QuestionsScreen(
                         ) {
                             // Celkový výsledek
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                 colors = CardDefaults.cardColors(
                                     containerColor = when {
                                         scorePercentage >= 80 -> com.tobiso.tobisoappnative.ui.theme.StatusColors.success.copy(alpha = 0.1f)
@@ -425,7 +435,7 @@ fun QuestionsScreen(
                                         if (!question.explanation.isNullOrBlank()) {
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Card(
-                                                modifier = Modifier.fillMaxWidth(),
+                                                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                                 colors = CardDefaults.cardColors(
                                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                                 )
@@ -485,7 +495,7 @@ fun QuestionsScreen(
                             
                             // Questions count card
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer
                                 )
@@ -520,7 +530,7 @@ fun QuestionsScreen(
                             
                             // Question types card
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer
                                 )
@@ -562,7 +572,7 @@ fun QuestionsScreen(
                             
                             // Results info card
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
                                 )
@@ -590,7 +600,7 @@ fun QuestionsScreen(
                             if (isOffline) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Card(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
                                     )
@@ -639,6 +649,7 @@ fun QuestionsScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    .cozyEntrance(currentQuestionIndex)
                                     .padding(16.dp)
                                     .verticalScroll(rememberScrollState())
                             ) {
@@ -899,7 +910,7 @@ private fun QuestionFeedback(correct: Boolean, correctTextAnswer: String?, expla
         }
         if (!explanation.isNullOrBlank()) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
             ) {
                 Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

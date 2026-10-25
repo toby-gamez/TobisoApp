@@ -15,7 +15,7 @@ data class ChatMessage(
 data class AiChatState(
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
-    val remainingQuestions: Int? = null,
+    val remainingQuestions: Int? = com.tobiso.tobisoappnative.AiCreditManager.instance.lastKnownRemaining,
     val error: String? = null,
     val limitReached: Boolean = false,
     val currentSessionId: Long = -1L

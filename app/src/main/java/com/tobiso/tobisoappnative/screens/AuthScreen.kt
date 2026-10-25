@@ -1,9 +1,42 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.TextButton
+
+import com.tobiso.tobisoappnative.components.OutlinedButton
+
+import com.tobiso.tobisoappnative.components.Button
+
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.tobiso.tobisoappnative.components.Card
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import com.tobiso.tobisoappnative.R
+import com.tobiso.tobisoappnative.components.CozySwap
+import com.tobiso.tobisoappnative.components.CozyTabs
+import com.tobiso.tobisoappnative.components.cozyEntrance
+import com.tobiso.tobisoappnative.components.cozyPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,18 +53,14 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MarkEmailRead
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,7 +83,6 @@ import com.tobiso.tobisoappnative.repository.GoogleSignInResult
 import com.tobiso.tobisoappnative.repository.requestGoogleIdToken
 import kotlinx.coroutines.launch
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedButton
 import com.tobiso.tobisoappnative.viewmodel.auth.AuthEffect
 import com.tobiso.tobisoappnative.viewmodel.auth.AuthIntent
 import com.tobiso.tobisoappnative.viewmodel.auth.AuthMode
@@ -143,102 +171,148 @@ fun AuthScreen(navController: NavController) {
             return@Column
         }
 
+        val isLogin = state.mode == AuthMode.LOGIN
+        val fieldShape = RoundedCornerShape(20.dp)
         Column(
-            Modifier.fillMaxSize().padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            Modifier.fillMaxSize().padding(horizontal = 20.dp).verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                "Účet je volitelný – bez něj aplikace funguje dál jako dosud.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Spacer(Modifier.height(4.dp))
+            Image(
+                painter = painterResource(if (isSystemInDarkTheme()) R.drawable.logo_dark else R.drawable.logo_light),
+                contentDescription = null,
+                modifier = Modifier.size(84.dp).cozyEntrance("auth-logo")
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(shape = RoundedCornerShape(10.dp), 
-                    selected = state.mode == AuthMode.LOGIN,
-                    onClick = { vm.onIntent(AuthIntent.SetMode(AuthMode.LOGIN)) },
-                    label = { Text("Přihlášení") }
-                )
-                FilterChip(shape = RoundedCornerShape(10.dp), 
-                    selected = state.mode == AuthMode.REGISTER,
-                    onClick = { vm.onIntent(AuthIntent.SetMode(AuthMode.REGISTER)) },
-                    label = { Text("Registrace") }
-                )
-            }
-
-            OutlinedTextField(shape = RoundedCornerShape(24.dp), 
-                value = state.email,
-                onValueChange = { vm.onIntent(AuthIntent.EmailChanged(it)) },
-                label = { Text("E-mail") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (state.mode == AuthMode.REGISTER) {
-                OutlinedTextField(shape = RoundedCornerShape(24.dp), 
-                    value = state.displayName,
-                    onValueChange = { vm.onIntent(AuthIntent.DisplayNameChanged(it)) },
-                    label = { Text("Přezdívka (volitelné)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            OutlinedTextField(shape = RoundedCornerShape(24.dp), 
-                value = state.password,
-                onValueChange = { vm.onIntent(AuthIntent.PasswordChanged(it)) },
-                label = { Text("Heslo") },
-                supportingText = if (state.mode == AuthMode.REGISTER) {
-                    { Text("Alespoň ${AuthViewModel.MIN_PASSWORD_LENGTH} znaků") }
-                } else null,
-                singleLine = true,
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                trailingIcon = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                            contentDescription = if (showPassword) "Skrýt heslo" else "Zobrazit heslo"
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (state.mode == AuthMode.REGISTER) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = state.acceptedTerms,
-                        onCheckedChange = { vm.onIntent(AuthIntent.TermsChanged(it)) }
+            CozySwap(isLogin) { login ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        if (login) "Vítej zpět" else "Pojď mezi nás",
+                        fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 28.sp
                     )
-                    Column {
-                        Text("Souhlasím s Podmínkami použití a Zásadami ochrany osobních údajů.", style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = { openWeb("/pravni-dokumenty") }) { Text("Zobrazit dokumenty") }
-                    }
+                    Text(
+                        "Účet je volitelný – bez něj aplikace funguje dál jako dosud.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
+            CozyTabs(
+                labels = listOf("Přihlášení", "Registrace"),
+                selectedIndex = if (isLogin) 0 else 1,
+                onSelect = { vm.onIntent(AuthIntent.SetMode(if (it == 0) AuthMode.LOGIN else AuthMode.REGISTER)) }
+            )
 
-            state.error?.let {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                    Text(
-                        it,
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodyMedium
+            Column(
+                Modifier.fillMaxWidth().animateContentSize(spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    shape = fieldShape,
+                    value = state.email,
+                    onValueChange = { vm.onIntent(AuthIntent.EmailChanged(it)) },
+                    label = { Text("E-mail") },
+                    leadingIcon = { Icon(Icons.Rounded.Email, null) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                AnimatedVisibility(
+                    visible = !isLogin,
+                    enter = fadeIn() + expandVertically(spring(dampingRatio = 0.8f)),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    OutlinedTextField(
+                        shape = fieldShape,
+                        value = state.displayName,
+                        onValueChange = { vm.onIntent(AuthIntent.DisplayNameChanged(it)) },
+                        label = { Text("Přezdívka (volitelné)") },
+                        leadingIcon = { Icon(Icons.Rounded.Person, null) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                }
+                OutlinedTextField(
+                    shape = fieldShape,
+                    value = state.password,
+                    onValueChange = { vm.onIntent(AuthIntent.PasswordChanged(it)) },
+                    label = { Text("Heslo") },
+                    leadingIcon = { Icon(Icons.Rounded.Lock, null) },
+                    supportingText = if (!isLogin) {
+                        { Text("Alespoň ${AuthViewModel.MIN_PASSWORD_LENGTH} znaků") }
+                    } else null,
+                    singleLine = true,
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            CozySwap(showPassword) { shown ->
+                                Icon(
+                                    if (shown) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                    contentDescription = if (shown) "Skrýt heslo" else "Zobrazit heslo"
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                AnimatedVisibility(
+                    visible = !isLogin,
+                    enter = fadeIn() + expandVertically(spring(dampingRatio = 0.8f)),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = state.acceptedTerms,
+                            onCheckedChange = { vm.onIntent(AuthIntent.TermsChanged(it)) }
+                        )
+                        Column {
+                            Text("Souhlasím s Podmínkami použití a Zásadami ochrany osobních údajů.", style = MaterialTheme.typography.bodySmall)
+                            TextButton(onClick = { openWeb("/pravni-dokumenty") }) { Text("Zobrazit dokumenty") }
+                        }
+                    }
+                }
+                AnimatedVisibility(
+                    visible = state.error != null,
+                    enter = fadeIn() + expandVertically(spring(dampingRatio = 0.7f)),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().cozyEntrance(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Text(
+                            state.error.orEmpty(),
+                            modifier = Modifier.padding(14.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
 
             Button(
                 onClick = { vm.onIntent(AuthIntent.Submit) },
                 enabled = !state.isLoading,
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth().height(54.dp).cozyPress(0.97f)
             ) {
                 if (state.isLoading) {
-                    CircularProgressIndicator(Modifier.height(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text(if (state.mode == AuthMode.LOGIN) "Přihlásit se" else "Vytvořit účet")
+                    Text(if (isLogin) "Přihlásit se" else "Vytvořit účet", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
             if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                    Text("nebo", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    HorizontalDivider(Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                }
                 OutlinedButton(
                     onClick = {
                         scope.launch {
@@ -252,11 +326,16 @@ fun AuthScreen(navController: NavController) {
                         }
                     },
                     enabled = !state.isLoading,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Pokračovat přes Google") }
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.fillMaxWidth().height(54.dp).cozyPress(0.97f)
+                ) {
+                    Image(painterResource(R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Pokračovat přes Google", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                }
             }
-            if (state.mode == AuthMode.LOGIN) {
-                TextButton(onClick = { openWeb("/zapomenute-heslo") }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            AnimatedVisibility(visible = isLogin) {
+                TextButton(onClick = { openWeb("/zapomenute-heslo") }) {
                     Text("Zapomenuté heslo")
                 }
             }

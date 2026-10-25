@@ -36,4 +36,4 @@ fun Card(
     elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     border: BorderStroke? = null,
     content: @Composable ColumnScope.() -> Unit
-) = androidx.compose.material3.Card(onClick, modifier, enabled, shape, colors, elevation, border, content = content)
+) = androidx.compose.material3.Card(onClick, modifier.cozyPress(0.97f), enabled, shape, colors, elevation, border, content = content)

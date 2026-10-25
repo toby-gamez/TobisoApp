@@ -37,6 +37,7 @@ class TtsManager(private val context: Context) {
     private var textToSpeech: TextToSpeech? = null
     private var currentUtteranceId: String? = null
     private var initializationStarted = false
+    private var pendingText: String? = null
     
     private val _status = MutableStateFlow(TtsStatus())
     val status: StateFlow<TtsStatus> = _status.asStateFlow()
@@ -200,6 +201,7 @@ class TtsManager(private val context: Context) {
                             state = TtsState.IDLE,
                             isInitialized = true
                         )
+                        pendingText?.let { pendingText = null; speak(it) }
                     }
                 }
                 else -> {
@@ -213,8 +215,12 @@ class TtsManager(private val context: Context) {
     }
     
     fun speak(text: String) {
-        val tts = textToSpeech ?: return
-        if (!_status.value.isInitialized) return
+        val tts = textToSpeech
+        if (tts == null || !_status.value.isInitialized) {
+            // Initialization is asynchronous; remember the request and play it once ready.
+            pendingText = text
+            return
+        }
         
         // Zastavíme případné předchozí přehrávání
         stop()

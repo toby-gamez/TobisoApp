@@ -1,5 +1,8 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.cozyEntrance
 import com.tobiso.tobisoappnative.components.Card
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
@@ -114,6 +117,7 @@ private fun SwipeToDeleteSession(
     )
 
     SwipeToDismissBox(
+        modifier = Modifier.cozyEntrance(session.id),
         state = dismissState,
         enableDismissFromStartToEnd = false,
         backgroundContent = {

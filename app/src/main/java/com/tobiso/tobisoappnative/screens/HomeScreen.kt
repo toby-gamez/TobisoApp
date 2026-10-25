@@ -46,6 +46,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import com.tobiso.tobisoappnative.components.ArticleOfDayCard
 import com.tobiso.tobisoappnative.components.ContinueReadingCard
+import com.tobiso.tobisoappnative.components.cozyEntrance
+import com.tobiso.tobisoappnative.components.cozyPress
+import com.tobiso.tobisoappnative.components.CozyTabs
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import com.tobiso.tobisoappnative.viewmodel.home.HomeViewModel
 import com.tobiso.tobisoappnative.viewmodel.home.HomeIntent
 import com.tobiso.tobisoappnative.viewmodel.home.HomeEffect
@@ -94,6 +98,8 @@ fun PostListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .cozyEntrance(post.id)
+            .cozyPress(0.97f)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(20.dp),
@@ -195,6 +201,9 @@ fun HomeScreen(navController: NavHostController) {
     LaunchedEffect(Unit) { vm.onIntent(HomeIntent.Load) }
 
     val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+    val authUser by com.tobiso.tobisoappnative.model.AuthSession.user.collectAsStateWithLifecycle()
+    val bonusAiRemaining by com.tobiso.tobisoappnative.AiCreditManager.instance.bonusRemaining.collectAsStateWithLifecycle()
+    val aiCredits = authUser?.credits ?: bonusAiRemaining.takeIf { it > 0 }
     val snackbarHostState = remember { SnackbarHostState() }
     val isOffline = !remember { NetworkUtils.isOnline(context) }
 
@@ -249,6 +258,13 @@ fun HomeScreen(navController: NavHostController) {
                                     layout(c.maxWidth, p.height) { p.place(-extra, 0) }
                                 },
                                 actions = {
+                                    aiCredits?.let {
+                                        StatChip(
+                                            icon = Icons.Rounded.AutoAwesome,
+                                            text = it.toString(),
+                                            onClick = { navController.navigate(ShopRoute) }
+                                        )
+                                    }
                                     StatChip(
                                         icon = Icons.Rounded.LocalFireDepartment,
                                         text = currentStreak.value.toString(),
@@ -281,25 +297,14 @@ fun HomeScreen(navController: NavHostController) {
                                     modifier = Modifier
                                 )
                             }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(40.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
-                            ) {
-                                listOf(SortMode.SUBJECTS to "Předměty", SortMode.NEWEST to "Nejnovější").forEachIndexed { index, (mode, label) ->
-                                    if (index > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline))
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .background(if (sortMode == mode) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
-                                            .clickable { sortMode = mode; saveSortMode(context, mode) },
-                                        contentAlignment = Alignment.Center
-                                    ) { Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+                            CozyTabs(
+                                labels = listOf("Předměty", "Nejnovější"),
+                                selectedIndex = if (sortMode == SortMode.SUBJECTS) 0 else 1,
+                                onSelect = { i ->
+                                    sortMode = if (i == 0) SortMode.SUBJECTS else SortMode.NEWEST
+                                    saveSortMode(context, sortMode)
                                 }
-                            }
+                            )
                             if (sortMode == SortMode.NEWEST) {
                                 Row(
                                     modifier = Modifier
@@ -326,11 +331,11 @@ fun HomeScreen(navController: NavHostController) {
                         }
                     }
                     if (sortMode == SortMode.SUBJECTS) {
-                        items(subjects) { subject ->
+                        itemsIndexed(subjects) { index, subject ->
                             SubjectCard(
                                 subject = subject,
                                 onClick = { navController.navigate(CategoryListRoute(categoryName = subject.name)) },
-                                modifier = Modifier
+                                modifier = Modifier.cozyEntrance(subject.name, index).cozyPress(0.95f)
                             )
                         }
                     } else {

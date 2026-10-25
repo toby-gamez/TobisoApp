@@ -1,5 +1,13 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.LinearProgressIndicator
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.TextButton
+
+import com.tobiso.tobisoappnative.components.Button
+
 import com.tobiso.tobisoappnative.utils.pluralCs
 import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.navigation.AuthRoute
@@ -1518,7 +1526,13 @@ private fun ProfileStatCards(navController: NavController) {
     val context = LocalContext.current
     val points by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
     val streak = remember { mutableStateOf(0) }
-    val badges = remember { getCompletedStreakMilestones(context).size }
+    val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsStateWithLifecycle()
+    // Same set the "Odznaky" section lists: points achievements + streak milestones.
+    val badges = remember(totalEarnedPoints) {
+        val prefs = context.getSharedPreferences("points_achievements", android.content.Context.MODE_PRIVATE)
+        generatePointsAchievements().keys.count { totalEarnedPoints >= it && prefs.getBoolean("achievement_$it", false) } +
+            getCompletedStreakMilestones(context).size
+    }
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             streak.value = com.tobiso.tobisoappnative.utils.StreakUtils.getCurrentStreak(context)

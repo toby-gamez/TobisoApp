@@ -1,5 +1,13 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.cozyEntrance
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.OutlinedButton
+
+import com.tobiso.tobisoappnative.components.Button
+
 import com.tobiso.tobisoappnative.components.Card
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.*
@@ -97,7 +105,7 @@ fun OfflineManagerScreen(
                 // Offline banner
                 if (isOfflineMode) {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().cozyEntrance(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                         shape = RoundedCornerShape(24.dp),
                         elevation = CardDefaults.cardElevation(0.dp)
@@ -132,7 +140,7 @@ fun OfflineManagerScreen(
 
                 // Cache stats card
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().cozyEntrance(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     shape = RoundedCornerShape(24.dp),
                     elevation = CardDefaults.cardElevation(0.dp)
@@ -166,7 +174,7 @@ fun OfflineManagerScreen(
 
                 // Last update + freshness
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().cozyEntrance(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     shape = RoundedCornerShape(24.dp),
                     elevation = CardDefaults.cardElevation(0.dp)
@@ -220,7 +228,7 @@ fun OfflineManagerScreen(
                     }
                     if (lastError != null) {
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().cozyEntrance(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                             shape = RoundedCornerShape(24.dp),
                             elevation = CardDefaults.cardElevation(0.dp)

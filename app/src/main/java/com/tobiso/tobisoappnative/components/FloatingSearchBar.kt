@@ -446,14 +446,20 @@ fun FloatingSearchBar(
                                     )
                                 },
                             leadingIcon = {
-                                Icon(
-                                    imageVector = if (aiMode) Icons.Rounded.AutoAwesome else Icons.Rounded.Search,
-                                    contentDescription = if (aiMode) "AI mod" else "Hledat",
-                                    tint = if (aiMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                                )
+                                CozySwap(aiMode) { ai ->
+                                    Icon(
+                                        imageVector = if (ai) Icons.Rounded.AutoAwesome else Icons.Rounded.Search,
+                                        contentDescription = if (ai) "AI mod" else "Hledat",
+                                        tint = if (ai) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                                    )
+                                }
                             },
                             trailingIcon = {
-                                    if (searchText.isNotEmpty()) {
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = searchText.isNotEmpty(),
+                                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(androidx.compose.animation.core.spring(dampingRatio = 0.5f)),
+                                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.scaleOut()
+                                ) {
                                     IconButton(onClick = { searchText = "" }) {
                                         Icon(Icons.Rounded.Clear, contentDescription = "Smazat")
                                     }
@@ -495,28 +501,34 @@ fun FloatingSearchBar(
                                     }
                                 }
                             },
-                            containerColor = if (isOffline && !aiMode)
-                                MaterialTheme.colorScheme.surfaceVariant
-                            else if (aiMode) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = if (isOffline && !aiMode)
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            else if (aiMode) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onPrimaryContainer
+                            containerColor = androidx.compose.animation.animateColorAsState(
+                                if (isOffline && !aiMode) MaterialTheme.colorScheme.surfaceVariant
+                                else if (aiMode) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.primaryContainer,
+                                androidx.compose.animation.core.tween(300), label = "fabContainer"
+                            ).value,
+                            contentColor = androidx.compose.animation.animateColorAsState(
+                                if (isOffline && !aiMode) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                else if (aiMode) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onPrimaryContainer,
+                                androidx.compose.animation.core.tween(300), label = "fabContent"
+                            ).value
                         ) {
-                            Icon(
-                                imageVector = when {
-                                    aiMode && attachedPost != null && searchText.isNotEmpty() -> Icons.Rounded.Send
-                                    aiMode -> Icons.Rounded.Search
-                                    else -> Icons.Rounded.AutoAwesome
-                                },
-                                contentDescription = when {
-                                    isOffline && !aiMode -> "AI nedostupné (offline)"
-                                    aiMode && attachedPost != null && searchText.isNotEmpty() -> "Odeslat"
-                                    aiMode -> "Přepnout na vyhledávání"
-                                    else -> "AI vyhledávání"
-                                }
-                            )
+                            CozySwap(if (aiMode && attachedPost != null && searchText.isNotEmpty()) 2 else if (aiMode) 1 else 0) { kind ->
+                                Icon(
+                                    imageVector = when (kind) {
+                                        2 -> Icons.Rounded.Send
+                                        1 -> Icons.Rounded.Search
+                                        else -> Icons.Rounded.AutoAwesome
+                                    },
+                                    contentDescription = when {
+                                        isOffline && !aiMode -> "AI nedostupné (offline)"
+                                        kind == 2 -> "Odeslat"
+                                        aiMode -> "Přepnout na vyhledávání"
+                                        else -> "AI vyhledávání"
+                                    }
+                                )
+                            }
                         }
                         if (isOffline && !aiMode) {
                             Box(

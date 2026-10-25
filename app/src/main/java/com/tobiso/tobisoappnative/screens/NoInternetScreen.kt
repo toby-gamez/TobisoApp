@@ -1,5 +1,9 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.OutlinedButton
+
+import com.tobiso.tobisoappnative.components.Button
+
 import androidx.compose.ui.unit.sp
 import com.tobiso.tobisoappnative.components.Card
 import androidx.compose.foundation.background

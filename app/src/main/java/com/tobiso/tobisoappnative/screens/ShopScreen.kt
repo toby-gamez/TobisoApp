@@ -1,5 +1,11 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.TextButton
+
+import com.tobiso.tobisoappnative.components.Button
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tobiso.tobisoappnative.navigation.BackpackRoute
 import com.tobiso.tobisoappnative.components.formatPointsBalance
@@ -74,28 +80,41 @@ fun ShopScreen(
     // Pro scroll k sekcím - trackování pozic nadpisů
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    val headerPositions = remember { mutableMapOf<ShopCategory, Int>() }
 
-    // Sledování aktivní kategorie na základě scroll pozice - jednoduše!
-    val activeCategory by remember {
-        derivedStateOf {
-            val visibleItems = listState.layoutInfo.visibleItemsInfo
-            val firstIndex = if (visibleItems.isNotEmpty()) visibleItems.first().index else 0
-
-            // Použij uložené pozice headerů a najdi nejbližší
-            val sortedPositions = headerPositions.toList().sortedBy { it.second }
-
-            for (i in sortedPositions.indices.reversed()) {
-                if (firstIndex >= sortedPositions[i].second) {
-                    return@derivedStateOf sortedPositions[i].first
-                }
+    val categories = remember { ShopCategory.values().filter { it != ShopCategory.EXCLUSIVE } }
+    // Layout sekcí se sestaví jednou, aby se seznam itemů ani pozice headerů
+    // nepřepočítávaly při každé rekombinaci.
+    val sections = remember(categories) {
+        categories.map { category -> category to ShopData.getItemsByCategory(category) }
+    }
+    val headerIndices = remember(sections) {
+        buildMap {
+            var index = 0
+            sections.forEachIndexed { sectionIndex, (category, items) ->
+                put(category, index)
+                index += 1 + items.size
+                if (sectionIndex < sections.lastIndex) index++ // spacer
             }
+        }
+    }
+    val sortedHeaderIndices = remember(headerIndices) {
+        headerIndices.entries.sortedBy { it.value }
+    }
 
-            // Default
-            ShopCategory.STREAK
+    // Sledování aktivní kategorie na základě scroll pozice.
+    // firstVisibleItemIndex se mění jen na hranicích itemů, zatímco layoutInfo
+    // se aktualizuje každý frame a při scrollu zbytečně alokoval.
+    val activeCategory by remember(listState, sortedHeaderIndices, categories) {
+        derivedStateOf {
+            val firstIndex = listState.firstVisibleItemIndex
+            sortedHeaderIndices.lastOrNull { firstIndex >= it.value }?.key
+                ?: categories.first()
         }
     }
 
+    // Hoisted stav pro kartičky, aby si každá při scrollu nezakládala vlastní kolekci.
+    val foodCount by com.tobiso.tobisoappnative.PetManager.foodCount.collectAsStateWithLifecycle()
+    val waterCount by com.tobiso.tobisoappnative.PetManager.waterCount.collectAsStateWithLifecycle()
 
     
     Column(
@@ -125,40 +144,19 @@ fun ShopScreen(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(ShopCategory.values().filter { it != ShopCategory.EXCLUSIVE }) { category ->
+            items(categories, key = { it.name }) { category ->
                 CategoryNavigationChip(
                     category = category,
                     isActive = category == activeCategory,
                     onClick = {
-                        coroutineScope.launch {
-                            // Použij uložený index pozice pro danou kategorii
-                            val targetIndex = headerPositions[category]
-                            Timber.d("Scrolling to category: $category, targetIndex: $targetIndex")
-                            
-                            if (targetIndex != null) {
+                        headerIndices[category]?.let { targetIndex ->
+                            coroutineScope.launch {
                                 try {
-                                    listState.animateScrollToItem(
-                                        index = targetIndex,
-                                        scrollOffset = 0 // Scroll přesně na začátek položky
-                                    )
+                                    listState.animateScrollToItem(index = targetIndex)
                                 } catch (e: Exception) {
                                     Timber.d("Error scrolling: $e")
-                                    // Fallback
                                     listState.scrollToItem(targetIndex)
                                 }
-                            } else {
-                                Timber.d("No saved position, calculating...")
-                                // Dynamic calculation fallback
-                                val categories = ShopCategory.values().filter { it != ShopCategory.EXCLUSIVE }.toTypedArray()
-                                var calculatedIndex = 0
-                                for (cat in categories) {
-                                    if (cat == category) break
-                                    calculatedIndex++ // header
-                                    calculatedIndex += ShopData.getItemsByCategory(cat).size // items
-                                    if (cat != categories.last()) calculatedIndex++ // spacer
-                                }
-                                Timber.d("Calculated index: $calculatedIndex")
-                                listState.animateScrollToItem(calculatedIndex, scrollOffset = 0)
                             }
                         }
                     }
@@ -174,16 +172,10 @@ fun ShopScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            var currentIndex = 0
-            
             // Všechny kategorie pod sebou
-            ShopCategory.values().filter { it != ShopCategory.EXCLUSIVE }.forEachIndexed { categoryIndex, category ->
-                    // Uloží pozici headeru pro navigaci
-                    headerPositions[category] = currentIndex
-                    Timber.d("Saved header position for $category at index: $currentIndex")
-                    
+            sections.forEachIndexed { categoryIndex, (category, categoryItems) ->
                 // Nadpis kategorie
-                item(key = "header_$category") {
+                item(key = "header_$category", contentType = "header") {
                     Text(
                         text = category.displayName,
                         fontSize = 13.sp,
@@ -192,18 +184,17 @@ fun ShopScreen(
                         modifier = Modifier.padding(start = 4.dp, top = 14.dp, bottom = 2.dp)
                     )
                 }
-                currentIndex++
-                
+
                 // Položky kategorie
-                val categoryItems = ShopData.getItemsByCategory(category)
                 items(
                     items = categoryItems,
-                    key = { item -> "item_${item.id}" }
+                    key = { item -> "item_${item.id}" },
+                    contentType = { item -> item.type }
                 ) { item ->
                     ShopItemCard(
                         item = item,
                         isPurchased = when (item.type) {
-                            ShopItemType.STREAK_FREEZE -> !ShopManager.instance.canPurchaseStreakFreeze()
+                            ShopItemType.STREAK_FREEZE -> availableFreezes >= 3
                             ShopItemType.AI_CREDIT -> false
                             ShopItemType.MYSTERY_BOX -> false
                             else -> purchasedItemIds.contains(item.id)
@@ -211,24 +202,25 @@ fun ShopScreen(
                         canAfford = totalPoints >= item.price,
                         isOnCooldown = ShopManager.instance.isOnCooldown(item.id),
                         cooldownTimeLeft = ShopManager.instance.getCooldownTimeLeft(item.id),
+                        availableFreezes = availableFreezes,
+                        foodCount = foodCount,
+                        waterCount = waterCount,
                         onClick = {
                             vm.selectItem(item, purchasedItemIds)
                         }
                     )
                 }
-                currentIndex += categoryItems.size
-                
+
                 // Mezera mezi kategoriemi (kromě poslední)
-                if (categoryIndex < ShopCategory.values().size - 1) {
-                    item(key = "spacer_$category") {
+                if (categoryIndex < sections.lastIndex) {
+                    item(key = "spacer_$category", contentType = "spacer") {
                         Spacer(modifier = Modifier.height(32.dp))
                     }
-                    currentIndex++
                 }
             }
-            
+
             // Spodní padding
-            item(key = "bottom_spacer") {
+            item(key = "bottom_spacer", contentType = "spacer") {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -374,6 +366,9 @@ fun ShopItemCard(
     canAfford: Boolean,
     isOnCooldown: Boolean = false,
     cooldownTimeLeft: Long = 0,
+    availableFreezes: Int = 0,
+    foodCount: Int = 0,
+    waterCount: Int = 0,
     onClick: () -> Unit
 ) {
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -799,10 +794,7 @@ fun ShopItemCard(
                                 }
                             }
                         } else if (item.type == ShopItemType.PET_FOOD || item.type == ShopItemType.PET_WATER) {
-                            val count = if (item.type == ShopItemType.PET_FOOD)
-                                com.tobiso.tobisoappnative.PetManager.foodCount.collectAsStateWithLifecycle().value
-                            else
-                                com.tobiso.tobisoappnative.PetManager.waterCount.collectAsStateWithLifecycle().value
+                            val count = if (item.type == ShopItemType.PET_FOOD) foodCount else waterCount
                             Column(
                                 horizontalAlignment = Alignment.End
                             ) {

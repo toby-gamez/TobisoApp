@@ -1,5 +1,15 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.cozyEntrance
+
+import com.tobiso.tobisoappnative.components.LinearProgressIndicator
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.OutlinedButton
+
+import com.tobiso.tobisoappnative.components.Button
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -375,7 +385,7 @@ fun MixedQuizScreen(
                             }
 
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                             ) {
                                 Row(
@@ -394,7 +404,7 @@ fun MixedQuizScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                             ) {
                                 Row(
@@ -429,7 +439,7 @@ fun MixedQuizScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                             ) {
                                 Row(
@@ -453,7 +463,7 @@ fun MixedQuizScreen(
                             if (state.isOffline) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Card(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().cozyEntrance(),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
                                 ) {
                                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -483,6 +493,7 @@ fun MixedQuizScreen(
                                 Column(
                                     modifier = Modifier
                                         .weight(1f)
+                                        .cozyEntrance(state.currentQuestionIndex)
                                         .fillMaxWidth()
                                         .verticalScroll(rememberScrollState())
                                         .padding(horizontal = 20.dp, vertical = 16.dp),

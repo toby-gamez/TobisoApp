@@ -1,4 +1,10 @@
 package com.tobiso.tobisoappnative.screens
+
+import com.tobiso.tobisoappnative.components.cozyEntrance
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.TextButton
 import com.tobiso.tobisoappnative.components.Card
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import timber.log.Timber
@@ -260,7 +266,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
     ) {
         // Hlavní karta s názvem a časem
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().cozyEntrance(),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -344,7 +350,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
         // Popis události
         if (!event.description.isNullOrBlank()) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
@@ -379,7 +385,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
         // Místo události
         if (!event.location.isNullOrBlank()) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
@@ -413,7 +419,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
         // Opakování události
         if (event.isRecurringSafe() && !event.recurrencePattern.isNullOrBlank()) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cozyEntrance(),
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Column(
@@ -500,7 +506,7 @@ fun EventDetailContent(event: Event, navController: NavHostController? = null) {
 
         // Další informace
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().cozyEntrance(),
             shape = RoundedCornerShape(24.dp)
         ) {
             Column(

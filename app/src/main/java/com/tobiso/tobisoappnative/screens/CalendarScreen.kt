@@ -1,4 +1,10 @@
 package com.tobiso.tobisoappnative.screens
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.TextButton
+
+import com.tobiso.tobisoappnative.components.OutlinedButton
 import androidx.compose.material3.Card
 import timber.log.Timber
 
@@ -352,7 +358,7 @@ fun CalendarScreen(
                     }
                 } else if (error != null) {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().cozyEntrance(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                         elevation = CardDefaults.cardElevation(0.dp),
                         shape = RoundedCornerShape(16.dp)
@@ -841,7 +847,7 @@ fun DateDetailCard(
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().cozyEntrance(),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)

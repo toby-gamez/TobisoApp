@@ -1,5 +1,9 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +25,6 @@ import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,6 +76,7 @@ fun HomeSearchBar(
     var aiMode by remember { mutableStateOf(false) }
     var attached by remember { mutableStateOf<Post?>(null) }
     var showConsent by remember { mutableStateOf(false) }
+    val lastAttached = remember { mutableStateOf<Post?>(null) }
     val focus = remember { FocusRequester() }
 
     LaunchedEffect(text) {
@@ -99,35 +103,47 @@ fun HomeSearchBar(
         (titleHits + contentHits).distinctBy { it.id }.take(20)
     }
 
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding)) {
+    val barColor by androidx.compose.animation.animateColorAsState(
+        if (aiMode) androidx.compose.ui.graphics.lerp(scheme.surfaceContainerHigh, scheme.primaryContainer, 0.55f) else scheme.surfaceContainerHigh,
+        androidx.compose.animation.core.tween(350), label = "searchBarColor"
+    )
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding).animateContentSize(spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow))) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
                 .clip(RoundedCornerShape(28.dp))
-                .background(scheme.surfaceContainerHigh)
+                .background(barColor)
                 .padding(start = 16.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(
-                if (aiMode) Icons.Rounded.AutoAwesome else Icons.Rounded.Search,
-                contentDescription = null,
-                tint = if (aiMode) scheme.primary else scheme.onSurfaceVariant
-            )
+            CozySwap(aiMode) { ai ->
+                Icon(
+                    if (ai) Icons.Rounded.AutoAwesome else Icons.Rounded.Search,
+                    contentDescription = null,
+                    tint = if (ai) scheme.primary else scheme.onSurfaceVariant
+                )
+            }
             Box(Modifier.weight(1f)) {
                 if (text.isEmpty()) {
-                    Text(
+                    androidx.compose.animation.Crossfade(
                         when {
                             aiMode && attached != null -> "Napiš dotaz…"
                             aiMode -> "Připojit článek…"
                             else -> "Hledej článek nebo se zeptej"
                         },
-                        fontSize = 16.sp,
-                        color = scheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                        animationSpec = androidx.compose.animation.core.tween(300),
+                        label = "searchPlaceholder"
+                    ) { hint ->
+                        Text(
+                            hint,
+                            fontSize = 16.sp,
+                            color = scheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 BasicTextField(
                     value = text,
@@ -139,7 +155,11 @@ fun HomeSearchBar(
                     modifier = Modifier.fillMaxWidth().focusRequester(focus)
                 )
             }
-            if (text.isNotEmpty()) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = text.isNotEmpty(),
+                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(spring(dampingRatio = 0.5f)),
+                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.scaleOut()
+            ) {
                 IconButton(onClick = { text = "" }, modifier = Modifier.size(40.dp)) {
                     Icon(Icons.Rounded.Clear, contentDescription = "Smazat", tint = scheme.onSurfaceVariant)
                 }
@@ -148,6 +168,7 @@ fun HomeSearchBar(
             val aiDisabled = isOffline && !aiMode
             Box(
                 modifier = Modifier
+                    .cozyPress(0.88f)
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(
@@ -176,25 +197,33 @@ fun HomeSearchBar(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    when {
-                        canSend -> Icons.Rounded.Send
-                        aiMode -> Icons.Rounded.Search
-                        else -> Icons.Rounded.AutoAwesome
-                    },
-                    contentDescription = when {
-                        aiDisabled -> "AI nedostupné (offline)"
-                        canSend -> "Odeslat"
-                        aiMode -> "Přepnout na vyhledávání"
-                        else -> "Zeptat se AI"
-                    },
-                    tint = if (aiDisabled) scheme.onSurfaceVariant.copy(alpha = 0.4f) else scheme.onPrimary,
-                    modifier = Modifier.size(22.dp)
-                )
+                CozySwap(if (canSend) 2 else if (aiMode) 1 else 0) { kind ->
+                    Icon(
+                        when (kind) {
+                            2 -> Icons.Rounded.Send
+                            1 -> Icons.Rounded.Search
+                            else -> Icons.Rounded.AutoAwesome
+                        },
+                        contentDescription = when {
+                            aiDisabled -> "AI nedostupné (offline)"
+                            canSend -> "Odeslat"
+                            aiMode -> "Přepnout na vyhledávání"
+                            else -> "Zeptat se AI"
+                        },
+                        tint = if (aiDisabled) scheme.onSurfaceVariant.copy(alpha = 0.4f) else scheme.onPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
 
-        attached?.let { post ->
+        androidx.compose.animation.AnimatedVisibility(
+            visible = attached != null,
+            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(spring(dampingRatio = 0.8f)),
+            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()
+        ) {
+            val post = attached ?: lastAttached.value ?: return@AnimatedVisibility
+            lastAttached.value = post
             Row(
                 modifier = Modifier.padding(top = 8.dp, start = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,

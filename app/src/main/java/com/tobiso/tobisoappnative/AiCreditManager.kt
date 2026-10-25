@@ -20,8 +20,12 @@ class AiCreditManager private constructor(context: Context) {
     private val _bonusRemaining = MutableStateFlow(0)
     val bonusRemaining: StateFlow<Int> = _bonusRemaining
 
+    /** Last remaining-question count the server reported, or null if never asked yet. */
+    val lastKnownRemaining: Int? = prefs.getInt(KEY_LAST_REMAINING, -1).takeIf { it >= 0 }
+
     fun updateBonusRemaining(remaining: Int) {
         _bonusRemaining.value = remaining
+        prefs.edit().putInt(KEY_LAST_REMAINING, remaining).apply()
     }
 
     fun signCreditRequest(deviceId: String, count: Int, validUntilUtc: Long): String {
@@ -37,6 +41,7 @@ class AiCreditManager private constructor(context: Context) {
     companion object {
         private const val PREFS_NAME = "ai_credit_prefs"
         private const val KEY_DEVICE_ID = "device_id"
+        private const val KEY_LAST_REMAINING = "last_remaining"
 
         lateinit var instance: AiCreditManager
             private set

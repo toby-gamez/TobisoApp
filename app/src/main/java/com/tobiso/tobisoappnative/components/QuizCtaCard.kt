@@ -40,7 +40,7 @@ fun QuizCtaCard(
     } else "Ověř si porozumění"
     Card(
         onClick = onStart,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().cozyPress(0.97f).cozyEntrance(),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = scheme.primary, contentColor = scheme.onPrimary)
     ) {

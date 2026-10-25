@@ -12,7 +12,23 @@ object ShopData {
     const val SILVER_TROPHY_ID = 201
     const val GOLD_TROPHY_ID = 202
 
-    fun getShopItems(): List<ShopItem> {
+    private val shopItems: List<ShopItem> by lazy { buildShopItems() }
+
+    private val itemsByCategory: Map<ShopCategory, List<ShopItem>> by lazy {
+        shopItems.groupBy { it.category }
+    }
+
+    private val itemsById: Map<Int, ShopItem> by lazy {
+        shopItems.associateBy { it.id }
+    }
+
+    /**
+     * The shop catalogue is static, so it is built once and reused. Rebuilding it on every read
+     * allocated dozens of items (and their icon lists) per composition, which caused scroll jank.
+     */
+    fun getShopItems(): List<ShopItem> = shopItems
+
+    private fun buildShopItems(): List<ShopItem> {
         return listOf(
             // Streak kategorie
             ShopItem(
@@ -622,10 +638,10 @@ object ShopData {
     }
     
     fun getItemsByCategory(category: ShopCategory): List<ShopItem> {
-        return getShopItems().filter { it.category == category }
+        return itemsByCategory[category].orEmpty()
     }
-    
+
     fun getItemById(itemId: Int): ShopItem? {
-        return getShopItems().find { it.id == itemId }
+        return itemsById[itemId]
     }
 }

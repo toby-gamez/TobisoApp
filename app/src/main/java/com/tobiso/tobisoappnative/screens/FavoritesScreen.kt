@@ -1,5 +1,11 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.TextButton
+
+import com.tobiso.tobisoappnative.components.cozyEntrance
+import com.tobiso.tobisoappnative.components.cozyPress
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
 
@@ -97,29 +103,12 @@ fun FavoritesScreen(
                 }
             }
         )
-        PrimaryTabRow(
-            selectedTabIndex = if (selectedTab == 1) 0 else 1,
-            modifier = Modifier.fillMaxWidth(),
-            indicator = {
-                TabRowDefaults.PrimaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(if (selectedTab == 1) 0 else 1, matchContentSize = false),
-                    width = 56.dp,
-                    height = 3.dp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        ) {
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text("Články · ${favoritePosts.size}", fontWeight = FontWeight.SemiBold) }
-            )
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Útržky · ${snippets.size}", fontWeight = FontWeight.SemiBold) }
-            )
-        }
+        com.tobiso.tobisoappnative.components.CozyTabs(
+            labels = listOf("Články · ${favoritePosts.size}", "Útržky · ${snippets.size}"),
+            selectedIndex = if (selectedTab == 1) 0 else 1,
+            onSelect = { selectedTab = if (it == 0) 1 else 0 },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
         // Dialog potvrzení
         if (showDeleteDialog) {
@@ -187,6 +176,7 @@ fun FavoritesScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .cozyEntrance(snippet.hashCode())
                                     .let { mod ->
                                         if (snippet.postId != 0 && postTitle != null) mod.clickable {
                                             navController.navigate(PostDetailRoute(postId = snippet.postId))
@@ -286,7 +276,8 @@ fun FavoritesScreen(
 
                             Card(
                                 onClick = { navController.navigate(PostDetailRoute(postId = post.id)) },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .cozyEntrance(post.id).cozyPress(0.97f),
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                                 elevation = CardDefaults.cardElevation(0.dp)

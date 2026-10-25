@@ -3,6 +3,11 @@ package com.tobiso.tobisoappnative.navigation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.*
@@ -67,7 +72,19 @@ fun AppNavHost(
     ttsViewModel: com.tobiso.tobisoappnative.viewmodel.tts.TtsViewModel,
     modifier: Modifier = Modifier
 ) {
-    NavHost(navController = navController, startDestination = startDestination, modifier = modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination,
+        modifier = modifier,
+        enterTransition = {
+            fadeIn(tween(380, delayMillis = 60, easing = FastOutSlowInEasing)) +
+                scaleIn(tween(420, delayMillis = 60, easing = FastOutSlowInEasing), initialScale = 0.96f) +
+                slideInVertically(tween(420, delayMillis = 60, easing = FastOutSlowInEasing)) { it / 24 }
+        },
+        exitTransition = { fadeOut(tween(200, easing = FastOutSlowInEasing)) },
+        popEnterTransition = { fadeIn(tween(380, delayMillis = 60, easing = FastOutSlowInEasing)) + scaleIn(tween(420, easing = FastOutSlowInEasing), initialScale = 0.96f) },
+        popExitTransition = { fadeOut(tween(200, easing = FastOutSlowInEasing)) }
+    ) {
         composable<HomeRoute> {
             HomeScreen(navController = navController)
         }

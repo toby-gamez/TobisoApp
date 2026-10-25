@@ -1,5 +1,7 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -52,6 +54,7 @@ fun StatChip(
     val scheme = MaterialTheme.colorScheme
     Row(
         modifier = modifier
+            .then(if (onClick != null) Modifier.cozyPress(0.92f) else Modifier)
             .height(36.dp)
             .clip(RoundedCornerShape(50))
             .background(scheme.primaryContainer)
@@ -80,7 +83,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun GroupedList(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().cozyEntrance(),
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainer
     ) {
@@ -107,7 +110,7 @@ fun GroupedListRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.cozyPress(0.98f).clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -132,7 +135,7 @@ fun HeroCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().then(if (onClick != null) Modifier.cozyPress(0.97f) else Modifier),
         shape = RoundedCornerShape(28.dp),
         color = containerColor,
         onClick = onClick ?: {},
@@ -192,54 +195,86 @@ fun AnswerRow(
     onClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
-    val container = when (state) {
-        AnswerState.Idle -> Color.Transparent
-        AnswerState.Selected -> scheme.primaryContainer
-        AnswerState.Correct -> scheme.secondaryContainer
-        AnswerState.Wrong -> scheme.primaryContainer
+    val colorSpec = androidx.compose.animation.core.tween<Color>(300)
+    val container by androidx.compose.animation.animateColorAsState(
+        when (state) {
+            AnswerState.Idle -> Color.Transparent
+            AnswerState.Selected -> scheme.primaryContainer
+            AnswerState.Correct -> scheme.secondaryContainer
+            AnswerState.Wrong -> scheme.primaryContainer
+        }, colorSpec, label = "answerContainer"
+    )
+    val border by androidx.compose.animation.animateColorAsState(
+        when (state) {
+            AnswerState.Idle -> scheme.outlineVariant
+            AnswerState.Selected, AnswerState.Wrong -> scheme.primary
+            AnswerState.Correct -> scheme.secondary
+        }, colorSpec, label = "answerBorder"
+    )
+    val circle by androidx.compose.animation.animateColorAsState(
+        when (state) {
+            AnswerState.Correct -> scheme.secondary
+            AnswerState.Selected, AnswerState.Wrong -> scheme.primary
+            AnswerState.Idle -> scheme.surfaceContainerHigh
+        }, colorSpec, label = "answerCircle"
+    )
+    val letterColor by androidx.compose.animation.animateColorAsState(
+        when (state) {
+            AnswerState.Correct -> scheme.onSecondary
+            AnswerState.Selected, AnswerState.Wrong -> scheme.onPrimary
+            AnswerState.Idle -> scheme.onSurfaceVariant
+        }, colorSpec, label = "answerLetter"
+    )
+    // A gentle "no" wiggle when the answer is wrong, a little hop when it is right.
+    val shake = remember { androidx.compose.animation.core.Animatable(0f) }
+    val hop = remember { androidx.compose.animation.core.Animatable(1f) }
+    androidx.compose.runtime.LaunchedEffect(state) {
+        when (state) {
+            AnswerState.Wrong -> {
+                for (x in listOf(-10f, 8f, -6f, 4f, 0f)) shake.animateTo(x, androidx.compose.animation.core.tween(70))
+            }
+            AnswerState.Correct -> {
+                hop.animateTo(1.04f, androidx.compose.animation.core.tween(120))
+                hop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.4f))
+            }
+            else -> { shake.snapTo(0f); hop.snapTo(1f) }
+        }
     }
-    val border = when (state) {
-        AnswerState.Idle -> scheme.outlineVariant
-        AnswerState.Selected, AnswerState.Wrong -> scheme.primary
-        AnswerState.Correct -> scheme.secondary
-    }
+    val selectedScale by androidx.compose.animation.core.animateFloatAsState(
+        if (state == AnswerState.Selected) 1.02f else 1f,
+        androidx.compose.animation.core.spring(dampingRatio = 0.5f), label = "answerSelected"
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                translationX = shake.value.dp.toPx()
+                scaleX = hop.value * selectedScale
+                scaleY = hop.value * selectedScale
+            }
+            .then(if (enabled) Modifier.cozyPress(0.97f) else Modifier)
             .clip(RoundedCornerShape(22.dp))
             .background(container)
-            .androidx_border(border)
+            .border(2.dp, border, RoundedCornerShape(22.dp))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        val active = state != AnswerState.Idle
         Box(
-            Modifier.size(36.dp).clip(CircleShape).background(
-                when (state) {
-                    AnswerState.Correct -> scheme.secondary
-                    AnswerState.Selected, AnswerState.Wrong -> scheme.primary
-                    AnswerState.Idle -> scheme.surfaceContainerHigh
-                }
-            ),
+            Modifier.size(36.dp).clip(CircleShape).background(circle),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                letter.toString(),
-                fontWeight = FontWeight.Bold,
-                color = when (state) {
-                    AnswerState.Correct -> scheme.onSecondary
-                    AnswerState.Selected, AnswerState.Wrong -> scheme.onPrimary
-                    AnswerState.Idle -> scheme.onSurfaceVariant
-                }
-            )
+            Text(letter.toString(), fontWeight = FontWeight.Bold, color = letterColor)
         }
         Text(text, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = scheme.onSurface, modifier = Modifier.weight(1f))
-        when (state) {
-            AnswerState.Correct -> Icon(androidx.compose.material.icons.Icons.Rounded.CheckCircle, null, tint = scheme.secondary)
-            AnswerState.Wrong -> Icon(androidx.compose.material.icons.Icons.Rounded.Cancel, null, tint = scheme.primary)
-            else -> if (active) Unit
+        androidx.compose.animation.AnimatedVisibility(
+            visible = state == AnswerState.Correct || state == AnswerState.Wrong,
+            enter = androidx.compose.animation.scaleIn(androidx.compose.animation.core.spring(dampingRatio = 0.4f)) + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.fadeOut()
+        ) {
+            if (state == AnswerState.Wrong) Icon(androidx.compose.material.icons.Icons.Rounded.Cancel, null, tint = scheme.primary)
+            else Icon(androidx.compose.material.icons.Icons.Rounded.CheckCircle, null, tint = scheme.secondary)
         }
     }
 }

@@ -1,5 +1,11 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.cozyEntrance
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.Button
+
 import com.tobiso.tobisoappnative.components.Card
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.Intent
@@ -144,7 +150,7 @@ fun UpdaterScreen(
 @Composable
 private fun ReleaseInfoCard(info: ReleaseInfo) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().cozyEntrance(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )

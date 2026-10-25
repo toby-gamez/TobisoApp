@@ -1,5 +1,9 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.cozyEntrance
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tobiso.tobisoappnative.navigation.CategoryListRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
@@ -199,7 +203,7 @@ fun CategoryListScreen(
                                             shape = RoundedCornerShape(20.dp),
                                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                                             elevation = CardDefaults.cardElevation(0.dp),
-                                            modifier = Modifier.widthIn(min = 118.dp)
+                                            modifier = Modifier.widthIn(min = 118.dp).cozyEntrance(category.name)
                                         ) {
                                             Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                                                 Icon(

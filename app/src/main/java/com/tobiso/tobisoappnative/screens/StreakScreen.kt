@@ -1,4 +1,10 @@
 package com.tobiso.tobisoappnative.screens
+
+import com.tobiso.tobisoappnative.components.cozyEntrance
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.Button
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import timber.log.Timber
 
@@ -551,7 +557,7 @@ fun monthYearString(month: Int, year: Int): String {
 @Composable
 fun StreakFreezeCard(availableFreezes: Int, onBuy: (() -> Unit)? = null) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().cozyEntrance(),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
     ) {

@@ -104,8 +104,8 @@ fun TobisoApp(navigateTo: String? = null) {
                                 visible = showBottomBar,
                                 enter = slideInVertically(
                                     initialOffsetY = { it },
-                                    animationSpec = tween(durationMillis = 250, delayMillis = 100)
-                                ),
+                                    animationSpec = androidx.compose.animation.core.spring(dampingRatio = 0.75f, stiffness = androidx.compose.animation.core.Spring.StiffnessLow)
+                                ) + androidx.compose.animation.fadeIn(tween(250, delayMillis = 80)),
                                 exit = slideOutVertically(
                                     targetOffsetY = { it },
                                     animationSpec = tween(durationMillis = 200, delayMillis = 0)

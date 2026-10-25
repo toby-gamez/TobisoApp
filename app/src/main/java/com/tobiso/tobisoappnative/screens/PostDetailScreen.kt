@@ -1,4 +1,12 @@
 package com.tobiso.tobisoappnative.screens
+
+import com.tobiso.tobisoappnative.components.LinearProgressIndicator
+
+import com.tobiso.tobisoappnative.components.IconButton
+
+import com.tobiso.tobisoappnative.components.TextButton
+
+import com.tobiso.tobisoappnative.components.Button
 import timber.log.Timber
 
 import com.tobiso.tobisoappnative.navigation.AiChatRoute
@@ -888,14 +896,15 @@ private fun readFractionOf(state: LazyListState): Float {
 @Composable
 private fun DownloadProgressBar(vm: PostDetailViewModel, modifier: Modifier = Modifier) {
     val downloadProgress by vm.downloadProgress.collectAsStateWithLifecycle()
-    if (downloadProgress != null) {
-        if (downloadProgress!! >= 0) {
+    val progress = downloadProgress
+    if (progress != null) {
+        if (progress >= 0) {
             LinearProgressIndicator(
-                progress = { (downloadProgress!! / 100f) },
+                progress = { progress / 100f },
                 modifier = modifier.fillMaxWidth()
             )
             Text(
-                text = "Stahování: ${downloadProgress}%",
+                text = "Stahování: $progress%",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .fillMaxWidth()
