@@ -70,6 +70,22 @@ fun BulletPoint(text: String) {
 @Composable
 fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
+        VersionInfo("4.0", listOf(
+            "nový design aplikace (Organic): nové barvy, tvary a písma",
+            "volitelné uživatelské účty: přihlášení e-mailem nebo přes Google",
+            "synchronizace záložek, rozečtených článků a herního postupu (body, série, obchod) mezi zařízeními",
+            "školní třídy: připojení do třídy, skupiny, žádost o změnu skupiny",
+            "nový kalendář: události třídy a vlastní události žáka, filtry, témata, připomínky a opakující se události",
+            "Ověř si porozumění: nový kvíz s okamžitou kontrolou odpovědí a vždy zobrazeným vysvětlením",
+            "zkratka v článku na kvíz",
+            "výběr ročníku článku s označením chybějících verzí a možností vygenerovat verzi pomocí AI",
+            "obtížnost článků, článek dne a náhodný článek",
+            "karta pokračování ve čtení na domovské obrazovce",
+            "podpora !!!tip a !!!sidefact bloků, LaTeX vzorců, dolních a horních indexů v článcích",
+            "zobrazení grafů v článcích",
+            "opravy číslovaných seznamů a mezer za odrážkami",
+            "rychlejší aplikace a řada oprav pod kapotou"
+        )),
         VersionInfo("3.6", listOf(
             "opraveny certifikáty",
             "přidán vzácný item",

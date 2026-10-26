@@ -109,6 +109,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import com.tobiso.tobisoappnative.BuildConfig
+import com.tobiso.tobisoappnative.viewmodel.LegalDocsViewModel
 
 // Image copying moved to ProfileViewModel to avoid IO on UI thread.
 
@@ -119,14 +120,13 @@ fun ProfileScreen(navController: NavController) {
     val vm: ProfileViewModel = hiltViewModel()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val postsState = vm.posts.collectAsStateWithLifecycle()
-    val posts: List<Post> = postsState.value
+    val legalVm: LegalDocsViewModel = hiltViewModel()
+    val legalIds by legalVm.postIds.collectAsStateWithLifecycle()
     val postLoading by vm.postLoading.collectAsStateWithLifecycle()
-    val otherCategoryId = 42
-    val filteredPosts = posts.filter { it.categoryId == otherCategoryId }
 
     val grades by vm.grades.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {
-        vm.loadPosts(otherCategoryId)
+        vm.loadPosts()
         vm.loadGrades()
     }
 
@@ -237,25 +237,22 @@ fun ProfileScreen(navController: NavController) {
                         item { DebugAddPointsSection() }
                     }
 
-                    if (filteredPosts.isNotEmpty()) {
-                        item { ProfileSectionHeader("Ostatní") }
-                        item {
-                            ProfileNavGroup {
-                                filteredPosts.forEachIndexed { index, post ->
-                                    if (index > 0) ProfileDivider()
-                                    ProfileNavRow(
-                                        icon = Icons.Rounded.Description,
-                                        title = post.title,
-                                        subtitle = when (post.title) {
-                                            "O mně" -> "Něco drobného o autoru aplikace"
-                                            "Zásady ochrany osobních údajů" -> "Jak nakládáme s tvými daty a soukromím?"
-                                            "Podmínky použití" -> "Pravidla a podmínky pro používání aplikace"
-                                            else -> "Proč tento projekt vlastně existuje?"
-                                        },
-                                        onClick = { navController.navigate(PostDetailRoute(postId = post.id)) }
-                                    )
-                                }
-                            }
+                    item { ProfileSectionHeader("Právní dokumenty") }
+                    item {
+                        ProfileNavGroup {
+                            ProfileNavRow(
+                                icon = Icons.Rounded.Description,
+                                title = "Podmínky použití",
+                                subtitle = "Pravidla a podmínky pro používání aplikace",
+                                onClick = { legalIds[LegalDocsViewModel.TERMS]?.let { navController.navigate(PostDetailRoute(postId = it)) } }
+                            )
+                            ProfileDivider()
+                            ProfileNavRow(
+                                icon = Icons.Rounded.Description,
+                                title = "Zásady ochrany osobních údajů",
+                                subtitle = "Jak nakládáme s tvými daty a soukromím?",
+                                onClick = { legalIds[LegalDocsViewModel.PRIVACY]?.let { navController.navigate(PostDetailRoute(postId = it)) } }
+                            )
                         }
                     }
                 }
@@ -1593,7 +1590,7 @@ private fun ProfileStatCards(navController: NavController) {
         Stat(Icons.Rounded.LocalFireDepartment, scheme.primary, "${streak.value} ${com.tobiso.tobisoappnative.screens.denDnyDni(streak.value)}", "Řada") { navController.navigate(StreakRoute) }
         // Signed in: the account's reading count replaces the badge count.
         val read = readStats?.takeIf { account != null }
-        if (read != null) Stat(Icons.Rounded.AutoStories, scheme.secondary, "${read.totalRead}", pluralCs(read.totalRead, "Přečtený článek", "Přečtené články", "Přečtených článků"), null)
+        if (read != null) Stat(Icons.Rounded.AutoStories, scheme.secondary, "${read.totalRead}", pluralCs(read.totalRead, "Článek", "Články", "Článků"), null)
         else Stat(Icons.Rounded.MilitaryTech, scheme.secondary, "$badges", "Odznaky", null)
     }
 }

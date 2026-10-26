@@ -78,6 +78,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.tobiso.tobisoappnative.navigation.PostDetailRoute
+import com.tobiso.tobisoappnative.viewmodel.LegalDocsViewModel
 import com.tobiso.tobisoappnative.BuildConfig
 import com.tobiso.tobisoappnative.repository.GoogleSignInResult
 import com.tobiso.tobisoappnative.repository.requestGoogleIdToken
@@ -114,8 +116,13 @@ fun AuthScreen(navController: NavController) {
         }
     }
 
+    val legalVm: LegalDocsViewModel = hiltViewModel()
+    val legalIds by legalVm.postIds.collectAsStateWithLifecycle()
     fun openWeb(path: String) {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webUrl(path))))
+    }
+    fun openLegal(slug: String) {
+        legalIds[slug]?.let { navController.navigate(PostDetailRoute(postId = it)) }
     }
 
     if (state.googleTermsToken != null) {
@@ -125,7 +132,10 @@ fun AuthScreen(navController: NavController) {
             text = {
                 Column {
                     Text("K tomuto účtu Google ještě neexistuje účet Tobiso. Vytvořením účtu souhlasíš s Podmínkami použití a Zásadami ochrany osobních údajů.")
-                    TextButton(onClick = { openWeb("/pravni-dokumenty") }) { Text("Zobrazit dokumenty") }
+                    Row {
+                        TextButton(onClick = { openLegal(LegalDocsViewModel.TERMS) }) { Text("Podmínky použití") }
+                        TextButton(onClick = { openLegal(LegalDocsViewModel.PRIVACY) }) { Text("Zásady") }
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = { vm.onIntent(AuthIntent.AcceptGoogleTerms) }) { Text("Souhlasím a pokračovat") } },
@@ -271,7 +281,10 @@ fun AuthScreen(navController: NavController) {
                         )
                         Column {
                             Text("Souhlasím s Podmínkami použití a Zásadami ochrany osobních údajů.", style = MaterialTheme.typography.bodySmall)
-                            TextButton(onClick = { openWeb("/pravni-dokumenty") }) { Text("Zobrazit dokumenty") }
+                            Row {
+                        TextButton(onClick = { openLegal(LegalDocsViewModel.TERMS) }) { Text("Podmínky použití") }
+                        TextButton(onClick = { openLegal(LegalDocsViewModel.PRIVACY) }) { Text("Zásady") }
+                    }
                         }
                     }
                 }
