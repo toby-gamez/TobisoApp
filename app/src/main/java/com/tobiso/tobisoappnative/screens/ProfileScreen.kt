@@ -423,6 +423,12 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
     val vm: ProfileViewModel = hiltViewModel()
     val copiedImagePath by vm.copiedImagePath.collectAsStateWithLifecycle()
     val totalPointsFloat by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
+    // Signed in: the account replaces the device profile (name from the account, Google photo when there is one).
+    val account by AuthSession.user.collectAsStateWithLifecycle()
+    val accountName = account?.displayName?.takeIf { it.isNotBlank() }
+    val googlePhoto = account?.photoUrl
+    val shownName = accountName ?: profileName
+    val avatarModel: Any? = googlePhoto ?: profileImageUri?.let { File(it) }
 
     LaunchedEffect(copiedImagePath) {
         copiedImagePath?.let { path ->
@@ -483,16 +489,16 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                         .clickable { showFullscreenImage = true },
                     contentAlignment = Alignment.Center
                 ) {
-                    if (profileImageUri != null) {
+                    if (avatarModel != null) {
                         AsyncImage(
-                            model = File(profileImageUri!!),
+                            model = avatarModel,
                             contentDescription = "Profilový obrázek",
                             modifier = Modifier.fillMaxSize().clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
                     } else {
                         Text(
-                            profileName.firstOrNull()?.uppercase() ?: "?",
+                            shownName.firstOrNull()?.uppercase() ?: "?",
                             fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
                             fontWeight = FontWeight.Bold,
                             fontSize = 30.sp,
@@ -500,7 +506,7 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                         )
                     }
                 }
-                Box(
+                if (googlePhoto == null) Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .size(26.dp)
@@ -519,7 +525,16 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
             }
 
             Column(Modifier.weight(1f)) {
-                if (isEditingName) {
+                if (accountName != null) {
+                    Text(
+                        text = accountName,
+                        fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                        lineHeight = 31.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                } else if (isEditingName) {
                     OutlinedTextField(
                         value = tempName,
                         onValueChange = { tempName = it },
@@ -557,6 +572,9 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                         Spacer(Modifier.width(6.dp))
                         Icon(Icons.Rounded.Edit, contentDescription = "Upravit jméno", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                }
+                account?.email?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 }
                 equippedQuoteText?.let {
                     Text(
@@ -680,9 +698,9 @@ fun ProfileSection(navController: NavController, grades: List<com.tobiso.tobisoa
                     .clickable { showFullscreenImage = false },
                 contentAlignment = Alignment.Center
             ) {
-                if (profileImageUri != null) {
+                if (avatarModel != null) {
                     AsyncImage(
-                        model = File(profileImageUri!!),
+                        model = avatarModel,
                         contentDescription = "Profilový obrázek",
                         modifier = Modifier
                             .fillMaxSize()
@@ -1526,6 +1544,10 @@ private fun ProfileStatCards(navController: NavController) {
     val context = LocalContext.current
     val points by PointsManager.instance.totalPointsFloat.collectAsStateWithLifecycle()
     val streak = remember { mutableStateOf(0) }
+    val account by AuthSession.user.collectAsStateWithLifecycle()
+    val accountVm: AccountViewModel = hiltViewModel()
+    val readStats by accountVm.stats.collectAsStateWithLifecycle()
+    LaunchedEffect(account != null) { if (account != null) accountVm.loadStats() }
     val totalEarnedPoints by PointsManager.instance.totalEarnedPoints.collectAsStateWithLifecycle()
     // Same set the "Odznaky" section lists: points achievements + streak milestones.
     val badges = remember(totalEarnedPoints) {
@@ -1560,7 +1582,8 @@ private fun ProfileStatCards(navController: NavController) {
                         fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        lineHeight = 24.sp
+                        lineHeight = 24.sp,
+                        color = scheme.onSurface // a disabled (non-clickable) Card would otherwise grey it out
                     )
                     Text(label, fontSize = 12.sp, color = scheme.onSurfaceVariant)
                 }
@@ -1568,7 +1591,10 @@ private fun ProfileStatCards(navController: NavController) {
         }
         Stat(Icons.Rounded.Stars, scheme.primary, formatPointsBalance(points), "Body") { navController.navigate(ShopRoute) }
         Stat(Icons.Rounded.LocalFireDepartment, scheme.primary, "${streak.value} ${com.tobiso.tobisoappnative.screens.denDnyDni(streak.value)}", "Řada") { navController.navigate(StreakRoute) }
-        Stat(Icons.Rounded.MilitaryTech, scheme.secondary, "$badges", "Odznaky", null)
+        // Signed in: the account's reading count replaces the badge count.
+        val read = readStats?.takeIf { account != null }
+        if (read != null) Stat(Icons.Rounded.AutoStories, scheme.secondary, "${read.totalRead}", pluralCs(read.totalRead, "Přečtený článek", "Přečtené články", "Přečtených článků"), null)
+        else Stat(Icons.Rounded.MilitaryTech, scheme.secondary, "$badges", "Odznaky", null)
     }
 }
 
@@ -1651,10 +1677,9 @@ private fun ProfileNavRow(
 private fun AccountSection(navController: NavController) {
     val user by AuthSession.user.collectAsStateWithLifecycle()
     val vm: AccountViewModel = hiltViewModel()
+    var confirmLogout by remember { mutableStateOf(false) }
     var confirmLogoutAll by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val stats by vm.stats.collectAsStateWithLifecycle()
-    LaunchedEffect(user != null) { if (user != null) vm.loadStats() else Unit }
 
     ProfileSectionHeader("Účet")
     ProfileNavGroup {
@@ -1667,24 +1692,6 @@ private fun AccountSection(navController: NavController) {
             )
         } else {
             ProfileNavRow(
-                icon = Icons.Rounded.Person,
-                title = user?.displayName?.ifBlank { null } ?: "Přihlášen",
-                subtitle = user?.email,
-                onClick = {}
-            )
-            stats?.takeIf { it.totalRead > 0 || it.streakDays > 0 }?.let { st ->
-                ProfileDivider()
-                ProfileNavRow(
-                    icon = Icons.Rounded.Whatshot,
-                    title = "Série ${st.streakDays} ${pluralCs(st.streakDays, "den", "dny", "dní")}",
-                    subtitle = "Přečteno ${st.totalRead} ${pluralCs(st.totalRead, "článek", "články", "článků")}" +
-                        (st.badges.takeIf { it.isNotEmpty() }
-                            ?.joinToString(prefix = " · odznaky: ") { "${it.subjectName} (${it.level})" }.orEmpty()),
-                    onClick = {}
-                )
-            }
-            ProfileDivider()
-            ProfileNavRow(
                 icon = Icons.Rounded.School,
                 title = "Moje třída",
                 subtitle = "Třída, skupiny a společný kalendář",
@@ -1694,7 +1701,7 @@ private fun AccountSection(navController: NavController) {
             ProfileNavRow(
                 icon = Icons.AutoMirrored.Rounded.Logout,
                 title = "Odhlásit se",
-                onClick = { vm.logout() }
+                onClick = { confirmLogout = true }
             )
             ProfileDivider()
             ProfileNavRow(
@@ -1705,6 +1712,22 @@ private fun AccountSection(navController: NavController) {
             )
         }
     }
+    if (confirmLogout) {
+        AlertDialog(
+            onDismissRequest = { confirmLogout = false },
+            title = { Text("Odhlásit se?") },
+            text = { Text("Postup se uloží do účtu a z tohoto zařízení se smažou body, nákupy, aktovka, řada i mazlíčci. Po opětovném přihlášení se vrátí.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmLogout = false
+                    vm.logout { ok ->
+                        if (!ok) android.widget.Toast.makeText(context, "Postup se nepodařilo uložit do účtu – zkus to s připojením k internetu", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }) { Text("Odhlásit") }
+            },
+            dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text("Zrušit") } }
+        )
+    }
     if (confirmLogoutAll) {
         AlertDialog(
             onDismissRequest = { confirmLogoutAll = false },
@@ -1714,7 +1737,7 @@ private fun AccountSection(navController: NavController) {
                 TextButton(onClick = {
                     confirmLogoutAll = false
                     vm.logoutEverywhere { ok ->
-                        if (!ok) android.widget.Toast.makeText(context, "Odhlášení se nepodařilo", android.widget.Toast.LENGTH_SHORT).show()
+                        if (!ok) android.widget.Toast.makeText(context, "Odhlášení se nepodařilo (je potřeba připojení k internetu)", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }) { Text("Odhlásit") }
             },

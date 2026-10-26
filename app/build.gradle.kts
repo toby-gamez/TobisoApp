@@ -15,6 +15,14 @@ val localProperties = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 
+// ./gradlew assembleRelease -PcomposeReports  ->  app/build/compose-reports (stability / skippability)
+if (project.hasProperty("composeReports")) {
+    composeCompiler {
+        reportsDestination = layout.buildDirectory.dir("compose-reports")
+        metricsDestination = layout.buildDirectory.dir("compose-reports")
+    }
+}
+
 android {
     namespace = "com.tobiso.tobisoappnative"
     compileSdk = 37
@@ -111,6 +119,8 @@ android {
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
+    // MigrationTestHelper reads the exported schemas straight from app/schemas.
+    sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

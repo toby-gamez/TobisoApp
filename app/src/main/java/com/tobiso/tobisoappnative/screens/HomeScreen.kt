@@ -162,7 +162,7 @@ data class SubjectConfig(
 )
 
 val subjectConfigMap = mapOf(
-    "Český jazyk" to SubjectConfig(Color(0xFFFF9800), "Gramatika, literatura a sloh"),
+    "Český jazyk" to SubjectConfig(Color(0xFFFF9800), "Mluvnice, literatura a sloh"),
     "Hudební výchova" to SubjectConfig(Color(0xFF9C27B0), "Hudební teorie, autoři, žánry, písně, díla a dějiny"),
     "Matematika" to SubjectConfig(Color(0xFF1976D2), "Algebra, geometrie a výroková logika"),
     "Chemie" to SubjectConfig(Color(0xFFF44336), "Tělesa, látky, zákony, prvky, sloučeniny a názvosloví"),

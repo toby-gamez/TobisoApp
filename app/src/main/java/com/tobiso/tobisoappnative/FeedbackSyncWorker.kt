@@ -7,6 +7,7 @@ import com.tobiso.tobisoappnative.db.AppDatabase
 import com.tobiso.tobisoappnative.db.entity.FeedbackEntity
 import com.tobiso.tobisoappnative.di.injectedApiService
 import com.tobiso.tobisoappnative.model.FeedbackDto
+import com.tobiso.tobisoappnative.model.FeedbackType
 import timber.log.Timber
 
 class FeedbackSyncWorker(
@@ -26,8 +27,10 @@ class FeedbackSyncWorker(
                 val dto = FeedbackDto(
                     name = feedback.name,
                     email = feedback.email,
+                    title = feedback.title,
                     message = feedback.message,
-                    platform = feedback.platform
+                    platform = feedback.platform,
+                    type = runCatching { FeedbackType.valueOf(feedback.type) }.getOrDefault(FeedbackType.Bug)
                 )
                 api.sendFeedback(dto)
                 dao.deleteById(feedback.id)

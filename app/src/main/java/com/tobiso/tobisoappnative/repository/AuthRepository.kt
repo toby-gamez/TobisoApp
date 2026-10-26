@@ -2,6 +2,7 @@ package com.tobiso.tobisoappnative.repository
 
 import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.AuthSession
+import com.tobiso.tobisoappnative.model.jwtClaim
 import com.tobiso.tobisoappnative.model.AuthUser
 import com.tobiso.tobisoappnative.model.GoogleTokenRequest
 import com.tobiso.tobisoappnative.model.LoginRequest
@@ -80,7 +81,8 @@ class AuthRepositoryImpl(private val api: ApiService) : AuthRepository {
     override suspend fun loginWithGoogle(idToken: String, acceptedTerms: Boolean): Result<AuthUser> = try {
         val r = api.googleLogin(GoogleTokenRequest(idToken, acceptedTerms))
         // The response carries no email; refresh the profile lazily (auth/me) — until then the display name is the key.
-        val user = AuthUser(displayName = r.displayName, email = null, credits = r.credits)
+        val photo = jwtClaim(idToken, "picture")?.takeIf { it.startsWith("https://") }
+        val user = AuthUser(displayName = r.displayName, email = null, credits = r.credits, photoUrl = photo)
         AuthSession.signIn(r.token, user)
         refreshProfile()
         Result.success(AuthSession.user.value ?: user)
@@ -99,7 +101,7 @@ class AuthRepositoryImpl(private val api: ApiService) : AuthRepository {
 
     override suspend fun refreshProfile(): Result<AuthUser> = try {
         val p = api.getMe()
-        val user = AuthUser(p.displayName, p.email.ifBlank { null }, p.credits)
+        val user = AuthUser(p.displayName, p.email.ifBlank { null }, p.credits, AuthSession.user.value?.photoUrl)
         AuthSession.updateUser(user)
         Result.success(user)
     } catch (e: Exception) {

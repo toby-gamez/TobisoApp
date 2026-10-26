@@ -47,7 +47,13 @@ data class UserStats(
     val streakDays: Int = 0,
     val totalRead: Int = 0,
     val perSubject: List<SubjectRead> = emptyList(),
-    val badges: List<SubjectBadge> = emptyList()
+    val badges: List<SubjectBadge> = emptyList(),
+    val maxStreak: Int = 0,
+    val freezes: Int = 0,
+    val todayActive: Boolean = false,
+    /** Active days (incl. freeze days) of the last ~400 days, `yyyy-MM-dd`. */
+    val days: List<String> = emptyList(),
+    val freezeDays: List<String> = emptyList()
 )
 
 @Serializable

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.compose.foundation.verticalScroll
+import com.tobiso.tobisoappnative.model.FeedbackType
 import com.tobiso.tobisoappnative.viewmodel.feedback.FeedbackViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,6 +30,8 @@ fun FeedbackScreen(
 ) {
     val name by vm.name.collectAsStateWithLifecycle()
     val email by vm.email.collectAsStateWithLifecycle()
+    val title by vm.title.collectAsStateWithLifecycle()
+    val type by vm.type.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
     val isLoading by vm.isLoading.collectAsStateWithLifecycle()
     val isSuccess by vm.isSuccess.collectAsStateWithLifecycle()
@@ -55,11 +58,27 @@ fun FeedbackScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Pokud najdete jakoukoli chybu v textu, můžete mi to tady poslat, pokud byste měli otázku, také mi to sem napište. Velmi mě zajímá vaše zpětná vazba ☺.", style = MaterialTheme.typography.bodyMedium)
+            Text("Našel jsi chybu nebo máš nápad? Napiš mi - čtu všechno ☺.", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(24.dp))
             if (isSuccess) {
                 Text("Děkujeme! Vaše zpětná vazba byla úspěšně odeslána.", color = MaterialTheme.colorScheme.primary)
             } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = type == FeedbackType.Bug,
+                        onClick = { vm.onTypeChange(FeedbackType.Bug) },
+                        label = { Text("Chyba v obsahu") }
+                    )
+                    FilterChip(
+                        selected = type == FeedbackType.FeatureRequest,
+                        onClick = { vm.onTypeChange(FeedbackType.FeatureRequest) },
+                        label = { Text("Návrh na vylepšení") }
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                     value = name,
                     onValueChange = { vm.onNameChange(it) },
@@ -77,6 +96,14 @@ fun FeedbackScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(shape = RoundedCornerShape(24.dp), 
+                    value = title,
+                    onValueChange = { vm.onTitleChange(it) },
+                    label = { Text("Nadpis") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(shape = RoundedCornerShape(24.dp), 
                     value = message,
                     onValueChange = { vm.onMessageChange(it) },
                     label = { Text("Zde napište svou zpětnou vazbu") },
@@ -86,7 +113,7 @@ fun FeedbackScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { vm.sendFeedback() },
-                    enabled = !isLoading && name.isNotBlank() && email.isNotBlank() && message.isNotBlank(),
+                    enabled = !isLoading && name.isNotBlank() && email.isNotBlank() && title.isNotBlank() && message.isNotBlank(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(if (isLoading) "Odesílání..." else "Odeslat zpětnou vazbu")

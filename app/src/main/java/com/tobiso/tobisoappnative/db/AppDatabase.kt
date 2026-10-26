@@ -46,7 +46,7 @@ import com.tobiso.tobisoappnative.db.entity.RelatedPostEntity
         AiChatMessageEntity::class,
         FeedbackEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -75,7 +75,9 @@ abstract class AppDatabase : RoomDatabase() {
                         com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_3_4,
                         com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_4_5,
                         com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_5_6,
-                        com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_6_7
+                        com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_6_7,
+                        com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_7_8,
+                        com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_8_9
                     )
                     .build().also { INSTANCE = it }
             }

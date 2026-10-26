@@ -8,8 +8,10 @@ data class FeedbackEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val email: String,
+    val title: String = "",
     val message: String,
     val platform: String,
+    val type: String = "Bug",
     val createdAt: Long = System.currentTimeMillis(),
     val retryCount: Int = 0
 )

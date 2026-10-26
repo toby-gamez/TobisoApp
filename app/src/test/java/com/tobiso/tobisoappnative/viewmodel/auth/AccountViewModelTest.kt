@@ -21,7 +21,7 @@ class AccountViewModelTest {
         val repo = mockk<AuthRepository>()
         val stats = UserStats(streakDays = 4, totalRead = 12)
         coEvery { repo.stats() } returns Result.success(stats)
-        val vm = AccountViewModel(repo)
+        val vm = AccountViewModel(repo, io.mockk.mockk(relaxed = true))
         assertNull(vm.stats.value)
         vm.loadStats()
         assertEquals(stats, vm.stats.value)

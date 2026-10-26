@@ -482,6 +482,7 @@ fun PostDetailScreen(
                             )
 
                             // Nový custom markdown renderer
+                            SelectionContainer {
                             LazyColumn(
                                 state = lazyListState,
                                 modifier = Modifier
@@ -628,6 +629,7 @@ fun PostDetailScreen(
                                 item {
                                     Spacer(modifier = Modifier.height(120.dp))
                                 }
+                            }
                             }
 
                             if (showTocDialog) {

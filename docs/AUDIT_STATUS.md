@@ -15,7 +15,7 @@ The app is a read-only, offline-capable reader for roughly the 2026-05 API. The 
 | Design per screen | Legacy screens (Profile, Shop, Backpack, Streak) still hard-code old styling | 🔴 |
 | Performance | Over-fetching fixed on questions screens; baseline profile pending device run | 🟡 |
 | Offline | Strong (app's advantage) | 🟢 |
-| Tests | 119 unit tests green (31 for `ContentFormatter`); still no repository/DAO/UI tests | 🟡 |
+| Tests | 231 unit tests green + 4 Room migration tests (5→9, run on a device); `GameSyncManager` covered; still no DAO/UI tests | 🟡 |
 | Security | Release secrets stay out of `BuildConfig`; web-side C2/C3 still open | 🟡 |
 
 ---
@@ -123,13 +123,13 @@ Open:
 ## 4. Architecture / code health (open)
 
 - Gamification singletons (`PointsManager`, `ShopManager`, …) block account sync → need a repository + conflict rules.
-- `TobisoApp.kt` (623 lines) is a god-composable.
+- ~~`TobisoApp.kt` god-composable~~ split (§0 row 23).
 - ~44 `GlobalScope`/`runBlocking`/`SharedPreferences` usages to spot-check.
 - ~~Stale root docs~~ moved to `docs/archive/` (marked archived).
 
 ## 5. Tests
 
-119 unit tests. Missing: repositories, DAOs/migrations, UI. Add a `PostDetail` lazy-list smoke test when instrumented tests are set up.
+231 unit tests + 4 instrumented migration tests (§9.3). Missing: repositories, DAOs, UI. Add a `PostDetail` lazy-list smoke test when instrumented tests are set up.
 
 ## 6. Security / API-contract notes
 
@@ -261,3 +261,46 @@ Web users subscribe Google/Apple calendar to `/api/calendar/{token}.ics` (token 
 7. §8.7 classes and scoped calendar.
 8. Generate baseline profile when the device is attached (can happen any time).
 9. Design phase: re-skin legacy screens, parser callouts/math, code-health items.
+
+---
+
+## 9. Production-readiness audit (2026-10-26)
+
+Covers what the earlier audits skipped. **Decided out of scope for now:** crash reporting, CI / R8 keep-rule audit / certificate-pinning decision. **Decided:** the app is Czech-only on purpose (no `values-xx/`, strings may stay in code).
+
+### 9.1 Accessibility (open — nothing in the plan before this)
+- ~30 files still pass `contentDescription = null` (most: `AllQuestionsScreen` 8, `QuestionsScreen` 6, `MixedQuizScreen` 5, `PostActionsRow` 5, `AddEditEventDialog` 5). Decorative icons are fine; icons inside clickable rows/buttons without text are not.
+- Only 3 uses of `semantics` / `Role` / `minimumInteractiveComponentSize` in the whole app. Check 48 dp targets on icon buttons, `Role.Button` on clickable `Row`s (the flat-row pattern from the UI audit), `selectable`/`toggleable` on quiz options.
+- Canvas content (graphs from §0 row 25, circuit exercise) has no semantics: give graphs a text summary (`contentDescription` = title + series names) and a "data table" fallback.
+- Quiz answer state is conveyed by colour (sage/terracotta) plus icon — keep the icon/`stateDescription` so it isn't colour-only.
+- Not yet checked: font scale 200 %, TalkBack order on `PostDetailScreen`, contrast of terracotta-on-cream in the Organic palette, Android 15+ edge-to-edge insets.
+
+### 9.2 Legal documents
+The web has the policies as posts: **`privacy-policy-cs`** and **`terms-of-use-cs`**. The app does not link to either: the register form and the Google terms dialog (`AuthScreen.kt:127,273`) say "Souhlasím s Podmínkami použití a Zásadami ochrany osobních údajů" as plain text, and no code references those slugs (row 13 claimed they "open the web"). To do: make both phrases tappable and open the two posts (in-app `PostDetail`, works offline once cached), and add the same two entries to Profile → informace. Play listing still needs the privacy-policy URL pointing at the same page.
+
+### 9.3 Tests (this pass)
+- `GameSyncManagerTest` (9 tests, JVM, in-memory `FakeSharedPreferences` + mocked `ApiService`): anonymous never calls the server; first push at revision 0 (204); 409 → re-pull → re-merge → retry with the new revision; gives up after 3 conflicts; network/5xx failures swallowed; nothing pushed when merged == server; local-dirty wins non-monotonic fields; sign-out flush; `wipeLocalState` clears only the synced prefs and only that account's bookkeeping.
+- `MigrationTest` (instrumented): 5→6, 7→8, 8→9 with data, plus 5→9 end-to-end and opening through Room. Schemas 5–9 come from `app/schemas` (wired as androidTest assets); 1→5 predate exported schemas and are **unvalidated**. Fixed the stale `ExampleInstrumentedTest` package assertion.
+- Sign-out data hygiene: `AccountViewModel` flushes then wipes game state + `ownerKey`-scoped caches (`AccountViewModelTest`); the wipe itself is now tested. Still untested: bookmarks/AI chat history left behind after sign-out (decide if they should be wiped), the 401 → wipe path.
+- Server-side cheating: the app never sends point totals; quiz points go through `user/points/earn` (server-graded). But `user/game-state` is a client-authored blob (merge keeps the larger of points/total-earned on first sync), so a modified client can inflate the local shop currency. That currency is separate from server-owned exchange points / AI credits, so impact is cosmetic — keep it that way.
+
+### 9.4 Performance measurements (device `A069`, Android 16, debug build unless noted)
+
+| Metric | Result |
+|---|---|
+| Release dex after R8 | **9.3 MB** (debug: ~96 MB across 22 dex files) |
+| Release resources (shrunk, optimised) | 2.0 MB; Baloo 2 font alone 668 KB, Figtree 64 KB |
+| Debug APK | 34 MB |
+| Cold start (`am start -W`, debug, fresh install) | 1.3 – 1.8 s (3 runs). Release/baseline-profile numbers still missing |
+| Memory after start | ~60 MB graphics, 17 MB Java heap, 13 MB native heap (PSS) |
+| Compose compile report (release) | 185 / 185 restartable composables are **skippable** (strong skipping is on); 94 of them take ≥ 1 unstable parameter (`List<…>`, `NavController`, `Post`, `ContentElement`). Skipping then relies on instance equality, so hot paths that rebuild lists each recomposition defeat it: `ContentRenderer`/`RenderParagraph`/`RenderBulletList` (`contentElements`, `posts`, `addendums`), `PracticeHubContent` (7 unstable params), `TopicSheet` (6) |
+
+How to reproduce the compose report: `./gradlew :app:compileReleaseKotlin -PcomposeReports --rerun` → `app/build/compose-reports/`.
+
+Recommendations (cheap first):
+1. Mark the content model (`ContentElement`, `InlinePart`, `BoxNode`) `@Immutable` or switch their `List`s to `kotlinx.collections.immutable` — they are the largest tree and re-render on every scroll-driven state change.
+2. Subset Baloo 2 (668 KB → ~100 KB Latin Extended).
+3. Generate the baseline profile and measure release cold start with and without it (§3). **Needs the phone, and uninstalls the app's data** — see below.
+4. `OfflineRepositoryImpl.fetchPosts()` still downloads the full corpus; measure its payload on a fresh install before deciding on paging/ETag.
+
+> ⚠️ Running on-device tooling (`connectedAndroidTest`, `generateBaselineProfile`) removes `com.tobiso.tobisoapp` and its data from the attached phone. Do it on a spare device/emulator or accept a fresh install.

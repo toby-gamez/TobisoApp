@@ -88,11 +88,43 @@ enum class EventFilter(val displayName: String, val needsAccount: Boolean = fals
     }
 }
 
+/** What an event is, for colour-coding the grid, legend and lists (a test must not look like a holiday). */
+enum class EventKind(val label: String) {
+    Test("Testy"), Homework("Domácí úkoly"), DayOff("Volno a svátky"), Shared("Třída a ostatní"), Personal("Moje události")
+}
+
+internal fun Event.kind(): EventKind = when {
+    eventType == EventType.Test -> EventKind.Test
+    eventType == EventType.Homework -> EventKind.Homework
+    eventType == EventType.DayOff -> EventKind.DayOff
+    isLocalSafe() || eventScope == EventScope.Personal -> EventKind.Personal
+    else -> EventKind.Shared
+}
+
+@Composable
+internal fun EventKind.color(): Color {
+    val scheme = MaterialTheme.colorScheme
+    return when (this) {
+        EventKind.Test -> scheme.error
+        EventKind.Homework -> Color(0xFFF0A030)
+        EventKind.DayOff -> scheme.secondary
+        EventKind.Shared -> scheme.tertiary
+        EventKind.Personal -> scheme.primary
+    }
+}
+
+/** The event's own colour (admin pick or type default), as shown on the web. */
+internal fun Event.displayColor(): Color = try {
+    Color(android.graphics.Color.parseColor(getColorSafe()))
+} catch (_: Exception) {
+    Color(0xFF33D17A)
+}
+
 /** Local events and the signed-in student's own server events can be edited/deleted. */
 private fun Event.canBeModified(myUserId: Int?): Boolean =
     isLocalSafe() || (myUserId != null && createdByUserId == myUserId)
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CalendarScreen(
     navController: NavHostController? = null,
@@ -406,11 +438,16 @@ fun CalendarScreen(
                 }
                 }
                 }
-                Row(Modifier.padding(start = 8.dp, top = 10.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    listOf("Moje události" to MaterialTheme.colorScheme.primary, "Prázdniny a svátky" to MaterialTheme.colorScheme.secondary).forEach { (label, color) ->
+                val kindColors = remember(events) { events.groupBy { it.kind() }.mapValues { (_, evs) -> evs.first().displayColor() } }
+                FlowRow(
+                    Modifier.padding(start = 8.dp, top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    EventKind.entries.filter { it in kindColors }.forEach { kind ->
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(Modifier.size(8.dp).background(color, CircleShape))
-                            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Box(Modifier.size(8.dp).background(kindColors.getValue(kind), CircleShape))
+                            Text(kind.label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -467,7 +504,7 @@ fun CalendarScreen(
                         GroupedList {
                             upcoming.forEachIndexed { index, ev ->
                                 if (index > 0) GroupedListDivider()
-                                val holiday = ev.eventType == EventType.DayOff
+                                val kindColor = ev.displayColor()
                                 val cal = Calendar.getInstance().apply { time = ev.startDate!! }
                                 val month = SimpleDateFormat("LLL", Locale.forLanguageTag("cs-CZ")).format(ev.startDate!!)
                                 Row(
@@ -481,14 +518,11 @@ fun CalendarScreen(
                                     Column(
                                         modifier = Modifier
                                             .size(44.dp)
-                                            .background(
-                                                if (holiday) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primaryContainer,
-                                                RoundedCornerShape(14.dp)
-                                            ),
+                                            .background(kindColor.copy(alpha = 0.18f), RoundedCornerShape(14.dp)),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        val fg = if (holiday) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                                        val fg = kindColor
                                         Text(cal.get(Calendar.DAY_OF_MONTH).toString(), fontWeight = FontWeight.Bold, fontSize = 16.sp, color = fg)
                                         Text(month, fontSize = 10.5.sp, color = fg)
                                     }
@@ -775,8 +809,8 @@ fun CalendarGrid(
                                     day = dayNumber,
                                     hasEvents = dayEvents.isNotEmpty(),
                                     eventCount = dayEvents.size,
-                                    hasHoliday = dayEvents.any { it.eventType == EventType.DayOff },
-                                    hasOwn = dayEvents.any { it.eventType != EventType.DayOff },
+                                    dotColors = dayEvents.filter { it.kind() != EventKind.DayOff }.map { it.displayColor() }.distinct(),
+                                    dayOffColor = dayEvents.firstOrNull { it.kind() == EventKind.DayOff }?.displayColor(),
                                     isToday = isToday(dayDate),
                                     isSelected = isSelected,
                                     onClick = { onDateClick(dayDate) },
@@ -808,16 +842,18 @@ fun CalendarDay(
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
-    hasHoliday: Boolean = false,
-    hasOwn: Boolean = true
+    dotColors: List<Color> = emptyList(),
+    dayOffColor: Color? = null
 ) {
     val scheme = MaterialTheme.colorScheme
+    // A day off tints the whole day; today keeps its solid fill, so there the day off stays a dot.
+    val dayOff = hasEvents && dayOffColor != null
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .padding(2.dp)
             .clip(CircleShape)
-            .background(if (isToday) scheme.primary else Color.Transparent)
+            .background(if (isToday) scheme.primary else if (dayOff) dayOffColor!!.copy(alpha = 0.3f) else Color.Transparent)
             .then(if (isSelected && !isToday) Modifier.border(2.dp, scheme.primary, CircleShape) else Modifier)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         contentAlignment = Alignment.Center
@@ -830,8 +866,10 @@ fun CalendarDay(
                 color = if (isToday) scheme.onPrimary else scheme.onSurface
             )
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.padding(top = 1.dp).height(5.dp)) {
-                if (hasEvents && hasOwn) Box(Modifier.size(5.dp).background(if (isToday) scheme.onPrimary else scheme.primary, CircleShape))
-                if (hasEvents && hasHoliday) Box(Modifier.size(5.dp).background(if (isToday) scheme.onPrimary else scheme.secondary, CircleShape))
+                if (hasEvents) (dotColors + listOfNotNull(dayOffColor.takeIf { isToday })).take(4).forEach { c ->
+                    Box(Modifier.size(5.dp).background(if (isToday) scheme.onPrimary else c, CircleShape))
+                }
+                if (hasEvents && dotColors.isEmpty() && dayOffColor == null) Box(Modifier.size(5.dp).background(if (isToday) scheme.onPrimary else scheme.primary, CircleShape))
             }
         }
     }
@@ -946,11 +984,7 @@ fun EventItem(
                         .padding(top = 2.dp)
                         .size(12.dp)
                         .background(
-                            color = try {
-                                Color(android.graphics.Color.parseColor(event.getColorSafe()))
-                            } catch (e: Exception) {
-                                MaterialTheme.colorScheme.primary
-                            },
+                            color = event.displayColor(),
                             shape = CircleShape
                         )
                 )
@@ -968,7 +1002,7 @@ fun EventItem(
                         Text(
                             text = it,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = event.displayColor()
                         )
                     }
 

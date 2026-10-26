@@ -1,73 +1,114 @@
 package com.tobiso.tobisoappnative.db
 
-import android.database.sqlite.SQLiteException
+import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_5_6
+import com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_6_7
+import com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_7_8
+import com.tobiso.tobisoappnative.di.DatabaseModule.MIGRATION_8_9
 import org.junit.After
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.IOException
 
+/**
+ * Schemas 5..9 are exported to `app/schemas` (wired into the androidTest assets in build.gradle.kts). Migrations 1→5
+ * predate the exported schemas and can't be validated here.
+ */
 @RunWith(AndroidJUnit4::class)
 class MigrationTest {
 
-    private val TEST_DB = "migration-test"
-    private val DB_PATH = "com.tobiso.tobisoappnative.db.AppDatabase"
+    private val testDb = "migration-test"
+    private val all = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
 
     @get:Rule
-    val helper: MigrationTestHelper = MigrationTestHelper(
+    val helper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-        listOf()
+        AppDatabase::class.java
     )
 
     @After
-    @Throws(IOException::class)
     fun cleanup() {
-        InstrumentationRegistry.getInstrumentation().targetContext.deleteDatabase(TEST_DB)
+        InstrumentationRegistry.getInstrumentation().targetContext.deleteDatabase(testDb)
     }
 
     @Test
-    @Throws(IOException::class)
-    fun migrate5to6_createsExerciseCategoryTable() {
-        var db: SupportSQLiteDatabase = helper.createDatabase(TEST_DB, 5)
+    fun migrate5to6_createsExerciseCategoryAndKeepsData() {
+        helper.createDatabase(testDb, 5).apply {
+            execSQL("INSERT INTO categories (id, name, slug, parentId, parentJson, childrenJson) VALUES (1, 'Math', 'math', NULL, '', '')")
+            close()
+        }
 
-        db.execSQL("INSERT INTO categories (id, name, slug, parentId, parentJson, childrenJson) VALUES (1, 'Math', 'math', NULL, '', '')")
-        db.execSQL("INSERT INTO exercises (id, postId, type, title, instructions, content, correctAnswer, optionsJson, points, difficulty, position, createdAt, active) VALUES (10, 1, 'quiz', 'Test', '', '{}', 'A', '[]', 10, 1, 1, '2024-01-01', 1)")
-        db.close()
+        val db = helper.runMigrationsAndValidate(testDb, 6, true, MIGRATION_5_6)
 
-        db = helper.runMigrationsAndValidate(TEST_DB, 6, true, MIGRATION_5_6)
-
-        val cursor = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='exercise_category'")
-        assertTrue(cursor.count > 0)
-        cursor.close()
-
-        db.execSQL("INSERT INTO exercise_category (exerciseId, categoryId) VALUES (10, 1)")
-        val verifyCursor = db.query("SELECT * FROM exercise_category WHERE exerciseId=10 AND categoryId=1")
-        assertTrue(verifyCursor.count > 0)
-        verifyCursor.close()
+        db.query("SELECT name FROM categories WHERE id=1").use {
+            assertTrue(it.moveToFirst()); assertEquals("Math", it.getString(0))
+        }
+        db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='exercise_category'").use {
+            assertEquals(1, it.count)
+        }
     }
 
     @Test
-    @Throws(IOException::class)
-    fun migrate5to6_preservesExistingData() {
-        var db: SupportSQLiteDatabase = helper.createDatabase(TEST_DB, 5)
+    fun migrate7to8_addsEventColumnsAsNullAndKeepsRows() {
+        helper.createDatabase(testDb, 7).apply {
+            execSQL("INSERT INTO events (id, title, startDate, color, isLocal) VALUES (3, 'Test z matiky', '2026-10-30T08:00:00', '#ff0000', 0)")
+            close()
+        }
 
-        db.execSQL("INSERT INTO categories (id, name, slug, parentId, parentJson, childrenJson) VALUES (2, 'Physics', 'physics', NULL, '', '')")
-        db.close()
+        val db = helper.runMigrationsAndValidate(testDb, 8, true, MIGRATION_7_8)
 
-        db = helper.runMigrationsAndValidate(TEST_DB, 6, true, MIGRATION_5_6)
+        db.query("SELECT title, color, type, scope, ownerKey, themesJson FROM events WHERE id=3").use {
+            assertTrue(it.moveToFirst())
+            assertEquals("Test z matiky", it.getString(0))
+            assertEquals("#ff0000", it.getString(1))
+            (2..5).forEach { c -> assertTrue(it.isNull(c)) }
+        }
+    }
 
-        val cursor = db.query("SELECT name FROM categories WHERE id=2")
-        assertTrue(cursor.count > 0)
-        cursor.moveToFirst()
-        assertTrue(cursor.getString(cursor.getColumnIndexOrThrow("name")) == "Physics")
-        cursor.close()
+    @Test
+    fun migrate8to9_queuedFeedbackSurvivesWithDefaults() {
+        helper.createDatabase(testDb, 8).apply {
+            execSQL("INSERT INTO pending_feedback (id, name, email, message, platform, createdAt, retryCount) VALUES (1, 'Jana', 'j@x.cz', 'Nefunguje to', 'android', 1000, 2)")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 9, true, MIGRATION_8_9)
+
+        db.query("SELECT message, retryCount, title, type FROM pending_feedback WHERE id=1").use {
+            assertTrue(it.moveToFirst())
+            assertEquals("Nefunguje to", it.getString(0))
+            assertEquals(2, it.getInt(1))
+            assertEquals("", it.getString(2))
+            assertEquals("Bug", it.getString(3))
+        }
+    }
+
+    @Test
+    fun migrateFrom5ToLatest_keepsDataAndOpensWithRoom() {
+        helper.createDatabase(testDb, 5).apply {
+            execSQL("INSERT INTO categories (id, name, slug, parentId, parentJson, childrenJson) VALUES (1, 'Math', 'math', NULL, '', '')")
+            execSQL("INSERT INTO events (id, title, startDate, isLocal) VALUES (9, 'Svátek', '2026-11-17T00:00:00', 0)")
+            close()
+        }
+
+        helper.runMigrationsAndValidate(testDb, 9, true, *all).close()
+
+        // Open it the way the app does, so Room's own identity/schema check runs too.
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val room = Room.databaseBuilder(ctx, AppDatabase::class.java, testDb).addMigrations(*all).build()
+        try {
+            room.openHelper.writableDatabase.query("SELECT title, ownerKey FROM events WHERE id=9").use {
+                assertTrue(it.moveToFirst())
+                assertEquals("Svátek", it.getString(0))
+                assertTrue(it.isNull(1))
+            }
+        } finally {
+            room.close()
+        }
     }
 }

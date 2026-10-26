@@ -12,6 +12,7 @@ import com.tobiso.tobisoappnative.db.AppDatabase
 import com.tobiso.tobisoappnative.db.entity.FeedbackEntity
 import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.FeedbackDto
+import com.tobiso.tobisoappnative.model.FeedbackType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,12 @@ class FeedbackViewModel @Inject constructor(
 
     private val _email = MutableStateFlow("")
     val email: StateFlow<String> = _email
+
+    private val _title = MutableStateFlow("")
+    val title: StateFlow<String> = _title
+
+    private val _type = MutableStateFlow(FeedbackType.Bug)
+    val type: StateFlow<FeedbackType> = _type
 
     private val _message = MutableStateFlow("")
     val message: StateFlow<String> = _message
@@ -53,6 +60,16 @@ class FeedbackViewModel @Inject constructor(
         resetStatus()
     }
 
+    fun onTitleChange(value: String) {
+        _title.value = value
+        resetStatus()
+    }
+
+    fun onTypeChange(value: FeedbackType) {
+        _type.value = value
+        resetStatus()
+    }
+
     fun onMessageChange(value: String) {
         _message.value = value
         resetStatus()
@@ -71,8 +88,10 @@ class FeedbackViewModel @Inject constructor(
                 val dto = FeedbackDto(
                     name = _name.value,
                     email = _email.value,
+                    title = _title.value.trim(),
                     message = _message.value,
-                    platform = "Aplikace"
+                    platform = "Aplikace",
+                    type = _type.value
                 )
                 api.sendFeedback(dto)
                 _isSuccess.value = true
@@ -82,8 +101,10 @@ class FeedbackViewModel @Inject constructor(
                     val entity = FeedbackEntity(
                         name = _name.value,
                         email = _email.value,
+                        title = _title.value.trim(),
                         message = _message.value,
-                        platform = "Aplikace"
+                        platform = "Aplikace",
+                        type = _type.value.name
                     )
                     val db = AppDatabase.getInstance(getApplication())
                     db.feedbackDao().insert(entity)

@@ -530,7 +530,7 @@ private fun RenderImage(
                         Column(modifier = Modifier.padding(8.dp)) {
                             if (!caption.isNullOrBlank()) Text(text = caption, style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground))
                             if (!source.isNullOrBlank()) {
-                                val sourceParts = remember(source) { parseInlineParts(source, posts) }
+                                val sourceParts = remember(source) { parseInlineParts(linkifyBareUrls(source), posts) }
                                 val linkColor = MaterialTheme.colorScheme.primary
                                 val sourceAnnotated = remember(sourceParts, linkColor) { buildAnnotatedStringFromParts(sourceParts, linkColor) }
                                 val sourceUrlAnnotations = sourceAnnotated.getStringAnnotations("URL", 0, sourceAnnotated.length)
@@ -570,6 +570,12 @@ private fun RenderImage(
         }
     }
 }
+
+private val bareUrlRegex = Regex("""(?<!\]\()(?<![\w/])https?://[^\s)\]]+[^\s)\].,;:!?]""")
+
+/** Wraps bare http(s) URLs in markdown link syntax so they render as clickable links. */
+private fun linkifyBareUrls(text: String): String =
+    if (text.contains("](")) text else bareUrlRegex.replace(text) { "[${it.value}](${it.value})" }
 
 private val tableCellImageRegex = Regex("""^!\[([^\]]*)\]\(([^)]+)\)$""")
 

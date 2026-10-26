@@ -149,6 +149,7 @@ private const val SCHEMA = 1
 fun PrefsSnapshot.toStateJson(): JsonObject = JsonObject(
     mapOf(
         "schema" to JsonPrimitive(SCHEMA),
+        "streak" to streakJson(),
         "points" to JsonObject(mapOf("value" to JsonPrimitive(((this[POINTS_FILE]?.get(KEY_POINTS) as? PrefValue.F)?.v ?: 0f)))),
         "prefs" to JsonObject(
             this.filterKeys { it in SYNCED_PREFS }.mapValues { (_, m) ->
@@ -157,6 +158,23 @@ fun PrefsSnapshot.toStateJson(): JsonObject = JsonObject(
         )
     )
 )
+
+/**
+ * Streak in the shape the web reads (`state.streak`, see docs/WEB_SPEC.md): active days, owned freezes and the days
+ * freezes were used on. A read-only mirror of the prefs; [parseStateJson] ignores it.
+ */
+fun PrefsSnapshot.streakJson(): JsonObject {
+    fun days(file: String, key: String) =
+        ((this[file]?.get(key) as? PrefValue.SS)?.v ?: emptySet()).sorted().map { JsonPrimitive(it) }
+    val freezes = (this["streak_freeze_prefs"]?.get("freeze_count") as? PrefValue.I)?.v ?: 0
+    return JsonObject(
+        mapOf(
+            "days" to JsonArray(days("StreakData", "streak_days")),
+            "freezes" to JsonPrimitive(freezes.coerceIn(0, MAX_FREEZES)),
+            "usedFreezes" to JsonArray(days("streak_freeze_prefs", "used_freezes"))
+        )
+    )
+}
 
 /** Parses what [toStateJson] wrote. Unknown files/keys/values are dropped; a missing `prefs` yields an empty snapshot. */
 fun parseStateJson(state: JsonObject): PrefsSnapshot {

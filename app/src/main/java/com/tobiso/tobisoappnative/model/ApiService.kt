@@ -238,6 +238,10 @@ interface ApiService {
     @GET("user/stats")
     suspend fun getUserStats(): UserStats
 
+    /** 204; records "active today" (the server picks the date, idempotent) for the account's streak. */
+    @POST("user/activity")
+    suspend fun reportActivity(): retrofit2.Response<Unit>
+
     @POST("user/read-progress")
     suspend fun reportReadProgress(@Body request: ReadProgressRequest): retrofit2.Response<Unit>
 

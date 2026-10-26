@@ -79,7 +79,7 @@ class GameSyncManager @Inject constructor(
         listeners.forEach { (file, l) -> store.prefs(file).registerOnSharedPreferenceChangeListener(l) }
         scope.launch {
             AuthSession.user.map { AuthSession.ownerKey }.distinctUntilChanged().collect { key ->
-                if (key != null) { refreshExchangePoints(); sync() } else _exchangePoints.value = null
+                if (key != null) { reportActivity(); refreshExchangePoints(); sync() } else _exchangePoints.value = null
             }
         }
     }
@@ -104,7 +104,8 @@ class GameSyncManager @Inject constructor(
                     )
                 )
                 if (merged != local) apply(merged)
-                if (serverSnap != null && merged == serverSnap) {
+                // Also push when the server copy lacks an up-to-date `streak` mirror (older app versions never wrote it).
+                if (serverSnap != null && merged == serverSnap && pulled.state["streak"] == merged.streakJson()) {
                     remember(pulled.revision, merged)
                     return true
                 }
@@ -119,6 +120,47 @@ class GameSyncManager @Inject constructor(
             Timber.w(e, "Game state sync failed")
             false
         }
+    }
+
+    /**
+     * Tells the server the account was active today (feeds the shared "Řada" streak). Once per local day; a failed
+     * call is retried on the next start. Runs before the game-state sync so the freshly recorded day is counted.
+     */
+    private suspend fun reportActivity() {
+        val today = java.time.LocalDate.now().toString()
+        if (meta.getString(key("activity"), null) == today) return
+        try {
+            if (api.reportActivity().isSuccessful) meta.edit().putString(key("activity"), today).apply()
+        } catch (e: Exception) {
+            Timber.w(e, "Reporting activity failed")
+        }
+    }
+
+    /** True when everything on this device is safely on the server (nothing changed since the last sync, or a sync just worked). */
+    suspend fun flushBeforeSignOut(): Boolean {
+        if (!AuthSession.isSignedIn) return true
+        return !meta.getBoolean(dirtyKey(), false) || sync()
+    }
+
+    /**
+     * Erases the account's gamification data from this device (points, shop, backpack, streak, pets, question stats)
+     * plus its sync bookkeeping, then reloads the managers so nothing stale stays in memory. Call after signing out
+     * ([ownerKey] is the key of the account that just left).
+     */
+    fun wipeLocalState(ownerKey: String?) {
+        debounce?.cancel()
+        SYNCED_PREFS.forEach { store.prefs(it).edit().clear().commit() }
+        written.clear()
+        if (ownerKey != null) {
+            val e = meta.edit()
+            meta.all.keys.filter { it.startsWith("$ownerKey.") }.forEach { e.remove(it) }
+            e.commit()
+        }
+        runCatching { PointsManager.instance.reloadFromPrefs() }
+        runCatching { ShopManager.instance.init() }
+        runCatching { BackpackManager.instance.reloadFromPrefs() }
+        runCatching { StreakFreezeManager.instance.reloadFromPrefs() }
+        runCatching { PetManager.initialize(appContext) }
     }
 
     /** Server-owned exchange points (earned from graded quiz answers); null until loaded or when signed out. */

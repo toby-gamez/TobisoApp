@@ -13,7 +13,9 @@ import timber.log.Timber
 data class AuthUser(
     val displayName: String,
     val email: String? = null,
-    val credits: Int = 0
+    val credits: Int = 0,
+    /** Google profile picture (from the ID token) when signed in through Google; null otherwise. */
+    val photoUrl: String? = null
 )
 
 /**
@@ -107,13 +109,16 @@ object AuthSession {
 }
 
 /** Reads the `sub` claim of a JWT without verifying it — only used to learn our own user id. */
+fun jwtSubject(jwt: String): String? = jwtClaim(jwt, "sub")
+
+/** Reads a string claim of a JWT without verifying it — only for display data such as the Google `picture`. */
 @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
-fun jwtSubject(jwt: String): String? = try {
+fun jwtClaim(jwt: String, name: String): String? = try {
     val payload = jwt.split('.').getOrNull(1) ?: return null
     val bytes = kotlin.io.encoding.Base64.UrlSafe
         .withPadding(kotlin.io.encoding.Base64.PaddingOption.ABSENT_OPTIONAL)
         .decode(payload)
-    (Json.parseToJsonElement(String(bytes)) as? kotlinx.serialization.json.JsonObject)?.get("sub")
+    (Json.parseToJsonElement(String(bytes)) as? kotlinx.serialization.json.JsonObject)?.get(name)
         ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
 } catch (_: Exception) {
     null

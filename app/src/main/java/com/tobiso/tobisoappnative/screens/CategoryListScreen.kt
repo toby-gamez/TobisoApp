@@ -143,7 +143,20 @@ fun CategoryListScreen(
                     }
                 }
                 else -> {
-                    val displayItems: List<Any> = if (filteredSummaries.isNotEmpty()) filteredSummaries else filteredPosts
+                    val allItems: List<Any> = if (filteredSummaries.isNotEmpty()) filteredSummaries else filteredPosts
+                    fun titleOf(item: Any): String = when (item) {
+                        is PostSummaryResponse -> item.title
+                        is Post -> item.title
+                        else -> ""
+                    }
+                    // Příspěvek se stejným názvem jako kategorie slouží jako její „Úvod“
+                    val introItem = allItems.firstOrNull { titleOf(it).trim().equals(parentCategoryName.trim(), ignoreCase = true) }
+                    val introId = when (introItem) {
+                        is PostSummaryResponse -> introItem.id
+                        is Post -> introItem.id
+                        else -> null
+                    }
+                    val displayItems: List<Any> = if (introItem != null) allItems.filter { it !== introItem } else allItems
                     val hasBoth = filteredCategories.isNotEmpty() && displayItems.isNotEmpty()
 
                     LazyColumn(
@@ -170,6 +183,24 @@ fun CategoryListScreen(
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                        }
+                        if (introId != null) {
+                            item {
+                                GroupedList(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    GroupedListRow(
+                                        title = "Úvod",
+                                        leading = {
+                                            IconCircle(
+                                                icon = Icons.AutoMirrored.Rounded.MenuBook,
+                                                size = 36.dp,
+                                                background = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        },
+                                        onClick = { navController.navigate(PostDetailRoute(postId = introId)) }
+                                    )
+                                }
                             }
                         }
                         if (filteredCategories.isNotEmpty()) {
