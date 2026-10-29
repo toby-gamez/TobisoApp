@@ -236,9 +236,9 @@ private fun PracticeHubContent(
         if (weakCategories.isNotEmpty()) {
             item {
                 WeakSpotsSection(
-                    count = weakCategories.size,
+                    names = weakCategories.map { it.name },
                     onClick = {
-                        val ids = weakCategories.flatMap { categoryQuestionIdsMap[it.categoryId] ?: emptyList() }.distinct().shuffled().take(10)
+                        val ids = vm.getWeakSpotQuestionIds(10)
                         if (ids.isNotEmpty()) navController.navigate(MixedQuizRoute(ids.joinToString(",")))
                     }
                 )
@@ -602,7 +602,7 @@ private fun QuickActionsSection(
 }
 
 @Composable
-private fun WeakSpotsSection(count: Int, onClick: () -> Unit) {
+private fun WeakSpotsSection(names: List<String>, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         HeroCard(containerColor = scheme.secondaryContainer, onClick = onClick) {
@@ -616,7 +616,7 @@ private fun WeakSpotsSection(count: Int, onClick: () -> Unit) {
                 Column(Modifier.weight(1f)) {
                     Text("Slabá místa", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = scheme.onSecondaryContainer)
                     Text(
-                        "$count ${com.tobiso.tobisoappnative.utils.pluralCs(count, "téma", "témata", "témat")}, ve kterých chybuješ",
+                        "Procvič chybné otázky: ${names.joinToString(", ")}",
                         fontSize = 13.sp,
                         color = scheme.onSecondaryContainer.copy(alpha = 0.8f)
                     )

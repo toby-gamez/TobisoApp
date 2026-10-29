@@ -216,6 +216,8 @@ class AllQuestionsViewModel @Inject constructor(
             val questionIds = (catQuestionMap[cat.id] ?: return@mapNotNull null).toSet()
             val progress = QuestionProgressManager.instance.getProgressForQuestions(questionIds)
             if (progress < 0f) return@mapNotNull null
+            val stats = QuestionProgressManager.instance.getStats()
+            if (questionIds.sumOf { stats[it]?.total ?: 0 } < MIN_ATTEMPTS_FOR_WEAK) return@mapNotNull null
             WeakCategory(
                 categoryId = cat.id,
                 name = cat.name,
@@ -226,6 +228,23 @@ class AllQuestionsViewModel @Inject constructor(
             .sortedBy { it.percentage }
             .take(3)
         _weakCategories.value = weak
+    }
+
+    /**
+     * Questions to revise for the weak categories: previously missed ones first (worst accuracy
+     * first, ties shuffled), then unseen ones from the same categories to fill the quiz.
+     */
+    fun getWeakSpotQuestionIds(count: Int = 10): List<Int> {
+        val pool = _weakCategories.value
+            .flatMap { _categoryQuestionIdsMap.value[it.categoryId] ?: emptyList() }
+            .distinct()
+        val stats = QuestionProgressManager.instance.getStats()
+        val missed = pool
+            .filter { id -> stats[id]?.let { it.correct < it.total } == true }
+            .shuffled()
+            .sortedBy { stats[it]!!.percentage }
+        val unseen = pool.filter { it !in stats }.shuffled()
+        return (missed + unseen).take(count).shuffled()
     }
 
     private fun applyFilter() {
@@ -250,5 +269,9 @@ class AllQuestionsViewModel @Inject constructor(
         categories.filter { it.parentId == categoryId }
             .forEach { result.addAll(getAllSubcategoryIds(it.id, categories)) }
         return result
+    }
+
+    private companion object {
+        const val MIN_ATTEMPTS_FOR_WEAK = 3
     }
 }
