@@ -51,13 +51,10 @@ fun VideoPlayerScreen(videoUrl: String, navController: NavController) {
 
     // Převod na HTTPS a logování
     val secureVideoUrl = when {
-        decodedVideoUrl.startsWith("https://www.tobiso.com") -> decodedVideoUrl
-        decodedVideoUrl.startsWith("http://www.tobiso.com") -> decodedVideoUrl.replaceFirst("http://", "https://")
-        decodedVideoUrl.startsWith("https://tobiso.com") -> decodedVideoUrl.replaceFirst("https://tobiso.com", "https://www.tobiso.com")
-        decodedVideoUrl.startsWith("http://tobiso.com") -> decodedVideoUrl.replaceFirst("http://tobiso.com", "https://www.tobiso.com")
-        decodedVideoUrl.startsWith("//") -> "https://www.tobiso.com" + decodedVideoUrl.removePrefix("//tobiso.com").removePrefix("//www.tobiso.com")
-        decodedVideoUrl.startsWith("/") -> "https://www.tobiso.com$decodedVideoUrl"
-        else -> "https://www.tobiso.com/$decodedVideoUrl"
+        decodedVideoUrl.startsWith("https://") -> decodedVideoUrl
+        decodedVideoUrl.startsWith("http://") -> decodedVideoUrl.replaceFirst("http://", "https://")
+        decodedVideoUrl.startsWith("//") -> "https:$decodedVideoUrl"
+        else -> "https://files.tobiso.com/" + decodedVideoUrl.removePrefix("/")
     }
     LaunchedEffect(videoUrl) {
         Log.d("VideoPlayer", "Původní videoUrl: $videoUrl")

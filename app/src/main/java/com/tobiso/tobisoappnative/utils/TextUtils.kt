@@ -9,8 +9,10 @@ object TextUtils {
     fun extractPlainTextForTts(markdownContent: String): String {
         return stripImageGroups(
             markdownContent
-                // Grafy [grafN]…[/grafN] a samostatné řádky s videem/dokumentem se nečtou
+                // Grafy, vývojové a Vennovy diagramy a samostatné řádky s videem/dokumentem se nečtou
                 .replace(com.tobiso.tobisoappnative.components.graph.GraphParser.blockRegex, "")
+                .replace(com.tobiso.tobisoappnative.components.graph.FlowchartParser.blockRegex, "")
+                .replace(com.tobiso.tobisoappnative.components.graph.VennParser.blockRegex, "")
                 .replace(Regex("(?m)^[*_]\\[[^\\]]*]\\([^)]*\\)\\s*$"), "")
         )
             // Odstranění obrázků

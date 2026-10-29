@@ -237,7 +237,7 @@ object GraphParser {
     private val defaultPalette = listOf("#d1495b", "#2f6fdf", "#3a9d5d", "#e8833a", "#8e5cc4", "#3fa7e0", "#d9a400", "#e05a9b")
 
     /** Colour string for a name/hex token; `null` = unknown token. "currentColor" is mapped to the empty marker below. */
-    private fun resolveColor(token: String): String? {
+    internal fun resolveColor(token: String): String? {
         val t = token.trim()
         if (hexRegex.matches(t)) return t
         val key = normalize(t).uppercase().replace('-', '_')

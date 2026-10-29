@@ -2,7 +2,9 @@
 
 package com.tobiso.tobisoappnative.components
 
+import com.tobiso.tobisoappnative.components.graph.FlowchartParser
 import com.tobiso.tobisoappnative.components.graph.GraphParser
+import com.tobiso.tobisoappnative.components.graph.VennParser
 import com.tobiso.tobisoappnative.model.Post
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -32,6 +34,10 @@ sealed class ContentElement {
     data class Callout(val kind: CalloutKind, val children: List<ContentElement>) : ContentElement()
     /** `[grafN] … [/grafN]` block; [source] is the raw body, parsed by `GraphParser` when rendered. */
     data class Graph(val source: String) : ContentElement()
+    /** `[vyvojN] … [/vyvojN]` flowchart block; [source] is the raw body, parsed by `FlowchartParser` when rendered. */
+    data class Flowchart(val source: String) : ContentElement()
+    /** `[vennN] … [/vennN]` Venn diagram block; [source] is the raw body, parsed by `VennParser` when rendered. */
+    data class Venn(val source: String) : ContentElement()
     /** `_[label](documents/x.docx)` download link. */
     data class Document(val label: String, val url: String) : ContentElement()
     /** `| title :: description |` lines: a vertical stack ([isTree] = false) or, when indented, a tree. */
@@ -46,6 +52,8 @@ enum class CalloutKind(val label: String) {
 }
 
 private const val GRAPH_MARKER = "GRAPH_META::"
+private const val FLOWCHART_MARKER = "FLOWCHART_META::"
+private const val VENN_MARKER = "VENN_META::"
 private val BOX_ROW_REGEX = Regex("""^\s*\|(.*)\|\s*$""")
 private val BOX_SEPARATOR_REGEX = Regex("""^[|\s:\-]+$""")
 private val VIDEO_LINE_REGEX = Regex("""^\*\[([^\]]*)]\(([^)]+)\)\s*$""")
@@ -54,14 +62,18 @@ private const val FILES_BASE = "https://files.tobiso.com/"
 
 private fun resolveFileUrl(url: String) = if (url.startsWith("http")) url else FILES_BASE + url.removePrefix("/")
 
-/** Swaps every graph block outside ``` fences for a `GRAPH_META::<urlencoded source>` paragraph. */
+/** Swaps every graph / flowchart / Venn block outside ``` fences for a `<KIND>_META::<urlencoded source>` paragraph. */
 private fun replaceGraphBlocks(text: String): String {
-    val fences = Regex("```").findAll(text).map { it.range.first }.toList()
-    return GraphParser.blockRegex.replace(text) { m ->
-        val insideFence = fences.count { it < m.range.first } % 2 == 1
-        if (insideFence) m.value
-        else "\n\n" + GRAPH_MARKER + URLEncoder.encode(m.groupValues[2], "UTF-8").replace(".", "%2E") + "\n\n"
+    var result = text
+    for ((regex, marker) in listOf(GraphParser.blockRegex to GRAPH_MARKER, FlowchartParser.blockRegex to FLOWCHART_MARKER, VennParser.blockRegex to VENN_MARKER)) {
+        val fences = Regex("```").findAll(result).map { it.range.first }.toList()
+        result = regex.replace(result) { m ->
+            val insideFence = fences.count { it < m.range.first } % 2 == 1
+            if (insideFence) m.value
+            else "\n\n" + marker + URLEncoder.encode(m.groupValues[2], "UTF-8").replace(".", "%2E") + "\n\n"
+        }
     }
+    return result
 }
 
 private fun parseBoxRow(line: String): Pair<Int, BoxNode>? {
@@ -155,7 +167,7 @@ fun parseContentToElements(
     if (text.isBlank()) return emptyList()
 
     // Graph blocks first (like the web): park each behind a one-line marker so no other rule touches its source.
-    if (text.contains("[graf", ignoreCase = true)) {
+    if (text.contains("[graf", ignoreCase = true) || text.contains("[vyvoj", ignoreCase = true) || text.contains("[venn", ignoreCase = true)) {
         val replaced = replaceGraphBlocks(text)
         if (replaced != text) return parseContentToElements(replaced, isOffline, posts, allowIntra)
     }
@@ -256,6 +268,16 @@ fun parseContentToElements(
         var didAddBullet = false
         if (line.startsWith(GRAPH_MARKER)) {
             elements.add(ContentElement.Graph(URLDecoder.decode(line.removePrefix(GRAPH_MARKER), "UTF-8")))
+            i++
+            continue
+        }
+        if (line.startsWith(FLOWCHART_MARKER)) {
+            elements.add(ContentElement.Flowchart(URLDecoder.decode(line.removePrefix(FLOWCHART_MARKER), "UTF-8")))
+            i++
+            continue
+        }
+        if (line.startsWith(VENN_MARKER)) {
+            elements.add(ContentElement.Venn(URLDecoder.decode(line.removePrefix(VENN_MARKER), "UTF-8")))
             i++
             continue
         }
@@ -412,7 +434,7 @@ fun parseContentToElements(
         // Video <video src="..."> ... </video>
         val videoTagMatch = Regex("<video[^>]*src=\"([^\"]+)\"[^>]*>").find(line)
         if (videoTagMatch != null) {
-            val videoUrl = videoTagMatch.groupValues[1]
+            val videoUrl = resolveFileUrl(videoTagMatch.groupValues[1])
             elements.add(ContentElement.VideoPlayer(videoUrl, null))
             // Najdi případný uzavírací tag </video> a přeskoč vše až do něj
             if (line.contains("</video>")) {

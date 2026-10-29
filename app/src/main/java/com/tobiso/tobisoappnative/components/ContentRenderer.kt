@@ -22,7 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.font.FontFamily
+import com.tobiso.tobisoappnative.components.graph.FlowchartView
 import com.tobiso.tobisoappnative.components.graph.GraphView
+import com.tobiso.tobisoappnative.components.graph.VennView
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
@@ -240,6 +242,8 @@ fun ElementRenderer(
             // handled inline
         }
         is ContentElement.Graph -> GraphView(element.source)
+        is ContentElement.Flowchart -> FlowchartView(element.source)
+        is ContentElement.Venn -> VennView(element.source)
         is ContentElement.BoxDiagram -> BoxDiagramView(element)
         is ContentElement.Document -> {
             DisableSelection {
