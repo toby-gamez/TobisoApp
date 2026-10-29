@@ -58,6 +58,8 @@ data class ExerciseMatchingRoute(val exerciseId: Int)
 data class ExerciseCircuitRoute(val exerciseId: Int)
 @Serializable
 data class VideoPlayerRoute(val videoUrl: String)
+@Serializable
+data class YouTubePlayerRoute(val videoId: String, val startSeconds: Int = 0)
 
 @Serializable
 object StreakRoute

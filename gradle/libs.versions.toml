@@ -1,4 +1,5 @@
 [versions]
+youtubePlayer = "13.0.0"
 baselineprofile = "1.5.0"
 profileinstaller = "1.4.1"
 uiautomator = "2.3.0"
@@ -36,6 +37,7 @@ desugar_jdk_libs = "2.1.5"
 ksp = "2.3.7"
 
 [libraries]
+youtube-player = { group = "com.pierfrancescosoffritti.androidyoutubeplayer", name = "core", version.ref = "youtubePlayer" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 # ... (omitted for brevity in thought, but I will provide full replacement)
 junit = { group = "junit", name = "junit", version.ref = "junit" }

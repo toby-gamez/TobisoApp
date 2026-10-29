@@ -42,6 +42,10 @@ interface ApiService {
     @GET("posts/links")
     suspend fun getPostsForQuestions(): List<Post>
 
+    /** "Video k článku"; body is empty (204/404) when the post has none. */
+    @GET("posts/{id}/video")
+    suspend fun getPostVideo(@Path("id") postId: Int): retrofit2.Response<PostVideo>
+
     @GET("RelatedPosts/by-post/{postId}")
     suspend fun getRelatedPostsByPostId(@Path("postId") postId: Int): List<RelatedPost>
 

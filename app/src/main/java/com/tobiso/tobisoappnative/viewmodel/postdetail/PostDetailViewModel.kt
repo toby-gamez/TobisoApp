@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.model.Addendum
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import com.tobiso.tobisoappnative.model.Post
+import com.tobiso.tobisoappnative.model.PostVideo
 import com.tobiso.tobisoappnative.model.Question
 import com.tobiso.tobisoappnative.model.RelatedPost
 import com.tobiso.tobisoappnative.repository.FavoritesRepositoryImpl
@@ -275,6 +276,19 @@ class PostDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 _createdFormatted.value = post?.createdAt ?: ""
                 _updatedFormatted.value = post?.activeLastEdit ?: post?.activeLastFix ?: post?.createdAt ?: ""
+            }
+        }
+    }
+
+    private val _postVideo = MutableStateFlow<PostVideo?>(null)
+    val postVideo: StateFlow<PostVideo?> = _postVideo
+
+    fun loadPostVideo(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _postVideo.value = try {
+                api.getPostVideo(postId).body()?.takeIf { it.youtubeUrl.isNotBlank() }
+            } catch (e: Exception) {
+                null
             }
         }
     }

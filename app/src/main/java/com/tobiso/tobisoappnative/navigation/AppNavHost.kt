@@ -46,6 +46,7 @@ import com.tobiso.tobisoappnative.navigation.ShopRoute
 import com.tobiso.tobisoappnative.navigation.StreakRoute
 import com.tobiso.tobisoappnative.navigation.UpdaterRoute
 import com.tobiso.tobisoappnative.navigation.VideoPlayerRoute
+import com.tobiso.tobisoappnative.navigation.YouTubePlayerRoute
 import com.tobiso.tobisoappnative.navigation.AboutRoute
 import com.tobiso.tobisoappnative.screens.HomeScreen
 import com.tobiso.tobisoappnative.screens.ShopHubScreen
@@ -252,6 +253,14 @@ fun AppNavHost(
             val route: VideoPlayerRoute = backStackEntry.toRoute()
             com.tobiso.tobisoappnative.screens.VideoPlayerScreen(
                 videoUrl = route.videoUrl,
+                navController = navController
+            )
+        }
+        composable<YouTubePlayerRoute> { backStackEntry ->
+            val route: YouTubePlayerRoute = backStackEntry.toRoute()
+            com.tobiso.tobisoappnative.screens.YouTubePlayerScreen(
+                videoId = route.videoId,
+                startSeconds = route.startSeconds,
                 navController = navController
             )
         }

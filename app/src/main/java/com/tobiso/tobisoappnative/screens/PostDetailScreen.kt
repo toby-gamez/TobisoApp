@@ -134,6 +134,7 @@ import com.tobiso.tobisoappnative.components.ElementRenderer
 import com.tobiso.tobisoappnative.components.PostActionsRow
 import com.tobiso.tobisoappnative.components.ExerciseButtonsRow
 import com.tobiso.tobisoappnative.components.RelatedPostsList
+import com.tobiso.tobisoappnative.components.PostVideoCard
 import com.tobiso.tobisoappnative.components.DifficultyRating
 import com.tobiso.tobisoappnative.components.TableOfContentsDialog
 import kotlinx.serialization.json.JsonNull.content
@@ -166,6 +167,7 @@ fun PostDetailScreen(
     val relatedPosts by vm.relatedPosts.collectAsStateWithLifecycle()
     val relatedPostsError by vm.relatedPostsError.collectAsStateWithLifecycle()
     val relatedPostsLoading by vm.relatedPostsLoading.collectAsStateWithLifecycle()
+    val postVideo by vm.postVideo.collectAsStateWithLifecycle()
     val tableOfContents by vm.tableOfContents.collectAsStateWithLifecycle()
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -242,6 +244,7 @@ fun PostDetailScreen(
     LaunchedEffect(postDetail?.id) {
         if (postDetail?.id == postId) {
             vm.loadRelatedPosts(postId)
+            if (!isOffline) vm.loadPostVideo(postId)
         }
     }
 
@@ -591,6 +594,11 @@ fun PostDetailScreen(
                                         modifier = Modifier.padding(vertical = 8.dp)
                                     )
                                 }
+                                postVideo?.let { video ->
+                                    item(key = "post_video") {
+                                        PostVideoCard(video = video, navController = navController, isOffline = isOffline)
+                                    }
+                                }
                                 item {
                                     val linkedPostIds = remember(contentElements) {
                                         contentElements.mapNotNull { (it as? ContentElement.ClickableLink)?.postId }.toSet()
@@ -696,7 +704,6 @@ fun PostDetailScreen(
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(if (aiInputExpanded) 28.dp else 50.dp),
-                    shadowElevation = 6.dp,
                     modifier = Modifier.animateContentSize(
                         animationSpec = androidx.compose.animation.core.spring(
                             dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBouncy,
