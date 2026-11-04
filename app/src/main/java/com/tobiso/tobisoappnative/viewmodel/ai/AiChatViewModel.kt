@@ -158,6 +158,7 @@ class AiChatViewModel @AssistedInject constructor(
                 aiChatDao.insertMessage(AiChatMessageEntity(sessionId = sid, role = "assistant", content = response.answer, timestamp = now + 1))
                 aiChatDao.updateSession(sid, now, response.answer.take(80), currentState.messages.size)
             } catch (e: HttpException) {
+                dropEmptyBubble()
                 if (e.code() == 429) {
                     setState { copy(limitReached = true, error = "Dosáhl jsi denního limitu dotazů. Zkus to zítra nebo si dokup otázky v obchodě.", isLoading = false) }
                 } else {
@@ -165,9 +166,15 @@ class AiChatViewModel @AssistedInject constructor(
                 }
                 Timber.e(e, "HTTP error ${e.code()}")
             } catch (e: Exception) {
+                dropEmptyBubble()
                 setState { copy(error = "Nepodařilo se spojit se serverem.", isLoading = false) }
                 Timber.e(e, "Error asking AI")
             }
         }
+    }
+
+    /** A failed stream can leave the (still empty) assistant placeholder bubble behind. */
+    private fun dropEmptyBubble() {
+        setState { copy(messages = messages.dropLastWhile { it.role == "assistant" && it.content.isBlank() }) }
     }
 }

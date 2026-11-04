@@ -51,18 +51,25 @@ class AccountViewModel @Inject constructor(
         }
     }
 
-    /** [onResult] gets a message to show: the success text or the failure reason. */
-    fun claimDailyBonus(onResult: (String) -> Unit) {
-        viewModelScope.launch {
-            repo.claimDailyBonus().fold(
-                onSuccess = { onResult("Denní bonus vybrán – teď máš $it kreditů.") },
-                onFailure = { onResult(it.message ?: "Bonus se nepodařilo vybrat.") }
-            )
-        }
+    /**
+     * Claims the daily AI-credit bonus the first time a post is opened each day while signed in. Quiet: [onClaimed]
+     * only fires on success (the server answers 409 when today's bonus was already taken), and one attempt per day
+     * is made per app process.
+     */
+    fun claimDailyBonusOnPostOpen(onClaimed: (Int) -> Unit) {
+        if (!AuthSession.isSignedIn) return
+        val today = java.time.LocalDate.now().toString()
+        if (lastBonusAttemptDay == today) return
+        lastBonusAttemptDay = today
+        viewModelScope.launch { repo.claimDailyBonus().onSuccess(onClaimed) }
     }
 
     /** Downloads the account data; [onResult] gets the JSON text or null on failure. */
     fun exportData(onResult: (String?) -> Unit) {
         viewModelScope.launch { onResult(repo.exportData().getOrNull()) }
+    }
+
+    private companion object {
+        var lastBonusAttemptDay: String? = null
     }
 }

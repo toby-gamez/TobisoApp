@@ -1696,15 +1696,6 @@ private fun AccountSection(navController: NavController) {
             )
             ProfileDivider()
             ProfileNavRow(
-                icon = Icons.Rounded.CardGiftcard,
-                title = "Denní bonus",
-                subtitle = "Vyzvedni si 20 kreditů na AI otázky",
-                onClick = {
-                    vm.claimDailyBonus { msg -> android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show() }
-                }
-            )
-            ProfileDivider()
-            ProfileNavRow(
                 icon = Icons.Rounded.Download,
                 title = "Exportovat má data",
                 subtitle = "Stáhne všechna data tvého účtu jako soubor JSON",

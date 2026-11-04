@@ -122,6 +122,7 @@ fun ClassesScreen(navController: NavController) {
                         onLeave = { confirmLeave = true }
                     )
                     if (mine.membershipStatus == ClassMembershipStatus.Approved) {
+                        com.tobiso.tobisoappnative.components.CalendarSyncCard()
                         state.duty?.let { duty ->
                             com.tobiso.tobisoappnative.components.DutyPersonCard(
                                 duty = duty,

@@ -161,6 +161,13 @@ fun PostDetailScreen(
     var showGradePicker by remember { mutableStateOf(false) }
     val availableGradeIds by vm.availableGradeIds.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { vm.loadGrades() }
+    val accountVm: com.tobiso.tobisoappnative.viewmodel.auth.AccountViewModel = hiltViewModel()
+    val bonusContext = LocalContext.current
+    LaunchedEffect(postId) {
+        accountVm.claimDailyBonusOnPostOpen { credits ->
+            android.widget.Toast.makeText(bonusContext, "Denní bonus: +20 AI kreditů (celkem $credits)", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
     LaunchedEffect(postId) { vm.loadAvailableGrades(postId) }
     val difficulty by vm.difficulty.collectAsStateWithLifecycle()
     LaunchedEffect(postId) { vm.loadDifficulty(postId) }

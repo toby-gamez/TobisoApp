@@ -333,6 +333,16 @@ interface ApiService {
     @retrofit2.http.PUT("duty/me")
     suspend fun setMyDutyPerson(@Body request: SetMyDutyPersonRequest): MyDutyPerson
 
+    // Personal .ics calendar feed (students only)
+    @GET("calendar/sync")
+    suspend fun getCalendarSync(): CalendarSync
+
+    @retrofit2.http.PUT("calendar/sync")
+    suspend fun updateCalendarSync(@Body request: UpdateCalendarSyncRequest): CalendarSync
+
+    @POST("calendar/sync/regenerate")
+    suspend fun regenerateCalendarSync(): CalendarSync
+
     // Scoped calendar (students only)
     @GET("events/mine")
     suspend fun getMyEvents(
