@@ -352,6 +352,13 @@ fun CalendarScreen(
                 )
                 }
                 Spacer(Modifier.height(14.dp))
+                state.duty?.let { duty ->
+                    com.tobiso.tobisoappnative.components.DutyBanner(
+                        duty = duty,
+                        onShowAll = { viewModel.onIntent(CalendarIntent.LoadAllDuty) }
+                    )
+                    Spacer(Modifier.height(14.dp))
+                }
                 // Header s navigací měsíců
                 Surface(
                     shape = RoundedCornerShape(28.dp),
@@ -602,6 +609,14 @@ fun CalendarScreen(
                     showAddEventDialog = true
                 }) { Text("Jen v zařízení") }
             }
+        )
+    }
+
+    state.dutyAll?.let { weeks ->
+        com.tobiso.tobisoappnative.components.DutyScheduleDialog(
+            weeks = weeks,
+            myPersonId = state.myDutyPersonId,
+            onDismiss = { viewModel.onIntent(CalendarIntent.CloseAllDuty) }
         )
     }
 

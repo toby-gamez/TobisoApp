@@ -9,6 +9,7 @@ import com.tobiso.tobisoappnative.db.entity.AiChatSessionEntity
 import com.tobiso.tobisoappnative.model.AiChatMessageDto
 import com.tobiso.tobisoappnative.model.AiChatRequest
 import com.tobiso.tobisoappnative.model.ApiService
+import com.tobiso.tobisoappnative.model.AuthSession
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -41,8 +42,30 @@ class AiChatViewModel @AssistedInject constructor(
 
     private val resolvedSessionId = CompletableDeferred<Long>()
 
+    /**
+     * Signed-in students: the server saves the chat to their account (shared with the website), so
+     * nothing is written to the device. [sessionId] is then a server session id. Otherwise the
+     * chat lives only in the local database.
+     */
+    private val remote = AuthSession.isSignedIn
+
     init {
-        if (sessionId >= 0L) {
+        if (remote) {
+            if (sessionId >= 0L) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    try {
+                        val msgs = api.getServerChatMessages(sessionId.toInt()).map { ChatMessage(it.role, it.content) }
+                        setState { copy(messages = msgs, currentSessionId = sessionId) }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to load server chat $sessionId")
+                        setState { copy(error = "Konverzaci se nepodařilo načíst.") }
+                    }
+                }
+            }
+            if (sessionId < 0L && firstUserMessage.isNotBlank()) {
+                onIntent(AiChatIntent.SendMessage(firstUserMessage))
+            }
+        } else if (sessionId >= 0L) {
             resolvedSessionId.complete(sessionId)
             viewModelScope.launch(Dispatchers.IO) {
                 val msgs = aiChatDao.getMessages(sessionId).map { ChatMessage(it.role, it.content) }
@@ -100,16 +123,35 @@ class AiChatViewModel @AssistedInject constructor(
                     conversationHistory = history
                 )
                 val deviceId = AiCreditManager.instance.deviceId
-                val response = api.askAi("tobiso-android", deviceId, request)
-                AiCreditManager.instance.updateBonusRemaining(response.remainingQuestions)
-                setState {
-                    copy(
-                        messages = messages + ChatMessage("assistant", response.answer),
-                        remainingQuestions = response.remainingQuestions,
-                        isLoading = false
-                    )
+                val httpResponse = api.askAiStream("tobiso-android", deviceId, request)
+                if (!httpResponse.isSuccessful) throw HttpException(httpResponse)
+                httpResponse.headers()["X-Remaining-Questions"]?.toIntOrNull()?.let { remaining ->
+                    AiCreditManager.instance.updateBonusRemaining(remaining)
+                    setState { copy(remainingQuestions = remaining) }
                 }
 
+                // The answer streams in; show it growing in a placeholder bubble.
+                val bubble = ChatMessage("assistant", "")
+                val answer = StringBuilder()
+                setState { copy(messages = messages + bubble) }
+                httpResponse.body()!!.use { body ->
+                    val reader = body.charStream().buffered()
+                    while (true) {
+                        val line = reader.readLine() ?: break
+                        if (!line.startsWith("data:")) continue
+                        val payload = line.removePrefix("data:").removePrefix(" ")
+                        if (payload == "[DONE]") break
+                        answer.append(payload.replace("\\n", "\n"))
+                        val text = answer.toString()
+                        setState { copy(messages = messages.map { if (it.id == bubble.id) it.copy(content = text) else it }) }
+                    }
+                }
+                val finalAnswer = answer.toString()
+                if (finalAnswer.isBlank()) throw java.io.IOException("Empty AI answer")
+                setState { copy(isLoading = false) }
+                val response = com.tobiso.tobisoappnative.model.AiChatResponse(finalAnswer, currentState.remainingQuestions ?: 0)
+
+                if (remote) return@launch
                 val sid = resolvedSessionId.await()
                 val now = System.currentTimeMillis()
                 aiChatDao.insertMessage(AiChatMessageEntity(sessionId = sid, role = "user", content = trimmed, timestamp = now))

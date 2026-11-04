@@ -55,3 +55,26 @@ data class PracticeProblem(
 
 @Serializable
 data class PracticeProblemResponse(val problems: List<PracticeProblem>)
+
+// ── Exam summary / fun facts / notes ──────────────────────────────────────────
+@Serializable
+data class ExamSummaryResponse(val summary: String = "")
+
+@Serializable
+data class FunFactsResponse(val facts: List<String> = emptyList())
+
+/** `GET/PUT user/notes/{postId}`: the signed-in student's private note on a post. */
+@Serializable
+data class UserNote(val content: String = "")
+
+// ── Answer check ──────────────────────────────────────────────────────────────
+@Serializable
+data class EvaluateAnswerRequest(
+    val postId: Int,
+    val questionText: String,
+    val studentAnswer: String,
+    val correctAnswer: String
+)
+
+@Serializable
+data class EvaluateAnswerResponse(val isCorrect: Boolean = false, val feedback: String = "")

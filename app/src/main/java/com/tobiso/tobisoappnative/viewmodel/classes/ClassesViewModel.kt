@@ -28,6 +28,7 @@ class ClassesViewModel @Inject constructor(
             ClassesIntent.CancelEditGroups -> setState { copy(editingGroups = false, selectedGroupIds = emptySet()) }
             ClassesIntent.SaveGroups -> saveGroups()
             ClassesIntent.Leave -> leave()
+            is ClassesIntent.PickDutyPerson -> pickDutyPerson(intent.personId)
         }
     }
 
@@ -45,7 +46,20 @@ class ClassesViewModel @Inject constructor(
             val classes = if (myClass == null || myClass.membershipStatus == com.tobiso.tobisoappnative.model.ClassMembershipStatus.Rejected)
                 repo.getClasses().getOrElse { e -> setState { copy(isLoading = false, error = e.message) }; return@launch }
             else emptyList()
-            setState { copy(isLoading = false, mine = myClass, classes = classes) }
+            val duty = if (myClass?.membershipStatus == com.tobiso.tobisoappnative.model.ClassMembershipStatus.Approved)
+                repo.getMyDutyPerson().getOrNull() else null
+            setState { copy(isLoading = false, mine = myClass, classes = classes, duty = duty) }
+        }
+    }
+
+    private fun pickDutyPerson(personId: Int?) {
+        if (currentState.isBusy) return
+        setState { copy(isBusy = true) }
+        viewModelScope.launch {
+            repo.setMyDutyPerson(personId).fold(
+                onSuccess = { d -> setState { copy(isBusy = false, duty = d) } },
+                onFailure = { e -> setState { copy(isBusy = false) }; emitEffect(ClassesEffect.ShowMessage(e.message ?: "Jméno se nepodařilo uložit.")) }
+            )
         }
     }
 
@@ -91,7 +105,7 @@ class ClassesViewModel @Inject constructor(
         setState { copy(isBusy = true) }
         viewModelScope.launch {
             repo.leave().fold(
-                onSuccess = { setState { copy(isBusy = false, mine = null, editingGroups = false) }; load() },
+                onSuccess = { setState { copy(isBusy = false, mine = null, editingGroups = false, duty = null) }; load() },
                 onFailure = { e -> setState { copy(isBusy = false) }; emitEffect(ClassesEffect.ShowMessage(e.message ?: "Odchod se nepodařil.")) }
             )
         }

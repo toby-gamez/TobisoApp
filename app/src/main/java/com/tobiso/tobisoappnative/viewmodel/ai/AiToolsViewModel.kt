@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tobiso.tobisoappnative.AiCreditManager
 import com.tobiso.tobisoappnative.model.*
+import com.tobiso.tobisoappnative.model.AuthSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 enum class AiTool {
-    FLASHCARDS, REAL_WORLD, WHAT_IF, FEYNMAN, EXPLAIN, PRACTICE
+    FLASHCARDS, REAL_WORLD, WHAT_IF, FEYNMAN, EXPLAIN, PRACTICE, EXAM_SUMMARY, FUN_FACTS, NOTES, POMODORO
 }
 
 data class AiToolsState(
@@ -44,6 +45,16 @@ data class AiToolsState(
     // Practice Problems
     val practiceProblems: List<PracticeProblem> = emptyList(),
     val expandedProblemIndex: Int? = null,
+    val problemAnswers: Map<Int, String> = emptyMap(),
+    val problemFeedback: Map<Int, EvaluateAnswerResponse> = emptyMap(),
+    val checkingProblem: Int? = null,
+    // Exam summary / fun facts
+    val examSummary: String = "",
+    val funFacts: List<String> = emptyList(),
+    // Notes (signed-in students)
+    val noteText: String = "",
+    val noteSaved: Boolean = false,
+    val noteSaving: Boolean = false,
 )
 
 @HiltViewModel
@@ -193,7 +204,96 @@ class AiToolsViewModel @Inject constructor(private val api: ApiService) : ViewMo
         }
     }
 
+    fun setProblemAnswer(index: Int, text: String) = _state.update {
+        it.copy(problemAnswers = it.problemAnswers + (index to text), problemFeedback = it.problemFeedback - index)
+    }
+
+    /** AI-checks the student's own answer to a practice problem against the generated solution. */
+    fun checkProblemAnswer(postId: Int, index: Int) {
+        val problem = _state.value.practiceProblems.getOrNull(index) ?: return
+        val answer = _state.value.problemAnswers[index]?.trim().orEmpty()
+        if (answer.isEmpty() || _state.value.checkingProblem != null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(checkingProblem = index, error = null) }
+            try {
+                val r = api.evaluateAnswer(clientId, deviceId, EvaluateAnswerRequest(postId, problem.problemText, answer, problem.solution))
+                _state.update { it.copy(checkingProblem = null, problemFeedback = it.problemFeedback + (index to r)) }
+            } catch (e: Exception) {
+                Timber.e(e, "checkProblemAnswer")
+                _state.update {
+                    it.copy(
+                        checkingProblem = null,
+                        problemFeedback = it.problemFeedback + (index to EvaluateAnswerResponse(false, "Odpověď se nepodařilo zkontrolovat."))
+                    )
+                }
+            }
+        }
+    }
+
     fun toggleProblemExpanded(index: Int) = _state.update {
         it.copy(expandedProblemIndex = if (it.expandedProblemIndex == index) null else index)
+    }
+
+    // ── Exam summary ──────────────────────────────────────────────────────────
+
+    fun loadExamSummary(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, examSummary = "") }
+            try {
+                val response = api.getExamSummary(clientId, deviceId, postId)
+                _state.update { it.copy(isLoading = false, examSummary = response.summary) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadExamSummary")
+                _state.update { it.copy(isLoading = false, error = "Shrnutí se nepodařilo vygenerovat.") }
+            }
+        }
+    }
+
+    // ── Fun facts ─────────────────────────────────────────────────────────────
+
+    fun loadFunFacts(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, funFacts = emptyList()) }
+            try {
+                val response = api.getFunFacts(clientId, deviceId, postId)
+                _state.update { it.copy(isLoading = false, funFacts = response.facts) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadFunFacts")
+                _state.update { it.copy(isLoading = false, error = "Zajímavosti se nepodařilo načíst.") }
+            }
+        }
+    }
+
+    // ── Notes ─────────────────────────────────────────────────────────────────
+
+    fun loadNote(postId: Int) {
+        if (!AuthSession.isSignedIn) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, noteSaved = false) }
+            try {
+                val note = api.getNote(postId)
+                _state.update { it.copy(isLoading = false, noteText = note.content) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadNote")
+                _state.update { it.copy(isLoading = false, error = "Poznámku se nepodařilo načíst.") }
+            }
+        }
+    }
+
+    fun setNoteText(t: String) = _state.update { it.copy(noteText = t, noteSaved = false) }
+
+    fun saveNote(postId: Int) {
+        val text = _state.value.noteText
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(noteSaving = true, error = null) }
+            try {
+                val r = api.saveNote(postId, UserNote(text.trim()))
+                if (!r.isSuccessful) throw retrofit2.HttpException(r)
+                _state.update { it.copy(noteSaving = false, noteSaved = true) }
+            } catch (e: Exception) {
+                Timber.e(e, "saveNote")
+                _state.update { it.copy(noteSaving = false, error = "Poznámku se nepodařilo uložit.") }
+            }
+        }
     }
 }

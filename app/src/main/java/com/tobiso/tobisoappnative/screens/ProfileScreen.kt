@@ -1696,6 +1696,38 @@ private fun AccountSection(navController: NavController) {
             )
             ProfileDivider()
             ProfileNavRow(
+                icon = Icons.Rounded.CardGiftcard,
+                title = "Denní bonus",
+                subtitle = "Vyzvedni si 20 kreditů na AI otázky",
+                onClick = {
+                    vm.claimDailyBonus { msg -> android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show() }
+                }
+            )
+            ProfileDivider()
+            ProfileNavRow(
+                icon = Icons.Rounded.Download,
+                title = "Exportovat má data",
+                subtitle = "Stáhne všechna data tvého účtu jako soubor JSON",
+                onClick = {
+                    vm.exportData { json ->
+                        if (json == null) {
+                            android.widget.Toast.makeText(context, "Export se nepodařilo stáhnout.", android.widget.Toast.LENGTH_LONG).show()
+                        } else {
+                            val dir = java.io.File(context.cacheDir, "export").apply { mkdirs() }
+                            val file = java.io.File(dir, "tobiso-moje-data.json").apply { writeText(json) }
+                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                            val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "application/json"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(send, "Uložit data"))
+                        }
+                    }
+                }
+            )
+            ProfileDivider()
+            ProfileNavRow(
                 icon = Icons.AutoMirrored.Rounded.Logout,
                 title = "Odhlásit se",
                 onClick = { confirmLogout = true }

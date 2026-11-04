@@ -61,3 +61,7 @@ data class SubjectRead(val subjectName: String = "", val count: Int = 0)
 
 @Serializable
 data class SubjectBadge(val subjectName: String = "", @Serializable(with = LenientStringSerializer::class) val level: String = "")
+
+/** `POST auth/daily-bonus` */
+@Serializable
+data class DailyBonusResponse(val credits: Int = 0)

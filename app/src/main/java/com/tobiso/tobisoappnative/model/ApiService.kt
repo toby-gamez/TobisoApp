@@ -100,6 +100,22 @@ interface ApiService {
         @Body request: ValidateSolutionRequest
     ): ExerciseValidationResult
 
+    // AI chat history stored on the server (signed-in students only)
+    @GET("ai/history")
+    suspend fun getServerChatHistory(): List<ServerChatSession>
+
+    @GET("ai/history/{sessionId}")
+    suspend fun getServerChatMessages(@Path("sessionId") sessionId: Int): List<ServerChatMessage>
+
+    /** Server-sent events: `data: <chunk>` lines (newlines escaped as `\\n`), ending with `data: [DONE]`. The remaining-question count comes in the `X-Remaining-Questions` header. */
+    @retrofit2.http.Streaming
+    @POST("ai/ask-stream")
+    suspend fun askAiStream(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: AiChatRequest
+    ): retrofit2.Response<okhttp3.ResponseBody>
+
     // AI chat endpoint
     @POST("ai/ask")
     suspend fun askAi(
@@ -130,6 +146,20 @@ interface ApiService {
         @Path("postId") postId: Int
     ): RealWorldResponse
 
+    @GET("ai/exam-summary/{postId}")
+    suspend fun getExamSummary(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): ExamSummaryResponse
+
+    @GET("ai/fun-facts/{postId}")
+    suspend fun getFunFacts(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): FunFactsResponse
+
     @POST("ai/what-if")
     suspend fun getWhatIfScenario(
         @retrofit2.http.Header("X-Client-Id") clientId: String,
@@ -157,6 +187,13 @@ interface ApiService {
         @retrofit2.http.Header("X-Device-Id") deviceId: String,
         @Body request: PracticeProblemRequest
     ): PracticeProblemResponse
+
+    @POST("ai/evaluate-answer")
+    suspend fun evaluateAnswer(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: EvaluateAnswerRequest
+    ): EvaluateAnswerResponse
 
     @GET("ai/detect-persons/{postId}")
     suspend fun detectPersons(
@@ -202,6 +239,10 @@ interface ApiService {
     @GET("auth/me")
     suspend fun getMe(): StudentProfile
 
+    /** 409 when today's bonus was already claimed. */
+    @POST("auth/daily-bonus")
+    suspend fun claimDailyBonus(): DailyBonusResponse
+
     @POST("auth/logout-everywhere")
     suspend fun logoutEverywhere(): retrofit2.Response<Unit>
 
@@ -239,6 +280,18 @@ interface ApiService {
     @GET("posts/{id}/versions")
     suspend fun getPostVersions(@Path("id") postId: Int): List<PostVersionInfo>
 
+    /** GDPR export of the account's data as a JSON document. */
+    @retrofit2.http.Streaming
+    @GET("user/export")
+    suspend fun exportMyData(): okhttp3.ResponseBody
+
+    @GET("user/notes/{postId}")
+    suspend fun getNote(@Path("postId") postId: Int): UserNote
+
+    /** Empty content deletes the note. */
+    @retrofit2.http.PUT("user/notes/{postId}")
+    suspend fun saveNote(@Path("postId") postId: Int, @Body note: UserNote): retrofit2.Response<Unit>
+
     @GET("user/stats")
     suspend fun getUserStats(): UserStats
 
@@ -265,6 +318,20 @@ interface ApiService {
 
     @retrofit2.http.DELETE("classes/mine")
     suspend fun leaveClass(): retrofit2.Response<Unit>
+
+    // Class duty (students only)
+    /** 204 (null body) without an approved class. */
+    @GET("duty/overview")
+    suspend fun getDutyOverview(): retrofit2.Response<DutyOverview>
+
+    @GET("duty/weeks")
+    suspend fun getDutyWeeks(): retrofit2.Response<List<DutyWeek>>
+
+    @GET("duty/me")
+    suspend fun getMyDutyPerson(): retrofit2.Response<MyDutyPerson>
+
+    @retrofit2.http.PUT("duty/me")
+    suspend fun setMyDutyPerson(@Body request: SetMyDutyPersonRequest): MyDutyPerson
 
     // Scoped calendar (students only)
     @GET("events/mine")

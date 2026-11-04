@@ -1,6 +1,10 @@
 package com.tobiso.tobisoappnative.repository
 
 import com.tobiso.tobisoappnative.model.ApiService
+import com.tobiso.tobisoappnative.model.DutyOverview
+import com.tobiso.tobisoappnative.model.DutyWeek
+import com.tobiso.tobisoappnative.model.MyDutyPerson
+import com.tobiso.tobisoappnative.model.SetMyDutyPersonRequest
 import com.tobiso.tobisoappnative.model.JoinClassRequest
 import com.tobiso.tobisoappnative.model.MyClass
 import com.tobiso.tobisoappnative.model.SchoolClass
@@ -31,6 +35,11 @@ interface ClassesRepository {
     suspend fun join(classId: Int, groupIds: List<Int>): Result<MyClass>
     suspend fun updateGroups(groupIds: List<Int>): Result<MyClass>
     suspend fun leave(): Result<Unit>
+    /** Success(null) = no approved class (HTTP 204). */
+    suspend fun getDutyOverview(): Result<DutyOverview?>
+    suspend fun getDutyWeeks(): Result<List<DutyWeek>>
+    suspend fun getMyDutyPerson(): Result<MyDutyPerson?>
+    suspend fun setMyDutyPerson(personId: Int?): Result<MyDutyPerson>
 }
 
 class ClassesRepositoryImpl(private val api: ApiService) : ClassesRepository {
@@ -59,4 +68,24 @@ class ClassesRepositoryImpl(private val api: ApiService) : ClassesRepository {
         val r = api.leaveClass()
         if (!r.isSuccessful) throw HttpException(r)
     }
+
+    override suspend fun getDutyOverview() = call {
+        val r = api.getDutyOverview()
+        if (!r.isSuccessful) throw HttpException(r)
+        r.body()
+    }
+
+    override suspend fun getDutyWeeks() = call {
+        val r = api.getDutyWeeks()
+        if (!r.isSuccessful) throw HttpException(r)
+        r.body().orEmpty()
+    }
+
+    override suspend fun getMyDutyPerson() = call {
+        val r = api.getMyDutyPerson()
+        if (!r.isSuccessful) throw HttpException(r)
+        r.body()
+    }
+
+    override suspend fun setMyDutyPerson(personId: Int?) = call { api.setMyDutyPerson(SetMyDutyPersonRequest(personId)) }
 }

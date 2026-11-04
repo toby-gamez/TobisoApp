@@ -85,6 +85,9 @@ fun AiToolsBottomSheet(
                         AiTool.REAL_WORLD -> vm.loadRealWorld(postId)
                         AiTool.FLASHCARDS -> vm.generateFlashcards(postId)
                         AiTool.PRACTICE -> vm.generatePracticeProblems(postId)
+                        AiTool.EXAM_SUMMARY -> vm.loadExamSummary(postId)
+                        AiTool.FUN_FACTS -> vm.loadFunFacts(postId)
+                        AiTool.NOTES -> vm.loadNote(postId)
                         else -> Unit
                     }
                 })
@@ -97,6 +100,10 @@ fun AiToolsBottomSheet(
                         AiTool.WHAT_IF -> WhatIfContent(vm, postId)
                         AiTool.FEYNMAN -> FeynmanContent(vm, postId)
                         AiTool.PRACTICE -> PracticeContent(vm, postId)
+                        AiTool.EXAM_SUMMARY -> ExamSummaryContent(vm, postId)
+                        AiTool.FUN_FACTS -> FunFactsContent(vm, postId)
+                        AiTool.NOTES -> NotesContent(vm, postId)
+                        AiTool.POMODORO -> PomodoroContent()
                         else -> Unit
                     }
                 }
@@ -121,6 +128,10 @@ private val tools = listOf(
     ToolEntry(AiTool.REAL_WORLD, "Reálný svět", Icons.Rounded.Public, Color(0xFF4CAF50), "Jak se téma využívá v reálném životě"),
     ToolEntry(AiTool.WHAT_IF, "Co kdyby?", Icons.Rounded.Lightbulb, Color(0xFFFF9800), "Myšlenkový experiment k tématu"),
     ToolEntry(AiTool.FEYNMAN, "Zkus to vysvětlit", Icons.Rounded.RecordVoiceOver, Color(0xFFE91E63), "Napiš vysvětlení – AI ohodnotí tvé porozumění"),
+    ToolEntry(AiTool.EXAM_SUMMARY, "Shrnutí na test", Icons.Rounded.Checklist, Color(0xFF795548), "Co si z článku odnést před testem"),
+    ToolEntry(AiTool.FUN_FACTS, "Zajímavosti", Icons.Rounded.AutoAwesome, Color(0xFFFFB300), "Pár zajímavostí k tématu"),
+    ToolEntry(AiTool.NOTES, "Moje poznámka", Icons.Rounded.EditNote, Color(0xFF607D8B), "Soukromá poznámka k článku (v účtu)"),
+    ToolEntry(AiTool.POMODORO, "Pomodoro", Icons.Rounded.Timer, Color(0xFFE53935), "25 minut soustředění, 5 minut pauza"),
     ToolEntry(AiTool.EXPLAIN, "Vysvětli větu", Icons.Rounded.QuestionMark, Color(0xFF2196F3), "Vlož větu nebo pojem k vysvětlení"),
 )
 
@@ -550,7 +561,12 @@ private fun PracticeContent(vm: AiToolsViewModel, postId: Int) {
                             index = i,
                             problem = problem,
                             isExpanded = state.expandedProblemIndex == i,
-                            onToggle = { vm.toggleProblemExpanded(i) }
+                            onToggle = { vm.toggleProblemExpanded(i) },
+                            answer = state.problemAnswers[i].orEmpty(),
+                            onAnswerChange = { vm.setProblemAnswer(i, it) },
+                            feedback = state.problemFeedback[i],
+                            checking = state.checkingProblem == i,
+                            onCheck = { vm.checkProblemAnswer(postId, i) }
                         )
                     }
                     item { Spacer(Modifier.height(8.dp)) }
@@ -561,7 +577,17 @@ private fun PracticeContent(vm: AiToolsViewModel, postId: Int) {
 }
 
 @Composable
-private fun PracticeProblemCard(index: Int, problem: PracticeProblem, isExpanded: Boolean, onToggle: () -> Unit) {
+private fun PracticeProblemCard(
+    index: Int,
+    problem: PracticeProblem,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    answer: String,
+    onAnswerChange: (String) -> Unit,
+    feedback: com.tobiso.tobisoappnative.model.EvaluateAnswerResponse?,
+    checking: Boolean,
+    onCheck: () -> Unit
+) {
     val difficultyColor = when (problem.difficulty.lowercase()) {
         "easy", "lehká", "lehke" -> Color(0xFF4CAF50)
         "medium", "střední", "stredni" -> Color(0xFFFF9800)
@@ -582,6 +608,28 @@ private fun PracticeProblemCard(index: Int, problem: PracticeProblem, isExpanded
                 }
                 Spacer(Modifier.width(10.dp))
                 Text(problem.problemText, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = answer,
+                onValueChange = onAnswerChange,
+                label = { Text("Moje odpověď") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 1,
+                maxLines = 4
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedButton(onClick = onCheck, enabled = answer.isNotBlank() && !checking) {
+                if (checking) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                else Text("Zkontrolovat odpověď")
+            }
+            feedback?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    (if (it.isCorrect) "Správně. " else "Ještě ne. ") + it.feedback,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (it.isCorrect) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+                )
             }
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -608,5 +656,116 @@ private fun PracticeProblemCard(index: Int, problem: PracticeProblem, isExpanded
                 Text(problem.solution, style = MaterialTheme.typography.bodyMedium, lineHeight = 21.sp)
             }
         }
+    }
+}
+
+
+// ── Exam summary ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun ExamSummaryContent(vm: AiToolsViewModel, postId: Int) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 24.dp)) {
+        when {
+            state.isLoading -> LoadingBox()
+            state.error != null -> ErrorBox(state.error!!) { vm.loadExamSummary(postId) }
+            state.examSummary.isBlank() -> Text("Shrnutí není k dispozici.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> ChatMarkdownText(text = state.examSummary, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+// ── Fun facts ─────────────────────────────────────────────────────────────────
+
+@Composable
+private fun FunFactsContent(vm: AiToolsViewModel, postId: Int) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 24.dp)) {
+        when {
+            state.isLoading -> LoadingBox()
+            state.error != null -> ErrorBox(state.error!!) { vm.loadFunFacts(postId) }
+            state.funFacts.isEmpty() -> Text("Žádné zajímavosti k dispozici.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> state.funFacts.forEach { fact ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.12f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Rounded.AutoAwesome, null, tint = Color(0xFFFFB300), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(fact, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Notes ─────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun NotesContent(vm: AiToolsViewModel, postId: Int) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    val signedIn by com.tobiso.tobisoappnative.model.AuthSession.user.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 24.dp)) {
+        if (signedIn == null) {
+            Text(
+                "Poznámky se ukládají do účtu a jsou vidět i na webu. Přihlas se v Profilu.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            return@Column
+        }
+        if (state.isLoading) { LoadingBox(); return@Column }
+        OutlinedTextField(
+            value = state.noteText,
+            onValueChange = vm::setNoteText,
+            label = { Text("Poznámky k tomuto článku…") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 5,
+            maxLines = 12,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+        )
+        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
+        Spacer(Modifier.height(12.dp))
+        Button(onClick = { vm.saveNote(postId) }, enabled = !state.noteSaving, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Rounded.Check, null)
+            Spacer(Modifier.width(8.dp))
+            Text(if (state.noteSaved) "Uloženo" else "Uložit poznámku")
+        }
+    }
+}
+
+// ── Pomodoro ──────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PomodoroContent() {
+    val s by com.tobiso.tobisoappnative.manager.PomodoroTimer.state.collectAsStateWithLifecycle()
+    val timer = com.tobiso.tobisoappnative.manager.PomodoroTimer
+    Column(
+        Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(if (s.breakPhase) "Pauza" else "Soustředění", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "%02d:%02d".format(s.remainingSeconds / 60, s.remainingSeconds % 60),
+            fontSize = 56.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (s.running) {
+                Button(onClick = { timer.pause() }) { Text("Pozastavit") }
+            } else {
+                Button(onClick = { timer.start() }) { Text("Spustit") }
+            }
+            OutlinedButton(onClick = { timer.reset() }) { Text("Znovu") }
+        }
+        if (s.completed > 0) Text("Dokončeno kol: ${s.completed}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "Časovač běží dál, i když sheet zavřeš.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

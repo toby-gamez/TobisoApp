@@ -154,7 +154,7 @@ fun AiChatScreen(
                 )
             }
 
-            if (isLoading) {
+            if (isLoading && messages.lastOrNull()?.role != "assistant") {
                 item { ThinkingBubble() }
             }
         }

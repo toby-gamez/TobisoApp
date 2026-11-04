@@ -53,6 +53,8 @@ class CalendarViewModel @Inject constructor(
             is CalendarIntent.SaveStudentEvent -> saveStudentEvent(intent.request, intent.editId)
             is CalendarIntent.DeleteStudentEvent -> deleteStudentEvent(intent.eventId)
             CalendarIntent.RefreshMyClass -> refreshMyClass()
+            CalendarIntent.LoadAllDuty -> loadAllDuty()
+            CalendarIntent.CloseAllDuty -> setState { copy(dutyAll = null) }
             CalendarIntent.LoadThemeOptions -> loadThemeOptions()
         }
     }
@@ -261,11 +263,27 @@ class CalendarViewModel @Inject constructor(
 
     private fun refreshMyClass() {
         if (!com.tobiso.tobisoappnative.model.AuthSession.isSignedIn) {
-            setState { copy(myClass = null) }
+            setState { copy(myClass = null, duty = null, dutyAll = null) }
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
-            classesRepo.getMyClass().onSuccess { m -> setState { copy(myClass = m) } }
+            classesRepo.getMyClass().onSuccess { m ->
+                setState { copy(myClass = m) }
+                val approved = m?.membershipStatus == com.tobiso.tobisoappnative.model.ClassMembershipStatus.Approved
+                val duty = if (approved) classesRepo.getDutyOverview().getOrNull() else null
+                setState { copy(duty = duty) }
+            }
+        }
+    }
+
+    private fun loadAllDuty() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val weeks = classesRepo.getDutyWeeks().getOrElse {
+                emitEffect(CalendarEffect.Message(it.message ?: "Rozpis se nepodařilo načíst."))
+                return@launch
+            }
+            val mine = classesRepo.getMyDutyPerson().getOrNull()?.dutyPersonId
+            setState { copy(dutyAll = weeks, myDutyPersonId = mine) }
         }
     }
 }

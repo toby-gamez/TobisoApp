@@ -17,6 +17,12 @@ data class CalendarState(
     val detailEventLoading: Boolean = false,
     /** The signed-in student's class membership (needed to offer Class/Group scope when adding events). */
     val myClass: com.tobiso.tobisoappnative.model.MyClass? = null,
+    /** This/next duty week of the student's class; null without an approved class. */
+    val duty: com.tobiso.tobisoappnative.model.DutyOverview? = null,
+    /** Full duty schedule, loaded when the "Celý rozpis" dialog opens. */
+    val dutyAll: List<com.tobiso.tobisoappnative.model.DutyWeek>? = null,
+    /** Roster name id of the student, to highlight their own weeks in [dutyAll]. */
+    val myDutyPersonId: Int? = null,
     /** Posts and categories a student can attach to an event (loaded when the add/edit dialog first opens). */
     val themeOptions: List<com.tobiso.tobisoappnative.model.EventTheme> = emptyList()
 ) : UiState
@@ -34,6 +40,8 @@ sealed interface CalendarIntent : UiIntent {
     data class DeleteStudentEvent(val eventId: Int) : CalendarIntent
     object RefreshMyClass : CalendarIntent
     object LoadThemeOptions : CalendarIntent
+    object LoadAllDuty : CalendarIntent
+    object CloseAllDuty : CalendarIntent
 }
 
 sealed interface CalendarEffect : UiEffect {

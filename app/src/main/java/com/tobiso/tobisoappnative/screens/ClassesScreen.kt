@@ -121,6 +121,15 @@ fun ClassesScreen(navController: NavController) {
                         onSaveGroups = { vm.onIntent(ClassesIntent.SaveGroups) },
                         onLeave = { confirmLeave = true }
                     )
+                    if (mine.membershipStatus == ClassMembershipStatus.Approved) {
+                        state.duty?.let { duty ->
+                            com.tobiso.tobisoappnative.components.DutyPersonCard(
+                                duty = duty,
+                                busy = state.isBusy,
+                                onPick = { vm.onIntent(ClassesIntent.PickDutyPerson(it)) }
+                            )
+                        }
+                    }
                 } else {
                     if (mine != null) {
                         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {

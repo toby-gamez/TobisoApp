@@ -50,4 +50,19 @@ class AccountViewModel @Inject constructor(
             onResult(ok)
         }
     }
+
+    /** [onResult] gets a message to show: the success text or the failure reason. */
+    fun claimDailyBonus(onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            repo.claimDailyBonus().fold(
+                onSuccess = { onResult("Denní bonus vybrán – teď máš $it kreditů.") },
+                onFailure = { onResult(it.message ?: "Bonus se nepodařilo vybrat.") }
+            )
+        }
+    }
+
+    /** Downloads the account data; [onResult] gets the JSON text or null on failure. */
+    fun exportData(onResult: (String?) -> Unit) {
+        viewModelScope.launch { onResult(repo.exportData().getOrNull()) }
+    }
 }

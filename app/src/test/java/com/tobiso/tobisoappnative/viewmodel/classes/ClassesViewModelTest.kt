@@ -34,6 +34,7 @@ class ClassesViewModelTest {
         Dispatchers.setMain(Dispatchers.Unconfined)
         AuthSession.signIn("jwt", AuthUser("Jana"))
         repo = mockk()
+        coEvery { repo.getMyDutyPerson() } returns Result.success(null)
         vm = ClassesViewModel(repo)
     }
 

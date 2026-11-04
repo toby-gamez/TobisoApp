@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.tobiso.tobisoappnative.db.entity.AiChatSessionEntity
+import com.tobiso.tobisoappnative.viewmodel.ai.ChatSessionItem
 import com.tobiso.tobisoappnative.navigation.AiChatRoute
 import com.tobiso.tobisoappnative.viewmodel.ai.AiChatHistoryIntent
 import com.tobiso.tobisoappnative.viewmodel.ai.AiChatHistoryViewModel
@@ -47,7 +47,9 @@ fun AiChatHistoryScreen(navController: NavController) {
             }
         )
 
-        if (state.sessions.isEmpty()) {
+        if (state.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        } else if (state.sessions.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -67,7 +69,9 @@ fun AiChatHistoryScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Tvoje konverzace s AI asistentem se zobrazí zde.",
+                        text = state.error
+                            ?: if (state.remote) "Tvoje konverzace s AI asistentem se ukládají do účtu a zobrazí se zde."
+                            else "Tvoje konverzace s AI asistentem se zobrazí zde.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
@@ -82,6 +86,7 @@ fun AiChatHistoryScreen(navController: NavController) {
                 items(items = state.sessions, key = { it.id }) { session ->
                     SwipeToDeleteSession(
                         session = session,
+                        canDelete = !state.remote,
                         onDelete = { vm.onIntent(AiChatHistoryIntent.DeleteSession(session.id)) },
                         onClick = {
                             navController.navigate(
@@ -103,7 +108,8 @@ fun AiChatHistoryScreen(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeToDeleteSession(
-    session: AiChatSessionEntity,
+    session: ChatSessionItem,
+    canDelete: Boolean,
     onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -120,6 +126,7 @@ private fun SwipeToDeleteSession(
         modifier = Modifier.cozyEntrance(session.id),
         state = dismissState,
         enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = canDelete,
         backgroundContent = {
             // Draw the red background only while actually swiping; otherwise it bleeds around the card edges.
             val swiping = dismissState.dismissDirection != SwipeToDismissBoxValue.Settled &&
@@ -147,7 +154,7 @@ private fun SwipeToDeleteSession(
 }
 
 @Composable
-private fun SessionCard(session: AiChatSessionEntity, onClick: () -> Unit) {
+private fun SessionCard(session: ChatSessionItem, onClick: () -> Unit) {
     val dateFormatter = remember {
         SimpleDateFormat("d. M. yyyy 'v' HH:mm", Locale.forLanguageTag("cs-CZ"))
     }

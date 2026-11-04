@@ -65,6 +65,10 @@ interface AuthRepository {
     suspend fun stats(): Result<com.tobiso.tobisoappnative.model.UserStats>
     /** Revokes every session of the account (server-side security stamp), then signs out locally. */
     suspend fun logoutEverywhere(): Result<Unit>
+    /** Claims the daily AI-credit bonus; success carries the new credit balance. */
+    suspend fun claimDailyBonus(): Result<Int>
+    /** The account's data as JSON text. */
+    suspend fun exportData(): Result<String>
 }
 
 class AuthRepositoryImpl(private val api: ApiService) : AuthRepository {
@@ -121,4 +125,22 @@ class AuthRepositoryImpl(private val api: ApiService) : AuthRepository {
 
     override suspend fun stats(): Result<com.tobiso.tobisoappnative.model.UserStats> =
         runCatching { api.getUserStats() }
+
+    override suspend fun claimDailyBonus(): Result<Int> = try {
+        val credits = api.claimDailyBonus().credits
+        AuthSession.user.value?.let { AuthSession.updateUser(it.copy(credits = credits)) }
+        Result.success(credits)
+    } catch (e: HttpException) {
+        Result.failure(
+            if (e.code() == 409) AuthFailure.Rejected("Denní bonus jsi dnes už vybral/a.") else mapAuthError(e)
+        )
+    } catch (e: Exception) {
+        Result.failure(mapAuthError(e))
+    }
+
+    override suspend fun exportData(): Result<String> = try {
+        Result.success(api.exportMyData().use { it.string() })
+    } catch (e: Exception) {
+        Result.failure(mapAuthError(e))
+    }
 }
