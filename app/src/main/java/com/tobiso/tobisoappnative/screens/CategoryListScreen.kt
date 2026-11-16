@@ -143,7 +143,15 @@ fun CategoryListScreen(
                     }
                 }
                 else -> {
-                    val allItems: List<Any> = if (filteredSummaries.isNotEmpty()) filteredSummaries else filteredPosts
+                    val isSorted = !parentCategory?.sortLabel.isNullOrBlank()
+                    fun sortOrderOf(item: Any): Int = when (item) {
+                        is PostSummaryResponse -> item.sortOrder
+                        is Post -> item.sortOrder
+                        else -> null
+                    } ?: Int.MAX_VALUE
+                    val unsortedItems: List<Any> = if (filteredSummaries.isNotEmpty()) filteredSummaries else filteredPosts
+                    // Ruční pořadí platí jen v kategorii s popiskem řazení (stejně jako na webu)
+                    val allItems: List<Any> = if (isSorted) unsortedItems.sortedBy { sortOrderOf(it) } else unsortedItems
                     fun titleOf(item: Any): String = when (item) {
                         is PostSummaryResponse -> item.title
                         is Post -> item.title
@@ -269,15 +277,25 @@ fun CategoryListScreen(
 
                         if (displayItems.isNotEmpty()) {
                             item {
-                                Row(
-                                    Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Články v „$parentCategoryName“", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Rounded.Sort, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                        Text("Podle osnovy", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 8.dp)) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Články v „$parentCategoryName“", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        if (!isSorted) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Rounded.Sort, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                                Text("Podle osnovy", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                            }
+                                        }
+                                    }
+                                    if (isSorted) {
+                                        Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Rounded.Sort, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                            Text("Řazeno: ${parentCategory?.sortLabel?.lowercase()}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                                        }
                                     }
                                 }
                             }

@@ -10,5 +10,6 @@ data class PostSummaryResponse(
     val filePath: String,
     val lastEdit: String? = null,
     val lastFix: String? = null,
-    val availableGradeNames: List<String> = emptyList()
+    val availableGradeNames: List<String> = emptyList(),
+    val sortOrder: Int? = null
 )

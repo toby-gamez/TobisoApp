@@ -80,6 +80,11 @@ interface ApiService {
     @GET("Pdf/generate/post/{id}")
     suspend fun generatePostPdf(@Path("id") id: Int): ResponseBody
 
+    // AI cheat sheet (Tahák) PDF
+    @Streaming
+    @GET("Pdf/cheatsheet/{id}")
+    suspend fun generateCheatSheetPdf(@Path("id") id: Int): ResponseBody
+
     // Feedback endpoint
     @POST("Feedback")
     suspend fun sendFeedback(@Body feedback: FeedbackDto)
@@ -159,6 +164,27 @@ interface ApiService {
         @retrofit2.http.Header("X-Device-Id") deviceId: String,
         @Path("postId") postId: Int
     ): FunFactsResponse
+
+    @GET("ai/exam-questions/{postId}")
+    suspend fun getExamQuestions(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): ExamQuestionsResponse
+
+    @GET("ai/key-terms/{postId}")
+    suspend fun getKeyTerms(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): KeyTermsResponse
+
+    @POST("ai/compare")
+    suspend fun compareWith(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: CompareRequest
+    ): CompareResponse
 
     @POST("ai/what-if")
     suspend fun getWhatIfScenario(

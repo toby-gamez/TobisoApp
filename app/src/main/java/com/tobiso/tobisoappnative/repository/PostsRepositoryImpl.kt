@@ -221,6 +221,10 @@ class PostsRepositoryImpl(
         return api.generatePostPdf(postId)
     }
 
+    override suspend fun downloadCheatSheetPdf(postId: Int): ResponseBody {
+        return api.generateCheatSheetPdf(postId)
+    }
+
     private suspend fun getCachedExercisesForPost(
         postId: Int,
         postCategoryId: Int?

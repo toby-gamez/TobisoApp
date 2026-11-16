@@ -23,6 +23,7 @@ interface PostsRepository {
     suspend fun getQuestionsForPost(postId: Int): Result<List<Question>>
     suspend fun getExercisesForPost(postId: Int, postCategoryId: Int?): Result<List<InteractiveExerciseResponse>>
     suspend fun downloadPdf(postId: Int): ResponseBody
+    suspend fun downloadCheatSheetPdf(postId: Int): ResponseBody
 
     suspend fun getArticleOfDay(): Result<Post>
     suspend fun getRandomPost(): Result<Post>

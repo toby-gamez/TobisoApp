@@ -526,8 +526,12 @@ private fun RenderImage(
     val finalUrlForImage = if (isBlockedByOffline) null else baseAppliedUrl
 
     if (finalUrlForImage != null) {
+        var showLightbox by remember { mutableStateOf(false) }
+        if (showLightbox) {
+            ImageLightbox(model = finalUrlForImage, contentDescription = alt, caption = caption, source = source, onDismiss = { showLightbox = false })
+        }
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-            LoadingAsyncImage(model = finalUrlForImage, contentDescription = alt, modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 400.dp).padding(vertical = 6.dp))
+            LoadingAsyncImage(model = finalUrlForImage, contentDescription = alt, modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 400.dp).padding(vertical = 6.dp).clickable { showLightbox = true })
             if (!caption.isNullOrBlank() || !source.isNullOrBlank()) {
                 DisableSelection {
                     Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {

@@ -11,7 +11,8 @@ data class Post(
     val lastFix: String? = null,
     val lastEdit: String? = null,
     val categoryId: Int? = null,
-    val versions: List<PostVersion>? = null
+    val versions: List<PostVersion>? = null,
+    val sortOrder: Int? = null
 ) {
     val activeVersion: PostVersion? get() = versions?.firstOrNull()
     val activeContent: String? get() = activeVersion?.content ?: content

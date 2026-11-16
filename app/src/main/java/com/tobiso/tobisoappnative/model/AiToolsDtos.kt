@@ -63,6 +63,27 @@ data class ExamSummaryResponse(val summary: String = "")
 @Serializable
 data class FunFactsResponse(val facts: List<String> = emptyList())
 
+/** `GET ai/exam-questions/{postId}`: likely test questions with model answers. */
+@Serializable
+data class ExamQuestion(val question: String = "", val answer: String = "")
+
+@Serializable
+data class ExamQuestionsResponse(val questions: List<ExamQuestion> = emptyList())
+
+/** `GET ai/key-terms/{postId}`: glossary of the article's key terms. */
+@Serializable
+data class KeyTerm(val term: String = "", val definition: String = "")
+
+@Serializable
+data class KeyTermsResponse(val terms: List<KeyTerm> = emptyList())
+
+/** `POST ai/compare`: AI comparison of the article's topic with [compareTo], returned as a markdown table. */
+@Serializable
+data class CompareRequest(val postId: Int, val compareTo: String)
+
+@Serializable
+data class CompareResponse(val markdownTable: String = "")
+
 /** `GET/PUT user/notes/{postId}`: the signed-in student's private note on a post. */
 @Serializable
 data class UserNote(val content: String = "")

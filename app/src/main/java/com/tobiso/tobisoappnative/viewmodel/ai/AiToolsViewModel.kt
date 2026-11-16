@@ -16,7 +16,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 enum class AiTool {
-    FLASHCARDS, REAL_WORLD, WHAT_IF, FEYNMAN, EXPLAIN, PRACTICE, EXAM_SUMMARY, FUN_FACTS, NOTES, POMODORO
+    FLASHCARDS, REAL_WORLD, WHAT_IF, FEYNMAN, EXPLAIN, PRACTICE, EXAM_SUMMARY, EXAM_QUESTIONS, KEY_TERMS, COMPARE, FUN_FACTS, NOTES, POMODORO
 }
 
 data class AiToolsState(
@@ -51,6 +51,11 @@ data class AiToolsState(
     // Exam summary / fun facts
     val examSummary: String = "",
     val funFacts: List<String> = emptyList(),
+    // Exam questions / key terms / compare
+    val examQuestions: List<ExamQuestion> = emptyList(),
+    val keyTerms: List<KeyTerm> = emptyList(),
+    val compareTo: String = "",
+    val compareTable: String = "",
     // Notes (signed-in students)
     val noteText: String = "",
     val noteSaved: Boolean = false,
@@ -245,6 +250,55 @@ class AiToolsViewModel @Inject constructor(private val api: ApiService) : ViewMo
             } catch (e: Exception) {
                 Timber.e(e, "loadExamSummary")
                 _state.update { it.copy(isLoading = false, error = "Shrnutí se nepodařilo vygenerovat.") }
+            }
+        }
+    }
+
+    // ── Exam questions ────────────────────────────────────────────────────────
+
+    fun loadExamQuestions(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, examQuestions = emptyList()) }
+            try {
+                val response = api.getExamQuestions(clientId, deviceId, postId)
+                _state.update { it.copy(isLoading = false, examQuestions = response.questions) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadExamQuestions")
+                _state.update { it.copy(isLoading = false, error = "Otázky se nepodařilo vygenerovat.") }
+            }
+        }
+    }
+
+    // ── Key terms ─────────────────────────────────────────────────────────────
+
+    fun loadKeyTerms(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, keyTerms = emptyList()) }
+            try {
+                val response = api.getKeyTerms(clientId, deviceId, postId)
+                _state.update { it.copy(isLoading = false, keyTerms = response.terms) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadKeyTerms")
+                _state.update { it.copy(isLoading = false, error = "Pojmy se nepodařilo načíst.") }
+            }
+        }
+    }
+
+    // ── Compare ───────────────────────────────────────────────────────────────
+
+    fun setCompareTo(t: String) = _state.update { it.copy(compareTo = t) }
+
+    fun submitCompare(postId: Int) {
+        val target = _state.value.compareTo.trim()
+        if (target.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, compareTable = "") }
+            try {
+                val response = api.compareWith(clientId, deviceId, CompareRequest(postId, target))
+                _state.update { it.copy(isLoading = false, compareTable = response.markdownTable) }
+            } catch (e: Exception) {
+                Timber.e(e, "submitCompare")
+                _state.update { it.copy(isLoading = false, error = "Srovnání se nepodařilo vytvořit.") }
             }
         }
     }

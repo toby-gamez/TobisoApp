@@ -21,7 +21,8 @@ data class PostEntity(
     val lastFix: String? = null,
     val lastEdit: String? = null,
     val categoryId: Int? = null,
-    val versionsJson: String? = null
+    val versionsJson: String? = null,
+    val sortOrder: Int? = null
 )
 
 fun PostEntity.toDomain(): Post = Post(
@@ -33,7 +34,8 @@ fun PostEntity.toDomain(): Post = Post(
     lastFix = lastFix,
     lastEdit = lastEdit,
     categoryId = categoryId,
-    versions = versionsJson?.let { runCatching { Json.decodeFromString<List<PostVersion>>(it) }.getOrNull() }
+    versions = versionsJson?.let { runCatching { Json.decodeFromString<List<PostVersion>>(it) }.getOrNull() },
+    sortOrder = sortOrder
 )
 
 fun Post.toEntity(): PostEntity = PostEntity(
@@ -45,5 +47,6 @@ fun Post.toEntity(): PostEntity = PostEntity(
     lastFix = lastFix,
     lastEdit = lastEdit,
     categoryId = categoryId,
-    versionsJson = versions?.let { runCatching { Json.encodeToString(it) }.getOrNull() }
+    versionsJson = versions?.let { runCatching { Json.encodeToString(it) }.getOrNull() },
+    sortOrder = sortOrder
 )

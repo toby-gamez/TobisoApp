@@ -11,5 +11,6 @@ data class Category(
     val parent: Category? = null,
     val children: List<Category>? = null,
     val fullPath: String? = null,
-    val description: String? = null
+    val description: String? = null,
+    val sortLabel: String? = null
 )

@@ -50,3 +50,4 @@ app/release/*
 
 # Release build output
 app/release/
+.mcp.json

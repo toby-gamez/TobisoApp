@@ -16,7 +16,8 @@ data class CategoryEntity(
     val parentJson: String? = null,
     val childrenJson: String? = null,
     val fullPath: String? = null,
-    val description: String? = null
+    val description: String? = null,
+    val sortLabel: String? = null
 )
 
 fun CategoryEntity.toDomain(): Category = Category(
@@ -27,7 +28,8 @@ fun CategoryEntity.toDomain(): Category = Category(
     parent = null,
     children = null,
     fullPath = fullPath,
-    description = description
+    description = description,
+    sortLabel = sortLabel
 )
 
 fun Category.toEntity(): CategoryEntity = CategoryEntity(
@@ -38,5 +40,6 @@ fun Category.toEntity(): CategoryEntity = CategoryEntity(
     parentJson = null,
     childrenJson = null,
     fullPath = fullPath,
-    description = description
+    description = description,
+    sortLabel = sortLabel
 )

@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.FormatListBulleted
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Print
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material.icons.outlined.Star
@@ -40,6 +42,8 @@ fun PostActionsRow(
     onTts: () -> Unit,
     onToggleFavorite: () -> Unit,
     onDownloadClick: () -> Unit,
+    onCheatSheetClick: () -> Unit,
+    onReadingSettingsClick: () -> Unit,
     onShareClick: () -> Unit,
     onAiToolsClick: () -> Unit,
     onTocClick: () -> Unit,
@@ -107,6 +111,21 @@ fun PostActionsRow(
                     Icon(Icons.Rounded.Print, contentDescription = null)
                 },
                 onClick = { menuExpanded = false; onDownloadClick() }
+            )
+            DropdownMenuItem(
+                text = { Text("Tahák (PDF)") },
+                leadingIcon = {
+                    Icon(Icons.Rounded.Description, contentDescription = null)
+                },
+                onClick = { menuExpanded = false; onCheatSheetClick() }
+            )
+
+            DropdownMenuItem(
+                text = { Text("Nastavení čtení") },
+                leadingIcon = {
+                    Icon(Icons.Rounded.TextFields, contentDescription = null)
+                },
+                onClick = { menuExpanded = false; onReadingSettingsClick() }
             )
 
             DropdownMenuItem(

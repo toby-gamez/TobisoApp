@@ -371,11 +371,11 @@ class PostDetailViewModel @Inject constructor(
     private val _downloadError = MutableStateFlow<String?>(null)
     val downloadError: StateFlow<String?> = _downloadError
 
-    fun startDownloadAndSavePdf(postId: Int) {
+    fun startDownloadAndSavePdf(postId: Int, cheatSheet: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val responseBody = detailRepo.downloadPdf(postId)
-                val fileName = "tobiso_post_${postId}.pdf"
+                val responseBody = if (cheatSheet) detailRepo.downloadCheatSheetPdf(postId) else detailRepo.downloadPdf(postId)
+                val fileName = if (cheatSheet) "tobiso_tahak_${postId}.pdf" else "tobiso_post_${postId}.pdf"
                 var pdfUri: Uri? = null
 
                 responseBody.use { body ->

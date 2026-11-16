@@ -287,12 +287,14 @@ private fun Modifier.androidx_border(color: Color): Modifier =
 fun LoadingAsyncImage(
     model: Any?,
     contentDescription: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentScale: androidx.compose.ui.layout.ContentScale = androidx.compose.ui.layout.ContentScale.Fit
 ) {
     coil.compose.SubcomposeAsyncImage(
         model = model,
         contentDescription = contentDescription,
         modifier = modifier,
+        contentScale = contentScale,
         loading = {
             Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
                 androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp)

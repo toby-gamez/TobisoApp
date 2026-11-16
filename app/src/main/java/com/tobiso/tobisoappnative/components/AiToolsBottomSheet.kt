@@ -11,6 +11,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -86,6 +87,8 @@ fun AiToolsBottomSheet(
                         AiTool.FLASHCARDS -> vm.generateFlashcards(postId)
                         AiTool.PRACTICE -> vm.generatePracticeProblems(postId)
                         AiTool.EXAM_SUMMARY -> vm.loadExamSummary(postId)
+                        AiTool.EXAM_QUESTIONS -> vm.loadExamQuestions(postId)
+                        AiTool.KEY_TERMS -> vm.loadKeyTerms(postId)
                         AiTool.FUN_FACTS -> vm.loadFunFacts(postId)
                         AiTool.NOTES -> vm.loadNote(postId)
                         else -> Unit
@@ -101,6 +104,9 @@ fun AiToolsBottomSheet(
                         AiTool.FEYNMAN -> FeynmanContent(vm, postId)
                         AiTool.PRACTICE -> PracticeContent(vm, postId)
                         AiTool.EXAM_SUMMARY -> ExamSummaryContent(vm, postId)
+                        AiTool.EXAM_QUESTIONS -> ExamQuestionsContent(vm, postId)
+                        AiTool.KEY_TERMS -> KeyTermsContent(vm, postId)
+                        AiTool.COMPARE -> CompareContent(vm, postId)
                         AiTool.FUN_FACTS -> FunFactsContent(vm, postId)
                         AiTool.NOTES -> NotesContent(vm, postId)
                         AiTool.POMODORO -> PomodoroContent()
@@ -129,6 +135,9 @@ private val tools = listOf(
     ToolEntry(AiTool.WHAT_IF, "Co kdyby?", Icons.Rounded.Lightbulb, Color(0xFFFF9800), "Myšlenkový experiment k tématu"),
     ToolEntry(AiTool.FEYNMAN, "Zkus to vysvětlit", Icons.Rounded.RecordVoiceOver, Color(0xFFE91E63), "Napiš vysvětlení – AI ohodnotí tvé porozumění"),
     ToolEntry(AiTool.EXAM_SUMMARY, "Shrnutí na test", Icons.Rounded.Checklist, Color(0xFF795548), "Co si z článku odnést před testem"),
+    ToolEntry(AiTool.EXAM_QUESTIONS, "Co může přijít v testu", Icons.Rounded.Quiz, Color(0xFF8D6E63), "Pravděpodobné otázky s odpověďmi"),
+    ToolEntry(AiTool.KEY_TERMS, "Klíčové pojmy", Icons.Rounded.MenuBook, Color(0xFF3F51B5), "Slovníček nejdůležitějších pojmů"),
+    ToolEntry(AiTool.COMPARE, "Porovnat s…", Icons.Rounded.CompareArrows, Color(0xFF009688), "Srovnávací tabulka s jiným tématem"),
     ToolEntry(AiTool.FUN_FACTS, "Zajímavosti", Icons.Rounded.AutoAwesome, Color(0xFFFFB300), "Pár zajímavostí k tématu"),
     ToolEntry(AiTool.NOTES, "Moje poznámka", Icons.Rounded.EditNote, Color(0xFF607D8B), "Soukromá poznámka k článku (v účtu)"),
     ToolEntry(AiTool.POMODORO, "Pomodoro", Icons.Rounded.Timer, Color(0xFFE53935), "25 minut soustředění, 5 minut pauza"),
@@ -673,6 +682,151 @@ private fun ExamSummaryContent(vm: AiToolsViewModel, postId: Int) {
             state.examSummary.isBlank() -> Text("Shrnutí není k dispozici.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             else -> ChatMarkdownText(text = state.examSummary, color = MaterialTheme.colorScheme.onSurface)
         }
+    }
+}
+
+// ── Exam questions ────────────────────────────────────────────────────────────
+
+@Composable
+private fun ExamQuestionsContent(vm: AiToolsViewModel, postId: Int) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 24.dp)) {
+        when {
+            state.isLoading -> LoadingBox()
+            state.error != null -> ErrorBox(state.error!!) { vm.loadExamQuestions(postId) }
+            state.examQuestions.isEmpty() -> Text("Žádné otázky k dispozici.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> state.examQuestions.forEachIndexed { index, q ->
+                var revealed by remember(q) { mutableStateOf(false) }
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp).clickable { revealed = !revealed },
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF8D6E63).copy(alpha = 0.12f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text("${index + 1}. ${q.question}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(6.dp))
+                        if (revealed) {
+                            HorizontalDivider()
+                            Spacer(Modifier.height(6.dp))
+                            Text(q.answer, style = MaterialTheme.typography.bodyMedium)
+                        } else {
+                            Text("Klepni pro zobrazení odpovědi", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Key terms ─────────────────────────────────────────────────────────────────
+
+@Composable
+private fun KeyTermsContent(vm: AiToolsViewModel, postId: Int) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 24.dp)) {
+        when {
+            state.isLoading -> LoadingBox()
+            state.error != null -> ErrorBox(state.error!!) { vm.loadKeyTerms(postId) }
+            state.keyTerms.isEmpty() -> Text("Žádné pojmy k dispozici.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> state.keyTerms.forEach { t ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF3F51B5).copy(alpha = 0.10f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text(t.term, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(4.dp))
+                        Text(t.definition, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Compare ───────────────────────────────────────────────────────────────────
+
+@Composable
+private fun CompareContent(vm: AiToolsViewModel, postId: Int) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 24.dp)) {
+        Text(
+            "Napiš téma, se kterým chceš článek porovnat, a AI vytvoří srovnávací tabulku.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(16.dp))
+        OutlinedTextField(
+            value = state.compareTo,
+            onValueChange = vm::setCompareTo,
+            label = { Text("Porovnat s…") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send, capitalization = KeyboardCapitalization.Sentences),
+            keyboardActions = KeyboardActions(onSend = { vm.submitCompare(postId) }),
+            trailingIcon = {
+                IconButton(onClick = { vm.submitCompare(postId) }, enabled = state.compareTo.isNotBlank() && !state.isLoading) {
+                    Icon(Icons.AutoMirrored.Rounded.Send, null)
+                }
+            }
+        )
+        Spacer(Modifier.height(16.dp))
+        when {
+            state.isLoading -> LoadingBox()
+            state.error != null -> ErrorBox(state.error!!) { vm.submitCompare(postId) }
+            state.compareTable.isNotBlank() -> MarkdownTableView(state.compareTable)
+        }
+    }
+}
+
+/** Renders a markdown pipe table (header, separator, rows); any text outside the table is shown as markdown. */
+@Composable
+private fun MarkdownTableView(markdown: String) {
+    val lines = remember(markdown) { markdown.replace("\r\n", "\n").lines() }
+    val isTableLine = { l: String -> l.trim().startsWith("|") }
+    val tableLines = lines.filter(isTableLine)
+    val separator = Regex("^\\|?[\\s:|-]+\\|?$")
+    val rows = tableLines
+        .filterNot { separator.matches(it.trim()) }
+        .map { l -> l.trim().trim('|').split("|").map { it.trim() } }
+    val outside = lines.filterNot(isTableLine).joinToString("\n").trim()
+    if (rows.isNotEmpty()) {
+        val columns = rows.maxOf { it.size }
+        val outline = MaterialTheme.colorScheme.outlineVariant
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.dp, outline, RoundedCornerShape(12.dp))
+                .horizontalScroll(rememberScrollState())
+        ) {
+            rows.forEachIndexed { r, cells ->
+                Row(
+                    Modifier
+                        .height(IntrinsicSize.Min)
+                        .background(if (r == 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent)
+                ) {
+                    for (c in 0 until columns) {
+                        Text(
+                            text = cells.getOrElse(c) { "" }.replace("**", ""),
+                            fontWeight = if (r == 0 || c == 0) FontWeight.Bold else FontWeight.Normal,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .width(150.dp)
+                                .fillMaxHeight()
+                                .border(0.5.dp, outline)
+                                .padding(8.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+    if (outside.isNotEmpty()) {
+        Spacer(Modifier.height(12.dp))
+        ChatMarkdownText(text = outside, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

@@ -287,6 +287,8 @@ fun PostDetailScreen(
     var showAiToolsSheet by remember { mutableStateOf(false) }
     var showSentenceSelectPanel by remember { mutableStateOf(false) }
     var showTocDialog by remember { mutableStateOf(false) }
+    var showReadingSettings by remember { mutableStateOf(false) }
+    var readingPrefs by remember { mutableStateOf(com.tobiso.tobisoappnative.components.loadReadingPrefs(context)) }
 
     // Person card
     var personNameForSheet by remember { mutableStateOf<String?>(null) }
@@ -351,6 +353,10 @@ fun PostDetailScreen(
                             },
                             onDownloadClick = {
                                 postDetail?.id?.let { id -> downloadPdf(id) }
+                            },
+                            onReadingSettingsClick = { showReadingSettings = true },
+                            onCheatSheetClick = {
+                                postDetail?.id?.let { id -> vm.startDownloadAndSavePdf(id, cheatSheet = true) }
                             },
                             onShareClick = {
                                 postDetail?.let { post ->
@@ -492,6 +498,7 @@ fun PostDetailScreen(
                             )
 
                             // Nový custom markdown renderer
+                            com.tobiso.tobisoappnative.components.ReadingStyle(readingPrefs) {
                             SelectionContainer {
                             LazyColumn(
                                 state = lazyListState,
@@ -645,6 +652,18 @@ fun PostDetailScreen(
                                     Spacer(modifier = Modifier.height(120.dp))
                                 }
                             }
+                            }
+                            }
+
+                            if (showReadingSettings) {
+                                com.tobiso.tobisoappnative.components.ReadingSettingsSheet(
+                                    prefs = readingPrefs,
+                                    onChange = {
+                                        readingPrefs = it
+                                        com.tobiso.tobisoappnative.components.saveReadingPrefs(context, it)
+                                    },
+                                    onDismiss = { showReadingSettings = false }
+                                )
                             }
 
                             if (showTocDialog) {
