@@ -70,6 +70,20 @@ fun BulletPoint(text: String) {
 @Composable
 fun ChangelogScreen(navController: NavController) {
     val versions = listOf(
+        VersionInfo("4.1", listOf(
+            "nové AI nástroje: zkouškové otázky, klíčové pojmy, porovnání, „proč“, přepsání textu, souvislosti mezi články, řešení krok za krokem a myšlenková mapa",
+            "interaktivní kalkulačka vzorců s posuvníky",
+            "lepší vykreslování matematiky: zlomky, odmocniny, indexy, matice a vzorce v \\( … \\) a \\[ … \\], i v otázkách a AI odpovědích",
+            "podpora Vennových diagramů v článcích",
+            "přehrávání YouTube videí přímo v článku",
+            "čtení: nastavení písma, velikosti a šířky textu a celoobrazovkové zobrazení obrázků s přiblížením",
+            "tahák a článek ke stažení jako PDF",
+            "procvičování: doporučený režim, kvíz podle kategorie a přesnější výběr slabých míst s názvy kategorií",
+            "povinnosti a denní bonus",
+            "ruční řazení článků v kategoriích a preferovaný ročník",
+            "smazání účtu v profilu a upozornění na změnu podmínek",
+            "opravy načítání AI konverzací ze serveru"
+        )),
         VersionInfo("4.0", listOf(
             "nový design aplikace (Organic): nové barvy, tvary a písma",
             "volitelné uživatelské účty: přihlášení e-mailem nebo přes Google",
