@@ -45,6 +45,7 @@ import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.components.formatPointsBalance
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseSimulationRoute
 import com.tobiso.tobisoappnative.navigation.FlashcardDeckRoute
 import androidx.compose.material3.TextButton
 import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
@@ -725,6 +726,7 @@ private fun ExerciseCard(exercise: InteractiveExerciseResponse, modifier: Modifi
         "drag-drop" -> Icons.Rounded.DragIndicator to "Přetahování"
         "matching" -> Icons.Rounded.Link to "Přiřazování"
         "circuit" -> Icons.Rounded.ElectricalServices to "Obvod"
+        "simulation" -> Icons.Rounded.Extension to "Simulace"
         else -> Icons.Rounded.Extension to "Cvičení"
     }
     Card(
@@ -754,6 +756,7 @@ private fun navigateToExercise(navController: NavController, exercise: Interacti
         "drag-drop" -> navController.navigate(ExerciseDragDropRoute(exercise.id))
         "matching" -> navController.navigate(ExerciseMatchingRoute(exercise.id))
         "circuit" -> navController.navigate(ExerciseCircuitRoute(exercise.id))
+        "simulation" -> navController.navigate(ExerciseSimulationRoute(exercise.id))
     }
 }
 
@@ -768,6 +771,7 @@ private fun ExerciseRow(
         "drag-drop" -> Icons.Rounded.DragIndicator to "Přetahování"
         "matching" -> Icons.AutoMirrored.Rounded.CompareArrows to "Párování"
         "circuit" -> Icons.Rounded.AccountTree to "Obvod"
+        "simulation" -> Icons.Rounded.Extension to "Simulace"
         else -> Icons.Rounded.Extension to "Cvičení"
     }
     val subtitle = if (contextLabel != null) "$typeLabel · $contextLabel" else typeLabel

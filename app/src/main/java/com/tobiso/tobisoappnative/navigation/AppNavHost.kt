@@ -31,6 +31,7 @@ import com.tobiso.tobisoappnative.navigation.CategoryListRoute
 import com.tobiso.tobisoappnative.navigation.ChangelogRoute
 import com.tobiso.tobisoappnative.navigation.EventDetailRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseSimulationRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseMatchingRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
@@ -240,6 +241,19 @@ fun AppNavHost(
         ) { backStackEntry ->
             val route: ExerciseCircuitRoute = backStackEntry.toRoute()
             com.tobiso.tobisoappnative.screens.CircuitExerciseScreen(
+                exerciseId = route.exerciseId,
+                navController = navController,
+                ttsViewModel = ttsViewModel
+            )
+        }
+        composable<ExerciseSimulationRoute>(
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
+        ) { backStackEntry ->
+            val route: ExerciseSimulationRoute = backStackEntry.toRoute()
+            com.tobiso.tobisoappnative.screens.SimulationExerciseScreen(
                 exerciseId = route.exerciseId,
                 navController = navController,
                 ttsViewModel = ttsViewModel

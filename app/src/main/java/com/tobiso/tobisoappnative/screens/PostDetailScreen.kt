@@ -11,6 +11,7 @@ import timber.log.Timber
 
 import com.tobiso.tobisoappnative.navigation.AiChatRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
+import com.tobiso.tobisoappnative.navigation.ExerciseSimulationRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseMatchingRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
@@ -582,6 +583,7 @@ fun PostDetailScreen(
                                                         "drag-drop" -> navController.navigate(ExerciseDragDropRoute(exerciseId = id))
                                                         "matching" -> navController.navigate(ExerciseMatchingRoute(exerciseId = id))
                                                         "circuit" -> navController.navigate(ExerciseCircuitRoute(exerciseId = id))
+                                                        "simulation" -> navController.navigate(ExerciseSimulationRoute(exerciseId = id))
                                                         else -> android.widget.Toast.makeText(context, "Nepodporovaný typ cvičení: $type", android.widget.Toast.LENGTH_SHORT).show()
                                                     }
                                                 } catch (e: Exception) {

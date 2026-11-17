@@ -42,6 +42,7 @@ fun ExerciseButtonsRow(
                             "circuit" -> Icons.Rounded.ElectricalServices to "Obvod"
                             "drag-drop" -> Icons.Rounded.DragIndicator to "Přetahování"
                             "matching" -> Icons.Rounded.Link to "Přiřazování"
+                            "simulation" -> Icons.Rounded.Extension to "Simulace"
                             else -> Icons.Rounded.Extension to "Cvičení"
                         }
                         ExerciseTile(
