@@ -1,17 +1,23 @@
 package com.tobiso.tobisoappnative.components
 
 /**
- * Renders the common subset of the LaTeX that Tobiso authors write between `$…$` / `$$…$$` as plain
+ * Renders the common subset of the LaTeX that Tobiso authors write between `$…$` / `$$…$$` / `\\(…\\)` / `\\[…\\]` as plain
  * Unicode text (exponents, indices, fractions, roots, Greek letters, operators). A full KaTeX
  * engine would add megabytes and a WebView; this covers school-level math and degrades to readable
  * text for anything it doesn't know.
  */
-private val MATH_SPAN = Regex("""\$\$(.+?)\$\$|\$(?=\S)([^$\n]+?)(?<=\S)\$""", RegexOption.DOT_MATCHES_ALL)
+private val MATH_SPAN = Regex(
+    """\$\$(.+?)\$\$|\\\[(.+?)\\]|\\\((.+?)\\\)|\$(?=\S)([^$\n]+?)(?<=\S)\$""",
+    RegexOption.DOT_MATCHES_ALL
+)
 
 /** Replaces every math span in [text] with its Unicode rendering; text without `$` is returned untouched. */
 fun convertMathSpans(text: String): String =
-    if ('$' !in text) text
-    else MATH_SPAN.replace(text) { m -> latexToUnicode((m.groups[1] ?: m.groups[2])!!.value.trim()) }
+    if ('$' !in text && '\\' !in text) text
+    else MATH_SPAN.replace(text) { m ->
+        val body = (1..4).firstNotNullOf { m.groups[it]?.value }
+        latexToUnicode(body.replace(Regex("""\s*\n\s*"""), " ").trim())
+    }
 
 private val SUPERSCRIPTS = mapOf(
     '0' to '⁰', '1' to '¹', '2' to '²', '3' to '³', '4' to '⁴', '5' to '⁵', '6' to '⁶', '7' to '⁷', '8' to '⁸', '9' to '⁹',

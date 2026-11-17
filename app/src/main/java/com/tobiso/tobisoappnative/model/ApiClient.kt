@@ -85,7 +85,7 @@ object ApiClient {
                 val response = chain.proceed(request)
                 response.notifySessionExpiry()
                 if (!response.isSuccessful) {
-                    Timber.e("HTTP error: ${response.code} ${response.message}")
+                    Timber.e("HTTP error: ${response.code} ${response.message} ${request.method} ${request.url.encodedPath}")
                 }
                 response
             }

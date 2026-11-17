@@ -166,6 +166,12 @@ fun parseContentToElements(
         .trim()
     if (text.isBlank()) return emptyList()
 
+    // Display math \[ … \] may span several lines, which the line-based parser below can't see.
+    if (text.contains("\\[")) {
+        val converted = convertMathSpans(text)
+        if (converted != text) return parseContentToElements(converted, isOffline, posts, allowIntra)
+    }
+
     // Graph blocks first (like the web): park each behind a one-line marker so no other rule touches its source.
     if (text.contains("[graf", ignoreCase = true) || text.contains("[vyvoj", ignoreCase = true) || text.contains("[venn", ignoreCase = true)) {
         val replaced = replaceGraphBlocks(text)

@@ -4,6 +4,7 @@ import android.content.Context
 import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.Post
 import com.tobiso.tobisoappnative.model.PostVersion
+import kotlinx.coroutines.channels.awaitClose
 
 private const val GRADE_PREFS = "grade_prefs"
 private const val KEY_GRADE_ID = "preferred_grade_id"
@@ -12,6 +13,17 @@ fun loadGradeId(context: Context): Int? {
     val prefs = context.getSharedPreferences(GRADE_PREFS, Context.MODE_PRIVATE)
     val value = prefs.getInt(KEY_GRADE_ID, -1)
     return if (value == -1) null else value
+}
+
+/** Emits the global grade now and again whenever it changes (chip pick, account sync). */
+fun gradeIdFlow(context: Context): kotlinx.coroutines.flow.Flow<Int?> = kotlinx.coroutines.flow.callbackFlow {
+    val prefs = context.getSharedPreferences(GRADE_PREFS, Context.MODE_PRIVATE)
+    val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == KEY_GRADE_ID) trySend(loadGradeId(context))
+    }
+    prefs.registerOnSharedPreferenceChangeListener(listener)
+    trySend(loadGradeId(context))
+    awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
 }
 
 fun saveGradeId(context: Context, gradeId: Int?) {

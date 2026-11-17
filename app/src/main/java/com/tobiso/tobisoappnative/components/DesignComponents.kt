@@ -363,12 +363,13 @@ fun GradeChip(filled: Boolean, modifier: Modifier = Modifier) {
     val vm: com.tobiso.tobisoappnative.viewmodel.profile.ProfileViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
     val grades by vm.grades.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
-    var selectedId by androidx.compose.runtime.remember {
-        androidx.compose.runtime.mutableStateOf(com.tobiso.tobisoappnative.utils.loadGradeId(context))
-    }
+    val selectedId by androidx.compose.runtime.remember(context) {
+        com.tobiso.tobisoappnative.utils.gradeIdFlow(context)
+    }.collectAsStateWithLifecycle(initialValue = com.tobiso.tobisoappnative.utils.loadGradeId(context))
     var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.loadGrades() }
-    val name = grades.firstOrNull { it.id == selectedId }?.name ?: return
+    if (grades.isEmpty()) return
+    val name = grades.firstOrNull { it.id == selectedId }?.name ?: "Vyber ročník"
     val scheme = MaterialTheme.colorScheme
     Row(
         modifier = modifier
@@ -400,7 +401,6 @@ fun GradeChip(filled: Boolean, modifier: Modifier = Modifier) {
             grades = grades,
             activeGradeId = selectedId,
             onSelect = {
-                selectedId = it.id
                 vm.selectGrade(it.id)
                 open = false
             },

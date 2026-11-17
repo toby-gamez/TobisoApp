@@ -103,4 +103,16 @@ class CalloutAndMathTest {
     fun `a lone dollar sign is not math`() {
         assertEquals("Stojí to 5 \$ a 6 \$", convertMathSpans("Stojí to 5 \$ a 6 \$"))
     }
+
+    @Test
+    fun `backslash-paren and backslash-bracket delimiters are converted`() {
+        assertEquals("K je energie, K = 1/2 mv².", convertMathSpans("\\( K \\) je energie, \\( K = \\frac{1}{2} mv^2 \\)."))
+        assertEquals("E = 1/2 mv² - GMm/r", convertMathSpans("\\[\nE = \\frac{1}{2} mv^2 -\n\\frac{GMm}{r}\n\\]"))
+    }
+
+    @Test
+    fun `multi-line display math becomes one paragraph`() {
+        val p = parse("\\[\nx^2 + y^2 = r^2\n\\]").single() as ContentElement.Paragraph
+        assertEquals("x² + y² = r²", inlinePartsToText(p.parts))
+    }
 }
