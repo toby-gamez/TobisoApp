@@ -48,6 +48,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.unit.sp
 import com.tobiso.tobisoappnative.components.GradeBadge
 import com.tobiso.tobisoappnative.utils.loadGradeId
+import com.tobiso.tobisoappnative.utils.orderedByManualOrder
 import com.tobiso.tobisoappnative.viewmodel.categorylist.CategoryListViewModel
 
 @Composable
@@ -144,14 +145,14 @@ fun CategoryListScreen(
                 }
                 else -> {
                     val isSorted = !parentCategory?.sortLabel.isNullOrBlank()
-                    fun sortOrderOf(item: Any): Int = when (item) {
+                    fun sortOrderOf(item: Any): Int? = when (item) {
                         is PostSummaryResponse -> item.sortOrder
                         is Post -> item.sortOrder
                         else -> null
-                    } ?: Int.MAX_VALUE
+                    }
                     val unsortedItems: List<Any> = if (filteredSummaries.isNotEmpty()) filteredSummaries else filteredPosts
                     // Ruční pořadí platí jen v kategorii s popiskem řazení (stejně jako na webu)
-                    val allItems: List<Any> = if (isSorted) unsortedItems.sortedBy { sortOrderOf(it) } else unsortedItems
+                    val allItems: List<Any> = unsortedItems.orderedByManualOrder(isSorted, ::sortOrderOf)
                     fun titleOf(item: Any): String = when (item) {
                         is PostSummaryResponse -> item.title
                         is Post -> item.title

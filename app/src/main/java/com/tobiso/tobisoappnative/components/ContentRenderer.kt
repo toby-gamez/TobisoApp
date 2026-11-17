@@ -149,7 +149,26 @@ fun ElementRenderer(
         }
         is ContentElement.CodeBlock -> {
             Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small).padding(12.dp)) {
-                Text(text = element.code, style = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color = MaterialTheme.colorScheme.onBackground))
+                val codeStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color = MaterialTheme.colorScheme.onBackground)
+                if (element.code.none { it == '/' }) {
+                    Text(text = element.code, style = codeStyle)
+                } else {
+                    // Lines with fractions (1/2, {a+b}/{c}) are rendered through the inline renderer; the rest stay plain text.
+                    Column {
+                        element.code.split("\n").forEach { line ->
+                            val indent = line.takeWhile { it == ' ' || it == '\t' }
+                            val parts = remember(line) { parseCodeSpan(line.drop(indent.length)) }
+                            if (hasFraction(parts)) {
+                                Row {
+                                    if (indent.isNotEmpty()) Text(text = indent, style = codeStyle)
+                                    RenderInlinePartsRow(parts = parts, style = codeStyle, linkColor = Color.Unspecified)
+                                }
+                            } else {
+                                Text(text = line.ifEmpty { " " }, style = codeStyle)
+                            }
+                        }
+                    }
+                }
             }
         }
         is ContentElement.BlockQuote -> { 
@@ -598,10 +617,14 @@ private fun RenderTableCell(cell: String, isOffline: Boolean, posts: List<Post>)
         if (isBlocked) {
             Text(text = "[${alt.ifBlank { "obrázek" }}]", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground))
         } else {
+            var showLightbox by remember { mutableStateOf(false) }
+            if (showLightbox) {
+                ImageLightbox(model = resolvedUrl, contentDescription = alt, caption = alt.takeIf { it.isNotBlank() }, source = null, onDismiss = { showLightbox = false })
+            }
             LoadingAsyncImage(
                 model = resolvedUrl,
                 contentDescription = alt,
-                modifier = Modifier.fillMaxWidth().heightIn(max = 120.dp)
+                modifier = Modifier.fillMaxWidth().heightIn(max = 120.dp).clickable { showLightbox = true }
             )
         }
     } else {
@@ -675,6 +698,31 @@ private fun segmentParts(parts: List<InlinePart>): List<InlineSegment> {
 
 private fun hasFraction(parts: List<InlinePart>) = parts.any { it is InlinePart.Fraction }
 private fun hasPersonMention(parts: List<InlinePart>) = parts.any { it is InlinePart.PersonMention }
+
+/**
+ * Text with the article inline syntax (fractions, <sub>/<sup>, bold...) for questions and answers.
+ * Plain strings take the cheap path through a regular Text.
+ */
+@Composable
+fun RichInlineText(
+    text: String,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified
+) {
+    val resolved = if (color == Color.Unspecified) style else style.copy(color = color)
+    if (text.none { it == '<' || it == '{' || it == '/' }) {
+        Text(text, style = resolved, modifier = modifier)
+        return
+    }
+    val parts = remember(text) { parseInlineParts(text) }
+    if (hasFraction(parts)) {
+        RenderInlinePartsRow(parts = parts, style = resolved, linkColor = Color.Unspecified, modifier = modifier)
+    } else {
+        val annotated = remember(parts) { buildAnnotatedStringFromParts(parts) }
+        Text(annotated, style = resolved, modifier = modifier)
+    }
+}
 
 @Composable
 private fun RenderInlinePartsRow(

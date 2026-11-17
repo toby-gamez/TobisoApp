@@ -32,7 +32,7 @@ fun ChatMarkdownText(
     modifier: Modifier = Modifier
 ) {
     val codeBg = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-    val annotated = remember(text, color, codeBg) { markdownToAnnotated(text, codeBg) }
+    val annotated = remember(text, color, codeBg) { markdownToAnnotated(convertMathSpans(text), codeBg) }
     SelectionContainer {
         Text(text = annotated, style = style, color = color, modifier = modifier)
     }

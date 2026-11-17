@@ -30,6 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -267,7 +268,7 @@ fun AnswerRow(
         ) {
             Text(letter.toString(), fontWeight = FontWeight.Bold, color = letterColor)
         }
-        Text(text, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = scheme.onSurface, modifier = Modifier.weight(1f))
+        RichInlineText(text, style = LocalTextStyle.current.copy(fontSize = 16.sp, fontWeight = FontWeight.Medium), color = scheme.onSurface, modifier = Modifier.weight(1f))
         androidx.compose.animation.AnimatedVisibility(
             visible = state == AnswerState.Correct || state == AnswerState.Wrong,
             enter = androidx.compose.animation.scaleIn(androidx.compose.animation.core.spring(dampingRatio = 0.4f)) + androidx.compose.animation.fadeIn(),
@@ -400,7 +401,7 @@ fun GradeChip(filled: Boolean, modifier: Modifier = Modifier) {
             activeGradeId = selectedId,
             onSelect = {
                 selectedId = it.id
-                com.tobiso.tobisoappnative.utils.saveGradeId(context, it.id)
+                vm.selectGrade(it.id)
                 open = false
             },
             onDismiss = { open = false }

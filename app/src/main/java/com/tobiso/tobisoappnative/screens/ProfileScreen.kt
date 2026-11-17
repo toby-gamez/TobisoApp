@@ -1676,6 +1676,7 @@ private fun AccountSection(navController: NavController) {
     val vm: AccountViewModel = hiltViewModel()
     var confirmLogout by remember { mutableStateOf(false) }
     var confirmLogoutAll by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     ProfileSectionHeader("Účet")
@@ -1730,6 +1731,13 @@ private fun AccountSection(navController: NavController) {
                 subtitle = "Ukončí všechna přihlášení tohoto účtu",
                 onClick = { confirmLogoutAll = true }
             )
+            ProfileDivider()
+            ProfileNavRow(
+                icon = Icons.Rounded.DeleteForever,
+                title = "Smazat účet",
+                subtitle = "Trvale smaže účet a všechna jeho data",
+                onClick = { confirmDelete = true }
+            )
         }
     }
     if (confirmLogout) {
@@ -1746,6 +1754,26 @@ private fun AccountSection(navController: NavController) {
                 }) { Text("Odhlásit") }
             },
             dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text("Zrušit") } }
+        )
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Smazat účet?") },
+            text = { Text("Účet i všechna jeho data (postup, poznámky, záložky, AI konverzace, třída) se trvale smažou na serveru i v tomto zařízení. Tuto akci nelze vrátit. Doporučujeme si nejdřív exportovat data.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    vm.deleteAccount { ok ->
+                        android.widget.Toast.makeText(
+                            context,
+                            if (ok) "Účet byl smazán." else "Účet se nepodařilo smazat (je potřeba připojení k internetu).",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }) { Text("Smazat navždy", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Zrušit") } }
         )
     }
     if (confirmLogoutAll) {

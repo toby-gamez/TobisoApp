@@ -872,6 +872,11 @@ fun PostDetailScreen(
             com.tobiso.tobisoappnative.components.AiToolsBottomSheet(
                 postId = postId,
                 onDismiss = { showAiToolsSheet = false },
+                navController = navController,
+                onSignIn = {
+                    showAiToolsSheet = false
+                    navController.navigate(com.tobiso.tobisoappnative.navigation.AuthRoute)
+                },
                 onEnterSentenceSelectMode = {
                     showAiToolsSheet = false
                     aiToolsVm.clearExplain()

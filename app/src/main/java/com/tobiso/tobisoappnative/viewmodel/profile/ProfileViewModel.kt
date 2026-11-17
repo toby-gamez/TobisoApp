@@ -3,9 +3,12 @@ package com.tobiso.tobisoappnative.viewmodel.profile
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.model.Grade
 import com.tobiso.tobisoappnative.model.Post
+import com.tobiso.tobisoappnative.repository.AuthRepository
 import com.tobiso.tobisoappnative.repository.OfflineRepositoryImpl
+import com.tobiso.tobisoappnative.utils.saveGradeId
 import com.tobiso.tobisoappnative.repository.PostsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +26,15 @@ class ProfileViewModel @Inject constructor(
     application: Application,
     private val postsRepo: PostsRepository,
     private val offlineRepo: OfflineRepositoryImpl,
+    private val authRepo: AuthRepository,
 ) : AndroidViewModel(application) {
+
+    /** Stores the chosen grade on this device and, when signed in, on the account. */
+    fun selectGrade(gradeId: Int) {
+        saveGradeId(getApplication(), gradeId)
+        if (!AuthSession.isSignedIn) return
+        viewModelScope.launch(Dispatchers.IO) { authRepo.setPreferredGrade(gradeId) }
+    }
 
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> = _posts

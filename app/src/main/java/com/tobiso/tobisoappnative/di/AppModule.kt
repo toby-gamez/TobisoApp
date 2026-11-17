@@ -121,7 +121,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(api: ApiService): AuthRepository = AuthRepositoryImpl(api)
+    fun provideAuthRepository(api: ApiService, @ApplicationContext context: Context): AuthRepository = AuthRepositoryImpl(api, context)
 
     @Provides
     @Singleton

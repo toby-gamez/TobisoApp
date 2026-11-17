@@ -22,8 +22,37 @@ data class StudentProfile(
     val displayName: String,
     val email: String = "",
     val credits: Int = 0,
-    val role: String = "student"
+    val role: String = "student",
+    val preferredGradeId: Int? = null
 )
+
+/**
+ * `GET user/legal-notice` / body of `POST user/legal-notice/dismiss`. [changedAt] is the server's timestamp kept as the
+ * raw string so that dismissing echoes exactly what was received; null means nothing is pending.
+ */
+@Serializable
+data class LegalNoticeDto(val changedAt: String? = null)
+
+/** `GET practice/stats`: the account's answered / mastered counts across all questions. */
+@Serializable
+data class PracticeStats(
+    val totalQuestions: Int = 0,
+    val attemptedCount: Int = 0,
+    val masteredCount: Int = 0,
+    val accuracyPercent: Double = 0.0
+)
+
+/** Body of `POST practice/attempt`: one flashcard answer ("Umím" = [correct]). */
+@Serializable
+data class PracticeAttemptRequest(val questionId: Int, val correct: Boolean)
+
+/** Body of `DELETE user`; the server refuses the deletion unless [confirm] is true. */
+@Serializable
+data class DeleteAccountRequest(val confirm: Boolean)
+
+/** Body of `PUT user/preferred-grade`; a null [gradeId] clears the account's grade. */
+@Serializable
+data class PreferredGradeRequest(val gradeId: Int?)
 
 @Serializable
 data class ReadProgressRequest(val postId: Int, val scrollPercent: Int)

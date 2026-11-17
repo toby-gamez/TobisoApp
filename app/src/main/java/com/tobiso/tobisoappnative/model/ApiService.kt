@@ -186,6 +186,55 @@ interface ApiService {
         @Body request: CompareRequest
     ): CompareResponse
 
+    @POST("ai/why")
+    suspend fun explainWhy(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: WhyRequest
+    ): WhyResponse
+
+    @POST("ai/rewrite-grade")
+    suspend fun rewriteForGrade(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: RewriteGradeRequest
+    ): RewriteResponse
+
+    @POST("ai/rewrite-register")
+    suspend fun rewriteForRegister(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Body request: RewriteRegisterRequest
+    ): RewriteResponse
+
+    @GET("ai/formula-vars/{postId}")
+    suspend fun getFormulaVars(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): FormulaVarsResponse
+
+    @GET("ai/cross-connections/{postId}")
+    suspend fun getCrossConnections(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): CrossConnectionResponse
+
+    @GET("ai/step-solver/{postId}")
+    suspend fun getStepSolver(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): StepSolverResponse
+
+    @GET("ai/concept-map/{postId}")
+    suspend fun getConceptMap(
+        @retrofit2.http.Header("X-Client-Id") clientId: String,
+        @retrofit2.http.Header("X-Device-Id") deviceId: String,
+        @Path("postId") postId: Int
+    ): ConceptMapResponse
+
     @POST("ai/what-if")
     suspend fun getWhatIfScenario(
         @retrofit2.http.Header("X-Client-Id") clientId: String,
@@ -317,6 +366,33 @@ interface ApiService {
     /** Empty content deletes the note. */
     @retrofit2.http.PUT("user/notes/{postId}")
     suspend fun saveNote(@Path("postId") postId: Int, @Body note: UserNote): retrofit2.Response<Unit>
+
+    /** Permanently deletes the signed-in account and its server-side data (204). */
+    @retrofit2.http.HTTP(method = "DELETE", path = "user", hasBody = true)
+    suspend fun deleteAccount(@Body request: DeleteAccountRequest): retrofit2.Response<Unit>
+
+    /** Flashcard-eligible questions, unmastered first for a signed-in student; [categoryId] includes its subtree. */
+    @GET("practice/flashcards")
+    suspend fun getFlashcardDeck(@retrofit2.http.Query("categoryId") categoryId: Int?, @retrofit2.http.Query("count") count: Int?): List<Question>
+
+    /** Questions from the account's weakest categories (needs sign-in). */
+    @GET("practice/recommended")
+    suspend fun getRecommendedQuestions(@retrofit2.http.Query("count") count: Int?): List<Question>
+
+    @GET("practice/stats")
+    suspend fun getPracticeStats(): PracticeStats
+
+    @POST("practice/attempt")
+    suspend fun recordPracticeAttempt(@Body request: PracticeAttemptRequest): retrofit2.Response<Unit>
+
+    @GET("user/legal-notice")
+    suspend fun getLegalNotice(): LegalNoticeDto
+
+    @POST("user/legal-notice/dismiss")
+    suspend fun dismissLegalNotice(@Body request: LegalNoticeDto): retrofit2.Response<Unit>
+
+    @retrofit2.http.PUT("user/preferred-grade")
+    suspend fun setPreferredGrade(@Body request: PreferredGradeRequest): retrofit2.Response<Unit>
 
     @GET("user/stats")
     suspend fun getUserStats(): UserStats

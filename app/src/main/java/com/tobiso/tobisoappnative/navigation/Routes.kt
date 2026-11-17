@@ -73,6 +73,10 @@ object AllQuestionsRoute
 @Serializable
 data class MixedQuizRoute(val questionIds: String)
 
+/** Flashcard deck; the whole category subtree when [categoryId] is set, otherwise a mix. */
+@Serializable
+data class FlashcardDeckRoute(val categoryId: Int? = null, val categoryName: String? = null)
+
 @Serializable
 data class EventDetailRoute(val eventId: Int)
 

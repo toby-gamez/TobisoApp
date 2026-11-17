@@ -37,6 +37,7 @@ import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
 import com.tobiso.tobisoappnative.navigation.FavoritesRoute
 import com.tobiso.tobisoappnative.navigation.FeedbackRoute
 import com.tobiso.tobisoappnative.navigation.HomeRoute
+import com.tobiso.tobisoappnative.navigation.FlashcardDeckRoute
 import com.tobiso.tobisoappnative.navigation.MixedQuizRoute
 import com.tobiso.tobisoappnative.navigation.OfflineManagerRoute
 import com.tobiso.tobisoappnative.navigation.PostDetailRoute
@@ -298,6 +299,19 @@ fun AppNavHost(
             val route: MixedQuizRoute = backStackEntry.toRoute()
             com.tobiso.tobisoappnative.screens.MixedQuizScreen(
                 questionIds = route.questionIds,
+                navController = navController
+            )
+        }
+        composable<FlashcardDeckRoute>(
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(400)) },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(400)) },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(400)) },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) }
+        ) { backStackEntry ->
+            val route: FlashcardDeckRoute = backStackEntry.toRoute()
+            com.tobiso.tobisoappnative.screens.FlashcardDeckScreen(
+                categoryId = route.categoryId,
+                categoryName = route.categoryName,
                 navController = navController
             )
         }

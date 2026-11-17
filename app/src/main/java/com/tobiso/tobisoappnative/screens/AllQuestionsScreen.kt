@@ -45,6 +45,8 @@ import com.tobiso.tobisoappnative.components.MultiplierIndicator
 import com.tobiso.tobisoappnative.components.formatPointsBalance
 import com.tobiso.tobisoappnative.model.InteractiveExerciseResponse
 import com.tobiso.tobisoappnative.navigation.ExerciseCircuitRoute
+import com.tobiso.tobisoappnative.navigation.FlashcardDeckRoute
+import androidx.compose.material3.TextButton
 import com.tobiso.tobisoappnative.navigation.ExerciseDragDropRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseMatchingRoute
 import com.tobiso.tobisoappnative.navigation.ExerciseTimelineRoute
@@ -170,6 +172,11 @@ private fun PracticeHubContent(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val signedIn by com.tobiso.tobisoappnative.model.AuthSession.user.collectAsStateWithLifecycle()
+    val practiceStats by vm.practiceStats.collectAsStateWithLifecycle()
+    LaunchedEffect(signedIn) { vm.loadPracticeStats() }
+
     val visibleExercises = remember(allExercises) { allExercises.filter { it.type != "circuit" } }
     var exercisesExpanded by remember { mutableStateOf(false) }
     val displayedExercises = if (exercisesExpanded) visibleExercises else visibleExercises.take(3)
@@ -195,6 +202,12 @@ private fun PracticeHubContent(
                             navController.navigate(MixedQuizRoute(ids.joinToString(",")))
                         }
                     },
+                    onFlashcards = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            sheetCategoryId = null
+                            navController.navigate(FlashcardDeckRoute(cat.id, cat.name))
+                        }
+                    },
                     onNavigateExercise = { exercise ->
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             sheetCategoryId = null
@@ -215,6 +228,16 @@ private fun PracticeHubContent(
         item {
             QuickActionsSection(
                 totalCount = allQuestionsCount,
+                accountStats = practiceStats,
+                onFlashcards = { navController.navigate(FlashcardDeckRoute()) },
+                onRecommended = if (signedIn != null) {
+                    {
+                        vm.loadRecommendedQuestionIds { ids ->
+                            if (ids.isNotEmpty()) navController.navigate(MixedQuizRoute(ids.joinToString(",")))
+                            else android.widget.Toast.makeText(context, "Doporučené otázky se nepodařilo načíst.", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else null,
                 onQuickDrill = {
                     val ids = vm.getRandomQuestionIds(10)
                     if (ids.isNotEmpty()) navController.navigate(MixedQuizRoute(ids.joinToString(",")))
@@ -314,6 +337,7 @@ private fun TopicSheet(
     categoryExercisesMap: Map<Int, List<InteractiveExerciseResponse>>,
     allCategories: List<com.tobiso.tobisoappnative.model.Category>,
     onLaunch: (List<Int>) -> Unit,
+    onFlashcards: () -> Unit,
     onNavigateExercise: (InteractiveExerciseResponse) -> Unit
 ) {
     val subjectIcon = IconPackManager.getSubjectIcon(category.name)
@@ -354,7 +378,13 @@ private fun TopicSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        TextButton(onClick = onFlashcards, modifier = Modifier.padding(top = 8.dp)) {
+            Icon(Icons.Rounded.Style, null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Kartičky z tohoto tématu")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Quick count chips
         Text(
@@ -556,6 +586,9 @@ private fun SubcategoryRow(
 @Composable
 private fun QuickActionsSection(
     totalCount: Int,
+    accountStats: com.tobiso.tobisoappnative.model.PracticeStats?,
+    onFlashcards: () -> Unit,
+    onRecommended: (() -> Unit)?,
     onQuickDrill: () -> Unit,
     onDailyChallenge: () -> Unit,
     onAll: () -> Unit,
@@ -594,9 +627,21 @@ private fun QuickActionsSection(
         ) {
             AssistChip(onClick = onDailyChallenge, label = { Text("Denní výzva · 20") }, shape = RoundedCornerShape(10.dp))
             AssistChip(onClick = onAll, label = { Text("Vše · $totalCount") }, shape = RoundedCornerShape(10.dp))
+            AssistChip(onClick = onFlashcards, label = { Text("Kartičky") }, shape = RoundedCornerShape(10.dp))
+            if (onRecommended != null) {
+                AssistChip(onClick = onRecommended, label = { Text("Doporučené z účtu") }, shape = RoundedCornerShape(10.dp))
+            }
             if (onRandomExercise != null) {
                 AssistChip(onClick = onRandomExercise, label = { Text("Náhodné cvičení") }, shape = RoundedCornerShape(10.dp))
             }
+        }
+        if (accountStats != null && accountStats.attemptedCount > 0) {
+            Text(
+                "V účtu: zodpovězeno ${accountStats.attemptedCount} z ${accountStats.totalQuestions} · " +
+                    "${accountStats.accuracyPercent.toInt()} % úspěšnost · ${accountStats.masteredCount} zvládnuto",
+                fontSize = 12.sp,
+                color = scheme.onSurfaceVariant
+            )
         }
     }
 }

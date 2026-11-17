@@ -746,7 +746,7 @@ fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePar
  * Content of a `code span`. Stays monospace, but fractions (1/2, {a+b}/{c}) inside it are still parsed into
  * [InlinePart.Fraction]s. Spans containing `*` skip this so code like `a*b*c` isn't turned into italics.
  */
-private fun parseCodeSpan(inner: String, posts: List<Post>?): List<InlinePart> {
+internal fun parseCodeSpan(inner: String, posts: List<Post>? = null): List<InlinePart> {
     if (!inner.contains('/') || inner.contains('*')) return listOf(InlinePart.Code(inner))
     fun asCode(parts: List<InlinePart>): List<InlinePart> = parts.map { part ->
         when (part) {

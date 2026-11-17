@@ -41,7 +41,19 @@ private val SYMBOLS = mapOf(
 )
 
 /** Commands that just wrap their argument (the argument is kept, the command is dropped). */
-private val TRANSPARENT = setOf("text", "mathrm", "mathbf", "mathit", "textbf", "textit", "operatorname", "mathbb", "mathcal", "boldsymbol", "vec", "overrightarrow")
+private val TRANSPARENT = setOf("text", "mathrm", "mathbf", "mathit", "textbf", "textit", "operatorname", "mathbb", "mathcal", "boldsymbol", "vec", "overrightarrow", "underline", "boxed", "mathsf", "mathtt")
+
+/** Environments drawn as a bracketed block, with the glyphs for [top], [middle] and [bottom] rows of the bracket pair. */
+private class Brackets(val left: String, val right: String)
+private val MATRIX_BRACKETS = mapOf(
+    "pmatrix" to Triple(Brackets("⎛", "⎞"), Brackets("⎜", "⎟"), Brackets("⎝", "⎠")),
+    "bmatrix" to Triple(Brackets("⎡", "⎤"), Brackets("⎢", "⎥"), Brackets("⎣", "⎦")),
+    "vmatrix" to Triple(Brackets("│", "│"), Brackets("│", "│"), Brackets("│", "│")),
+    "Vmatrix" to Triple(Brackets("‖", "‖"), Brackets("‖", "‖"), Brackets("‖", "‖")),
+    "matrix" to Triple(Brackets("", ""), Brackets("", ""), Brackets("", ""))
+)
+private val ALIGNED_ENVS = setOf("aligned", "align", "align*", "gathered", "split", "eqnarray", "array")
+private val ROW_SEPARATOR = Regex("""\\\\""")
 private val DROPPED = setOf("left", "right", "displaystyle", "big", "Big", "bigg", "Bigg", "limits")
 
 fun latexToUnicode(latex: String): String = LatexParser(latex).parse().trim()
@@ -127,11 +139,54 @@ private class LatexParser(private val s: String) {
                 val root = when (index) { null, "2" -> "√"; "3" -> "∛"; "4" -> "∜"; else -> "${index.map { SUPERSCRIPTS[it] ?: it }.joinToString("")}√" }
                 root + wrapIfComposite(a)
             }
+            name == "begin" -> environment()
+            name == "binom" || name == "dbinom" || name == "tbinom" -> {
+                val a = argument(); val b = argument()
+                "C($a, $b)"
+            }
             name in TRANSPARENT -> argument()
             name in DROPPED -> { skipDelimiterSpace(); "" }
             name == "overline" || name == "bar" -> argument().map { "$it̅" }.joinToString("")
             name == "hat" -> argument() + "̂"
             else -> SYMBOLS[name] ?: name
+        }
+    }
+
+    /** `\begin{name} … \end{name}`: matrices and cases become multi-line text; aligned equations drop their `&` anchors. */
+    private fun environment(): String {
+        val name = argument().ifEmpty { return "" }
+        val end = "\\end{$name}"
+        val close = s.indexOf(end, i)
+        val body = if (close >= 0) s.substring(i, close) else s.substring(i)
+        i = if (close >= 0) close + end.length else s.length
+        val rows = body.split(ROW_SEPARATOR).map { it.trim() }.filter { it.isNotEmpty() }
+        val cells = rows.map { row -> row.split('&').map { LatexParser(it.trim()).parse().trim() } }
+        return when {
+            rows.isEmpty() -> ""
+            name in MATRIX_BRACKETS -> {
+                val (top, mid, bottom) = MATRIX_BRACKETS.getValue(name)
+                "\n" + cells.mapIndexed { index, row ->
+                    val b = when {
+                        cells.size == 1 -> Brackets(top.left.replace('⎛', '(').replace('⎡', '['), top.right.replace('⎞', ')').replace('⎤', ']'))
+                        index == 0 -> top
+                        index == cells.size - 1 -> bottom
+                        else -> mid
+                    }
+                    "${b.left} ${row.joinToString("   ")} ${b.right}".trim()
+                }.joinToString("\n") + "\n"
+            }
+            name == "cases" -> "\n" + cells.mapIndexed { index, row ->
+                val glyph = when {
+                    cells.size == 1 -> "{"
+                    index == 0 -> "⎧"
+                    index == cells.size - 1 -> "⎩"
+                    cells.size == 2 -> "⎩"
+                    else -> "⎨"
+                }
+                "$glyph ${row.joinToString("   ")}"
+            }.joinToString("\n") + "\n"
+            name in ALIGNED_ENVS -> "\n" + cells.joinToString("\n") { it.joinToString(" ") } + "\n"
+            else -> cells.joinToString("; ") { it.joinToString(" ") }
         }
     }
 

@@ -45,6 +45,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import com.tobiso.tobisoappnative.components.ArticleOfDayCard
 import com.tobiso.tobisoappnative.components.ContinueReadingCard
+import com.tobiso.tobisoappnative.components.LEGAL_DOCUMENTS_URL
+import com.tobiso.tobisoappnative.components.LegalChangeBanner
 import com.tobiso.tobisoappnative.components.cozyEntrance
 import com.tobiso.tobisoappnative.components.cozyPress
 import com.tobiso.tobisoappnative.components.CozyTabs
@@ -186,6 +188,10 @@ fun HomeScreen(navController: NavHostController) {
     val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val vm: HomeViewModel = hiltViewModel()
+    val accountVm: com.tobiso.tobisoappnative.viewmodel.auth.AccountViewModel = hiltViewModel()
+    val legalChangedAt by accountVm.legalChangedAt.collectAsStateWithLifecycle()
+    val signedInUser by com.tobiso.tobisoappnative.model.AuthSession.user.collectAsStateWithLifecycle()
+    LaunchedEffect(signedInUser) { accountVm.loadLegalNotice() }
     var sortMode by remember { mutableStateOf(loadSortMode(context)) }
     val state by vm.uiState.collectAsStateWithLifecycle()
     val categories = state.categories
@@ -289,6 +295,22 @@ fun HomeScreen(navController: NavHostController) {
                                     )
                                 }
                             )
+                            if (legalChangedAt != null) {
+                                LegalChangeBanner(
+                                    changedAt = legalChangedAt!!,
+                                    onRead = {
+                                        accountVm.dismissLegalNotice()
+                                        runCatching {
+                                            context.startActivity(
+                                                android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(LEGAL_DOCUMENTS_URL))
+                                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            )
+                                        }
+                                    },
+                                    onDismiss = accountVm::dismissLegalNotice,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                            }
                             state.continueReading?.let {
                                 ContinueReadingCard(
                                     item = it,

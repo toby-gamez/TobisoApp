@@ -16,7 +16,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 enum class AiTool {
-    FLASHCARDS, REAL_WORLD, WHAT_IF, FEYNMAN, EXPLAIN, PRACTICE, EXAM_SUMMARY, EXAM_QUESTIONS, KEY_TERMS, COMPARE, FUN_FACTS, NOTES, POMODORO
+    FLASHCARDS, REAL_WORLD, WHAT_IF, FEYNMAN, EXPLAIN, PRACTICE, EXAM_SUMMARY, EXAM_QUESTIONS, KEY_TERMS, COMPARE, WHY, REWRITE, FORMULAS, CROSS_CONNECTIONS, STEP_SOLVER, CONCEPT_MAP, FUN_FACTS, NOTES, POMODORO
 }
 
 data class AiToolsState(
@@ -56,6 +56,18 @@ data class AiToolsState(
     val keyTerms: List<KeyTerm> = emptyList(),
     val compareTo: String = "",
     val compareTable: String = "",
+    // Why / rewrite / formulas / cross connections
+    val whySentence: String = "",
+    val whyResult: String = "",
+    val grades: List<Grade> = emptyList(),
+    val rewriteSelected: String = "",
+    val rewriteContent: String = "",
+    val formulas: List<FormulaEntry> = emptyList(),
+    val crossConnections: List<CrossConnection> = emptyList(),
+    // Step solver / concept map
+    val solverSteps: List<SolverStep> = emptyList(),
+    val conceptNodes: List<ConceptNode> = emptyList(),
+    val conceptEdges: List<ConceptEdge> = emptyList(),
     // Notes (signed-in students)
     val noteText: String = "",
     val noteSaved: Boolean = false,
@@ -299,6 +311,118 @@ class AiToolsViewModel @Inject constructor(private val api: ApiService) : ViewMo
             } catch (e: Exception) {
                 Timber.e(e, "submitCompare")
                 _state.update { it.copy(isLoading = false, error = "Srovnání se nepodařilo vytvořit.") }
+            }
+        }
+    }
+
+    // ── Why ───────────────────────────────────────────────────────────────────
+
+    fun setWhySentence(t: String) = _state.update { it.copy(whySentence = t) }
+
+    fun submitWhy(postId: Int) {
+        val sentence = _state.value.whySentence.trim()
+        if (sentence.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, whyResult = "") }
+            try {
+                val response = api.explainWhy(clientId, deviceId, WhyRequest(postId, sentence))
+                _state.update { it.copy(isLoading = false, whyResult = response.explanation) }
+            } catch (e: Exception) {
+                Timber.e(e, "submitWhy")
+                _state.update { it.copy(isLoading = false, error = "Vysvětlení se nepodařilo vygenerovat.") }
+            }
+        }
+    }
+
+    // ── Rewrite (register / grade) ────────────────────────────────────────────
+
+    fun loadGrades() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val grades = api.getGrades().sortedBy { it.level }
+                _state.update { it.copy(grades = grades) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadGrades")
+            }
+        }
+    }
+
+    /** [key] is "register:<simple|student|expert>" or "grade:<level>"; it also marks the selected chip. */
+    fun rewrite(postId: Int, key: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, rewriteSelected = key, rewriteContent = "") }
+            try {
+                val kind = key.substringBefore(':')
+                val value = key.substringAfter(':')
+                val response = if (kind == "grade") {
+                    api.rewriteForGrade(clientId, deviceId, RewriteGradeRequest(postId, value.toInt()))
+                } else {
+                    api.rewriteForRegister(clientId, deviceId, RewriteRegisterRequest(postId, value))
+                }
+                _state.update { it.copy(isLoading = false, rewriteContent = response.content) }
+            } catch (e: Exception) {
+                Timber.e(e, "rewrite")
+                _state.update { it.copy(isLoading = false, error = "Článek se nepodařilo přepsat.") }
+            }
+        }
+    }
+
+    // ── Formulas ──────────────────────────────────────────────────────────────
+
+    fun loadFormulas(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, formulas = emptyList()) }
+            try {
+                val response = api.getFormulaVars(clientId, deviceId, postId)
+                _state.update { it.copy(isLoading = false, formulas = response.formulas) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadFormulas")
+                _state.update { it.copy(isLoading = false, error = "Vzorce se nepodařilo načíst.") }
+            }
+        }
+    }
+
+    // ── Cross connections ─────────────────────────────────────────────────────
+
+    fun loadCrossConnections(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, crossConnections = emptyList()) }
+            try {
+                val response = api.getCrossConnections(clientId, deviceId, postId)
+                _state.update { it.copy(isLoading = false, crossConnections = response.connections) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadCrossConnections")
+                _state.update { it.copy(isLoading = false, error = "Souvislosti se nepodařilo načíst.") }
+            }
+        }
+    }
+
+    // ── Step solver ───────────────────────────────────────────────────────────
+
+    fun loadStepSolver(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, solverSteps = emptyList()) }
+            try {
+                val response = api.getStepSolver(clientId, deviceId, postId)
+                _state.update { it.copy(isLoading = false, solverSteps = response.steps) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadStepSolver")
+                _state.update { it.copy(isLoading = false, error = "Postup se nepodařilo vygenerovat.") }
+            }
+        }
+    }
+
+    // ── Concept map ───────────────────────────────────────────────────────────
+
+    fun loadConceptMap(postId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(isLoading = true, error = null, conceptNodes = emptyList(), conceptEdges = emptyList()) }
+            try {
+                val response = api.getConceptMap(clientId, deviceId, postId)
+                _state.update { it.copy(isLoading = false, conceptNodes = response.nodes, conceptEdges = response.edges) }
+            } catch (e: Exception) {
+                Timber.e(e, "loadConceptMap")
+                _state.update { it.copy(isLoading = false, error = "Myšlenkovou mapu se nepodařilo vytvořit.") }
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.screens
 
+import com.tobiso.tobisoappnative.components.RichInlineText
 import com.tobiso.tobisoappnative.components.cozyEntrance
 
 import com.tobiso.tobisoappnative.components.LinearProgressIndicator
@@ -300,7 +301,7 @@ fun MixedQuizScreen(
                                         }
 
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        Text(question.text, style = MaterialTheme.typography.bodyMedium)
+                                        RichInlineText(question.text, style = MaterialTheme.typography.bodyMedium)
                                         Spacer(modifier = Modifier.height(8.dp))
 
                                         if (question.isTextQuestion) {
@@ -506,12 +507,14 @@ fun MixedQuizScreen(
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                     }
-                                    Text(
+                                    RichInlineText(
                                         question.text,
-                                        fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 26.sp,
-                                        lineHeight = 32.sp
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontFamily = com.tobiso.tobisoappnative.ui.theme.Baloo2,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 26.sp,
+                                            lineHeight = 32.sp
+                                        )
                                     )
 
                                     if (question.isTextQuestion) {

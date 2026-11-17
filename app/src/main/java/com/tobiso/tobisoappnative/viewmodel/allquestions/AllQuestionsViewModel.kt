@@ -35,8 +35,28 @@ class AllQuestionsViewModel @Inject constructor(
     private val questionsRepo: QuestionsRepository,
     private val postsRepo: PostsRepository,
     private val exerciseRepo: ExerciseRepository,
-    private val offlineRepo: OfflineRepositoryImpl
+    private val offlineRepo: OfflineRepositoryImpl,
+    private val api: com.tobiso.tobisoappnative.model.ApiService
 ) : AndroidViewModel(application) {
+
+    private val _practiceStats = MutableStateFlow<com.tobiso.tobisoappnative.model.PracticeStats?>(null)
+    /** The signed-in account's answered/mastered totals from the server; null when signed out or not loaded. */
+    val practiceStats: StateFlow<com.tobiso.tobisoappnative.model.PracticeStats?> = _practiceStats
+
+    fun loadPracticeStats() {
+        if (!com.tobiso.tobisoappnative.model.AuthSession.isSignedIn) { _practiceStats.value = null; return }
+        viewModelScope.launch(Dispatchers.IO) {
+            _practiceStats.value = runCatching { api.getPracticeStats() }.getOrNull()
+        }
+    }
+
+    /** Asks the server for questions from the account's weakest categories; [onResult] gets their ids (empty on failure). */
+    fun loadRecommendedQuestionIds(count: Int = 25, onResult: (List<Int>) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ids = runCatching { api.getRecommendedQuestions(count).map { it.id } }.getOrDefault(emptyList())
+            kotlinx.coroutines.withContext(Dispatchers.Main) { onResult(ids) }
+        }
+    }
 
     private val _allQuestions = MutableStateFlow<List<Question>>(emptyList())
     val allQuestions: StateFlow<List<Question>> = _allQuestions

@@ -1,12 +1,18 @@
 package com.tobiso.tobisoappnative.repository
 
+import android.content.Context
 import com.tobiso.tobisoappnative.model.ApiService
 import com.tobiso.tobisoappnative.model.AuthSession
 import com.tobiso.tobisoappnative.model.jwtClaim
 import com.tobiso.tobisoappnative.model.AuthUser
+import com.tobiso.tobisoappnative.model.DeleteAccountRequest
 import com.tobiso.tobisoappnative.model.GoogleTokenRequest
+import com.tobiso.tobisoappnative.model.LegalNoticeDto
 import com.tobiso.tobisoappnative.model.LoginRequest
+import com.tobiso.tobisoappnative.model.PreferredGradeRequest
 import com.tobiso.tobisoappnative.model.RegisterRequest
+import com.tobiso.tobisoappnative.utils.loadGradeId
+import com.tobiso.tobisoappnative.utils.saveGradeId
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -61,17 +67,25 @@ interface AuthRepository {
     /** Creates an unverified account; success means the confirmation mail was sent. */
     suspend fun register(email: String, displayName: String?, password: String, acceptedTerms: Boolean): Result<Unit>
     suspend fun refreshProfile(): Result<AuthUser>
+    /** Saves the grade on the account so it follows the user to the web and other devices. */
+    suspend fun setPreferredGrade(gradeId: Int): Result<Unit>
     suspend fun logout()
     suspend fun stats(): Result<com.tobiso.tobisoappnative.model.UserStats>
     /** Revokes every session of the account (server-side security stamp), then signs out locally. */
     suspend fun logoutEverywhere(): Result<Unit>
+    /** The timestamp of a Terms/Privacy change the user has not seen yet, or null when nothing is pending. */
+    suspend fun pendingLegalNotice(): Result<String?>
+    /** Remembers (server-side) that the user closed the notice for [changedAt]. */
+    suspend fun dismissLegalNotice(changedAt: String): Result<Unit>
+    /** Permanently deletes the account on the server, then signs out locally. */
+    suspend fun deleteAccount(): Result<Unit>
     /** Claims the daily AI-credit bonus; success carries the new credit balance. */
     suspend fun claimDailyBonus(): Result<Int>
     /** The account's data as JSON text. */
     suspend fun exportData(): Result<String>
 }
 
-class AuthRepositoryImpl(private val api: ApiService) : AuthRepository {
+class AuthRepositoryImpl(private val api: ApiService, private val context: Context? = null) : AuthRepository {
 
     override suspend fun login(email: String, password: String): Result<AuthUser> = try {
         val r = api.studentLogin(LoginRequest(email.trim(), password))
@@ -107,12 +121,54 @@ class AuthRepositoryImpl(private val api: ApiService) : AuthRepository {
         val p = api.getMe()
         val user = AuthUser(p.displayName, p.email.ifBlank { null }, p.credits, AuthSession.user.value?.photoUrl)
         AuthSession.updateUser(user)
+        syncPreferredGrade(p.preferredGradeId)
         Result.success(user)
     } catch (e: Exception) {
         Result.failure(mapAuthError(e))
     }
 
+    /** The account's grade wins on this device; if the account has none yet, the local choice is uploaded. */
+    private suspend fun syncPreferredGrade(serverGradeId: Int?) {
+        val ctx = context ?: return
+        val local = loadGradeId(ctx)
+        when {
+            serverGradeId != null && serverGradeId != local -> saveGradeId(ctx, serverGradeId)
+            serverGradeId == null && local != null -> setPreferredGrade(local)
+        }
+    }
+
+    override suspend fun setPreferredGrade(gradeId: Int): Result<Unit> = try {
+        val response = api.setPreferredGrade(PreferredGradeRequest(gradeId))
+        if (!response.isSuccessful) throw HttpException(response)
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(mapAuthError(e))
+    }
+
     override suspend fun logout() = AuthSession.signOut()
+
+    override suspend fun pendingLegalNotice(): Result<String?> = try {
+        Result.success(api.getLegalNotice().changedAt)
+    } catch (e: Exception) {
+        Result.failure(mapAuthError(e))
+    }
+
+    override suspend fun dismissLegalNotice(changedAt: String): Result<Unit> = try {
+        val response = api.dismissLegalNotice(LegalNoticeDto(changedAt))
+        if (!response.isSuccessful) throw HttpException(response)
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(mapAuthError(e))
+    }
+
+    override suspend fun deleteAccount(): Result<Unit> = try {
+        val response = api.deleteAccount(DeleteAccountRequest(confirm = true))
+        if (!response.isSuccessful) throw HttpException(response)
+        AuthSession.signOut()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(mapAuthError(e))
+    }
 
     override suspend fun logoutEverywhere(): Result<Unit> = try {
         val response = api.logoutEverywhere()
