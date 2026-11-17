@@ -115,4 +115,24 @@ class CalloutAndMathTest {
         val p = parse("\\[\nx^2 + y^2 = r^2\n\\]").single() as ContentElement.Paragraph
         assertEquals("x² + y² = r²", inlinePartsToText(p.parts))
     }
+
+    @Test
+    fun `fractions in articles become stacked fraction parts`() {
+        val p = parse("\\[\nE = \\frac{1}{2} mv^2 - \\frac{GMm}{r}\n\\]").single() as ContentElement.Paragraph
+        val fractions = p.parts.filterIsInstance<InlinePart.Fraction>()
+        assertEquals(listOf("1/2", "GMm/r"), fractions.map { inlinePartsToText(listOf(it)) })
+    }
+
+    @Test
+    fun `nested fractions keep a flat numerator and chat keeps flat fractions`() {
+        assertEquals("{1/2}/{3}", convertMathSpans("\\(\\frac{\\frac{1}{2}}{3}\\)", stackedFractions = true))
+        assertEquals("1/2", convertMathSpans("\\(\\frac{1}{2}\\)"))
+    }
+
+    @Test
+    fun `chat lines with fractions become their own stacked block`() {
+        val blocks = splitChatBlocks(convertMathSpans("kde:\n\\[\nE = \\frac{1}{2} mv^2 - \\frac{GMm}{r}\n\\]\n- \\( K \\) je energie", stackedFractions = true))
+        assertEquals(listOf(false, true, false), blocks.map { it.hasFraction })
+        assertEquals("E = {1}/{2} mv² - {GMm}/{r}", blocks[1].text)
+    }
 }

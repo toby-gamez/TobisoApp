@@ -11,12 +11,16 @@ private val MATH_SPAN = Regex(
     RegexOption.DOT_MATCHES_ALL
 )
 
-/** Replaces every math span in [text] with its Unicode rendering; text without `$` is returned untouched. */
-fun convertMathSpans(text: String): String =
+/**
+ * Replaces every math span in [text] with its Unicode rendering; text without math is returned untouched.
+ * With [stackedFractions], `\frac{a}{b}` becomes the article syntax `{a}/{b}` so the article renderer draws a real
+ * stacked fraction (chat text keeps the flat `a/b`).
+ */
+fun convertMathSpans(text: String, stackedFractions: Boolean = false): String =
     if ('$' !in text && '\\' !in text) text
     else MATH_SPAN.replace(text) { m ->
         val body = (1..4).firstNotNullOf { m.groups[it]?.value }
-        latexToUnicode(body.replace(Regex("""\s*\n\s*"""), " ").trim())
+        latexToUnicode(body.replace(Regex("""\s*\n\s*"""), " ").trim(), stackedFractions)
     }
 
 private val SUPERSCRIPTS = mapOf(
@@ -62,9 +66,10 @@ private val ALIGNED_ENVS = setOf("aligned", "align", "align*", "gathered", "spli
 private val ROW_SEPARATOR = Regex("""\\\\""")
 private val DROPPED = setOf("left", "right", "displaystyle", "big", "Big", "bigg", "Bigg", "limits")
 
-fun latexToUnicode(latex: String): String = LatexParser(latex).parse().trim()
+fun latexToUnicode(latex: String, stackedFractions: Boolean = false): String =
+    LatexParser(latex, stackedFractions).parse().trim()
 
-private class LatexParser(private val s: String) {
+private class LatexParser(private val s: String, private var stacked: Boolean = false) {
     private var i = 0
 
     fun parse(): String {
@@ -103,7 +108,7 @@ private class LatexParser(private val s: String) {
             i++
         }
         val inner = s.substring(start + 1, (i - 1).coerceAtLeast(start + 1))
-        return LatexParser(inner).parse()
+        return LatexParser(inner, stacked).parse()
     }
 
     private fun skipSpaces() { while (i < s.length && s[i] == ' ') i++ }
@@ -131,8 +136,12 @@ private class LatexParser(private val s: String) {
         val name = s.substring(start, i)
         return when {
             name == "frac" || name == "dfrac" || name == "tfrac" -> {
+                // The article syntax has no nesting: fractions inside a fraction are read as flat text.
+                val outerStacked = stacked
+                stacked = false
                 val a = argument(); val b = argument()
-                "${wrapIfComposite(a)}/${wrapIfComposite(b)}"
+                stacked = outerStacked
+                if (stacked) "{$a}/{$b}" else "${wrapIfComposite(a)}/${wrapIfComposite(b)}"
             }
             name == "sqrt" -> {
                 // optional index: \sqrt[3]{x}

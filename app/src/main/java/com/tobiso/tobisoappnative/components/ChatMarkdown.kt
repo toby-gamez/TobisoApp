@@ -1,5 +1,6 @@
 package com.tobiso.tobisoappnative.components
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,10 +33,48 @@ fun ChatMarkdownText(
     modifier: Modifier = Modifier
 ) {
     val codeBg = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-    val annotated = remember(text, color, codeBg) { markdownToAnnotated(convertMathSpans(text), codeBg) }
+    // Math is first turned into the article syntax ({a}/{b}); lines holding a fraction then go through the
+    // article's inline renderer so they get a real stacked fraction, the rest stay one selectable markdown Text.
+    val blocks = remember(text) { splitChatBlocks(convertMathSpans(text, stackedFractions = true)) }
     SelectionContainer {
-        Text(text = annotated, style = style, color = color, modifier = modifier)
+        Column(modifier = modifier) {
+            blocks.forEach { block ->
+                if (block.hasFraction) {
+                    RichInlineText(text = block.text, style = style, color = color)
+                } else {
+                    val annotated = remember(block.text, color, codeBg) { markdownToAnnotated(block.text, codeBg) }
+                    Text(text = annotated, style = style, color = color)
+                }
+            }
+        }
     }
+}
+
+internal class ChatBlock(val text: String, val hasFraction: Boolean)
+
+/** Groups consecutive lines into blocks, a line with a `{a}/{b}` fraction (outside code fences) being a block of its own. */
+internal fun splitChatBlocks(text: String): List<ChatBlock> {
+    val blocks = mutableListOf<ChatBlock>()
+    val plain = mutableListOf<String>()
+    fun flush() { if (plain.isNotEmpty()) { blocks.add(ChatBlock(plain.joinToString("\n"), false)); plain.clear() } }
+    var inFence = false
+    for (line in text.replace("\r\n", "\n").split("\n")) {
+        if (line.trim().startsWith("```")) inFence = !inFence
+        if (!inFence && !line.trim().startsWith("```") && parseInlineParts(line).any { it is InlinePart.Fraction }) {
+            flush()
+            blocks.add(ChatBlock(fractionLineText(line), true))
+        } else plain.add(line)
+    }
+    flush()
+    return blocks
+}
+
+/** Chat list/heading markers aren't article syntax, so they are written out the way [markdownToAnnotated] shows them. */
+private fun fractionLineText(line: String): String {
+    bulletRegex.matchEntire(line)?.let { return "  ".repeat(it.groupValues[1].length / 2) + "•  " + it.groupValues[2] }
+    numberedRegex.matchEntire(line)?.let { return "  ".repeat(it.groupValues[1].length / 2) + it.groupValues[2] + ".  " + it.groupValues[3] }
+    headingRegex.matchEntire(line.trim())?.let { return "**" + it.groupValues[2] + "**" }
+    return line
 }
 
 internal fun markdownToAnnotated(text: String, codeBackground: Color): AnnotatedString =

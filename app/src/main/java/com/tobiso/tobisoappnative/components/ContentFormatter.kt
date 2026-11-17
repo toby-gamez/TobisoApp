@@ -168,7 +168,7 @@ fun parseContentToElements(
 
     // Display math \[ … \] may span several lines, which the line-based parser below can't see.
     if (text.contains("\\[")) {
-        val converted = convertMathSpans(text)
+        val converted = convertMathSpans(text, stackedFractions = true)
         if (converted != text) return parseContentToElements(converted, isOffline, posts, allowIntra)
     }
 
@@ -491,7 +491,7 @@ fun parseContentToElements(
 
 // --- Inline Markdown Parser pro tučné, kurzívu a inline odkazy ---
 fun parseInlineParts(rawText: String, posts: List<Post>? = null): List<InlinePart> {
-    val text = convertMathSpans(rawText).replace("->", "→")
+    val text = convertMathSpans(rawText, stackedFractions = true).replace("->", "→")
     // Podpora **tučné**, *kurzíva*, ***tučné kurzíva***, [odkaz](url), (--DOD-číslo--)
     val result = mutableListOf<InlinePart>()
     var i = 0
